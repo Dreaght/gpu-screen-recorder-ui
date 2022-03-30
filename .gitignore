@@ -1,5 +1,6 @@
 # Compiled sibs files
 sibs-build/
 compile_commands.json
-tests/sibs-build/
-tests/compile_commands.json
+
+gpu-screen-recorder-overlay-daemon/sibs-build/
+gpu-screen-recorder-overlay-daemon/compile_commands.json

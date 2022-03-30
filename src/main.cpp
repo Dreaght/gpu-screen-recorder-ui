@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <libgen.h>
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
@@ -64,6 +65,11 @@ int main(int argc, char **argv) {
     if(argc != 2)
         usage();
 
+    std::string program_root_dir = dirname(argv[0]);
+    if(!program_root_dir.empty() && program_root_dir.back() != '/')
+        program_root_dir += '/';
+    program_root_dir += "../../../";
+
     int64_t target_window;
     if(!string_to_i64(argv[1], &target_window)) {
         fprintf(stderr, "Error: invalid number '%s' was specific for window argument\n", argv[1]);
@@ -94,11 +100,11 @@ int main(int argc, char **argv) {
         startup_error("failed to create window");
 
     mgl::MemoryMappedFile title_font_file;
-    if(!title_font_file.load("fonts/Orbitron-Bold.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
+    if(!title_font_file.load((program_root_dir + "fonts/Orbitron-Bold.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
         startup_error("failed to load file: fonts/Orbitron-Bold.ttf");
 
     mgl::MemoryMappedFile font_file;
-    if(!font_file.load("fonts/Orbitron-Regular.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
+    if(!font_file.load((program_root_dir + "fonts/Orbitron-Regular.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
         startup_error("failed to load file: fonts/Orbitron-Regular.ttf");
 
     mgl::Font title_font;
@@ -110,15 +116,15 @@ int main(int argc, char **argv) {
         startup_error("failed to load font: fonts/Orbitron-Regular.ttf");
 
     mgl::Texture replay_button_texture;
-    if(!replay_button_texture.load_from_file("images/replay.png"))
+    if(!replay_button_texture.load_from_file((program_root_dir + "images/replay.png").c_str()))
         startup_error("failed to load texture: images/replay.png");
 
     mgl::Texture record_button_texture;
-    if(!record_button_texture.load_from_file("images/record.png"))
+    if(!record_button_texture.load_from_file((program_root_dir + "images/record.png").c_str()))
         startup_error("failed to load texture: images/record.png");
 
     mgl::Texture stream_button_texture;
-    if(!stream_button_texture.load_from_file("images/stream.png"))
+    if(!stream_button_texture.load_from_file((program_root_dir + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
 
     struct MainButton {
@@ -245,27 +251,6 @@ int main(int argc, char **argv) {
     };
 
     update_overlay_shape();
-
-    WindowTexture target_window_texture;
-    window_texture_init(&target_window_texture, display, target_window);
-
-    int target_window_texture_width = 0;
-    int target_window_texture_height = 0;
-    window_texture_get_size_or(&target_window_texture, &target_window_texture_width, &target_window_texture_height, target_window_size.x, target_window_size.y);
-
-    mgl_texture window_texture_ref = {
-        window_texture_get_opengl_texture_id(&target_window_texture),
-        target_window_texture_width,
-        target_window_texture_height,
-        MGL_TEXTURE_FORMAT_RGB,
-        32768,
-        32768,
-        true
-    };
-
-    mgl::Texture window_texture = mgl::Texture::reference(window_texture_ref);
-    mgl::Sprite window_texture_sprite(&window_texture);
-
     window.set_visible(true);
 
     Cursor default_cursor = XCreateFontCursor(display, XC_arrow);
@@ -280,10 +265,7 @@ int main(int argc, char **argv) {
     while(window.is_open()) {
         if(XCheckTypedWindowEvent(display, target_window, VisibilityNotify, &xev)) {
             if(xev.xvisibility.state) {
-                window_texture_on_resize(&target_window_texture);
-                window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
-                window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
-                window_texture = mgl::Texture::reference(window_texture_ref);
+                
             }
         }
 
@@ -293,11 +275,6 @@ int main(int argc, char **argv) {
             target_window_size.y = xev.xconfigure.height;
             window.set_size(target_window_size);
             update_overlay_shape();
-
-            window_texture_on_resize(&target_window_texture);
-            window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
-            window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
-            window_texture = mgl::Texture::reference(window_texture_ref);
         }
 
         if(window.poll_event(event)) {
@@ -305,7 +282,7 @@ int main(int argc, char **argv) {
                 main_button.button.on_event(event, window);
             }
 
-            if(event.type == mgl::Event::KeyPressed) {
+            if(event.type == mgl::Event::KeyReleased) {
                 if(event.key.code == mgl::Keyboard::Escape) {
                     window.close();
                     break;
