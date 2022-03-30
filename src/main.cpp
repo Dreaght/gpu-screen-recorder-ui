@@ -1,4 +1,5 @@
 #include "../include/gui/Button.hpp"
+#include "../include/window_texture.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,20 @@ static bool string_to_i64(const char *str, int64_t *result) {
     return true;
 }
 
+static void window_texture_get_size_or(WindowTexture *window_texture, int *width, int *height, int fallback_width, int fallback_height) {
+    Window root_window;
+    int x, y;
+    unsigned int w = 0, h = 0;
+    unsigned int border_width, depth;
+    if(!XGetGeometry(window_texture->display, window_texture->pixmap, &root_window, &x, &y, &w, &h, &border_width, &depth) || w == 0 || h == 0) {
+        *width = fallback_width;
+        *height = fallback_height;
+    } else {
+        *width = w;
+        *height = h;
+    }
+}
+
 int main(int argc, char **argv) {
     if(argc != 2)
         usage();
@@ -65,7 +80,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    XSelectInput(display, target_window, StructureNotifyMask);
+    XSelectInput(display, target_window, VisibilityChangeMask | StructureNotifyMask);
 
     mgl::vec2i target_window_size = { target_win_attr.width, target_win_attr.height };
 
@@ -199,7 +214,8 @@ int main(int argc, char **argv) {
 
         const mgl::vec2i settings_button_size(128, 128);
         shapes[main_buttons.size()] = {
-            (short)(main_buttons_start_pos.x + overlay_desired_size.x), (short)(main_buttons_start_pos.y - settings_button_size.y), (unsigned short)settings_button_size.x, (unsigned short)settings_button_size.y
+            (short)(main_buttons_start_pos.x + overlay_desired_size.x), (short)(main_buttons_start_pos.y - settings_button_size.y),
+            (unsigned short)settings_button_size.x, (unsigned short)settings_button_size.y
         };
 
         if(shape_pixmap) {
@@ -229,6 +245,27 @@ int main(int argc, char **argv) {
     };
 
     update_overlay_shape();
+
+    WindowTexture target_window_texture;
+    window_texture_init(&target_window_texture, display, target_window);
+
+    int target_window_texture_width = 0;
+    int target_window_texture_height = 0;
+    window_texture_get_size_or(&target_window_texture, &target_window_texture_width, &target_window_texture_height, target_window_size.x, target_window_size.y);
+
+    mgl_texture window_texture_ref = {
+        window_texture_get_opengl_texture_id(&target_window_texture),
+        target_window_texture_width,
+        target_window_texture_height,
+        MGL_TEXTURE_FORMAT_RGB,
+        32768,
+        32768,
+        true
+    };
+
+    mgl::Texture window_texture = mgl::Texture::reference(window_texture_ref);
+    mgl::Sprite window_texture_sprite(&window_texture);
+
     window.set_visible(true);
 
     Cursor default_cursor = XCreateFontCursor(display, XC_arrow);
@@ -241,12 +278,26 @@ int main(int argc, char **argv) {
     mgl::Event event;
 
     while(window.is_open()) {
+        if(XCheckTypedWindowEvent(display, target_window, VisibilityNotify, &xev)) {
+            if(xev.xvisibility.state) {
+                window_texture_on_resize(&target_window_texture);
+                window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
+                window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
+                window_texture = mgl::Texture::reference(window_texture_ref);
+            }
+        }
+
         if(XCheckTypedWindowEvent(display, target_window, ConfigureNotify, &xev) && (xev.xconfigure.width != target_window_size.x || xev.xconfigure.height != target_window_size.y)) {
             while(XCheckTypedWindowEvent(display, target_window, ConfigureNotify, &xev)) {}
             target_window_size.x = xev.xconfigure.width;
             target_window_size.y = xev.xconfigure.height;
             window.set_size(target_window_size);
             update_overlay_shape();
+
+            window_texture_on_resize(&target_window_texture);
+            window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
+            window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
+            window_texture = mgl::Texture::reference(window_texture_ref);
         }
 
         if(window.poll_event(event)) {
