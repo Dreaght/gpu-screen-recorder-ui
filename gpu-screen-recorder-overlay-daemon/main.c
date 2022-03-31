@@ -1,12 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-static int xerror_dummy(Display *dpy, XErrorEvent *ee) {
-    (void)dpy;
+static int ignore_xerror(Display *display, XErrorEvent *ee) {
+    (void)display;
     (void)ee;
     return 0;
+}
+
+static void sigterm_handler(int dummy) {
+    (void)dummy;
 }
 
 static const KeySym toggle_overlay_key = XK_Z;
@@ -22,7 +27,7 @@ static void grab_keys(Display *display) {
     }   
     XFreeModifiermap(modmap);
 
-    XErrorHandler prev_error_handler = XSetErrorHandler(xerror_dummy);
+    XErrorHandler prev_error_handler = XSetErrorHandler(ignore_xerror);
     
     Window root_window = DefaultRootWindow(display);
     unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
@@ -51,6 +56,10 @@ int main() {
 
     grab_keys(display);
     const KeyCode overlay_keycode = XKeysymToKeycode(display, toggle_overlay_key);
+
+    XSetErrorHandler(ignore_xerror);
+    /* Killing gpu-screen-recorder with SIGTERM also gives us SIGTERM. We want to ignore that as that has no meaning here */
+    signal(SIGTERM, sigterm_handler);
 
     XEvent xev;
     for(;;) {

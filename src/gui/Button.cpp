@@ -10,6 +10,7 @@ namespace gsr {
     }
 
     void Button::on_event(mgl::Event &event, mgl::Window&) {
+        /*
         if(event.type == mgl::Event::MouseMoved) {
             const bool inside = mgl::FloatRect(position, size).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
             if(mouse_inside && !inside) {
@@ -17,10 +18,24 @@ namespace gsr {
             } else if(!mouse_inside && inside) {
                 mouse_inside = true;
             }
+        } else if(event.type == mgl::Event::MouseButtonPressed && mouse_inside) {
+
+        }
+        */
+        if(event.type == mgl::Event::MouseButtonPressed && mouse_inside) {
+            if(on_click)
+                on_click();
         }
     }
 
     void Button::draw(mgl::Window &window) {
+        const bool inside = mgl::FloatRect(position, size).contains(window.get_mouse_position().to_vec2f());
+        if(mouse_inside && !inside) {
+            mouse_inside = false;
+        } else if(!mouse_inside && inside) {
+            mouse_inside = true;
+        }
+
         if(mouse_inside) {
             // Background
             /*
