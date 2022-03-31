@@ -15,5 +15,6 @@ namespace gsr {
     private:
         mgl::vec2f size;
         bool mouse_inside = false;
+        bool pressed_inside = false;
     };
 }

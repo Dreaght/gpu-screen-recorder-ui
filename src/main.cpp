@@ -252,9 +252,6 @@ int main(int argc, char **argv) {
 
     main_buttons[2].mode = gsr::GsrMode::Stream;
 
-    const int per_button_width = 425 * get_config().scale;
-    const mgl::vec2i overlay_desired_size(per_button_width * (int)main_buttons.size(), 300 * get_config().scale);
-
     XGCValues xgcv;
     xgcv.foreground = WhitePixel(display, DefaultScreen(display));
     xgcv.line_width = 1;
@@ -265,6 +262,12 @@ int main(int argc, char **argv) {
 
     auto update_overlay_shape = [&]() {
         const int main_button_margin = 20 * get_config().scale;
+        const int spacing = 10 * get_config().scale;
+        const int combined_spacing = spacing * std::max(0, (int)main_buttons.size() - 1);
+
+        const int per_button_width = 425 * get_config().scale;
+        const mgl::vec2i overlay_desired_size(per_button_width * (int)main_buttons.size() + combined_spacing, 300 * get_config().scale);
+
         const mgl::vec2i main_buttons_start_pos = target_window_size/2 - overlay_desired_size/2;
         mgl::vec2i main_button_pos = main_buttons_start_pos;
 
@@ -302,12 +305,12 @@ int main(int argc, char **argv) {
             shapes[i] = {
                 (short)main_button_pos.x, (short)main_button_pos.y, (unsigned short)per_button_width, (unsigned short)overlay_desired_size.y
             };
-            main_button_pos.x += per_button_width;
+            main_button_pos.x += per_button_width + combined_spacing;
         }
 
         const mgl::vec2i settings_button_size(128 * get_config().scale, 128 * get_config().scale);
         shapes[main_buttons.size()] = {
-            (short)(main_buttons_start_pos.x + overlay_desired_size.x), (short)(main_buttons_start_pos.y - settings_button_size.y),
+            (short)(main_buttons_start_pos.x + overlay_desired_size.x + 50 * get_config().scale), (short)(main_buttons_start_pos.y - settings_button_size.y - 50 * get_config().scale),
             (unsigned short)settings_button_size.x, (unsigned short)settings_button_size.y
         };
 
@@ -342,12 +345,56 @@ int main(int argc, char **argv) {
 
     Cursor default_cursor = XCreateFontCursor(display, XC_arrow);
 
-    // TODO: Retry if these fail
-    XGrabPointer(display, window.get_system_handle(), True, ButtonPressMask | ButtonReleaseMask, GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
+    // TODO: Capture target window texture and display that as background, but that doesn't work right now because capture will capture our window which makes the capture recursive.
+    // TODO: Capture end ui should not show up in the recording, but it does because the ui becomes part of the target window texture because the ui is a child of the target window.
+
+    // TODO: Retry if these fail.
+    // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
+    XGrabPointer(display, window.get_system_handle(), True,
+        ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
+        Button1MotionMask |
+        Button2MotionMask |
+        Button3MotionMask |
+        Button4MotionMask |
+        Button5MotionMask |
+        ButtonMotionMask,
+        GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
     XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+
+    //XGrabServer(display);
+
+    WindowTexture target_window_texture;
+    if(window_texture_init(&target_window_texture, display, target_window) != 0) {
+        fprintf(stderr, "Error: failed to capture window\n");
+        return 1;
+    }
+
+    int target_window_texture_width = 0;
+    int target_window_texture_height = 0;
+    window_texture_get_size_or(&target_window_texture, &target_window_texture_width, &target_window_texture_height, target_window_size.x, target_window_size.y);
+
+    mgl_texture window_texture_ref = {
+        window_texture_get_opengl_texture_id(&target_window_texture),
+        target_window_texture_width,
+        target_window_texture_height,
+        MGL_TEXTURE_FORMAT_RGB,
+        32768,
+        32768,
+        true
+    };
+
+    mgl::Texture window_texture = mgl::Texture::reference(window_texture_ref);
+    mgl::Sprite window_texture_sprite(&window_texture);
 
     XEvent xev;
     mgl::Event event;
+
+    event.type = mgl::Event::MouseMoved;
+    event.mouse_move.x = window.get_mouse_position().x;
+    event.mouse_move.y = window.get_mouse_position().y;
+    for(auto &main_button : main_buttons) {
+        main_button.button.on_event(event, window);
+    }
 
     while(window.is_open()) {
         if(XCheckTypedWindowEvent(display, target_window, DestroyNotify, &xev)) {
@@ -357,7 +404,10 @@ int main(int argc, char **argv) {
 
         if(XCheckTypedWindowEvent(display, target_window, VisibilityNotify, &xev)) {
             if(xev.xvisibility.state) {
-                
+                window_texture_on_resize(&target_window_texture);
+                window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
+                window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
+                window_texture = mgl::Texture::reference(window_texture_ref);
             }
         }
 
@@ -367,6 +417,11 @@ int main(int argc, char **argv) {
             target_window_size.y = xev.xconfigure.height;
             window.set_size(target_window_size);
             update_overlay_shape();
+
+            window_texture_on_resize(&target_window_texture);
+            window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
+            window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
+            window_texture = mgl::Texture::reference(window_texture_ref);
         }
 
         if(window.poll_event(event)) {
@@ -383,6 +438,7 @@ int main(int argc, char **argv) {
         }
 
         window.clear(mgl::Color(37, 43, 47));
+        //window.draw(window_texture_sprite);
         for(auto &main_button : main_buttons) {
             main_button.button.draw(window);
             window.draw(main_button.icon);
