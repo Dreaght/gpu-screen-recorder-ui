@@ -71,6 +71,12 @@ namespace gsr {
                 rect.set_color(border_color);
                 window.draw(rect);
             }
+        } else {
+            // Background
+            mgl::Rectangle rect(size);
+            rect.set_position(position);
+            rect.set_color(mgl::Color(20, 20, 20, 225));
+            window.draw(rect);
         }
     }
 }

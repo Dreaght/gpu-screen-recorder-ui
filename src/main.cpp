@@ -12,13 +12,13 @@
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
-#include <X11/extensions/shape.h>
 
 #include <mglpp/mglpp.hpp>
 #include <mglpp/graphics/Font.hpp>
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/graphics/Texture.hpp>
 #include <mglpp/graphics/Sprite.hpp>
+#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/MemoryMappedFile.hpp>
@@ -73,6 +73,41 @@ static void window_texture_get_size_or(WindowTexture *window_texture, int *width
     }
 }
 
+#define _NET_WM_STATE_REMOVE  0
+#define _NET_WM_STATE_ADD     1
+#define _NET_WM_STATE_TOGGLE  2
+
+static Bool make_window_always_on_top(Display* display, Window window) {
+    Atom net_wm_state_above_atom = XInternAtom(display, "_NET_WM_STATE_ABOVE", True);
+    if(!net_wm_state_above_atom) {
+        fprintf(stderr, "Error: failed to find atom _NET_WM_STATE_ABOVE\n");
+        return False;
+    }
+    
+    Atom net_wm_state_atom = XInternAtom(display, "_NET_WM_STATE", True);
+    if(!net_wm_state_atom) {
+        fprintf(stderr, "Error: failed to find atom _NET_WM_STATE\n");
+        return False;
+    }
+
+    XClientMessageEvent xclient;
+    memset(&xclient, 0, sizeof(xclient));
+
+    xclient.type = ClientMessage;
+    xclient.window = window;
+    xclient.message_type = net_wm_state_atom;
+    xclient.format = 32;
+    xclient.data.l[0] = _NET_WM_STATE_ADD;
+    xclient.data.l[1] = net_wm_state_above_atom;
+    xclient.data.l[2] = 0;
+    xclient.data.l[3] = 0;
+    xclient.data.l[4] = 0;
+
+    XSendEvent(display, DefaultRootWindow(display), False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&xclient);
+    XFlush(display);
+    return True;
+}
+
 int main(int argc, char **argv) {
     if(argc != 2)
         usage();
@@ -92,7 +127,6 @@ int main(int argc, char **argv) {
     Display *display = (Display*)mgl_get_context()->connection;
 
     XWindowAttributes target_win_attr;
-    memset(&target_win_attr, 0, sizeof(target_win_attr));
     if(!XGetWindowAttributes(display, target_window, &target_win_attr)) {
         fprintf(stderr, "Error: window argument %s is not a valid window\n", argv[1]);
         return 1;
@@ -104,9 +138,10 @@ int main(int argc, char **argv) {
     get_config().scale = std::min(1.0, (double)target_win_attr.width / 1920.0);
 
     mgl::Window::CreateParams window_create_params;
+    window_create_params.position = { target_win_attr.x, target_win_attr.y };
     window_create_params.size = target_window_size;
-    window_create_params.parent_window = target_window;
     window_create_params.hidden = true;
+    window_create_params.override_redirect = true;
 
     mgl::Window window;
     if(!window.create("mglpp", window_create_params))
@@ -173,7 +208,6 @@ int main(int argc, char **argv) {
     };
 
     std::vector<MainButton> main_buttons;
-    std::vector<XRectangle> shapes;
 
     for(int i = 0; i < 3; ++i) {
         mgl::Text title(titles[i], {0.0f, 0.0f}, title_font);
@@ -195,11 +229,7 @@ int main(int argc, char **argv) {
         };
 
         main_buttons.push_back(std::move(main_button));
-        shapes.push_back({});
     }
-
-    // Settings button
-    shapes.push_back({});
 
     // Replay
     main_buttons[0].button.on_click = [&]() {
@@ -252,14 +282,6 @@ int main(int argc, char **argv) {
 
     main_buttons[2].mode = gsr::GsrMode::Stream;
 
-    XGCValues xgcv;
-    xgcv.foreground = WhitePixel(display, DefaultScreen(display));
-    xgcv.line_width = 1;
-    xgcv.line_style = LineSolid;
-
-    Pixmap shape_pixmap = None;
-    GC shape_gc = None;
-
     auto update_overlay_shape = [&]() {
         const int main_button_margin = 20 * get_config().scale;
         const int spacing = 10 * get_config().scale;
@@ -302,66 +324,11 @@ int main(int argc, char **argv) {
                     main_button_pos.y + overlay_desired_size.y * 0.5f - main_buttons[i].icon.get_texture()->get_size().y * main_buttons[i].icon.get_scale().y * 0.5f).floor());
 
             main_buttons[i].button.set_position(main_button_pos.to_vec2f());
-            shapes[i] = {
-                (short)main_button_pos.x, (short)main_button_pos.y, (unsigned short)per_button_width, (unsigned short)overlay_desired_size.y
-            };
             main_button_pos.x += per_button_width + combined_spacing;
         }
-
-        const mgl::vec2i settings_button_size(128 * get_config().scale, 128 * get_config().scale);
-        shapes[main_buttons.size()] = {
-            (short)(main_buttons_start_pos.x + overlay_desired_size.x + 50 * get_config().scale), (short)(main_buttons_start_pos.y - settings_button_size.y - 50 * get_config().scale),
-            (unsigned short)settings_button_size.x, (unsigned short)settings_button_size.y
-        };
-
-        if(shape_pixmap) {
-            XFreePixmap(display, shape_pixmap);
-            shape_pixmap = None;
-        }
-
-        if(shape_gc) {
-            XFreeGC(display, shape_gc);
-            shape_gc = None;
-        }
-
-        shape_pixmap = XCreatePixmap(display, window.get_system_handle(), target_window_size.x, target_window_size.y, 1);
-        if(!shape_pixmap)
-            fprintf(stderr, "Error: failed to create shape pixmap\n");
-
-        shape_gc = XCreateGC(display, shape_pixmap, 0, &xgcv);
-
-        XSetForeground(display, shape_gc, 0);
-        XFillRectangle(display, shape_pixmap, shape_gc, 0, 0, target_window_size.x, target_window_size.y);
-
-        XSetForeground(display, shape_gc, 1);
-        XDrawRectangles(display, shape_pixmap, shape_gc, shapes.data(), shapes.size());
-        XFillRectangles(display, shape_pixmap, shape_gc, shapes.data(), shapes.size());
-
-        XShapeCombineMask(display, window.get_system_handle(), ShapeBounding, 0, 0, shape_pixmap, ShapeSet);
     };
 
     update_overlay_shape();
-    window.set_visible(true);
-
-    Cursor default_cursor = XCreateFontCursor(display, XC_arrow);
-
-    // TODO: Capture target window texture and display that as background, but that doesn't work right now because capture will capture our window which makes the capture recursive.
-    // TODO: Capture end ui should not show up in the recording, but it does because the ui becomes part of the target window texture because the ui is a child of the target window.
-
-    // TODO: Retry if these fail.
-    // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
-    XGrabPointer(display, window.get_system_handle(), True,
-        ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
-        Button1MotionMask |
-        Button2MotionMask |
-        Button3MotionMask |
-        Button4MotionMask |
-        Button5MotionMask |
-        ButtonMotionMask,
-        GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
-    XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
-
-    //XGrabServer(display);
 
     WindowTexture target_window_texture;
     if(window_texture_init(&target_window_texture, display, target_window) != 0) {
@@ -383,6 +350,23 @@ int main(int argc, char **argv) {
         true
     };
 
+    window.set_size({ target_window_texture_width, target_window_texture_height });
+    window.set_visible(true);
+    make_window_always_on_top(display, window.get_system_handle());
+
+    Cursor default_cursor = XCreateFontCursor(display, XC_arrow);
+
+    // TODO: Retry if these fail.
+    // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
+    XGrabPointer(display, window.get_system_handle(), True,
+        ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
+        Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
+        ButtonMotionMask,
+        GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
+    XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+
+    //XGrabServer(display);
+
     mgl::Texture window_texture = mgl::Texture::reference(window_texture_ref);
     mgl::Sprite window_texture_sprite(&window_texture);
 
@@ -395,6 +379,9 @@ int main(int argc, char **argv) {
     for(auto &main_button : main_buttons) {
         main_button.button.on_event(event, window);
     }
+
+    mgl::Rectangle background_overlay(mgl::vec2f(target_window_texture_width, target_window_texture_height));
+    background_overlay.set_color(mgl::Color(0, 0, 0, 150));
 
     while(window.is_open()) {
         if(XCheckTypedWindowEvent(display, target_window, DestroyNotify, &xev)) {
@@ -411,17 +398,22 @@ int main(int argc, char **argv) {
             }
         }
 
-        if(XCheckTypedWindowEvent(display, target_window, ConfigureNotify, &xev) && (xev.xconfigure.width != target_window_size.x || xev.xconfigure.height != target_window_size.y)) {
+        if(XCheckTypedWindowEvent(display, target_window, ConfigureNotify, &xev)) {
             while(XCheckTypedWindowEvent(display, target_window, ConfigureNotify, &xev)) {}
-            target_window_size.x = xev.xconfigure.width;
-            target_window_size.y = xev.xconfigure.height;
-            window.set_size(target_window_size);
-            update_overlay_shape();
+            if(xev.xconfigure.width != target_window_size.x || xev.xconfigure.height != target_window_size.y) {
+                target_window_size.x = xev.xconfigure.width;
+                target_window_size.y = xev.xconfigure.height;
+                window.set_size(target_window_size);
+                update_overlay_shape();
 
-            window_texture_on_resize(&target_window_texture);
-            window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
-            window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
-            window_texture = mgl::Texture::reference(window_texture_ref);
+                window_texture_on_resize(&target_window_texture);
+                window_texture_ref.id = window_texture_get_opengl_texture_id(&target_window_texture);
+                window_texture_get_size_or(&target_window_texture, &window_texture_ref.width, &window_texture_ref.height, target_window_size.x, target_window_size.y);
+                window_texture = mgl::Texture::reference(window_texture_ref);
+
+                background_overlay.set_size(mgl::vec2f(target_window_texture_width, target_window_texture_height));
+            }
+            window.set_position({ xev.xconfigure.x, xev.xconfigure.y });
         }
 
         if(window.poll_event(event)) {
@@ -438,7 +430,8 @@ int main(int argc, char **argv) {
         }
 
         window.clear(mgl::Color(37, 43, 47));
-        //window.draw(window_texture_sprite);
+        window.draw(window_texture_sprite);
+        window.draw(background_overlay);
         for(auto &main_button : main_buttons) {
             main_button.button.draw(window);
             window.draw(main_button.icon);
