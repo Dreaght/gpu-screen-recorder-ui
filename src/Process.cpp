@@ -11,7 +11,7 @@ namespace gsr {
     bool exec_program_daemonized(const char **args) {
         /* 1 argument */
         if(args[0] == nullptr)
-            return -1;
+            return false;
 
         pid_t pid = vfork();
         if(pid == -1) {
@@ -28,11 +28,13 @@ namespace gsr {
                 perror("execvp");
                 _exit(127);
             } else if(second_child != -1) {
+                // TODO:
                 _exit(0);
             }
         } else { /* parent */
             waitpid(pid, nullptr, 0);
         }
+
         return true;
     }
 

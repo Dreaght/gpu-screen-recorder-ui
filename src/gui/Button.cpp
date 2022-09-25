@@ -9,7 +9,7 @@ namespace gsr {
 
     }
 
-    void Button::on_event(mgl::Event &event, mgl::Window&) {
+    bool Button::on_event(mgl::Event &event, mgl::Window&) {
         if(event.type == mgl::Event::MouseMoved) {
             const bool inside = mgl::FloatRect(position, size).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
             if(mouse_inside && !inside) {
@@ -25,6 +25,7 @@ namespace gsr {
             if(clicked_inside && on_click)
                 on_click();
         }
+        return true;
     }
 
     void Button::draw(mgl::Window &window) {
@@ -33,7 +34,7 @@ namespace gsr {
             {
                 mgl::Rectangle rect(size);
                 rect.set_position(position);
-                rect.set_color(mgl::Color(20, 20, 20, 255));
+                rect.set_color(mgl::Color(0, 0, 0, 255));
                 window.draw(rect);
             }
 
@@ -75,7 +76,7 @@ namespace gsr {
             // Background
             mgl::Rectangle rect(size);
             rect.set_position(position);
-            rect.set_color(mgl::Color(20, 20, 20, 225));
+            rect.set_color(mgl::Color(0, 0, 0, 250));
             window.draw(rect);
         }
     }
