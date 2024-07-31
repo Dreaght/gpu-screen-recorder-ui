@@ -6,6 +6,8 @@
 #include <sys/wait.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <stdlib.h>
 
 namespace gsr {
     bool exec_program_daemonized(const char **args) {
@@ -38,58 +40,75 @@ namespace gsr {
         return true;
     }
 
-    static const char *pid_file = "/tmp/gpu-screen-recorder";
-
-    static bool is_process_running_program(pid_t pid, const char *program_name) {
-        char filepath[256];
-        snprintf(filepath, sizeof(filepath), "/proc/%ld/exe", (long)pid);
-
-        char resolved_path[PATH_MAX];
-        const ssize_t resolved_path_len = readlink(filepath, resolved_path, sizeof(resolved_path) - 1);
-        if(resolved_path_len == -1)
-            return false;
-        
-        resolved_path[resolved_path_len] = '\0';
-
-        const int program_name_len = strlen(program_name);
-        return resolved_path_len >= program_name_len && memcmp(resolved_path + resolved_path_len - program_name_len, program_name, program_name_len) == 0;
+    static bool is_number(const char *str) {
+        while(*str) {
+            char c = *str;
+            if(c < '0' || c > '9')
+                return false;
+            ++str;
+        }
+        return true;
     }
 
-    bool is_gpu_screen_recorder_running(int &gsr_pid, GsrMode &mode) {
-        gsr_pid = -1;
-        mode = GsrMode::Unknown;
-
-        char buffer[256];
-        int fd = open(pid_file, O_RDONLY);
+    static bool read_cmdline(const char *filepath, char *output_buffer) {
+        const char *arg0_end = NULL;
+        int fd = open(filepath, O_RDONLY);
         if(fd == -1)
             return false;
 
-        ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
-        if(bytes_read < 0) {
-            perror("failed to read gpu-screen-recorder pid file");
-            close(fd);
+        char buffer[PATH_MAX];
+        ssize_t bytes_read = read(fd, buffer, sizeof(buffer));
+        if(bytes_read == -1)
+            goto err;
+
+        arg0_end = (const char*)memchr(buffer, '\0', bytes_read);
+        if(!arg0_end)
+            goto err;
+
+        memcpy(output_buffer, buffer, arg0_end - buffer);
+        output_buffer[arg0_end - buffer] = '\0';
+        close(fd);
+        return true;
+
+        err:
+        close(fd);
+        return false;
+    }
+
+    static pid_t pidof(const char *process_name) {
+        pid_t result = -1;
+        DIR *dir = opendir("/proc");
+        if(!dir)
+            return -1;
+
+        char cmdline_filepath[PATH_MAX];
+        char arg0[PATH_MAX];
+
+        struct dirent *entry;
+        while((entry = readdir(dir)) != NULL) {
+            if(!is_number(entry->d_name))
+                continue;
+
+            snprintf(cmdline_filepath, sizeof(cmdline_filepath), "/proc/%s/cmdline", entry->d_name);
+            if(read_cmdline(cmdline_filepath, arg0) && strcmp(process_name, arg0) == 0) {
+                result = atoi(entry->d_name);
+                break;
+            }
+        }
+
+        closedir(dir);
+        return result;
+    }
+
+    bool is_gpu_screen_recorder_running(pid_t &gsr_pid, GsrMode &mode) {
+        // TODO: Set |mode| by checking cmdline
+        gsr_pid = pidof("gpu-screen-recorder");
+        if(gsr_pid == -1) {
+            mode = GsrMode::Unknown;
+            return false;
+        } else {
+            mode = GsrMode::Record;
             return true;
         }
-        buffer[bytes_read] = '\0';
-        close(fd);
-
-        long pid = 0;
-        if(sscanf(buffer, "%ld %120s", &pid, buffer) == 2) {
-            gsr_pid = pid;
-            if(is_process_running_program(pid, "gpu-screen-recorder")) {
-                if(strcmp(buffer, "replay") == 0)
-                    mode = GsrMode::Replay;
-                else if(strcmp(buffer, "record") == 0)
-                    mode = GsrMode::Record;
-                else if(strcmp(buffer, "stream") == 0)
-                    mode = GsrMode::Stream;
-                else
-                    mode = GsrMode::Unknown;
-                return true;
-            }
-        } else {
-            fprintf(stderr, "Warning: gpu-screen-recorder pid file is in incorrect format, it's possible that its corrupt. Ignoring...\n");
-        }
-        return false;
     }
 }

@@ -95,7 +95,7 @@ namespace gsr {
             background.set_size(max_size);
             background.set_color(mgl::Color(0, 0, 0));
         } else {
-            background.set_color(mgl::Color(0, 0, 0, 250));
+            background.set_color(mgl::Color(0, 0, 0, 220));
         }
         window.draw(background);
 

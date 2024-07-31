@@ -199,15 +199,23 @@ int main() {
         if(xev.type == KeyPress && xev.xkey.keycode == overlay_keycode) {
             if(overlay_pid != -1) {
                 int status;
-                if(waitpid(overlay_pid, &status, WNOHANG) == 0)
-                    continue; // GPU Screen Recorder overlay is still running
-                
-                overlay_pid = -1;
+                if(waitpid(overlay_pid, &status, WNOHANG) == 0) {
+                    kill(overlay_pid, SIGINT);
+                    int status;
+                    if(waitpid(overlay_pid, &status, 0) == -1) {
+                        perror("waitpid failed");
+                        /* Ignore... */
+                    }
+                    overlay_pid = -1;
+                    continue;
+                } else {
+                    overlay_pid = -1;
+                }
             }
 
-            Window window_with_input_focus = get_window_with_input_focus(display);
-            fprintf(stderr, "window with focus: %ld\n", window_with_input_focus);
-            if(window_with_input_focus && window_with_input_focus != DefaultRootWindow(display) && overlay_pid == -1) {
+            //Window window_with_input_focus = get_window_with_input_focus(display);
+            //fprintf(stderr, "window with focus: %ld\n", window_with_input_focus);
+            if(/*window_with_input_focus && window_with_input_focus != DefaultRootWindow(display) && */overlay_pid == -1) {
                 fprintf(stderr, "launch overlay\n");
                 // TODO: window_with_input_focus
                 const char *args[] = {

@@ -11,7 +11,8 @@ namespace gsr {
 
     bool Button::on_event(mgl::Event &event, mgl::Window&) {
         if(event.type == mgl::Event::MouseMoved) {
-            const bool inside = mgl::FloatRect(position, size).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
+            const mgl::vec2f collision_margin(1.0f, 1.0f); // Makes sure that multiple buttons that are next to each other wont activate at the same time when the cursor is right between them
+            const bool inside = mgl::FloatRect(position + collision_margin, size - collision_margin).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
             if(mouse_inside && !inside) {
                 mouse_inside = false;
             } else if(!mouse_inside && inside) {
@@ -76,7 +77,7 @@ namespace gsr {
             // Background
             mgl::Rectangle rect(size);
             rect.set_position(position);
-            rect.set_color(mgl::Color(0, 0, 0, 250));
+            rect.set_color(mgl::Color(0, 0, 0, 220));
             window.draw(rect);
         }
     }

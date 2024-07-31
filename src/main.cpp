@@ -12,10 +12,13 @@
 #include <libgen.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <optional>
+#include <signal.h>
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
 #include <X11/Xatom.h>
+#include <X11/Xutil.h>
 
 #include <mglpp/mglpp.hpp>
 #include <mglpp/graphics/Font.hpp>
@@ -28,11 +31,16 @@
 #include <mglpp/system/MemoryMappedFile.hpp>
 #include <mglpp/system/Clock.hpp>
 
+// TODO: if alpha is not enabled (if no compositor is running) then take a screenshot of the selected monitor instead
+// and use that as the background.
+
 #include <vector>
 
 extern "C" {
 #include <mgl/mgl.h>
 }
+
+const mgl::Color bg_color(0, 0, 0, 180);
 
 static void usage() {
     fprintf(stderr, "usage: window-overlay\n");
@@ -49,7 +57,7 @@ static void startup_error(const char *msg) {
 #define _NET_WM_STATE_TOGGLE  2
 
 static Bool set_window_wm_state(Display *display, Window window, Atom atom) {
-    Atom net_wm_state_atom = XInternAtom(display, "_NET_WM_STATE", True);
+    Atom net_wm_state_atom = XInternAtom(display, "_NET_WM_STATE", False);
     if(!net_wm_state_atom) {
         fprintf(stderr, "Error: failed to find atom _NET_WM_STATE\n");
         return False;
@@ -74,7 +82,7 @@ static Bool set_window_wm_state(Display *display, Window window, Atom atom) {
 }
 
 static Bool make_window_always_on_top(Display* display, Window window) {
-    Atom net_wm_state_above_atom = XInternAtom(display, "_NET_WM_STATE_ABOVE", True);
+    Atom net_wm_state_above_atom = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
     if(!net_wm_state_above_atom) {
         fprintf(stderr, "Error: failed to find atom _NET_WM_STATE_ABOVE\n");
         return False;
@@ -84,7 +92,7 @@ static Bool make_window_always_on_top(Display* display, Window window) {
 }
 
 static Bool make_window_sticky(Display* display, Window window) {
-    Atom net_wm_state_sticky_atom = XInternAtom(display, "_NET_WM_STATE_STICKY", True);
+    Atom net_wm_state_sticky_atom = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
     if(!net_wm_state_sticky_atom) {
         fprintf(stderr, "Error: failed to find atom _NET_WM_STATE_STICKY\n");
         return False;
@@ -93,9 +101,42 @@ static Bool make_window_sticky(Display* display, Window window) {
     return set_window_wm_state(display, window, net_wm_state_sticky_atom);
 }
 
+mgl::Texture texture_from_ximage(XImage *img) {
+    uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
+    // TODO:
+
+    for(int y = 0; y < img->height; ++y) {
+        for(int x = 0; x < img->width; ++x) {
+            unsigned long pixel = XGetPixel(img, x, y);
+            unsigned char red = (pixel & img->red_mask) >> 16;
+            unsigned char green = (pixel & img->green_mask) >> 8;
+            unsigned char blue = pixel & img->blue_mask;
+
+            const size_t texture_data_index = (x + y * img->width) * 3;
+            texture_data[texture_data_index + 0] = red;
+            texture_data[texture_data_index + 1] = green;
+            texture_data[texture_data_index + 2] = blue;
+        }
+    }
+
+    mgl::Texture texture;
+    // TODO:
+    texture.load_from_memory(texture_data, img->width, img->height, MGL_IMAGE_FORMAT_RGB);
+    free(texture_data);
+    return texture;
+}
+
+static sig_atomic_t running = 1;
+static void sigint_handler(int dummy) {
+    (void)dummy;
+    running = 0;
+}
+
 int main(int argc, char **argv) {
     if(argc != 1)
         usage();
+
+    signal(SIGINT, sigint_handler);
 
     std::string program_root_dir = dirname(argv[0]);
     if(!program_root_dir.empty() && program_root_dir.back() != '/')
@@ -106,35 +147,41 @@ int main(int argc, char **argv) {
     Display *display = (Display*)mgl_get_context()->connection;
 
     // TODO: Put window on the focused monitor right side and update when monitor changes resolution or other modes.
-    // Use monitor size instead of screen size
+    // Use monitor size instead of screen size.
+    // mgl now has monitor events so this can be handled directly with mgl.
 
-    mgl::vec2i target_monitor_pos = { 0, 0 };
     mgl::vec2i target_monitor_size = { WidthOfScreen(DefaultScreenOfDisplay(display)), HeightOfScreen(DefaultScreenOfDisplay(display)) };
 
     const mgl::vec2i window_size = { target_monitor_size.x, target_monitor_size.y };
-    const mgl::vec2i window_target_pos = { target_monitor_pos.x, target_monitor_pos.y };
-    const mgl::vec2i window_start_pos = { window_target_pos.x, window_target_pos.y };
+    const mgl::vec2i window_pos = { 0, 0 };
 
     mgl::Window::CreateParams window_create_params;
     window_create_params.size = window_size;
-    window_create_params.position = window_start_pos;
+    window_create_params.min_size = window_size;
+    window_create_params.max_size = window_size;
+    window_create_params.position = window_pos;
     window_create_params.hidden = true;
-    window_create_params.override_redirect = true;
+    //window_create_params.override_redirect = true;
+    window_create_params.background_color = bg_color;
+    window_create_params.support_alpha = false;
+    window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
 
     mgl::Window window;
     if(!window.create("gsr overlay", window_create_params))
         startup_error("failed to create window");
 
-    Atom type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
-    Atom value = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    XChangeProperty(display, DefaultRootWindow(display), type, XA_ATOM, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&value), 1);
+    unsigned char data = 2; // Prefer being composed to allow transparency
+    XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+
+    data = 1;
+    XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
     mgl::MemoryMappedFile title_font_file;
-    if(!title_font_file.load((program_root_dir + "fonts/Orbitron-Bold.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
+    if(!title_font_file.load("/usr/share/fonts/noto/NotoSans-Bold.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
         startup_error("failed to load file: fonts/Orbitron-Bold.ttf");
 
     mgl::MemoryMappedFile font_file;
-    if(!font_file.load((program_root_dir + "fonts/Orbitron-Regular.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
+    if(!font_file.load("/usr/share/fonts/noto/NotoSans-Regular.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
         startup_error("failed to load file: fonts/Orbitron-Regular.ttf");
 
     mgl::Font top_bar_font;
@@ -142,11 +189,11 @@ int main(int argc, char **argv) {
         startup_error("failed to load font: fonts/Orbitron-Bold.ttf");
 
     mgl::Font title_font;
-    if(!title_font.load_from_file(title_font_file, window_create_params.size.y * 0.012f))
+    if(!title_font.load_from_file(title_font_file, window_create_params.size.y * 0.017f))
         startup_error("failed to load font: fonts/Orbitron-Bold.ttf");
 
     mgl::Font font;
-    if(!font.load_from_file(font_file, window_create_params.size.y * 0.008f))
+    if(!font.load_from_file(font_file, window_create_params.size.y * 0.012f))
         startup_error("failed to load font: fonts/Orbitron-Regular.ttf");
 
     mgl::Texture replay_button_texture;
@@ -160,6 +207,22 @@ int main(int argc, char **argv) {
     mgl::Texture stream_button_texture;
     if(!stream_button_texture.load_from_file((program_root_dir + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
+
+    // TODO: Only do these things if no compositor (with argb support) is running.
+    // TODO: Get size from monitor, get region specific to the monitor
+    XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
+    if(!img) {
+        fprintf(stderr, "Error: failed to take a screenshot\n");
+        exit(1);
+    }
+
+    mgl::Texture screenshot_texture = texture_from_ximage(img);
+    XDestroyImage(img);
+    img = NULL;
+
+    mgl::Sprite screenshot_sprite(&screenshot_texture);
+    mgl::Rectangle bg_screenshot_overlay(window.get_size().to_vec2f());
+    bg_screenshot_overlay.set_color(bg_color);
 
     struct MainButton {
         mgl::Text title;
@@ -193,6 +256,9 @@ int main(int argc, char **argv) {
         &stream_button_texture
     };
 
+    const int button_height = window_create_params.size.y / 6.0f;
+    const int button_width = button_height;
+
     std::vector<MainButton> main_buttons;
 
     for(int i = 0; i < 3; ++i) {
@@ -202,11 +268,8 @@ int main(int argc, char **argv) {
         mgl::Text description(descriptions_off[i], {0.0f, 0.0f}, font);
         description.set_color(mgl::Color(150, 150, 150));
 
-        const int button_height = window_create_params.size.y * 0.125f;
-        const int button_width = button_height * 1.125f;
-
         mgl::Sprite sprite(textures[i]);
-        sprite.set_scale(window_create_params.size.y / 2500.0f);
+        sprite.set_height(button_height * 0.5f);
         auto button = std::make_unique<gsr::Button>(mgl::vec2f(button_width, button_height));
 
         MainButton main_button = {
@@ -220,61 +283,9 @@ int main(int argc, char **argv) {
         main_buttons.push_back(std::move(main_button));
     }
 
-    // Replay
-    main_buttons[0].button->on_click = [&]() {
-        /*
-        char window_to_record_str[32];
-        snprintf(window_to_record_str, sizeof(window_to_record_str), "%ld", target_window);
-
-        const char *args[] = {
-            "gpu-screen-recorder", "-w", window_to_record_str,
-            "-c", "mp4",
-            "-f", "60",
-            "-o", "/home/dec05eba/Videos/gpu-screen-recorder.mp4",
-            nullptr
-        };
-        gsr::exec_program_daemonized(args);
-        */
-    };
-    main_buttons[0].mode = gsr::GsrMode::Replay;
-
-    // TODO: Monitor /tmp/gpu-screen-recorder and update ui to match state
-
-    // Record
-    main_buttons[1].button->on_click = [&]() {
-        #if 0
-        int gpu_screen_recorder_process = -1;
-        gsr::GsrMode gsr_mode = gsr::GsrMode::Unknown;
-        if(gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode) && gpu_screen_recorder_process > 0) {
-            kill(gpu_screen_recorder_process, SIGINT);
-            int status;
-            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
-                perror("waitpid failed");
-                /* Ignore... */
-            }
-            exit(0);
-        }
-
-        char window_to_record_str[32];
-        snprintf(window_to_record_str, sizeof(window_to_record_str), "%ld", target_window);
-
-        const char *args[] = {
-            "gpu-screen-recorder", "-w", window_to_record_str,
-            "-c", "mp4",
-            "-f", "60",
-            "-o", "/home/dec05eba/Videos/gpu-screen-recorder.mp4",
-            nullptr
-        };
-        gsr::exec_program_daemonized(args);
-        exit(0);
-        #endif
-    };
-    main_buttons[1].mode = gsr::GsrMode::Record;
-
-    main_buttons[2].mode = gsr::GsrMode::Stream;
-
-    auto update_overlay_shape = [&]() {
-        const int main_button_margin = 20;// * get_config().scale;
+    auto update_overlay_shape = [&](std::optional<gsr::GsrMode> gsr_mode = std::nullopt) {
+        fprintf(stderr, "update overlay shape!\n");
+        const int main_button_margin = button_height * 0.085;// * get_config().scale;
         const int spacing = 0;// * get_config().scale;
         const int combined_spacing = spacing * std::max(0, (int)main_buttons.size() - 1);
 
@@ -284,18 +295,20 @@ int main(int argc, char **argv) {
         const mgl::vec2i main_buttons_start_pos = mgl::vec2i(window_create_params.size.x*0.5f, window_create_params.size.y*0.25f) - overlay_desired_size/2;
         mgl::vec2i main_button_pos = main_buttons_start_pos;
 
-        int gpu_screen_recorder_process = -1;
-        gsr::GsrMode gsr_mode = gsr::GsrMode::Unknown;
-        gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode);
+        if(!gsr_mode.has_value()) {
+            gsr_mode = gsr::GsrMode::Unknown;
+            pid_t gpu_screen_recorder_process = -1;
+            gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode.value());
+        }
 
         for(size_t i = 0; i < main_buttons.size(); ++i) {
-            if(main_buttons[i].mode != gsr::GsrMode::Unknown && main_buttons[i].mode == gsr_mode) {
+            if(main_buttons[i].mode != gsr::GsrMode::Unknown && main_buttons[i].mode == gsr_mode.value()) {
                 main_buttons[i].description.set_string(descriptions_on[i]);
                 main_buttons[i].description.set_color(mgl::Color(118, 185, 0));
                 main_buttons[i].icon.set_color(mgl::Color(118, 185, 0));
             } else {
                 main_buttons[i].description.set_string(descriptions_off[i]);
-                main_buttons[i].description.set_color(mgl::Color(255, 255, 255));
+                main_buttons[i].description.set_color(mgl::Color(150, 150, 150));
                 main_buttons[i].icon.set_color(mgl::Color(255, 255, 255));
             }
 
@@ -319,6 +332,65 @@ int main(int argc, char **argv) {
         }
     };
 
+    // Replay
+    main_buttons[0].button->on_click = [&]() {
+        /*
+        char window_to_record_str[32];
+        snprintf(window_to_record_str, sizeof(window_to_record_str), "%ld", target_window);
+
+        const char *args[] = {
+            "gpu-screen-recorder", "-w", window_to_record_str,
+            "-c", "mp4",
+            "-f", "60",
+            "-o", "/home/dec05eba/Videos/gpu-screen-recorder.mp4",
+            nullptr
+        };
+        gsr::exec_program_daemonized(args);
+        */
+    };
+    main_buttons[0].mode = gsr::GsrMode::Replay;
+
+    // TODO: Monitor /tmp/gpu-screen-recorder and update ui to match state
+
+    // Record
+    main_buttons[1].button->on_click = [&]() {
+        window.close();
+        usleep(1000 * 50); // 50 milliseconds
+
+        pid_t gpu_screen_recorder_process = -1;
+        gsr::GsrMode gsr_mode = gsr::GsrMode::Unknown;
+        if(gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode) && gpu_screen_recorder_process > 0) {
+            kill(gpu_screen_recorder_process, SIGINT);
+            int status;
+            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+            window.set_visible(false);
+            window.close();
+            return;
+            //exit(0);
+            //update_overlay_shape(gsr::GsrMode::Unknown);
+            //return;
+        }
+
+        const char *args[] = {
+            "gpu-screen-recorder", "-w", "screen",
+            "-c", "mp4",
+            "-f", "60",
+            "-o", "/home/dec05eba/Videos/gpu-screen-recorder.mp4",
+            nullptr
+        };
+        gsr::exec_program_daemonized(args);
+        //update_overlay_shape(gsr::GsrMode::Record);
+        //exit(0);
+        window.set_visible(false);
+        window.close();
+    };
+    main_buttons[1].mode = gsr::GsrMode::Record;
+
+    main_buttons[2].mode = gsr::GsrMode::Stream;
+
     update_overlay_shape();
 
     window.set_visible(true);
@@ -330,58 +402,98 @@ int main(int argc, char **argv) {
     // TODO: Retry if these fail.
     // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
     XGrabPointer(display, window.get_system_handle(), True,
-        ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
-        Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
-        ButtonMotionMask,
-        GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
+       ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
+       Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
+       ButtonMotionMask,
+       GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
     XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
     XSetInputFocus(display, window.get_system_handle(), RevertToParent, CurrentTime);
     XFlush(display);
 
+    window.set_fullscreen(true);
+
     //XGrabServer(display);
 
     mgl::Rectangle top_bar_background(mgl::vec2f(window.get_size().x, window.get_size().y*0.05f).floor());
-    top_bar_background.set_color(mgl::Color(0, 0, 0, 250));
+    top_bar_background.set_color(mgl::Color(0, 0, 0, 220));
 
     mgl::Text top_bar_text("GPU Screen Recorder", top_bar_font);
-    top_bar_text.set_color(mgl::Color(118, 185, 0));
+    //top_bar_text.set_color(mgl::Color(118, 185, 0));
     top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
 
-    gsr::ComboBox record_area_box(&title_font);
-    record_area_box.set_position(mgl::vec2f(300.0f, 300.0f));
-    record_area_box.add_item("Window", "window");
-    record_area_box.add_item("Focused window", "focused");
-    record_area_box.add_item("All monitors (NvFBC)", "all");
-    record_area_box.add_item("All monitors, direct mode (NvFBC, VRR workaround)", "all-direct");
-    record_area_box.add_item("Monitor DP-0 (3840x2160, NvFBC)", "DP-0");
+    // gsr::ComboBox record_area_box(&title_font);
+    // record_area_box.set_position(mgl::vec2f(300.0f, 300.0f));
+    // record_area_box.add_item("Window", "window");
+    // record_area_box.add_item("Focused window", "focused");
+    // record_area_box.add_item("All monitors (NvFBC)", "all");
+    // record_area_box.add_item("All monitors, direct mode (NvFBC, VRR workaround)", "all-direct");
+    // record_area_box.add_item("Monitor DP-0 (3840x2160, NvFBC)", "DP-0");
 
-    mgl::Text record_area_title("Record area", title_font);
-    record_area_title.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y - title_font.get_character_size() - 10.0f));
+    // mgl::Text record_area_title("Record area", title_font);
+    // record_area_title.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y - title_font.get_character_size() - 10.0f));
 
-    gsr::ComboBox audio_input_box(&title_font);
-    audio_input_box.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y + record_area_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
-    audio_input_box.add_item("Monitor of Starship/Matissee HD Audio Controller Analog Stereo", "starship.ablalba.monitor");
-    audio_input_box.add_item("Monitor of GP104 High Definition Audio Controller Digital Stereo (HDMI 2)", "starship.ablalba.monitor");
+    // gsr::ComboBox audio_input_box(&title_font);
+    // audio_input_box.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y + record_area_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
+    // audio_input_box.add_item("Monitor of Starship/Matissee HD Audio Controller Analog Stereo", "starship.ablalba.monitor");
+    // audio_input_box.add_item("Monitor of GP104 High Definition Audio Controller Digital Stereo (HDMI 2)", "starship.ablalba.monitor");
 
-    mgl::Text audio_input_title("Audio input", title_font);
-    audio_input_title.set_position(mgl::vec2f(audio_input_box.get_position().x, audio_input_box.get_position().y - title_font.get_character_size() - 10.0f));
+    // mgl::Text audio_input_title("Audio input", title_font);
+    // audio_input_title.set_position(mgl::vec2f(audio_input_box.get_position().x, audio_input_box.get_position().y - title_font.get_character_size() - 10.0f));
 
-    gsr::ComboBox video_quality_box(&title_font);
-    video_quality_box.set_position(mgl::vec2f(audio_input_box.get_position().x, audio_input_box.get_position().y + audio_input_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
-    video_quality_box.add_item("High", "starship.ablalba.monitor");
-    video_quality_box.add_item("Ultra", "starship.ablalba.monitor");
-    video_quality_box.add_item("Placebo", "starship.ablalba.monitor");
+    // gsr::ComboBox video_quality_box(&title_font);
+    // video_quality_box.set_position(mgl::vec2f(audio_input_box.get_position().x, audio_input_box.get_position().y + audio_input_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
+    // video_quality_box.add_item("High", "starship.ablalba.monitor");
+    // video_quality_box.add_item("Ultra", "starship.ablalba.monitor");
+    // video_quality_box.add_item("Placebo", "starship.ablalba.monitor");
 
-    mgl::Text video_quality_title("Video quality", title_font);
-    video_quality_title.set_position(mgl::vec2f(video_quality_box.get_position().x, video_quality_box.get_position().y - title_font.get_character_size() - 10.0f));
+    // mgl::Text video_quality_title("Video quality", title_font);
+    // video_quality_title.set_position(mgl::vec2f(video_quality_box.get_position().x, video_quality_box.get_position().y - title_font.get_character_size() - 10.0f));
 
-    gsr::ComboBox framerate_box(&title_font);
-    framerate_box.set_position(mgl::vec2f(video_quality_box.get_position().x, video_quality_box.get_position().y + video_quality_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
-    framerate_box.add_item("60", "starship.ablalba.monitor");
+    // gsr::ComboBox framerate_box(&title_font);
+    // framerate_box.set_position(mgl::vec2f(video_quality_box.get_position().x, video_quality_box.get_position().y + video_quality_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
+    // framerate_box.add_item("60", "starship.ablalba.monitor");
 
-    mgl::Text framerate_title("Frame rate", title_font);
-    framerate_title.set_position(mgl::vec2f(framerate_box.get_position().x, framerate_box.get_position().y - title_font.get_character_size() - 10.0f));
+    // mgl::Text framerate_title("Frame rate", title_font);
+    // framerate_title.set_position(mgl::vec2f(framerate_box.get_position().x, framerate_box.get_position().y - title_font.get_character_size() - 10.0f));
+
+    mgl::Texture close_texture;
+    if(!close_texture.load_from_file("images/cross.png", {false, false, false}))
+        startup_error("failed to load texture: images/cross.png");
+
+    mgl::Sprite close_sprite(&close_texture);
+    close_sprite.set_height(int(top_bar_background.get_size().y * 0.3f));
+    close_sprite.set_position(mgl::vec2f(window.get_size().x - close_sprite.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_sprite.get_size().y * 0.5f).floor());
+
+    mgl::Texture logo_texture;
+    if(!logo_texture.load_from_file("images/gpu_screen_recorder_logo.png"))
+        startup_error("failed to load texture: images/gpu_screen_recorder_logo.png");
+
+    mgl::Sprite logo_sprite(&logo_texture);
+    logo_sprite.set_height((int)(top_bar_background.get_size().y * 0.65f));
+
+    logo_sprite.set_position(mgl::vec2f(
+        (top_bar_background.get_size().y - logo_sprite.get_size().y) * 0.5f,
+        top_bar_background.get_size().y * 0.5f - logo_sprite.get_size().y * 0.5f
+    ).floor());
+
+    /*
+    const float settings_margin_top = 20.0f;
+    const float settings_margin_bottom = 20.0f;
+    const float settings_margin_left = 20.0f;
+    const float settings_margin_right = 20.0f;
+    const float settings_background_width = std::max(record_area_box.get_size().x, audio_input_box.get_size().x);
+    mgl::Rectangle settings_background(record_area_title.get_position() - mgl::vec2f(settings_margin_left, settings_margin_left),
+        mgl::vec2f(settings_margin_left + settings_background_width + settings_margin_right, settings_margin_top + (framerate_box.get_position().y + framerate_box.get_size().y - record_area_title.get_position().y) + settings_margin_bottom));
+    settings_background.set_color(mgl::Color(38, 43, 47));
+
+    const float settings_topline_thickness = 5.0f;
+    mgl::Rectangle settings_topline(settings_background.get_position() - mgl::vec2f(0.0f, settings_topline_thickness), mgl::vec2f(settings_background.get_size().x, settings_topline_thickness));
+    settings_topline.set_color(mgl::Color(118, 185, 0));
+    */
+
+    mgl::Clock state_update_timer;
+    const double state_update_timeout_sec = 2.0;
 
     gsr::WidgetContainer &widget_container = gsr::WidgetContainer::get_instance();
 
@@ -393,11 +505,17 @@ int main(int argc, char **argv) {
     widget_container.on_event(event, window);
 
     auto render = [&] {
-        window.clear(mgl::Color(0, 0, 0, 175));
-        window.draw(record_area_title);
-        window.draw(audio_input_title);
-        window.draw(video_quality_title);
-        window.draw(framerate_title);
+        window.clear(bg_color);
+        window.draw(screenshot_sprite);
+        window.draw(bg_screenshot_overlay);
+        /*
+        window.draw(settings_topline);
+        window.draw(settings_background);
+        */
+        // window.draw(record_area_title);
+        // window.draw(audio_input_title);
+        // window.draw(video_quality_title);
+        // window.draw(framerate_title);
         widget_container.draw(window);
         for(auto &main_button : main_buttons) {
             window.draw(main_button.icon);
@@ -406,22 +524,37 @@ int main(int argc, char **argv) {
         }
         window.draw(top_bar_background);
         window.draw(top_bar_text);
+        window.draw(logo_sprite);
+        window.draw(close_sprite);
         window.display();
     };
 
     while(window.is_open()) {
-        if(window.poll_event(event)) {
+        if(!running) {
+            window.set_visible(false);
+            window.close();
+            break;
+        }
+
+        while(window.poll_event(event)) {
             widget_container.on_event(event, window);
-            if(event.type == mgl::Event::KeyReleased) {
+            if(event.type == mgl::Event::KeyPressed) {
                 if(event.key.code == mgl::Keyboard::Escape) {
+                    window.set_visible(false);
                     window.close();
                     break;
                 }
             }
         }
 
+        if(state_update_timer.get_elapsed_time_seconds() >= state_update_timeout_sec) {
+            state_update_timer.restart();
+            update_overlay_shape();
+        }
+
         render();
     }
 
+    fprintf(stderr, "shutting down!\n");
     return 0;
 }

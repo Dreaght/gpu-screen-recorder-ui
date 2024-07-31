@@ -1,0 +1,11 @@
+setcap nice for good performance when opening overlay when game is running below 60 fps.
+Maybe grab cursor with xi, as that will prevent games from detecting movement with xi2 api.
+
+Fullscreen on wayland doesn't render windows behind because it's a compositor optimization, to not draw anything behind (only draw the window directly without compositing).
+Fix this by drawing the window smaller, or have two windows (left and right half monitor width).
+Maybe change design to have black triangles appear and get larger until they fill the screen, with even spaces being left with no triangles.
+    Exclude triangles from a diagonal line across the screen.
+    Have buttons appear slanted in 3D.
+    All of these things should be done with vertex buffer, for real 3D.
+
+DISPLAY gamescope-0
