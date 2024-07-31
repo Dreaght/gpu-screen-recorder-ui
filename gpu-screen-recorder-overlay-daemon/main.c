@@ -4,7 +4,6 @@
 #include <sys/wait.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
-#include <X11/Xatom.h>
 
 bool exec_program(const char **args, pid_t *process_id) {
     *process_id = -1;
@@ -63,121 +62,7 @@ static void grab_keys(Display *display) {
     XSetErrorHandler(prev_error_handler);
 }
 
-static bool window_has_atom(Display *display, Window window, Atom atom) {
-    Atom type;
-    unsigned long len, bytes_left;
-    int format;
-    unsigned char *properties = NULL;
-    if(XGetWindowProperty(display, window, atom, 0, 1024, False, AnyPropertyType, &type, &format, &len, &bytes_left, &properties) < Success)
-        return false;
-
-    if(properties)
-        XFree(properties);
-
-    return type != None;
-}
-
-static Window window_get_target_window_child(Display *display, Window window) {
-    if(window == None)
-        return None;
-
-    Atom wm_state_atom = XInternAtom(display, "_NET_WM_STATE", False);
-    if(!wm_state_atom)
-        return None;
-
-    if(window_has_atom(display, window, wm_state_atom))
-        return window;
-
-    Window root;
-    Window parent;
-    Window *children = NULL;
-    unsigned int num_children = 0;
-    if(!XQueryTree(display, window, &root, &parent, &children, &num_children) || !children)
-        return None;
-
-    Window found_window = None;
-    for(int i = num_children - 1; i >= 0; --i) {
-        if(children[i] && window_has_atom(display, children[i], wm_state_atom)) {
-            found_window = children[i];
-            goto finished;
-        }
-    }
-
-    for(int i = num_children - 1; i >= 0; --i) {
-        if(children[i]) {
-            Window win = window_get_target_window_child(display, children[i]);
-            if(win) {
-                found_window = win;
-                goto finished;
-            }
-        }
-    }
-
-    finished:
-    XFree(children);
-    return found_window;
-}
-
-static Window window_get_target_window_parent(Display *display, Window window) {
-    fprintf(stderr, "window: %ld\n", window);
-
-    if(window == None || window == DefaultRootWindow(display))
-        return None;
-
-    Atom wm_state_atom = XInternAtom(display, "WM_STATE", False);
-    if(!wm_state_atom)
-        return None;
-
-    if(window_has_atom(display, window, wm_state_atom))
-        return window;
-
-    Window root;
-    Window parent = None;
-    Window *children = NULL;
-    unsigned int num_children = 0;
-    if(!XQueryTree(display, window, &root, &parent, &children, &num_children))
-        return None;
-
-    if(children)
-        XFree(children);
-
-    if(!parent)
-        return None;
-
-    return window_get_target_window_parent(display, parent);
-}
-
-static Window get_input_focus(Display *display) {
-    Window focused_window = None;
-
-    Atom net_active_window_atom = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
-    Atom type;
-    unsigned long len, bytes_left;
-    int format;
-    unsigned char *properties = NULL;
-    if(XGetWindowProperty(display, DefaultRootWindow(display), net_active_window_atom, 0, 1024, False, XA_WINDOW, &type, &format, &len, &bytes_left, &properties) == Success) {
-        if(properties) {
-            if(len > 0)
-                focused_window = *(Window*)properties;
-            XFree(properties);
-        }
-    }
-
-    if(!focused_window) {
-        int rev;
-        if(!XGetInputFocus(display, &focused_window, &rev))
-            focused_window = None;
-    }
-
-    return focused_window;
-}
-
-static Window get_window_with_input_focus(Display *display) {
-    Window window = get_input_focus(display);
-    return window_get_target_window_parent(display, window);
-}
-
-int main() {
+int main(void) {
     Display *display = XOpenDisplay(NULL);
     if(!display) {
         fprintf(stderr, "Error: XOpenDisplay failed\n");
@@ -213,9 +98,7 @@ int main() {
                 }
             }
 
-            //Window window_with_input_focus = get_window_with_input_focus(display);
-            //fprintf(stderr, "window with focus: %ld\n", window_with_input_focus);
-            if(/*window_with_input_focus && window_with_input_focus != DefaultRootWindow(display) && */overlay_pid == -1) {
+            if(overlay_pid == -1) {
                 fprintf(stderr, "launch overlay\n");
                 // TODO: window_with_input_focus
                 const char *args[] = {
