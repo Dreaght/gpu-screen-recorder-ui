@@ -236,6 +236,9 @@ int main(int argc, char **argv) {
     bg_screenshot_overlay.set_color(bg_color);
 
     gsr::Page front_page;
+    gsr::Page replay_settings_page;
+
+    gsr::Page *current_page = &front_page;
 
     struct MainButton {
         gsr::DropdownButton* button;
@@ -317,6 +320,9 @@ int main(int argc, char **argv) {
 
     // Replay
     main_buttons[0].button->on_click = [&](const std::string &id) {
+        if(id == "settings") {
+            current_page = &replay_settings_page;
+        }
         /*
         char window_to_record_str[32];
         snprintf(window_to_record_str, sizeof(window_to_record_str), "%ld", target_window);
@@ -413,13 +419,22 @@ int main(int argc, char **argv) {
     //top_bar_text.set_color(gsr::get_theme().tint_color);
     top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
 
-    // gsr::ComboBox record_area_box(&title_font);
-    // record_area_box.set_position(mgl::vec2f(300.0f, 300.0f));
-    // record_area_box.add_item("Window", "window");
-    // record_area_box.add_item("Focused window", "focused");
-    // record_area_box.add_item("All monitors (NvFBC)", "all");
-    // record_area_box.add_item("All monitors, direct mode (NvFBC, VRR workaround)", "all-direct");
-    // record_area_box.add_item("Monitor DP-0 (3840x2160, NvFBC)", "DP-0");
+    auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
+    record_area_box->set_position(mgl::vec2f(300.0f, 300.0f));
+    if(gsr_info.supported_capture_options.window)
+        record_area_box->add_item("Window", "window");
+    if(gsr_info.supported_capture_options.focused)
+        record_area_box->add_item("Focused window", "focused");
+    if(gsr_info.supported_capture_options.screen)
+        record_area_box->add_item("All monitors", "screen");
+    for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
+        char name[256];
+        snprintf(name, sizeof(name), "%s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
+        record_area_box->add_item(name, monitor.name);
+    }
+    if(gsr_info.supported_capture_options.portal)
+        record_area_box->add_item("Desktop portal", "portal");
+    replay_settings_page.add_widget(std::move(record_area_box));
 
     // mgl::Text record_area_title("Record area", title_font);
     // record_area_title.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y - title_font.get_character_size() - 10.0f));
@@ -491,7 +506,7 @@ int main(int argc, char **argv) {
     event.type = mgl::Event::MouseMoved;
     event.mouse_move.x = window.get_mouse_position().x;
     event.mouse_move.y = window.get_mouse_position().y;
-    front_page.on_event(event, window);
+    current_page->on_event(event, window);
 
     auto render = [&] {
         window.clear(bg_color);
@@ -505,7 +520,7 @@ int main(int argc, char **argv) {
         // window.draw(audio_input_title);
         // window.draw(video_quality_title);
         // window.draw(framerate_title);
-        front_page.draw(window);
+        current_page->draw(window);
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);
@@ -521,7 +536,7 @@ int main(int argc, char **argv) {
         }
 
         while(window.poll_event(event)) {
-            front_page.on_event(event, window);
+            current_page->on_event(event, window);
             if(event.type == mgl::Event::KeyPressed) {
                 if(event.key.code == mgl::Keyboard::Escape) {
                     window.set_visible(false);

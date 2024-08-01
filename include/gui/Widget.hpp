@@ -9,7 +9,7 @@ namespace mgl {
 
 namespace gsr {
     class Widget {
-        friend class WidgetContainer;
+        friend class Page;
     public:
         Widget();
         Widget(const Widget&) = delete;
@@ -24,5 +24,6 @@ namespace gsr {
         virtual mgl::vec2f get_position() const;
     protected:
         mgl::vec2f position;
+        bool move_to_top = false;
     };
 }

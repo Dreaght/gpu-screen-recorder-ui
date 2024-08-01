@@ -16,6 +16,14 @@ namespace gsr {
 
     void Page::draw(mgl::Window &window) {
         for(auto &widget : widgets) {
+            if(widget->move_to_top) {
+                widget->move_to_top = false;
+                std::swap(widget, widgets.back());
+            }
+            widget->draw(window);
+        }
+
+        for(auto &widget : widgets) {
             widget->draw(window);
         }
     }
