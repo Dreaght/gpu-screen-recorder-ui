@@ -36,7 +36,9 @@
 #include <mglpp/system/Clock.hpp>
 
 // TODO: if alpha is not enabled (if no compositor is running) then take a screenshot of the selected monitor instead
-// and use that as the background.
+// and use that as the background. However if no compositor is running but a fullscreen application is running (on the focused monitor)
+// then use xcomposite to get that window as a texture and use that as a background because then the background can update.
+// TODO: Update position when workspace changes (in dwm, sticky property handles it in real workspaces).
 
 #include <vector>
 
@@ -136,6 +138,32 @@ static void sigint_handler(int dummy) {
     running = 0;
 }
 
+static char hex_value_to_str(uint8_t v) {
+    if(v <= 9)
+        return '0' + v;
+    else if(v >= 10 && v <= 15)
+        return 'A' + (v - 10);
+    else
+        return '0';
+}
+
+// Excludes alpha
+static std::string color_to_hex_str(mgl::Color color) {
+    std::string result;
+    result.resize(6);
+
+    result[0] = hex_value_to_str((color.r & 0xF0) >> 4);
+    result[1] = hex_value_to_str(color.r & 0x0F);
+
+    result[2] = hex_value_to_str((color.g & 0xF0) >> 4);
+    result[3] = hex_value_to_str(color.g & 0x0F);
+
+    result[4] = hex_value_to_str((color.b & 0xF0) >> 4);
+    result[5] = hex_value_to_str(color.b & 0x0F);
+
+    return result;
+}
+
 int main(int argc, char **argv) {
     if(argc != 1)
         usage();
@@ -205,11 +233,11 @@ int main(int argc, char **argv) {
         startup_error("failed to load font: fonts/Orbitron-Bold.ttf");
 
     mgl::Font title_font;
-    if(!title_font.load_from_file(title_font_file, window_create_params.size.y * 0.017f))
+    if(!title_font.load_from_file(title_font_file, window_create_params.size.y * 0.019f))
         startup_error("failed to load font: fonts/Orbitron-Bold.ttf");
 
     mgl::Font font;
-    if(!font.load_from_file(font_file, window_create_params.size.y * 0.012f))
+    if(!font.load_from_file(font_file, window_create_params.size.y * 0.015f))
         startup_error("failed to load font: fonts/Orbitron-Regular.ttf");
 
     mgl::Texture replay_button_texture;
@@ -319,7 +347,9 @@ int main(int argc, char **argv) {
         main_buttons.push_back(std::move(main_button));
     }
 
-    auto update_overlay_shape = [&](std::optional<gsr::GsrMode> gsr_mode = std::nullopt) {
+    gsr::GsrMode gsr_mode = gsr::GsrMode::Unknown;
+
+    auto update_overlay_shape = [&]() {
         fprintf(stderr, "update overlay shape!\n");
         const int spacing = 0;// * get_config().scale;
         const int combined_spacing = spacing * std::max(0, (int)main_buttons.size() - 1);
@@ -330,14 +360,14 @@ int main(int argc, char **argv) {
         const mgl::vec2i main_buttons_start_pos = mgl::vec2i(window_create_params.size.x*0.5f, window_create_params.size.y*0.25f) - overlay_desired_size/2;
         mgl::vec2i main_button_pos = main_buttons_start_pos;
 
-        if(!gsr_mode.has_value()) {
-            gsr_mode = gsr::GsrMode::Unknown;
-            pid_t gpu_screen_recorder_process = -1;
-            gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode.value());
-        }
+        // if(!gsr_mode.has_value()) {
+        //     gsr_mode = gsr::GsrMode::Unknown;
+        //     pid_t gpu_screen_recorder_process = -1;
+        //     gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode.value());
+        // }
 
         for(size_t i = 0; i < main_buttons.size(); ++i) {
-            if(main_buttons[i].mode != gsr::GsrMode::Unknown && main_buttons[i].mode == gsr_mode.value()) {
+            if(main_buttons[i].mode != gsr::GsrMode::Unknown && main_buttons[i].mode == gsr_mode) {
                 main_buttons[i].button->set_activated(true);
             } else {
                 main_buttons[i].button->set_activated(false);
@@ -372,6 +402,7 @@ int main(int argc, char **argv) {
 
     // TODO: Monitor /tmp/gpu-screen-recorder and update ui to match state
 
+    pid_t gpu_screen_recorder_process = -1;
     // Record
     main_buttons[1].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
@@ -385,9 +416,9 @@ int main(int argc, char **argv) {
         // window.close();
         // usleep(1000 * 50); // 50 milliseconds
 
-        pid_t gpu_screen_recorder_process = -1;
-        gsr::GsrMode gsr_mode = gsr::GsrMode::Unknown;
-        if(gsr::is_gpu_screen_recorder_running(gpu_screen_recorder_process, gsr_mode) && gpu_screen_recorder_process > 0) {
+        const std::string tint_color_as_hex = color_to_hex_str(gsr::get_theme().tint_color);
+
+        if(gpu_screen_recorder_process != -1) {
             kill(gpu_screen_recorder_process, SIGINT);
             int status;
             if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
@@ -398,8 +429,18 @@ int main(int argc, char **argv) {
             // window.close();
             // return;
             //exit(0);
-            update_overlay_shape(gsr::GsrMode::Unknown);
+            gpu_screen_recorder_process = -1;
+            gsr_mode = gsr::GsrMode::Unknown;
+            update_overlay_shape();
             main_buttons[1].button->set_item_label(id, "Start");
+
+            const char *notification_args[] = {
+                "gpu-screen-recorder-notification", "--text", "Recording has been saved", "--timeout", "3.0",
+                "--icon", "./images/record.png",
+                "--icon-color", "ffffff", "--bg-color", tint_color_as_hex.c_str(),
+                nullptr
+            };
+            gsr::exec_program_daemonized(notification_args);
             return;
         }
 
@@ -410,9 +451,22 @@ int main(int argc, char **argv) {
             "-o", "/home/dec05eba/Videos/gpu-screen-recorder.mp4",
             nullptr
         };
-        gsr::exec_program_daemonized(args);
-        update_overlay_shape(gsr::GsrMode::Record);
-        main_buttons[1].button->set_item_label(id, "Stop");
+        gpu_screen_recorder_process = gsr::exec_program(args);
+        if(gpu_screen_recorder_process == -1) {
+            // TODO: Show notification failed to start
+        } else {
+            gsr_mode = gsr::GsrMode::Record;
+            update_overlay_shape();
+            main_buttons[1].button->set_item_label(id, "Stop");
+        }
+
+        const char *notification_args[] = {
+            "gpu-screen-recorder-notification", "--text", "Recording has started", "--timeout", "3.0",
+            "--icon", "./images/record.png",
+            "--icon-color", tint_color_as_hex.c_str(), "--bg-color", tint_color_as_hex.c_str(),
+            nullptr
+        };
+        gsr::exec_program_daemonized(notification_args);
         //exit(0);
         // window.set_visible(false);
         // window.close();
@@ -518,33 +572,6 @@ int main(int argc, char **argv) {
         settings_page->add_widget(std::move(back_button));
     }
 
-    // mgl::Text record_area_title("Record area", title_font);
-    // record_area_title.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y - title_font.get_character_size() - 10.0f));
-
-    // gsr::ComboBox audio_input_box(&title_font);
-    // audio_input_box.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y + record_area_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
-    // audio_input_box.add_item("Monitor of Starship/Matissee HD Audio Controller Analog Stereo", "starship.ablalba.monitor");
-    // audio_input_box.add_item("Monitor of GP104 High Definition Audio Controller Digital Stereo (HDMI 2)", "starship.ablalba.monitor");
-
-    // mgl::Text audio_input_title("Audio input", title_font);
-    // audio_input_title.set_position(mgl::vec2f(audio_input_box.get_position().x, audio_input_box.get_position().y - title_font.get_character_size() - 10.0f));
-
-    // gsr::ComboBox video_quality_box(&title_font);
-    // video_quality_box.set_position(mgl::vec2f(audio_input_box.get_position().x, audio_input_box.get_position().y + audio_input_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
-    // video_quality_box.add_item("High", "starship.ablalba.monitor");
-    // video_quality_box.add_item("Ultra", "starship.ablalba.monitor");
-    // video_quality_box.add_item("Placebo", "starship.ablalba.monitor");
-
-    // mgl::Text video_quality_title("Video quality", title_font);
-    // video_quality_title.set_position(mgl::vec2f(video_quality_box.get_position().x, video_quality_box.get_position().y - title_font.get_character_size() - 10.0f));
-
-    // gsr::ComboBox framerate_box(&title_font);
-    // framerate_box.set_position(mgl::vec2f(video_quality_box.get_position().x, video_quality_box.get_position().y + video_quality_box.get_size().y + title_font.get_character_size()*2.0f + title_font.get_character_size() + 10.0f));
-    // framerate_box.add_item("60", "starship.ablalba.monitor");
-
-    // mgl::Text framerate_title("Frame rate", title_font);
-    // framerate_title.set_position(mgl::vec2f(framerate_box.get_position().x, framerate_box.get_position().y - title_font.get_character_size() - 10.0f));
-
     mgl::Texture close_texture;
     if(!close_texture.load_from_file("images/cross.png"))
         startup_error("failed to load texture: images/cross.png");
@@ -565,23 +592,8 @@ int main(int argc, char **argv) {
         top_bar_background.get_size().y * 0.5f - logo_sprite.get_size().y * 0.5f
     ).floor());
 
-    /*
-    const float settings_margin_top = 20.0f;
-    const float settings_margin_bottom = 20.0f;
-    const float settings_margin_left = 20.0f;
-    const float settings_margin_right = 20.0f;
-    const float settings_background_width = std::max(record_area_box.get_size().x, audio_input_box.get_size().x);
-    mgl::Rectangle settings_background(record_area_title.get_position() - mgl::vec2f(settings_margin_left, settings_margin_left),
-        mgl::vec2f(settings_margin_left + settings_background_width + settings_margin_right, settings_margin_top + (framerate_box.get_position().y + framerate_box.get_size().y - record_area_title.get_position().y) + settings_margin_bottom));
-    settings_background.set_color(mgl::Color(38, 43, 47));
-
-    const float settings_topline_thickness = 5.0f;
-    mgl::Rectangle settings_topline(settings_background.get_position() - mgl::vec2f(0.0f, settings_topline_thickness), mgl::vec2f(settings_background.get_size().x, settings_topline_thickness));
-    settings_topline.set_color(gsr::get_theme().tint_color);
-    */
-
-    mgl::Clock state_update_timer;
-    const double state_update_timeout_sec = 2.0;
+    // mgl::Clock state_update_timer;
+    // const double state_update_timeout_sec = 2.0;
 
     mgl::Event event;
 
@@ -594,14 +606,6 @@ int main(int argc, char **argv) {
         window.clear(bg_color);
         window.draw(screenshot_sprite);
         window.draw(bg_screenshot_overlay);
-        /*
-        window.draw(settings_topline);
-        window.draw(settings_background);
-        */
-        // window.draw(record_area_title);
-        // window.draw(audio_input_title);
-        // window.draw(video_quality_title);
-        // window.draw(framerate_title);
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);
@@ -628,15 +632,26 @@ int main(int argc, char **argv) {
             }
         }
 
-        if(state_update_timer.get_elapsed_time_seconds() >= state_update_timeout_sec) {
-            state_update_timer.restart();
-            update_overlay_shape();
-        }
+        // if(state_update_timer.get_elapsed_time_seconds() >= state_update_timeout_sec) {
+        //     state_update_timer.restart();
+        //     update_overlay_shape();
+        // }
 
         render();
     }
 
     fprintf(stderr, "shutting down!\n");
+
+    if(gpu_screen_recorder_process != -1) {
+        kill(gpu_screen_recorder_process, SIGINT);
+        int status;
+        if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
+            perror("waitpid failed");
+            /* Ignore... */
+        }
+        gpu_screen_recorder_process = -1;
+    }
+
     gsr::deinit_theme();
     return 0;
 }

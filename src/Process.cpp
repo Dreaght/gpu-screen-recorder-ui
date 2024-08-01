@@ -40,6 +40,24 @@ namespace gsr {
         return true;
     }
 
+    pid_t exec_program(const char **args) {
+        /* 1 argument */
+        if(args[0] == nullptr)
+            return -1;
+
+        pid_t pid = vfork();
+        if(pid == -1) {
+            perror("Failed to vfork");
+            return -1;
+        } else if(pid == 0) { /* child */
+            execvp(args[0], (char* const*)args);
+            perror("execvp");
+            _exit(127);
+        } else { /* parent */
+            return pid;
+        }
+    }
+
     static bool is_number(const char *str) {
         while(*str) {
             char c = *str;
