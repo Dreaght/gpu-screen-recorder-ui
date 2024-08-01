@@ -25,10 +25,11 @@ namespace gsr {
         this->description.set_color(mgl::Color(150, 150, 150));
     }
 
-    bool DropdownButton::on_event(mgl::Event &event, mgl::Window&) {
+    bool DropdownButton::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
         if(event.type == mgl::Event::MouseMoved) {
+            const mgl::vec2f draw_pos = position + offset;
             const mgl::vec2f collision_margin(1.0f, 1.0f); // Makes sure that multiple buttons that are next to each other wont activate at the same time when the cursor is right between them
-            const bool inside = mgl::FloatRect(position + collision_margin, size - collision_margin).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
+            const bool inside = mgl::FloatRect(draw_pos + collision_margin, size - collision_margin).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
             if(mouse_inside && !inside) {
                 mouse_inside = false;
             } else if(!mouse_inside && inside) {
@@ -43,14 +44,16 @@ namespace gsr {
         return true;
     }
 
-    void DropdownButton::draw(mgl::Window &window) {
+    void DropdownButton::draw(mgl::Window &window, mgl::vec2f offset) {
         update_if_dirty();
+
+        const mgl::vec2f draw_pos = position + offset;
 
         if(show_dropdown) {
             // Background
             {
                 mgl::Rectangle rect(size);
-                rect.set_position(position);
+                rect.set_position(draw_pos);
                 rect.set_color(mgl::Color(0, 0, 0, 255));
                 window.draw(rect);
             }
@@ -60,7 +63,7 @@ namespace gsr {
             // Green line at top
             {
                 mgl::Rectangle rect({ size.x, border_size });
-                rect.set_position(position);
+                rect.set_position(draw_pos);
                 rect.set_color(border_color);
                 window.draw(rect);
             }
@@ -68,33 +71,33 @@ namespace gsr {
             // Background
             {
                 mgl::Rectangle rect(size);
-                rect.set_position(position);
+                rect.set_position(draw_pos);
                 rect.set_color(mgl::Color(0, 0, 0, 255));
                 window.draw(rect);
             }
 
             const mgl::Color border_color = gsr::get_theme().tint_color;
-            draw_rectangle_outline(window, position, size, border_color, border_size);
+            draw_rectangle_outline(window, draw_pos, size, border_color, border_size);
         } else {
             // Background
             mgl::Rectangle rect(size);
-            rect.set_position(position);
-            rect.set_color(mgl::Color(0, 0, 0, 220));
+            rect.set_position(draw_pos);
+            rect.set_color(mgl::Color(0, 0, 0, 120));
             window.draw(rect);
         }
 
         const int text_margin = size.y * 0.085;
 
         const auto title_bounds = title.get_bounds();
-        title.set_position((position + mgl::vec2f(size.x * 0.5f - title_bounds.size.x * 0.5f, text_margin)).floor());
+        title.set_position((draw_pos + mgl::vec2f(size.x * 0.5f - title_bounds.size.x * 0.5f, text_margin)).floor());
         window.draw(title);
 
         const auto description_bounds = description.get_bounds();
-        description.set_position((position + mgl::vec2f(size.x * 0.5f - description_bounds.size.x * 0.5f, size.y - description_bounds.size.y - text_margin)).floor());
+        description.set_position((draw_pos + mgl::vec2f(size.x * 0.5f - description_bounds.size.x * 0.5f, size.y - description_bounds.size.y - text_margin)).floor());
         window.draw(description);
 
         if(icon_sprite.get_texture()->is_valid()) {
-            icon_sprite.set_position((position + size * 0.5f - icon_sprite.get_size() * 0.5f).floor());
+            icon_sprite.set_position((draw_pos + size * 0.5f - icon_sprite.get_size() * 0.5f).floor());
             window.draw(icon_sprite);
         }
 
@@ -103,7 +106,7 @@ namespace gsr {
             const mgl::vec2i mouse_pos = window.get_mouse_position();
 
             mgl::Rectangle dropdown_bg(max_size);
-            dropdown_bg.set_position(position + mgl::vec2f(0.0f, size.y));
+            dropdown_bg.set_position(draw_pos + mgl::vec2f(0.0f, size.y));
             dropdown_bg.set_color(mgl::Color(0, 0, 0));
             window.draw(dropdown_bg);
 

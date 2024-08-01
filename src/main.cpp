@@ -1,6 +1,8 @@
 
-#include "../include/gui/Page.hpp"
+#include "../include/gui/StaticPage.hpp"
+#include "../include/gui/ScrollablePage.hpp"
 #include "../include/gui/DropdownButton.hpp"
+#include "../include/gui/Button.hpp"
 #include "../include/gui/ComboBox.hpp"
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
@@ -235,8 +237,31 @@ int main(int argc, char **argv) {
     mgl::Rectangle bg_screenshot_overlay(window.get_size().to_vec2f());
     bg_screenshot_overlay.set_color(bg_color);
 
-    gsr::Page front_page;
-    gsr::Page replay_settings_page;
+    gsr::StaticPage front_page;
+
+    const mgl::vec2f settings_page_size(window_size.x * 0.3333f, window_size.y * 0.7f);
+    const mgl::vec2f settings_page_position = (window_size.to_vec2f() * 0.5f - settings_page_size * 0.5f).floor();
+
+    auto replay_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
+    gsr::ScrollablePage *replay_settings_content_ptr = replay_settings_content.get();
+    replay_settings_content->set_position(settings_page_position);
+
+    auto record_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
+    gsr::ScrollablePage *record_settings_content_ptr = record_settings_content.get();
+    record_settings_content->set_position(settings_page_position);
+
+    auto stream_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
+    gsr::ScrollablePage *stream_settings_content_ptr = stream_settings_content.get();
+    stream_settings_content->set_position(settings_page_position);
+
+    gsr::StaticPage replay_settings_page;
+    replay_settings_page.add_widget(std::move(replay_settings_content));
+
+    gsr::StaticPage record_settings_page;
+    record_settings_page.add_widget(std::move(record_settings_content));
+
+    gsr::StaticPage stream_settings_page;
+    stream_settings_page.add_widget(std::move(stream_settings_content));
 
     gsr::Page *current_page = &front_page;
 
@@ -245,25 +270,27 @@ int main(int argc, char **argv) {
         gsr::GsrMode mode;
     };
 
-    const char *titles[] = {
+    const int num_frontpage_buttons = 3;
+
+    const char *titles[num_frontpage_buttons] = {
         "Instant Replay",
         "Record",
         "Livestream"
     };
 
-    const char *descriptions_off[] = {
+    const char *descriptions_off[num_frontpage_buttons] = {
         "Off",
         "Not recording",
         "Not streaming"
     };
 
-    const char *descriptions_on[] = {
+    const char *descriptions_on[num_frontpage_buttons] = {
         "On",
         "Recording",
         "Streaming"
     };
 
-    mgl::Texture *textures[] = {
+    mgl::Texture *textures[num_frontpage_buttons] = {
         &replay_button_texture,
         &record_button_texture,
         &stream_button_texture
@@ -274,7 +301,7 @@ int main(int argc, char **argv) {
 
     std::vector<MainButton> main_buttons;
 
-    for(int i = 0; i < 3; ++i) {
+    for(int i = 0; i < num_frontpage_buttons; ++i) {
         auto button = std::make_unique<gsr::DropdownButton>(&title_font, &font, titles[i], descriptions_on[i], descriptions_off[i], textures[i], mgl::vec2f(button_width, button_height));
         button->add_item("Start", "start");
         button->add_item("Settings", "settings");
@@ -322,6 +349,7 @@ int main(int argc, char **argv) {
     main_buttons[0].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
             current_page = &replay_settings_page;
+            return;
         }
         /*
         char window_to_record_str[32];
@@ -343,6 +371,11 @@ int main(int argc, char **argv) {
 
     // Record
     main_buttons[1].button->on_click = [&](const std::string &id) {
+        if(id == "settings") {
+            current_page = &record_settings_page;
+            return;
+        }
+
         if(id != "start")
             return;
 
@@ -386,6 +419,13 @@ int main(int argc, char **argv) {
     };
     main_buttons[1].mode = gsr::GsrMode::Record;
 
+    // Stream
+    main_buttons[2].button->on_click = [&](const std::string &id) {
+        if(id == "settings") {
+            current_page = &stream_settings_page;
+            return;
+        }
+    };
     main_buttons[2].mode = gsr::GsrMode::Stream;
 
     update_overlay_shape();
@@ -413,28 +453,56 @@ int main(int argc, char **argv) {
     //XGrabServer(display);
 
     mgl::Rectangle top_bar_background(mgl::vec2f(window.get_size().x, window.get_size().y*0.06f).floor());
-    top_bar_background.set_color(mgl::Color(0, 0, 0, 220));
+    top_bar_background.set_color(mgl::Color(0, 0, 0, 200));
 
     mgl::Text top_bar_text("GPU Screen Recorder", top_bar_font);
     //top_bar_text.set_color(gsr::get_theme().tint_color);
     top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
 
-    auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
-    record_area_box->set_position(mgl::vec2f(300.0f, 300.0f));
-    if(gsr_info.supported_capture_options.window)
-        record_area_box->add_item("Window", "window");
-    if(gsr_info.supported_capture_options.focused)
-        record_area_box->add_item("Focused window", "focused");
-    if(gsr_info.supported_capture_options.screen)
-        record_area_box->add_item("All monitors", "screen");
-    for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
-        char name[256];
-        snprintf(name, sizeof(name), "%s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
-        record_area_box->add_item(name, monitor.name);
+    const int num_settings_pages = 3;
+
+    gsr::Page *settings_pages[num_settings_pages] = {
+        &replay_settings_page,
+        &record_settings_page,
+        &stream_settings_page
+    };
+
+    gsr::Page *settings_content_pages[num_settings_pages] = {
+        replay_settings_content_ptr,
+        record_settings_content_ptr,
+        stream_settings_content_ptr
+    };
+
+    const auto settings_back_button_callback = [&] {
+        current_page = &front_page;
+    };
+
+    for(int i = 0; i < num_settings_pages; ++i) {
+        gsr::Page *settings_page = settings_pages[i];
+        gsr::Page *settings_content_page = settings_content_pages[i];
+
+        auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
+        record_area_box->set_position(mgl::vec2f(300.0f, 300.0f));
+        if(gsr_info.supported_capture_options.window)
+            record_area_box->add_item("Window", "window");
+        if(gsr_info.supported_capture_options.focused)
+            record_area_box->add_item("Focused window", "focused");
+        if(gsr_info.supported_capture_options.screen)
+            record_area_box->add_item("All monitors", "screen");
+        for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
+            char name[256];
+            snprintf(name, sizeof(name), "%s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
+            record_area_box->add_item(name, monitor.name);
+        }
+        if(gsr_info.supported_capture_options.portal)
+            record_area_box->add_item("Desktop portal", "portal");
+        settings_content_page->add_widget(std::move(record_area_box));
+
+        auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
+        back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
+        back_button->on_click = settings_back_button_callback;
+        settings_page->add_widget(std::move(back_button));
     }
-    if(gsr_info.supported_capture_options.portal)
-        record_area_box->add_item("Desktop portal", "portal");
-    replay_settings_page.add_widget(std::move(record_area_box));
 
     // mgl::Text record_area_title("Record area", title_font);
     // record_area_title.set_position(mgl::vec2f(record_area_box.get_position().x, record_area_box.get_position().y - title_font.get_character_size() - 10.0f));
@@ -506,9 +574,9 @@ int main(int argc, char **argv) {
     event.type = mgl::Event::MouseMoved;
     event.mouse_move.x = window.get_mouse_position().x;
     event.mouse_move.y = window.get_mouse_position().y;
-    current_page->on_event(event, window);
+    current_page->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
 
-    auto render = [&] {
+    const auto render = [&] {
         window.clear(bg_color);
         window.draw(screenshot_sprite);
         window.draw(bg_screenshot_overlay);
@@ -520,11 +588,11 @@ int main(int argc, char **argv) {
         // window.draw(audio_input_title);
         // window.draw(video_quality_title);
         // window.draw(framerate_title);
-        current_page->draw(window);
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);
         window.draw(close_sprite);
+        current_page->draw(window, mgl::vec2f(0.0f, 0.0f));
         window.display();
     };
 
@@ -536,7 +604,7 @@ int main(int argc, char **argv) {
         }
 
         while(window.poll_event(event)) {
-            current_page->on_event(event, window);
+            current_page->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
             if(event.type == mgl::Event::KeyPressed) {
                 if(event.key.code == mgl::Keyboard::Escape) {
                     window.set_visible(false);

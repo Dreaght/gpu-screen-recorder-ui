@@ -17,13 +17,14 @@ namespace gsr {
         assert(font);
     }
 
-    bool ComboBox::on_event(mgl::Event &event, mgl::Window&) {
+    bool ComboBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
+            const mgl::vec2f draw_pos = position + offset;
             const mgl::vec2f mouse_pos = { (float)event.mouse_button.x, (float)event.mouse_button.y };
             const mgl::vec2f item_size(max_size.x, font->get_character_size() + padding_top + padding_bottom);
 
             if(show_dropdown && !items.empty()) {
-                mgl::vec2f pos = position + mgl::vec2f(padding_left, padding_top);
+                mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
                 pos.y += items[selected_item].text.get_bounds().size.y + padding_top + padding_bottom;
 
                 for(size_t i = 0; i < items.size(); ++i) {
@@ -38,7 +39,7 @@ namespace gsr {
                 }
             }
 
-            if(mgl::FloatRect(position, item_size).contains(mouse_pos)) {
+            if(mgl::FloatRect(draw_pos, item_size).contains(mouse_pos)) {
                 show_dropdown = !show_dropdown;
                 move_to_top = true;
             } else {
@@ -48,26 +49,28 @@ namespace gsr {
         return true;
     }
 
-    void ComboBox::draw(mgl::Window &window) {
+    void ComboBox::draw(mgl::Window &window, mgl::vec2f offset) {
         update_if_dirty();
 
         if(items.empty())
             return;
 
+        const mgl::vec2f draw_pos = position + offset;
+
         const mgl::vec2f item_size(max_size.x, font->get_character_size() + padding_top + padding_bottom);
         const mgl::vec2i mouse_pos = window.get_mouse_position();
         bool inside = false;
 
-        mgl::Rectangle background(position, mgl::vec2f(max_size.x, item_size.y));
+        mgl::Rectangle background(draw_pos, mgl::vec2f(max_size.x, item_size.y));
         if(show_dropdown) {
             background.set_size(max_size);
             background.set_color(mgl::Color(0, 0, 0));
         } else {
-            background.set_color(mgl::Color(0, 0, 0, 220));
+            background.set_color(mgl::Color(0, 0, 0, 120));
         }
         window.draw(background);
 
-        mgl::vec2f pos = position + mgl::vec2f(padding_left, padding_top);
+        mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
 
         Item &item = items[selected_item];
         item.text.set_position(pos.floor());

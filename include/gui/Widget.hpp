@@ -9,7 +9,8 @@ namespace mgl {
 
 namespace gsr {
     class Widget {
-        friend class Page;
+        friend class StaticPage;
+        friend class ScrollablePage;
     public:
         Widget();
         Widget(const Widget&) = delete;
@@ -17,8 +18,8 @@ namespace gsr {
         virtual ~Widget();
 
         // Return true to allow other widgets to also process the event
-        virtual bool on_event(mgl::Event &event, mgl::Window &window) = 0;
-        virtual void draw(mgl::Window &window) = 0;
+        virtual bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) = 0;
+        virtual void draw(mgl::Window &window, mgl::vec2f offset) = 0;
         virtual void set_position(mgl::vec2f position);
 
         virtual mgl::vec2f get_position() const;
