@@ -1,8 +1,10 @@
 
 #include "../include/gui/WidgetContainer.hpp"
-#include "../include/gui/Button.hpp"
+#include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/ComboBox.hpp"
 #include "../include/Process.hpp"
+#include "../include/Theme.hpp"
+#include "../include/GsrInfo.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -138,6 +140,15 @@ int main(int argc, char **argv) {
 
     signal(SIGINT, sigint_handler);
 
+    gsr::GsrInfo gsr_info;
+    // TODO:
+    gsr::GsrInfoExitStatus gsr_info_exit_status = gsr::get_gpu_screen_recorder_info(&gsr_info);
+    if(gsr_info_exit_status != gsr::GsrInfoExitStatus::OK) {
+        fprintf(stderr, "error: failed to get gpu-screen-recorder info\n");
+        exit(1);
+    }
+    gsr::init_theme(gsr_info);
+
     std::string program_root_dir = dirname(argv[0]);
     if(!program_root_dir.empty() && program_root_dir.back() != '/')
         program_root_dir += '/';
@@ -225,10 +236,7 @@ int main(int argc, char **argv) {
     bg_screenshot_overlay.set_color(bg_color);
 
     struct MainButton {
-        mgl::Text title;
-        mgl::Text description;
-        mgl::Sprite icon;
-        std::unique_ptr<gsr::Button> button;
+        std::unique_ptr<gsr::DropdownButton> button;
         gsr::GsrMode mode;
     };
 
@@ -256,26 +264,17 @@ int main(int argc, char **argv) {
         &stream_button_texture
     };
 
-    const int button_height = window_create_params.size.y / 6.0f;
+    const int button_height = window_create_params.size.y / 5.0f;
     const int button_width = button_height;
 
     std::vector<MainButton> main_buttons;
 
     for(int i = 0; i < 3; ++i) {
-        mgl::Text title(titles[i], {0.0f, 0.0f}, title_font);
-        title.set_color(mgl::Color(255, 255, 255));
-
-        mgl::Text description(descriptions_off[i], {0.0f, 0.0f}, font);
-        description.set_color(mgl::Color(150, 150, 150));
-
-        mgl::Sprite sprite(textures[i]);
-        sprite.set_height(button_height * 0.5f);
-        auto button = std::make_unique<gsr::Button>(mgl::vec2f(button_width, button_height));
+        auto button = std::make_unique<gsr::DropdownButton>(&title_font, &font, titles[i], descriptions_on[i], descriptions_off[i], textures[i], mgl::vec2f(button_width, button_height));
+        button->add_item("Start", "start");
+        button->add_item("Settings", "settings");
 
         MainButton main_button = {
-            std::move(title),
-            std::move(description),
-            std::move(sprite),
             std::move(button),
             gsr::GsrMode::Unknown
         };
@@ -285,7 +284,6 @@ int main(int argc, char **argv) {
 
     auto update_overlay_shape = [&](std::optional<gsr::GsrMode> gsr_mode = std::nullopt) {
         fprintf(stderr, "update overlay shape!\n");
-        const int main_button_margin = button_height * 0.085;// * get_config().scale;
         const int spacing = 0;// * get_config().scale;
         const int combined_spacing = spacing * std::max(0, (int)main_buttons.size() - 1);
 
@@ -303,29 +301,10 @@ int main(int argc, char **argv) {
 
         for(size_t i = 0; i < main_buttons.size(); ++i) {
             if(main_buttons[i].mode != gsr::GsrMode::Unknown && main_buttons[i].mode == gsr_mode.value()) {
-                main_buttons[i].description.set_string(descriptions_on[i]);
-                main_buttons[i].description.set_color(mgl::Color(118, 185, 0));
-                main_buttons[i].icon.set_color(mgl::Color(118, 185, 0));
+                main_buttons[i].button->set_activated(true);
             } else {
-                main_buttons[i].description.set_string(descriptions_off[i]);
-                main_buttons[i].description.set_color(mgl::Color(150, 150, 150));
-                main_buttons[i].icon.set_color(mgl::Color(255, 255, 255));
+                main_buttons[i].button->set_activated(false);
             }
-
-            main_buttons[i].title.set_position(
-                mgl::vec2f(
-                    main_button_pos.x + per_button_width * 0.5f - main_buttons[i].title.get_bounds().size.x * 0.5f,
-                    main_button_pos.y + main_button_margin).floor());
-
-            main_buttons[i].description.set_position(
-                mgl::vec2f(
-                    main_button_pos.x + per_button_width * 0.5f - main_buttons[i].description.get_bounds().size.x * 0.5f,
-                    main_button_pos.y + overlay_desired_size.y - main_buttons[i].description.get_bounds().size.y - main_button_margin).floor());
-
-            main_buttons[i].icon.set_position(
-                mgl::vec2f(
-                    main_button_pos.x + per_button_width * 0.5f - main_buttons[i].icon.get_texture()->get_size().x * main_buttons[i].icon.get_scale().x * 0.5f,
-                    main_button_pos.y + overlay_desired_size.y * 0.5f - main_buttons[i].icon.get_texture()->get_size().y * main_buttons[i].icon.get_scale().y * 0.5f).floor());
 
             main_buttons[i].button->set_position(main_button_pos.to_vec2f());
             main_button_pos.x += per_button_width + combined_spacing;
@@ -333,7 +312,7 @@ int main(int argc, char **argv) {
     };
 
     // Replay
-    main_buttons[0].button->on_click = [&]() {
+    main_buttons[0].button->on_click = [&](const std::string &id) {
         /*
         char window_to_record_str[32];
         snprintf(window_to_record_str, sizeof(window_to_record_str), "%ld", target_window);
@@ -353,9 +332,12 @@ int main(int argc, char **argv) {
     // TODO: Monitor /tmp/gpu-screen-recorder and update ui to match state
 
     // Record
-    main_buttons[1].button->on_click = [&]() {
-        window.close();
-        usleep(1000 * 50); // 50 milliseconds
+    main_buttons[1].button->on_click = [&](const std::string &id) {
+        if(id != "start")
+            return;
+
+        // window.close();
+        // usleep(1000 * 50); // 50 milliseconds
 
         pid_t gpu_screen_recorder_process = -1;
         gsr::GsrMode gsr_mode = gsr::GsrMode::Unknown;
@@ -366,12 +348,13 @@ int main(int argc, char **argv) {
                 perror("waitpid failed");
                 /* Ignore... */
             }
-            window.set_visible(false);
-            window.close();
-            return;
+            // window.set_visible(false);
+            // window.close();
+            // return;
             //exit(0);
-            //update_overlay_shape(gsr::GsrMode::Unknown);
-            //return;
+            update_overlay_shape(gsr::GsrMode::Unknown);
+            main_buttons[1].button->set_item_label(id, "Start");
+            return;
         }
 
         const char *args[] = {
@@ -382,10 +365,14 @@ int main(int argc, char **argv) {
             nullptr
         };
         gsr::exec_program_daemonized(args);
-        //update_overlay_shape(gsr::GsrMode::Record);
+        update_overlay_shape(gsr::GsrMode::Record);
+        main_buttons[1].button->set_item_label(id, "Stop");
         //exit(0);
-        window.set_visible(false);
-        window.close();
+        // window.set_visible(false);
+        // window.close();
+
+        // TODO: Show notification with args:
+        // "Recording has started" 3.0 ./images/record.png 76b900
     };
     main_buttons[1].mode = gsr::GsrMode::Record;
 
@@ -415,11 +402,11 @@ int main(int argc, char **argv) {
 
     //XGrabServer(display);
 
-    mgl::Rectangle top_bar_background(mgl::vec2f(window.get_size().x, window.get_size().y*0.05f).floor());
+    mgl::Rectangle top_bar_background(mgl::vec2f(window.get_size().x, window.get_size().y*0.06f).floor());
     top_bar_background.set_color(mgl::Color(0, 0, 0, 220));
 
     mgl::Text top_bar_text("GPU Screen Recorder", top_bar_font);
-    //top_bar_text.set_color(mgl::Color(118, 185, 0));
+    //top_bar_text.set_color(gsr::get_theme().tint_color);
     top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
 
     // gsr::ComboBox record_area_box(&title_font);
@@ -458,7 +445,7 @@ int main(int argc, char **argv) {
     // framerate_title.set_position(mgl::vec2f(framerate_box.get_position().x, framerate_box.get_position().y - title_font.get_character_size() - 10.0f));
 
     mgl::Texture close_texture;
-    if(!close_texture.load_from_file("images/cross.png", {false, false, false}))
+    if(!close_texture.load_from_file("images/cross.png"))
         startup_error("failed to load texture: images/cross.png");
 
     mgl::Sprite close_sprite(&close_texture);
@@ -489,7 +476,7 @@ int main(int argc, char **argv) {
 
     const float settings_topline_thickness = 5.0f;
     mgl::Rectangle settings_topline(settings_background.get_position() - mgl::vec2f(0.0f, settings_topline_thickness), mgl::vec2f(settings_background.get_size().x, settings_topline_thickness));
-    settings_topline.set_color(mgl::Color(118, 185, 0));
+    settings_topline.set_color(gsr::get_theme().tint_color);
     */
 
     mgl::Clock state_update_timer;
@@ -517,11 +504,6 @@ int main(int argc, char **argv) {
         // window.draw(video_quality_title);
         // window.draw(framerate_title);
         widget_container.draw(window);
-        for(auto &main_button : main_buttons) {
-            window.draw(main_button.icon);
-            window.draw(main_button.title);
-            window.draw(main_button.description);
-        }
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);

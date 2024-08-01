@@ -1,4 +1,6 @@
 #include "../../include/gui/ComboBox.hpp"
+#include "../../include/gui/Utils.hpp"
+#include "../../include/Theme.hpp"
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Font.hpp>
 #include <mglpp/window/Window.hpp>
@@ -46,40 +48,6 @@ namespace gsr {
         return true;
     }
 
-    static void draw_rectangle_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, float border_size) {
-        // Green line at top
-        {
-            mgl::Rectangle rect({ size.x, border_size });
-            rect.set_position(pos);
-            rect.set_color(color);
-            window.draw(rect);
-        }
-
-        // Green line at bottom
-        {
-            mgl::Rectangle rect({ size.x, border_size });
-            rect.set_position(pos + mgl::vec2f(0.0f, size.y - border_size));
-            rect.set_color(color);
-            window.draw(rect);
-        }
-
-        // Green line at left
-        {
-            mgl::Rectangle rect({ border_size, size.y - border_size * 2 });
-            rect.set_position(pos + mgl::vec2f(0, border_size));
-            rect.set_color(color);
-            window.draw(rect);
-        }
-
-        // Green line at right
-        {
-            mgl::Rectangle rect({ border_size, size.y - border_size * 2 });
-            rect.set_position(pos + mgl::vec2f(size.x - border_size, border_size));
-            rect.set_color(color);
-            window.draw(rect);
-        }
-    }
-
     void ComboBox::draw(mgl::Window &window) {
         update_if_dirty();
 
@@ -102,10 +70,10 @@ namespace gsr {
         mgl::vec2f pos = position + mgl::vec2f(padding_left, padding_top);
 
         Item &item = items[selected_item];
-        item.text.set_position(pos);
+        item.text.set_position(pos.floor());
         if(show_dropdown) {
             const int border_size = 3;
-            const mgl::Color border_color(118, 185, 0);
+            const mgl::Color border_color = gsr::get_theme().tint_color;
             draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size, border_color, border_size);
         }
         window.draw(item.text);
@@ -113,7 +81,7 @@ namespace gsr {
 
         for(size_t i = 0; i < items.size(); ++i) {
             Item &item = items[i];
-            item.text.set_position(pos);
+            item.text.set_position(pos.floor());
             const mgl::FloatRect text_bounds = item.text.get_bounds();
 
             if(show_dropdown) {
@@ -121,7 +89,7 @@ namespace gsr {
                     inside = mgl::FloatRect(text_bounds.position - mgl::vec2f(padding_left, padding_top), item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
                     if(inside) {
                         mgl::Rectangle item_background(text_bounds.position - mgl::vec2f(padding_left, padding_top), item_size);
-                        item_background.set_color(mgl::Color(118, 185, 0));
+                        item_background.set_color(gsr::get_theme().tint_color);
                         window.draw(item_background);
                     } else {
                         /*const int border_size = 3;

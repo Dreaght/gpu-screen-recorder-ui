@@ -1,0 +1,54 @@
+#pragma once
+
+#include "Widget.hpp"
+#include <string>
+#include <functional>
+#include <vector>
+#include <mglpp/graphics/Text.hpp>
+#include <mglpp/graphics/Sprite.hpp>
+
+namespace gsr {
+    class DropdownButton : public Widget {
+    public:
+        DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size);
+        DropdownButton(const DropdownButton&) = delete;
+        DropdownButton& operator=(const DropdownButton&) = delete;
+
+        bool on_event(mgl::Event &event, mgl::Window &window) override;
+        void draw(mgl::Window &window) override;
+
+        void add_item(const std::string &text, const std::string &id);
+        void set_item_label(const std::string &id, const std::string &new_label);
+
+        void set_activated(bool activated);
+
+        mgl::vec2f get_size();
+
+        std::function<void(const std::string &id)> on_click;
+    private:
+        void update_if_dirty();
+    private:
+        struct Item {
+            mgl::Text text;
+            std::string id;
+        };
+
+        std::vector<Item> items;
+        mgl::Font *title_font;
+        mgl::Font *description_font;
+        mgl::vec2f size;
+        bool mouse_inside = false;
+        bool show_dropdown = false;
+        bool dirty = true;
+        mgl::vec2f max_size;
+        int mouse_inside_item = -1;
+
+        mgl::Text title;
+        mgl::Text description;
+        mgl::Sprite icon_sprite;
+
+        std::string description_activated;
+        std::string description_deactivated;
+        bool activated = false;
+    };
+}

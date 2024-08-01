@@ -1,4 +1,5 @@
 #include "../../include/gui/Button.hpp"
+#include "../../include/Theme.hpp"
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -40,7 +41,7 @@ namespace gsr {
             }
 
             const int border_size = 5;
-            const mgl::Color border_color(118, 185, 0);
+            const mgl::Color border_color = gsr::get_theme().tint_color;
 
             // Green line at top
             {

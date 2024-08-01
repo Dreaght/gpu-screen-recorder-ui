@@ -42,10 +42,11 @@ namespace gsr {
             Widget *widget = *it;
             if(widget->move_to_top) {
                 widget->move_to_top = false;
-                if(widgets.back() != widget) {
+                std::swap(*it, widgets.back());
+                /*if(widgets.back() != widget) {
                     widgets.erase(it);
                     widgets.push_back(widget);
-                }
+                }*/
             }
         }
 
