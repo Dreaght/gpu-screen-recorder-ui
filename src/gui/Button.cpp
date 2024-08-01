@@ -28,8 +28,8 @@ namespace gsr {
     }
 
     void Button::draw(mgl::Window &window, mgl::vec2f offset) {
-        mgl::Rectangle background(size);
-        background.set_position(position + offset);
+        mgl::Rectangle background(size.floor());
+        background.set_position((position + offset).floor());
         background.set_color(bg_color);
         window.draw(background);
 

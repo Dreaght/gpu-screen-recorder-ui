@@ -38,8 +38,13 @@ namespace gsr {
         } else if(event.type == mgl::Event::MouseButtonPressed) {
             const bool clicked_inside = mouse_inside;
             show_dropdown = clicked_inside;
-            if(on_click && mouse_inside_item >= 0 && mouse_inside_item < (int)items.size())
-                on_click(items[mouse_inside_item].id);
+            if(show_dropdown)
+                move_to_top = true;
+            if(mouse_inside_item >= 0 && mouse_inside_item < (int)items.size()) {
+                if(on_click)
+                    on_click(items[mouse_inside_item].id);
+                return false;
+            }
         }
         return true;
     }
@@ -82,7 +87,7 @@ namespace gsr {
             // Background
             mgl::Rectangle rect(size);
             rect.set_position(draw_pos);
-            rect.set_color(mgl::Color(0, 0, 0, 120));
+            rect.set_color(mgl::Color(0, 0, 0, 180));
             window.draw(rect);
         }
 

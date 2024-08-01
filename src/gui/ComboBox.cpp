@@ -41,7 +41,8 @@ namespace gsr {
 
             if(mgl::FloatRect(draw_pos, item_size).contains(mouse_pos)) {
                 show_dropdown = !show_dropdown;
-                move_to_top = true;
+                if(show_dropdown)
+                    move_to_top = true;
             } else {
                 show_dropdown = false;
             }

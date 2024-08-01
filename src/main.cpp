@@ -44,7 +44,7 @@ extern "C" {
 #include <mgl/mgl.h>
 }
 
-const mgl::Color bg_color(0, 0, 0, 180);
+const mgl::Color bg_color(0, 0, 0, 160);
 
 static void usage() {
     fprintf(stderr, "usage: window-overlay\n");
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
     mgl::Rectangle bg_screenshot_overlay(window.get_size().to_vec2f());
     bg_screenshot_overlay.set_color(bg_color);
 
-    gsr::StaticPage front_page;
+    gsr::StaticPage front_page(window_size.to_vec2f());
 
     const mgl::vec2f settings_page_size(window_size.x * 0.3333f, window_size.y * 0.7f);
     const mgl::vec2f settings_page_position = (window_size.to_vec2f() * 0.5f - settings_page_size * 0.5f).floor();
@@ -254,13 +254,13 @@ int main(int argc, char **argv) {
     gsr::ScrollablePage *stream_settings_content_ptr = stream_settings_content.get();
     stream_settings_content->set_position(settings_page_position);
 
-    gsr::StaticPage replay_settings_page;
+    gsr::StaticPage replay_settings_page(window_size.to_vec2f());
     replay_settings_page.add_widget(std::move(replay_settings_content));
 
-    gsr::StaticPage record_settings_page;
+    gsr::StaticPage record_settings_page(window_size.to_vec2f());
     record_settings_page.add_widget(std::move(record_settings_content));
 
-    gsr::StaticPage stream_settings_page;
+    gsr::StaticPage stream_settings_page(window_size.to_vec2f());
     stream_settings_page.add_widget(std::move(stream_settings_content));
 
     gsr::Page *current_page = &front_page;
@@ -453,7 +453,7 @@ int main(int argc, char **argv) {
     //XGrabServer(display);
 
     mgl::Rectangle top_bar_background(mgl::vec2f(window.get_size().x, window.get_size().y*0.06f).floor());
-    top_bar_background.set_color(mgl::Color(0, 0, 0, 200));
+    top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
 
     mgl::Text top_bar_text("GPU Screen Recorder", top_bar_font);
     //top_bar_text.set_color(gsr::get_theme().tint_color);
@@ -482,7 +482,6 @@ int main(int argc, char **argv) {
         gsr::Page *settings_content_page = settings_content_pages[i];
 
         auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
-        record_area_box->set_position(mgl::vec2f(300.0f, 300.0f));
         if(gsr_info.supported_capture_options.window)
             record_area_box->add_item("Window", "window");
         if(gsr_info.supported_capture_options.focused)

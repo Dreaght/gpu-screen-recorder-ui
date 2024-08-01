@@ -24,7 +24,16 @@ namespace gsr {
         const mgl::vec2f draw_pos = position + offset;
         offset = draw_pos + mgl::vec2f(0.0f, get_border_size(window)).floor();
 
-        mgl::Rectangle background(size);
+        mgl_scissor prev_scissor;
+        mgl_window_get_scissor(window.internal_window(), &prev_scissor);
+
+        mgl_scissor new_scissor = {
+            mgl_vec2i{(int)draw_pos.x, (int)draw_pos.y},
+            mgl_vec2i{(int)size.x, (int)size.y}
+        };
+        mgl_window_set_scissor(window.internal_window(), &new_scissor);
+
+        mgl::Rectangle background(size.floor());
         background.set_position(draw_pos);
         background.set_color(get_theme().scrollable_page_bg_color);
         window.draw(background);
@@ -39,12 +48,13 @@ namespace gsr {
                 widget->move_to_top = false;
                 std::swap(widget, widgets.back());
             }
-            widget->draw(window, offset);
         }
 
         for(auto &widget : widgets) {
             widget->draw(window, offset);
         }
+
+        mgl_window_set_scissor(window.internal_window(), &prev_scissor);
     }
 
     float ScrollablePage::get_border_size(mgl::Window &window) const {
