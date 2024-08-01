@@ -24,6 +24,5 @@ namespace gsr {
         virtual mgl::vec2f get_position() const;
     protected:
         mgl::vec2f position;
-        bool move_to_top = false;
     };
 }

@@ -1,5 +1,5 @@
 
-#include "../include/gui/WidgetContainer.hpp"
+#include "../include/gui/Page.hpp"
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/ComboBox.hpp"
 #include "../include/Process.hpp"
@@ -235,8 +235,10 @@ int main(int argc, char **argv) {
     mgl::Rectangle bg_screenshot_overlay(window.get_size().to_vec2f());
     bg_screenshot_overlay.set_color(bg_color);
 
+    gsr::Page front_page;
+
     struct MainButton {
-        std::unique_ptr<gsr::DropdownButton> button;
+        gsr::DropdownButton* button;
         gsr::GsrMode mode;
     };
 
@@ -273,9 +275,11 @@ int main(int argc, char **argv) {
         auto button = std::make_unique<gsr::DropdownButton>(&title_font, &font, titles[i], descriptions_on[i], descriptions_off[i], textures[i], mgl::vec2f(button_width, button_height));
         button->add_item("Start", "start");
         button->add_item("Settings", "settings");
+        gsr::DropdownButton *button_ptr = button.get();
+        front_page.add_widget(std::move(button));
 
         MainButton main_button = {
-            std::move(button),
+            button_ptr,
             gsr::GsrMode::Unknown
         };
 
@@ -482,14 +486,12 @@ int main(int argc, char **argv) {
     mgl::Clock state_update_timer;
     const double state_update_timeout_sec = 2.0;
 
-    gsr::WidgetContainer &widget_container = gsr::WidgetContainer::get_instance();
-
     mgl::Event event;
 
     event.type = mgl::Event::MouseMoved;
     event.mouse_move.x = window.get_mouse_position().x;
     event.mouse_move.y = window.get_mouse_position().y;
-    widget_container.on_event(event, window);
+    front_page.on_event(event, window);
 
     auto render = [&] {
         window.clear(bg_color);
@@ -503,7 +505,7 @@ int main(int argc, char **argv) {
         // window.draw(audio_input_title);
         // window.draw(video_quality_title);
         // window.draw(framerate_title);
-        widget_container.draw(window);
+        front_page.draw(window);
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);
@@ -519,7 +521,7 @@ int main(int argc, char **argv) {
         }
 
         while(window.poll_event(event)) {
-            widget_container.on_event(event, window);
+            front_page.on_event(event, window);
             if(event.type == mgl::Event::KeyPressed) {
                 if(event.key.code == mgl::Keyboard::Escape) {
                     window.set_visible(false);
