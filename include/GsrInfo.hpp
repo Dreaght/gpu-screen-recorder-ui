@@ -62,5 +62,12 @@ namespace gsr {
         NO_DRM_CARD
     };
 
+    struct AudioDevice {
+        std::string name;
+        std::string description;
+    };
+
     GsrInfoExitStatus get_gpu_screen_recorder_info(GsrInfo *gsr_info);
+
+    std::vector<AudioDevice> get_audio_devices();
 }

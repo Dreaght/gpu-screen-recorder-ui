@@ -149,6 +149,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, "error: failed to get gpu-screen-recorder info\n");
         exit(1);
     }
+
+    const std::vector<gsr::AudioDevice> audio_devices = gsr::get_audio_devices();
+
     gsr::init_theme(gsr_info);
 
     std::string program_root_dir = dirname(argv[0]);
@@ -482,6 +485,11 @@ int main(int argc, char **argv) {
         gsr::Page *settings_content_page = settings_content_pages[i];
 
         auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
+        record_area_box->set_position(mgl::vec2f(50.0f, 50.0f));
+
+        const mgl::vec2f record_area_pos = record_area_box->get_position();
+        const mgl::vec2f record_area_size = record_area_box->get_size();
+
         if(gsr_info.supported_capture_options.window)
             record_area_box->add_item("Window", "window");
         if(gsr_info.supported_capture_options.focused)
@@ -496,6 +504,13 @@ int main(int argc, char **argv) {
         if(gsr_info.supported_capture_options.portal)
             record_area_box->add_item("Desktop portal", "portal");
         settings_content_page->add_widget(std::move(record_area_box));
+
+        auto audio_device_box = std::make_unique<gsr::ComboBox>(&title_font);
+        audio_device_box->set_position(record_area_pos + mgl::vec2f(0.0f, record_area_size.y + 50.0f));
+        for(const auto &audio_device : audio_devices) {
+            audio_device_box->add_item(audio_device.description, audio_device.name);
+        }
+        settings_content_page->add_widget(std::move(audio_device_box));
 
         auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
         back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
@@ -622,5 +637,6 @@ int main(int argc, char **argv) {
     }
 
     fprintf(stderr, "shutting down!\n");
+    gsr::deinit_theme();
     return 0;
 }

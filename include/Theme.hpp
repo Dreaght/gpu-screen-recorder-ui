@@ -15,5 +15,6 @@ namespace gsr {
     };
 
     void init_theme(const gsr::GsrInfo &gsr_info);
+    void deinit_theme();
     const Theme& get_theme();
 }

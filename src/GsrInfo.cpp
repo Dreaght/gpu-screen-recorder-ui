@@ -176,4 +176,44 @@ namespace gsr {
 
         return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
     }
+
+    static AudioDevice parse_audio_device_line(const std::string &line) {
+        AudioDevice audio_device;
+        const size_t space_index = line.find(' ');
+        if(space_index == std::string::npos)
+            return audio_device;
+
+        const std::string_view audio_input_name = {line.c_str(), space_index};
+        const std::string_view audio_input_description = {line.c_str() + space_index + 1, line.size() - (space_index + 1)};
+        audio_device.name.assign(audio_input_name.data(), audio_input_name.size());
+        audio_device.description.assign(audio_input_description.data(), audio_input_description.size());
+        return audio_device;
+    }
+
+    std::vector<AudioDevice> get_audio_devices() {
+        std::vector<AudioDevice> audio_devices;
+
+        FILE *f = popen("gpu-screen-recorder --list-audio-devices", "r");
+        if(!f) {
+            fprintf(stderr, "error: 'gpu-screen-recorder --info' failed\n");
+            return audio_devices;
+        }
+
+        char output[16384];
+        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
+        if(bytes_read < 0 || ferror(f)) {
+            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --info' output\n");
+            pclose(f);
+            return audio_devices;
+        }
+        output[bytes_read] = '\0';
+
+        string_split_char(output, '\n', [&](std::string_view line) {
+            const std::string line_str(line.data(), line.size());
+            audio_devices.push_back(parse_audio_device_line(line_str));
+            return true;
+        });
+
+        return audio_devices;
+    }
 }
