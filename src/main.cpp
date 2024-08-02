@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
     window_create_params.hidden = true;
     //window_create_params.override_redirect = true;
     window_create_params.background_color = bg_color;
-    window_create_params.support_alpha = is_compositor_running(display, 0);
+    window_create_params.support_alpha = true;
     window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
 
     mgl::Window window;
@@ -268,19 +268,18 @@ int main(int argc, char **argv) {
     if(!stream_button_texture.load_from_file((program_root_dir + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
 
-    // TODO: Only do these things if no compositor (with argb support) is running.
     // TODO: Get size from monitor, get region specific to the monitor
-    XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
-    if(!img) {
-        fprintf(stderr, "Error: failed to take a screenshot\n");
-        exit(1);
-    }
-
     mgl::Texture screenshot_texture;
-    if(!window_create_params.support_alpha) {
-        screenshot_texture = texture_from_ximage(img);
-        XDestroyImage(img);
-        img = NULL;
+    if(!is_compositor_running(display, 0)) {
+        XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
+        if(!img)
+            fprintf(stderr, "Error: failed to take a screenshot\n");
+
+        if(img) {
+            screenshot_texture = texture_from_ximage(img);
+            XDestroyImage(img);
+            img = NULL;
+        }
     }
 
     mgl::Sprite screenshot_sprite;
