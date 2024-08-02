@@ -37,9 +37,20 @@ namespace gsr {
             }
         } else if(event.type == mgl::Event::MouseButtonPressed) {
             const bool clicked_inside = mouse_inside;
+
+            if(show_dropdown && clicked_inside && mouse_inside_item == -1) {
+                show_dropdown = false;
+                remove_widget_as_selected_in_parent();
+                return false;
+            }
+
             show_dropdown = clicked_inside;
+
             if(show_dropdown)
-                move_to_top = true;
+                set_widget_as_selected_in_parent();
+            else
+                remove_widget_as_selected_in_parent();
+
             if(mouse_inside_item >= 0 && mouse_inside_item < (int)items.size()) {
                 if(on_click)
                     on_click(items[mouse_inside_item].id);

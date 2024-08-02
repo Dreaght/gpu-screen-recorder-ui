@@ -33,6 +33,7 @@ namespace gsr {
                     if(mgl::FloatRect(pos - mgl::vec2f(padding_left, padding_top), item_size).contains(mouse_pos)) {
                         selected_item = i;
                         show_dropdown = false;
+                        remove_widget_as_selected_in_parent();
                         return false;
                     }
                     pos.y += text_bounds.size.y + padding_top + padding_bottom;
@@ -42,9 +43,13 @@ namespace gsr {
             if(mgl::FloatRect(draw_pos, item_size).contains(mouse_pos)) {
                 show_dropdown = !show_dropdown;
                 if(show_dropdown)
-                    move_to_top = true;
+                    set_widget_as_selected_in_parent();
+                else
+                    remove_widget_as_selected_in_parent();
+                return false;
             } else {
                 show_dropdown = false;
+                remove_widget_as_selected_in_parent();
             }
         }
         return true;

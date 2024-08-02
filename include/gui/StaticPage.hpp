@@ -12,7 +12,7 @@ namespace gsr {
         bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
-        mgl::vec2f get_size() const { return size; }
+        mgl::vec2f get_size() override { return size; }
     private:
         mgl::vec2f size;
     };

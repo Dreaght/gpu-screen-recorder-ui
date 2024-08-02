@@ -11,3 +11,5 @@ Maybe change design to have black triangles appear and get larger until they fil
 DISPLAY gamescope-0
 
 Colorscheme should follow graphics card in use. On nvidia use nvidia green, on intel use intel blue and on amd use amd red.
+
+Optimize list/page when having a few items in it (dont use vector<unique_ptr<Widget>>).

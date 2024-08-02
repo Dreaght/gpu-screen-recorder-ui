@@ -11,6 +11,8 @@ namespace gsr {
     class Widget {
         friend class StaticPage;
         friend class ScrollablePage;
+        friend class List;
+        friend class Page;
     public:
         Widget();
         Widget(const Widget&) = delete;
@@ -23,8 +25,13 @@ namespace gsr {
         virtual void set_position(mgl::vec2f position);
 
         virtual mgl::vec2f get_position() const;
+        virtual mgl::vec2f get_size() = 0;
+    protected:
+        void set_widget_as_selected_in_parent();
+        void remove_widget_as_selected_in_parent();
     protected:
         mgl::vec2f position;
-        bool move_to_top = false;
+        Widget *parent_widget = nullptr;
+        Widget *selected_child_widget = nullptr;
     };
 }

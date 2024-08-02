@@ -9,10 +9,17 @@ namespace gsr {
         const mgl::vec2f draw_pos = position + offset;
         offset = draw_pos;
 
+        if(selected_child_widget) {
+            if(!selected_child_widget->on_event(event, window, offset))
+                return false;
+        }
+
         // Process widgets by visibility (backwards)
         for(auto it = widgets.rbegin(), end = widgets.rend(); it != end; ++it) {
-            if(!(*it)->on_event(event, window, offset))
-                return false;
+            if(it->get() != selected_child_widget) {
+                if(!(*it)->on_event(event, window, offset))
+                    return false;
+            }
         }
 
         return true;
@@ -32,15 +39,12 @@ namespace gsr {
         mgl_window_set_scissor(window.internal_window(), &new_scissor);
 
         for(auto &widget : widgets) {
-            if(widget->move_to_top) {
-                widget->move_to_top = false;
-                std::swap(widget, widgets.back());
-            }
+            if(widget.get() != selected_child_widget)
+                widget->draw(window, offset);
         }
 
-        for(auto &widget : widgets) {
-            widget->draw(window, offset);
-        }
+        if(selected_child_widget)
+            selected_child_widget->draw(window, offset);
 
         mgl_window_set_scissor(window.internal_window(), &prev_scissor);
     }

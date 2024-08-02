@@ -17,7 +17,7 @@ namespace gsr {
 
         void add_item(const std::string &text, const std::string &id);
 
-        mgl::vec2f get_size();
+        mgl::vec2f get_size() override;
     private:
         void update_if_dirty();
     private:

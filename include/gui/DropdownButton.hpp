@@ -22,7 +22,7 @@ namespace gsr {
 
         void set_activated(bool activated);
 
-        mgl::vec2f get_size();
+        mgl::vec2f get_size() override;
 
         std::function<void(const std::string &id)> on_click;
     private:
