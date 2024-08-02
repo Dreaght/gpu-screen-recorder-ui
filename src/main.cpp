@@ -38,7 +38,16 @@
 // TODO: if alpha is not enabled (if no compositor is running) then take a screenshot of the selected monitor instead
 // and use that as the background. However if no compositor is running but a fullscreen application is running (on the focused monitor)
 // then use xcomposite to get that window as a texture and use that as a background because then the background can update.
+// That case can also happen when using a compositor but when the compositor gets turned off when running a fullscreen application.
 // TODO: Update position when workspace changes (in dwm, sticky property handles it in real workspaces).
+// TODO: Make keyboard controllable for steam deck (and other controllers).
+// TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
+// TODO: Remove gpu-screen-recorder-overlay-daemon and handle that alt+z global hotkey here instead, to show/hide the window
+// without restaring the program. Or make the daemon handle gpu screen recorder program state and pass that to the overlay.
+// TODO: Add systray by using org.kde.StatusNotifierWatcher/etc dbus directly.
+// TODO: Dont allow replay and record/stream at the same time. If we want to allow that then do that in gpu screen recorder instead
+// to make it more efficient by doing record/replay/stream with the same encoded packets.
+// TODO: Make sure the overlay always stays on top. Test with starting the overlay and then opening youtube in fullscreen.
 
 #include <vector>
 
@@ -107,7 +116,14 @@ static Bool make_window_sticky(Display* display, Window window) {
     return set_window_wm_state(display, window, net_wm_state_sticky_atom);
 }
 
-mgl::Texture texture_from_ximage(XImage *img) {
+static bool is_compositor_running(Display *dpy, int screen) {
+    char prop_name[20];
+    snprintf(prop_name, sizeof(prop_name), "_NET_WM_CM_S%d", screen);
+    Atom prop_atom = XInternAtom(dpy, prop_name, False);
+    return XGetSelectionOwner(dpy, prop_atom) != None;
+}
+
+static mgl::Texture texture_from_ximage(XImage *img) {
     uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
     // TODO:
 
@@ -207,7 +223,7 @@ int main(int argc, char **argv) {
     window_create_params.hidden = true;
     //window_create_params.override_redirect = true;
     window_create_params.background_color = bg_color;
-    window_create_params.support_alpha = false;
+    window_create_params.support_alpha = is_compositor_running(display, 0);
     window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
 
     mgl::Window window;
@@ -260,11 +276,17 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    mgl::Texture screenshot_texture = texture_from_ximage(img);
-    XDestroyImage(img);
-    img = NULL;
+    mgl::Texture screenshot_texture;
+    if(!window_create_params.support_alpha) {
+        screenshot_texture = texture_from_ximage(img);
+        XDestroyImage(img);
+        img = NULL;
+    }
 
-    mgl::Sprite screenshot_sprite(&screenshot_texture);
+    mgl::Sprite screenshot_sprite;
+    if(screenshot_texture.is_valid())
+        screenshot_sprite.set_texture(&screenshot_texture);
+
     mgl::Rectangle bg_screenshot_overlay(window.get_size().to_vec2f());
     bg_screenshot_overlay.set_color(bg_color);
 
@@ -434,6 +456,7 @@ int main(int argc, char **argv) {
             update_overlay_shape();
             main_buttons[1].button->set_item_label(id, "Start");
 
+            // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             const char *notification_args[] = {
                 "gpu-screen-recorder-notification", "--text", "Recording has been saved", "--timeout", "3.0",
                 "--icon", "./images/record.png",
@@ -460,6 +483,15 @@ int main(int argc, char **argv) {
             main_buttons[1].button->set_item_label(id, "Stop");
         }
 
+        // TODO: Start recording after this notification has disappeared to make sure it doesn't show up in the video.
+        // Make clear to the user that the recording starts after the notification is gone.
+        // Maybe have the option in notification to show timer until its getting hidden, then the notification can say:
+        // Starting recording in 3...
+        // 2...
+        // 1...
+        // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
+        // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
+        // to see when the program has exit.
         const char *notification_args[] = {
             "gpu-screen-recorder-notification", "--text", "Recording has started", "--timeout", "3.0",
             "--icon", "./images/record.png",
@@ -604,8 +636,10 @@ int main(int argc, char **argv) {
 
     const auto render = [&] {
         window.clear(bg_color);
-        window.draw(screenshot_sprite);
-        window.draw(bg_screenshot_overlay);
+        if(screenshot_texture.is_valid()) {
+            window.draw(screenshot_sprite);
+            window.draw(bg_screenshot_overlay);
+        }
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);
