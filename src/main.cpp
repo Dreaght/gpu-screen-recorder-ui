@@ -4,6 +4,7 @@
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/Button.hpp"
 #include "../include/gui/ComboBox.hpp"
+#include "../include/gui/Label.hpp"
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
 #include "../include/GsrInfo.hpp"
@@ -35,10 +36,10 @@
 #include <mglpp/system/MemoryMappedFile.hpp>
 #include <mglpp/system/Clock.hpp>
 
-// TODO: if alpha is not enabled (if no compositor is running) then take a screenshot of the selected monitor instead
-// and use that as the background. However if no compositor is running but a fullscreen application is running (on the focused monitor)
+// TODO: If no compositor is running but a fullscreen application is running (on the focused monitor)
 // then use xcomposite to get that window as a texture and use that as a background because then the background can update.
 // That case can also happen when using a compositor but when the compositor gets turned off when running a fullscreen application.
+// This can also happen after this overlay has started, in which case we want to update the background capture method.
 // TODO: Update position when workspace changes (in dwm, sticky property handles it in real workspaces).
 // TODO: Make keyboard controllable for steam deck (and other controllers).
 // TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
@@ -565,16 +566,24 @@ int main(int argc, char **argv) {
         current_page = &front_page;
     };
 
+    const mgl::vec2f page_widget_spacing{window_size.x / 100.0f, window_size.y / 40.0f};
     for(int i = 0; i < num_settings_pages; ++i) {
+        mgl::vec2f settings_page_widget_pos{50.0f, 50.0f};
         gsr::Page *settings_page = settings_pages[i];
         gsr::Page *settings_content_page = settings_content_pages[i];
 
+        auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
+        back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
+        back_button->on_click = settings_back_button_callback;
+        settings_page->add_widget(std::move(back_button));
+
+        auto record_area_label = std::make_unique<gsr::Label>(&title_font, "Record area:", gsr::get_theme().text_color);
+        record_area_label->set_position(settings_page_widget_pos);
+        settings_page_widget_pos.y += record_area_label->get_size().y + page_widget_spacing.y / 3;
+
         auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
-        record_area_box->set_position(mgl::vec2f(50.0f, 50.0f));
-
-        const mgl::vec2f record_area_pos = record_area_box->get_position();
-        const mgl::vec2f record_area_size = record_area_box->get_size();
-
+        record_area_box->set_position(settings_page_widget_pos);
+        // TODO: Show options not supported but disable them
         if(gsr_info.supported_capture_options.window)
             record_area_box->add_item("Window", "window");
         if(gsr_info.supported_capture_options.focused)
@@ -588,19 +597,122 @@ int main(int argc, char **argv) {
         }
         if(gsr_info.supported_capture_options.portal)
             record_area_box->add_item("Desktop portal", "portal");
-        settings_content_page->add_widget(std::move(record_area_box));
+        settings_page_widget_pos.y += record_area_box->get_size().y + page_widget_spacing.y;
 
         auto audio_device_box = std::make_unique<gsr::ComboBox>(&title_font);
-        audio_device_box->set_position(record_area_pos + mgl::vec2f(0.0f, record_area_size.y + 50.0f));
+        audio_device_box->set_position(settings_page_widget_pos);
         for(const auto &audio_device : audio_devices) {
             audio_device_box->add_item(audio_device.description, audio_device.name);
         }
-        settings_content_page->add_widget(std::move(audio_device_box));
+        settings_page_widget_pos.y += audio_device_box->get_size().y + page_widget_spacing.y;
 
-        auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
-        back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
-        back_button->on_click = settings_back_button_callback;
-        settings_page->add_widget(std::move(back_button));
+        auto framerate_label = std::make_unique<gsr::Label>(&title_font, "Frame rate:", gsr::get_theme().text_color);
+        framerate_label->set_position(settings_page_widget_pos);
+        settings_page_widget_pos.y += framerate_label->get_size().y + page_widget_spacing.y / 3;
+
+        auto framerate_box = std::make_unique<gsr::ComboBox>(&title_font);
+        framerate_box->set_position(settings_page_widget_pos);
+        framerate_box->add_item("60", "60");
+        framerate_box->add_item("30", "30");
+        settings_page_widget_pos.y += framerate_box->get_size().y + page_widget_spacing.y;
+
+        auto video_quality_label = std::make_unique<gsr::Label>(&title_font, "Video quality:", gsr::get_theme().text_color);
+        video_quality_label->set_position(settings_page_widget_pos);
+        const auto video_quality_label_pos = video_quality_label->get_position();
+        settings_page_widget_pos.y += video_quality_label->get_size().y + page_widget_spacing.y / 3;
+
+        auto video_quality_box = std::make_unique<gsr::ComboBox>(&title_font);
+        video_quality_box->set_position(settings_page_widget_pos);
+        video_quality_box->add_item("Medium", "medium");
+        video_quality_box->add_item("High (Recommended for live streaming)", "high");
+        video_quality_box->add_item("Very High (Recommended)", "very_high");
+        video_quality_box->add_item("Ultra", "ultra");
+        const auto video_quality_box_pos = video_quality_box->get_position();
+        const mgl::vec2f video_quality_box_size = video_quality_box->get_size();
+        settings_page_widget_pos.y += video_quality_box_size.y + page_widget_spacing.y;
+
+        auto color_range_label = std::make_unique<gsr::Label>(&title_font, "Color range:", gsr::get_theme().text_color);
+        color_range_label->set_position(video_quality_label_pos + mgl::vec2f(video_quality_box_size.x + page_widget_spacing.x, 0.0f).floor());
+
+        auto color_range_box = std::make_unique<gsr::ComboBox>(&title_font);
+        color_range_box->set_position(video_quality_box_pos + mgl::vec2f(video_quality_box_size.x + page_widget_spacing.x, 0.0f).floor());
+        color_range_box->add_item("Limited", "limited");
+        color_range_box->add_item("Full", "full");
+
+        auto video_codec_label = std::make_unique<gsr::Label>(&title_font, "Video codec:", gsr::get_theme().text_color);
+        video_codec_label->set_position(settings_page_widget_pos);
+        settings_page_widget_pos.y += video_codec_label->get_size().y + page_widget_spacing.y / 3;
+
+        auto video_codec_box = std::make_unique<gsr::ComboBox>(&title_font);
+        video_codec_box->set_position(settings_page_widget_pos);
+        // TODO: Show options not supported but disable them
+        video_codec_box->add_item("Auto (Recommended)", "auto");
+        if(gsr_info.supported_video_codecs.h264)
+            video_codec_box->add_item("H264", "h264");
+        if(gsr_info.supported_video_codecs.hevc)
+            video_codec_box->add_item("HEVC", "hevc");
+        if(gsr_info.supported_video_codecs.av1)
+            video_codec_box->add_item("AV1", "av1");
+        if(gsr_info.supported_video_codecs.vp8)
+            video_codec_box->add_item("VP8", "vp8");
+        if(gsr_info.supported_video_codecs.vp9)
+            video_codec_box->add_item("VP9", "vp9");
+        // TODO: Add hdr options
+        video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
+        settings_page_widget_pos.y += video_codec_box->get_size().y + page_widget_spacing.y;
+
+        auto audio_codec_label = std::make_unique<gsr::Label>(&title_font, "Audio codec:", gsr::get_theme().text_color);
+        audio_codec_label->set_position(settings_page_widget_pos);
+        settings_page_widget_pos.y += audio_codec_label->get_size().y + page_widget_spacing.y / 3;
+
+        auto audio_codec_box = std::make_unique<gsr::ComboBox>(&title_font);
+        audio_codec_box->set_position(settings_page_widget_pos);
+        audio_codec_box->add_item("Opus (Recommended)", "opus");
+        audio_codec_box->add_item("AAC", "aac");
+        settings_page_widget_pos.y += audio_codec_box->get_size().y + page_widget_spacing.y;
+
+        auto framerate_mode_label = std::make_unique<gsr::Label>(&title_font, "Frame rate mode:", gsr::get_theme().text_color);
+        framerate_mode_label->set_position(settings_page_widget_pos);
+        settings_page_widget_pos.y += framerate_mode_label->get_size().y + page_widget_spacing.y / 3;
+
+        auto framerate_mode_box = std::make_unique<gsr::ComboBox>(&title_font);
+        framerate_mode_box->set_position(settings_page_widget_pos);
+        framerate_mode_box->add_item("Auto (Recommended)", "auto");
+        framerate_mode_box->add_item("Constant", "cfr");
+        framerate_mode_box->add_item("Variable", "vfr");
+        settings_page_widget_pos.y += framerate_mode_box->get_size().y + page_widget_spacing.y;
+
+        auto container_label = std::make_unique<gsr::Label>(&title_font, "Container:", gsr::get_theme().text_color);
+        container_label->set_position(settings_page_widget_pos);
+        settings_page_widget_pos.y += container_label->get_size().y + page_widget_spacing.y / 3;
+
+        auto container_box = std::make_unique<gsr::ComboBox>(&title_font);
+        container_box->set_position(settings_page_widget_pos);
+        container_box->add_item("mp4", "mp4");
+        container_box->add_item("mkv", "matroska");
+        container_box->add_item("flv", "flv");
+        container_box->add_item("mov", "mov");
+        container_box->add_item("ts", "mpegts");
+        container_box->add_item("m3u8", "hls");
+        settings_page_widget_pos.y += container_box->get_size().y + page_widget_spacing.y;
+
+        settings_content_page->add_widget(std::move(record_area_label));
+        settings_content_page->add_widget(std::move(record_area_box));
+        settings_content_page->add_widget(std::move(audio_device_box));
+        settings_content_page->add_widget(std::move(framerate_label));
+        settings_content_page->add_widget(std::move(framerate_box));
+        settings_content_page->add_widget(std::move(video_quality_label));
+        settings_content_page->add_widget(std::move(video_quality_box));
+        settings_content_page->add_widget(std::move(color_range_label));
+        settings_content_page->add_widget(std::move(color_range_box));
+        settings_content_page->add_widget(std::move(video_codec_label));
+        settings_content_page->add_widget(std::move(video_codec_box));
+        settings_content_page->add_widget(std::move(audio_codec_label));
+        settings_content_page->add_widget(std::move(audio_codec_box));
+        settings_content_page->add_widget(std::move(framerate_mode_label));
+        settings_content_page->add_widget(std::move(framerate_mode_box));
+        settings_content_page->add_widget(std::move(container_label));
+        settings_content_page->add_widget(std::move(container_box));
     }
 
     mgl::Texture close_texture;
