@@ -13,3 +13,5 @@ DISPLAY gamescope-0
 Colorscheme should follow graphics card in use. On nvidia use nvidia green, on intel use intel blue and on amd use amd red.
 
 Optimize list/page when having a few items in it (dont use vector<unique_ptr<Widget>>).
+
+Only redraw ui if changed (dirty state, propagate upward. Set dirty when adding widget or changing any visible properly on a widget or when event updates how the widget should be displayed).

@@ -29,12 +29,7 @@ namespace gsr {
         if(event.type == mgl::Event::MouseMoved) {
             const mgl::vec2f draw_pos = position + offset;
             const mgl::vec2f collision_margin(1.0f, 1.0f); // Makes sure that multiple buttons that are next to each other wont activate at the same time when the cursor is right between them
-            const bool inside = mgl::FloatRect(draw_pos + collision_margin, size - collision_margin).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
-            if(mouse_inside && !inside) {
-                mouse_inside = false;
-            } else if(!mouse_inside && inside) {
-                mouse_inside = true;
-            }
+            mouse_inside = mgl::FloatRect(draw_pos + collision_margin, size - collision_margin).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
         } else if(event.type == mgl::Event::MouseButtonPressed) {
             const bool clicked_inside = mouse_inside;
 

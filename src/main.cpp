@@ -3,6 +3,7 @@
 #include "../include/gui/ScrollablePage.hpp"
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/Button.hpp"
+#include "../include/gui/Entry.hpp"
 #include "../include/gui/ComboBox.hpp"
 #include "../include/gui/Label.hpp"
 #include "../include/gui/List.hpp"
@@ -182,6 +183,28 @@ static std::string color_to_hex_str(mgl::Color color) {
     return result;
 }
 
+/*
+{
+    {
+        gsr::List::Orientation::VERTICAL,
+        "Record area:",
+        {
+            {"Window, "window"},
+            {"Focused window", "focused"},
+        },
+    },
+    {
+        gsr::List::Orientation::VERTICAL,
+        "Video quality:",
+        {
+            {"Medium, "medium"},
+            {"High", "high"},
+            {"Very high", "very_high"},
+        },
+    }
+}
+*/
+
 static void add_widgets_to_settings_page(mgl::Font &title_font, mgl::vec2i window_size, mgl::vec2f settings_page_position, mgl::vec2f settings_page_size, gsr::Page *settings_page, gsr::Page *settings_content_page, const gsr::GsrInfo &gsr_info, const std::vector<gsr::AudioDevice> &audio_devices, std::function<void()> settings_back_button_callback) {
 auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
     back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
@@ -232,7 +255,7 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
                 auto video_quality_box = std::make_unique<gsr::ComboBox>(&title_font);
                 video_quality_box->add_item("Medium", "medium");
                 video_quality_box->add_item("High (Recommended for live streaming)", "high");
-                video_quality_box->add_item("Very High (Recommended)", "very_high");
+                video_quality_box->add_item("Very high (Recommended)", "very_high");
                 video_quality_box->add_item("Ultra", "ultra");
                 video_quality_list->add_widget(std::move(video_quality_box));
             }
@@ -251,10 +274,10 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
             auto framerate_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
                 framerate_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Frame rate:", gsr::get_theme().text_color));
-                auto framerate_box = std::make_unique<gsr::ComboBox>(&title_font);
-                framerate_box->add_item("60", "60");
-                framerate_box->add_item("30", "30");
-                framerate_list->add_widget(std::move(framerate_box));
+                //create_entry_validator_integer_in_range
+                auto framerate_entry = std::make_unique<gsr::Entry>(&title_font, "60", title_font.get_character_size() * 2);
+                framerate_entry->validate_handler = gsr::create_entry_validator_integer_in_range(1, 500);
+                framerate_list->add_widget(std::move(framerate_entry));
             }
             quality_list->add_widget(std::move(framerate_list));
         }

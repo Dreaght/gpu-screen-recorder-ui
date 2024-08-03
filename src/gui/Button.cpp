@@ -13,12 +13,7 @@ namespace gsr {
 
     bool Button::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
         if(event.type == mgl::Event::MouseMoved) {
-            const bool inside = mgl::FloatRect(position + offset, size).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
-            if(mouse_inside && !inside) {
-                mouse_inside = false;
-            } else if(!mouse_inside && inside) {
-                mouse_inside = true;
-            }
+            mouse_inside = mgl::FloatRect(position + offset, size).contains({ (float)event.mouse_move.x, (float)event.mouse_move.y });
         } else if(event.type == mgl::Event::MouseButtonPressed) {
             const bool clicked_inside = mouse_inside;
             if(clicked_inside && on_click)
