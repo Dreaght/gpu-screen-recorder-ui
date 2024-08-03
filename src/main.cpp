@@ -99,16 +99,6 @@ static Bool set_window_wm_state(Display *display, Window window, Atom atom) {
     return True;
 }
 
-static Bool make_window_always_on_top(Display* display, Window window) {
-    Atom net_wm_state_above_atom = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-    if(!net_wm_state_above_atom) {
-        fprintf(stderr, "Error: failed to find atom _NET_WM_STATE_ABOVE\n");
-        return False;
-    }
-    
-    return set_window_wm_state(display, window, net_wm_state_above_atom);
-}
-
 static Bool make_window_sticky(Display* display, Window window) {
     Atom net_wm_state_sticky_atom = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
     if(!net_wm_state_sticky_atom) {
@@ -232,20 +222,35 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
             }
             if(gsr_info.supported_capture_options.portal)
                 record_area_box->add_item("Desktop portal", "portal");
+
+            if(!gsr_info.supported_capture_options.monitors.empty())
+                record_area_box->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
+            else if(gsr_info.supported_capture_options.portal)
+                record_area_box->set_selected_item("portal");
+
             record_area_list->add_widget(std::move(record_area_box));
         }
         settings_list->add_widget(std::move(record_area_list));
 
-        auto audio_devices_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
+        auto audio_device_section_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
         {
-            audio_devices_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Audio:", gsr::get_theme().text_color));
-            auto audio_device_box = std::make_unique<gsr::ComboBox>(&title_font);
-            for(const auto &audio_device : audio_devices) {
-                audio_device_box->add_item(audio_device.description, audio_device.name);
+            audio_device_section_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Audio:", gsr::get_theme().text_color));
+            auto audio_devices_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
+            for(int i = 0; i < 3; ++i) {
+                auto audio_device_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL, gsr::List::Alignment::CENTER);
+                {
+                    audio_device_list->add_widget(std::make_unique<gsr::Label>(&title_font, (std::to_string(1 + i) + ":").c_str(), gsr::get_theme().text_color));
+                    auto audio_device_box = std::make_unique<gsr::ComboBox>(&title_font);
+                    for(const auto &audio_device : audio_devices) {
+                        audio_device_box->add_item(audio_device.description, audio_device.name);
+                    }
+                    audio_device_list->add_widget(std::move(audio_device_box));
+                }
+                audio_devices_list->add_widget(std::move(audio_device_list));
             }
-            audio_devices_list->add_widget(std::move(audio_device_box));
+            audio_device_section_list->add_widget(std::move(audio_devices_list));
         }
-        settings_list->add_widget(std::move(audio_devices_list));
+        settings_list->add_widget(std::move(audio_device_section_list));
 
         auto quality_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
         {
@@ -257,6 +262,7 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
                 video_quality_box->add_item("High (Recommended for live streaming)", "high");
                 video_quality_box->add_item("Very high (Recommended)", "very_high");
                 video_quality_box->add_item("Ultra", "ultra");
+                video_quality_box->set_selected_item("very_high");
                 video_quality_list->add_widget(std::move(video_quality_box));
             }
             quality_list->add_widget(std::move(video_quality_list));
@@ -274,7 +280,6 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
             auto framerate_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
                 framerate_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Frame rate:", gsr::get_theme().text_color));
-                //create_entry_validator_integer_in_range
                 auto framerate_entry = std::make_unique<gsr::Entry>(&title_font, "60", title_font.get_character_size() * 2);
                 framerate_entry->validate_handler = gsr::create_entry_validator_integer_in_range(1, 500);
                 framerate_list->add_widget(std::move(framerate_entry));
@@ -302,7 +307,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
                 if(gsr_info.supported_video_codecs.vp9)
                     video_codec_box->add_item("VP9", "vp9");
                 // TODO: Add hdr options
-                video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
+                if(gsr_info.supported_video_codecs.h264_software)
+                    video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
                 video_codec_list->add_widget(std::move(video_codec_box));
             }
             codec_list->add_widget(std::move(video_codec_list));
@@ -335,10 +341,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
             auto save_directory_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
                 save_directory_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Directory to save the video:", gsr::get_theme().text_color));
-                auto directory_selection_box = std::make_unique<gsr::ComboBox>(&title_font);
                 // TODO:
-                directory_selection_box->add_item("/home/dec05eba/Videos", "mp4");
-                save_directory_list->add_widget(std::move(directory_selection_box));
+                save_directory_list->add_widget(std::make_unique<gsr::Entry>(&title_font, "/home/dec05eba/Videos", title_font.get_character_size() * 20));
             }
             file_list->add_widget(std::move(save_directory_list));
 
@@ -402,10 +406,10 @@ int main(int argc, char **argv) {
     window_create_params.max_size = window_size;
     window_create_params.position = window_pos;
     window_create_params.hidden = true;
-    //window_create_params.override_redirect = true;
+    window_create_params.override_redirect = true;
     window_create_params.background_color = bg_color;
     window_create_params.support_alpha = true;
-    window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
+    window_create_params.window_type = MGL_WINDOW_TYPE_NOTIFICATION;
 
     mgl::Window window;
     if(!window.create("gsr overlay", window_create_params))
@@ -700,7 +704,6 @@ int main(int argc, char **argv) {
     update_overlay_shape();
 
     window.set_visible(true);
-    make_window_always_on_top(display, window.get_system_handle());
     make_window_sticky(display, window.get_system_handle());
 
     Cursor default_cursor = XCreateFontCursor(display, XC_arrow);

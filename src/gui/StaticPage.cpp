@@ -8,15 +8,16 @@ namespace gsr {
     bool StaticPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) {
         const mgl::vec2f draw_pos = position + offset;
         offset = draw_pos;
+        Widget *selected_widget = selected_child_widget;
 
-        if(selected_child_widget) {
-            if(!selected_child_widget->on_event(event, window, offset))
+        if(selected_widget) {
+            if(!selected_widget->on_event(event, window, offset))
                 return false;
         }
 
         // Process widgets by visibility (backwards)
         for(auto it = widgets.rbegin(), end = widgets.rend(); it != end; ++it) {
-            if(it->get() != selected_child_widget) {
+            if(it->get() != selected_widget) {
                 if(!(*it)->on_event(event, window, offset))
                     return false;
             }
@@ -28,6 +29,7 @@ namespace gsr {
     void StaticPage::draw(mgl::Window &window, mgl::vec2f offset) {
         const mgl::vec2f draw_pos = position + offset;
         offset = draw_pos;
+        Widget *selected_widget = selected_child_widget;
 
         mgl_scissor prev_scissor;
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
@@ -39,12 +41,12 @@ namespace gsr {
         mgl_window_set_scissor(window.internal_window(), &new_scissor);
 
         for(auto &widget : widgets) {
-            if(widget.get() != selected_child_widget)
+            if(widget.get() != selected_widget)
                 widget->draw(window, offset);
         }
 
-        if(selected_child_widget)
-            selected_child_widget->draw(window, offset);
+        if(selected_widget)
+            selected_widget->draw(window, offset);
 
         mgl_window_set_scissor(window.internal_window(), &prev_scissor);
     }

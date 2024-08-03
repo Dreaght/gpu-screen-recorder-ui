@@ -54,6 +54,8 @@ namespace gsr {
     static void parse_video_codecs_line(GsrInfo *gsr_info, const std::string &line) {
         if(line == "h264")
             gsr_info->supported_video_codecs.h264 = true;
+        else if(line == "h264_software")
+            gsr_info->supported_video_codecs.h264_software = true;
         else if(line == "hevc")
             gsr_info->supported_video_codecs.hevc = true;
         else if(line == "av1")

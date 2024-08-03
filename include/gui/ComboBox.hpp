@@ -16,6 +16,7 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         void add_item(const std::string &text, const std::string &id);
+        void set_selected_item(const std::string &id);
 
         mgl::vec2f get_size() override;
     private:

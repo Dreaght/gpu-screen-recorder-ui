@@ -20,7 +20,7 @@ namespace gsr {
     }
 
     bool Entry::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
-        if(event.type == mgl::Event::MouseButtonPressed) {
+        if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             selected = mgl::FloatRect(position + offset, get_size()).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
         } else if(event.type == mgl::Event::KeyPressed && selected) {
             if(event.key.code == mgl::Keyboard::Backspace && !text.get_string().empty()) {

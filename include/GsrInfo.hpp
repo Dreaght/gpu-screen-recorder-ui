@@ -8,6 +8,7 @@
 namespace gsr {
     struct SupportedVideoCodecs {
         bool h264 = false;
+        bool h264_software = false;
         bool hevc = false;
         bool av1 = false;
         bool vp8 = false;

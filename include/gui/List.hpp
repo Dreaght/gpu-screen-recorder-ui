@@ -12,7 +12,13 @@ namespace gsr {
             HORIZONTAL
         };
 
-        List(Orientation orientation);
+        enum class Alignment {
+            START,
+            CENTER,
+            END
+        };
+
+        List(Orientation orientation, Alignment content_alignment = Alignment::START);
         List(const List&) = delete;
         List& operator=(const List&) = delete;
 
@@ -24,5 +30,6 @@ namespace gsr {
     protected:
         std::vector<std::unique_ptr<Widget>> widgets;
         Orientation orientation;
+        Alignment content_alignment;
     };
 }

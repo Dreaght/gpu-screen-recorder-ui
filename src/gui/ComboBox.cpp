@@ -46,7 +46,6 @@ namespace gsr {
                     set_widget_as_selected_in_parent();
                 else
                     remove_widget_as_selected_in_parent();
-                return false;
             } else {
                 show_dropdown = false;
                 remove_widget_as_selected_in_parent();
@@ -116,6 +115,15 @@ namespace gsr {
     void ComboBox::add_item(const std::string &text, const std::string &id) {
         items.push_back({mgl::Text(text, *font), id});
         dirty = true;
+    }
+
+    void ComboBox::set_selected_item(const std::string &id) {
+        for(size_t i = 0; i < items.size(); ++i) {
+            if(items[i].id == id) {
+                selected_item = i;
+                break;
+            }
+        }
     }
 
     void ComboBox::update_if_dirty() {
