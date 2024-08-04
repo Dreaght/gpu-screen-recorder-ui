@@ -410,6 +410,7 @@ int main(int argc, char **argv) {
     window_create_params.background_color = bg_color;
     window_create_params.support_alpha = true;
     window_create_params.window_type = MGL_WINDOW_TYPE_NOTIFICATION;
+    window_create_params.render_api = MGL_RENDER_API_EGL;
 
     mgl::Window window;
     if(!window.create("gsr overlay", window_create_params))
