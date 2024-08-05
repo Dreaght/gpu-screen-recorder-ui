@@ -21,6 +21,7 @@
 #include <sys/wait.h>
 #include <optional>
 #include <signal.h>
+#include <assert.h>
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
@@ -42,7 +43,6 @@
 // then use xcomposite to get that window as a texture and use that as a background because then the background can update.
 // That case can also happen when using a compositor but when the compositor gets turned off when running a fullscreen application.
 // This can also happen after this overlay has started, in which case we want to update the background capture method.
-// TODO: Update position when workspace changes (in dwm, sticky property handles it in real workspaces).
 // TODO: Make keyboard controllable for steam deck (and other controllers).
 // TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
 // TODO: Remove gpu-screen-recorder-overlay-daemon and handle that alt+z global hotkey here instead, to show/hide the window
@@ -171,6 +171,18 @@ static std::string color_to_hex_str(mgl::Color color) {
     result[5] = hex_value_to_str(color.b & 0x0F);
 
     return result;
+}
+
+// Returns the first monitor if not found. Assumes there is at least one monitor connected.
+static const mgl_monitor* find_monitor_by_cursor_position(mgl::Window &window) {
+    const mgl_window *win = window.internal_window();
+    assert(win->num_monitors > 0);
+    for(int i = 0; i < win->num_monitors; ++i) {
+        const mgl_monitor *mon = &win->monitors[i];
+        if(mgl::IntRect({ mon->pos.x, mon->pos.y }, { mon->size.x, mon->size.y }).contains({ win->cursor_position.x, win->cursor_position.y }))
+            return mon;
+    }
+    return &win->monitors[0];
 }
 
 /*
@@ -396,10 +408,8 @@ int main(int argc, char **argv) {
     // Use monitor size instead of screen size.
     // mgl now has monitor events so this can be handled directly with mgl.
 
-    mgl::vec2i target_monitor_size = { WidthOfScreen(DefaultScreenOfDisplay(display)), HeightOfScreen(DefaultScreenOfDisplay(display)) };
-
-    const mgl::vec2i window_size = { target_monitor_size.x, target_monitor_size.y };
-    const mgl::vec2i window_pos = { 0, 0 };
+    mgl::vec2i window_size = { 1280, 720 };
+    mgl::vec2i window_pos = { 0, 0 };
 
     mgl::Window::CreateParams window_create_params;
     window_create_params.size = window_size;
@@ -417,6 +427,20 @@ int main(int argc, char **argv) {
     if(!window.create("gsr overlay", window_create_params))
         startup_error("failed to create window");
 
+    mgl_window *win = window.internal_window();
+    if(win->num_monitors == 0)
+        startup_error("no monitors found");
+
+    const mgl_monitor *focused_monitor = find_monitor_by_cursor_position(window);
+    window_pos.x = focused_monitor->pos.x;
+    window_pos.y = focused_monitor->pos.y;
+    window_size.x = focused_monitor->size.x;
+    window_size.y = focused_monitor->size.y;
+
+    window.set_size_limits(window_size, window_size);
+    window.set_size(window_size);
+    window.set_position(window_pos);
+
     unsigned char data = 2; // Prefer being composed to allow transparency
     XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
@@ -432,15 +456,15 @@ int main(int argc, char **argv) {
         startup_error("failed to load file: fonts/Orbitron-Regular.ttf");
 
     mgl::Font top_bar_font;
-    if(!top_bar_font.load_from_file(title_font_file, window_create_params.size.y * 0.03f))
+    if(!top_bar_font.load_from_file(title_font_file, window_size.y * 0.03f))
         startup_error("failed to load font: fonts/NotoSans-Bold.ttf");
 
     mgl::Font title_font;
-    if(!title_font.load_from_file(title_font_file, window_create_params.size.y * 0.019f))
+    if(!title_font.load_from_file(title_font_file, window_size.y * 0.019f))
         startup_error("failed to load font: fonts/NotoSans-Regular.ttf");
 
     mgl::Font font;
-    if(!font.load_from_file(font_file, window_create_params.size.y * 0.015f))
+    if(!font.load_from_file(font_file, window_size.y * 0.015f))
         startup_error("failed to load font: fonts/NotoSans-Regular.ttf");
 
     mgl::Texture replay_button_texture;
@@ -455,7 +479,6 @@ int main(int argc, char **argv) {
     if(!stream_button_texture.load_from_file((project_dir + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
 
-    // TODO: Get size from monitor, get region specific to the monitor
     mgl::Texture screenshot_texture;
     if(!is_compositor_running(display, 0)) {
         XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
@@ -473,7 +496,7 @@ int main(int argc, char **argv) {
     if(screenshot_texture.is_valid())
         screenshot_sprite.set_texture(&screenshot_texture);
 
-    mgl::Rectangle bg_screenshot_overlay(window.get_size().to_vec2f());
+    mgl::Rectangle bg_screenshot_overlay(window_size.to_vec2f());
     bg_screenshot_overlay.set_color(bg_color);
 
     gsr::StaticPage front_page(window_size.to_vec2f());
@@ -535,7 +558,7 @@ int main(int argc, char **argv) {
         &stream_button_texture
     };
 
-    const int button_height = window_create_params.size.y / 5.0f;
+    const int button_height = window_size.y / 5.0f;
     const int button_width = button_height;
 
     std::vector<MainButton> main_buttons;
@@ -565,7 +588,7 @@ int main(int argc, char **argv) {
         const int per_button_width = main_buttons[0].button->get_size().x;// * get_config().scale;
         const mgl::vec2i overlay_desired_size(per_button_width * (int)main_buttons.size() + combined_spacing, main_buttons[0].button->get_size().y);
 
-        const mgl::vec2i main_buttons_start_pos = mgl::vec2i(window_create_params.size.x*0.5f, window_create_params.size.y*0.25f) - overlay_desired_size/2;
+        const mgl::vec2i main_buttons_start_pos = mgl::vec2i(window_size.x*0.5f, window_size.y*0.25f) - overlay_desired_size/2;
         mgl::vec2i main_button_pos = main_buttons_start_pos;
 
         // if(!gsr_mode.has_value()) {
@@ -728,7 +751,7 @@ int main(int argc, char **argv) {
 
     //XGrabServer(display);
 
-    mgl::Rectangle top_bar_background(mgl::vec2f(window.get_size().x, window.get_size().y*0.06f).floor());
+    mgl::Rectangle top_bar_background(mgl::vec2f(window_size.x, window_size.y*0.06f).floor());
     top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
 
     mgl::Text top_bar_text("GPU Screen Recorder", top_bar_font);
@@ -765,7 +788,7 @@ int main(int argc, char **argv) {
 
     mgl::Sprite close_sprite(&close_texture);
     close_sprite.set_height(int(top_bar_background.get_size().y * 0.3f));
-    close_sprite.set_position(mgl::vec2f(window.get_size().x - close_sprite.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_sprite.get_size().y * 0.5f).floor());
+    close_sprite.set_position(mgl::vec2f(window_size.x - close_sprite.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_sprite.get_size().y * 0.5f).floor());
 
     mgl::Texture logo_texture;
     if(!logo_texture.load_from_file((project_dir + "images/gpu_screen_recorder_logo.png").c_str()))
