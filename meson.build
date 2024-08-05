@@ -31,13 +31,16 @@ dep = [
     mglpp_dep,
 ]
 
+prefix = get_option('prefix')
+datadir = get_option('datadir')
+gsr_overlay_resources_path = join_paths(prefix, datadir, 'gsr-overlay')
+
 executable(
     meson.project_name(),
     src,
     install : true,
     dependencies : dep,
+    cpp_args : '-DGSR_OVERLAY_RESOURCES_PATH="' + gsr_overlay_resources_path + '"',
 )
 
-prefix = get_option('prefix')
-datadir = get_option('datadir')
-install_subdir('images', install_dir : join_paths(prefix, datadir, 'gsr-overlay'))
+install_subdir('images', install_dir : gsr_overlay_resources_path)

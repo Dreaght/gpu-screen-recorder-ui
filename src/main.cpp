@@ -396,10 +396,15 @@ int main(int argc, char **argv) {
     gsr::init_theme(gsr_info);
 
     std::string project_dir;
-    if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0)
+    if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0) {
         project_dir = "./";
-    else
+    } else {
+#ifdef GSR_OVERLAY_RESOURCES_PATH
+        project_dir = GSR_OVERLAY_RESOURCES_PATH "/";
+#else
         project_dir = "/usr/share/gsr-overlay/";
+#endif
+    }
 
     mgl::Init init;
     Display *display = (Display*)mgl_get_context()->connection;
