@@ -101,10 +101,7 @@ int main(void) {
             if(overlay_pid == -1) {
                 fprintf(stderr, "launch overlay\n");
                 // TODO: window_with_input_focus
-                const char *args[] = {
-                    "/home/dec05eba/git/gpu-screen-recorder-overlay/sibs-build/linux_x86_64/debug/gpu-screen-recorder-overlay",
-                    NULL
-                };
+                const char *args[] = { "gsr-overlay", NULL };
                 exec_program(args, &overlay_pid);
             }
         }

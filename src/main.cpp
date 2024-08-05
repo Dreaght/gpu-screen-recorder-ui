@@ -383,10 +383,11 @@ int main(int argc, char **argv) {
 
     gsr::init_theme(gsr_info);
 
-    std::string program_root_dir = dirname(argv[0]);
-    if(!program_root_dir.empty() && program_root_dir.back() != '/')
-        program_root_dir += '/';
-    program_root_dir += "../../../";
+    std::string project_dir;
+    if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0)
+        project_dir = "./";
+    else
+        project_dir = "/usr/share/gsr-overlay/";
 
     mgl::Init init;
     Display *display = (Display*)mgl_get_context()->connection;
@@ -432,26 +433,26 @@ int main(int argc, char **argv) {
 
     mgl::Font top_bar_font;
     if(!top_bar_font.load_from_file(title_font_file, window_create_params.size.y * 0.03f))
-        startup_error("failed to load font: fonts/Orbitron-Bold.ttf");
+        startup_error("failed to load font: fonts/NotoSans-Bold.ttf");
 
     mgl::Font title_font;
     if(!title_font.load_from_file(title_font_file, window_create_params.size.y * 0.019f))
-        startup_error("failed to load font: fonts/Orbitron-Bold.ttf");
+        startup_error("failed to load font: fonts/NotoSans-Regular.ttf");
 
     mgl::Font font;
     if(!font.load_from_file(font_file, window_create_params.size.y * 0.015f))
-        startup_error("failed to load font: fonts/Orbitron-Regular.ttf");
+        startup_error("failed to load font: fonts/NotoSans-Regular.ttf");
 
     mgl::Texture replay_button_texture;
-    if(!replay_button_texture.load_from_file((program_root_dir + "images/replay.png").c_str()))
+    if(!replay_button_texture.load_from_file((project_dir + "images/replay.png").c_str()))
         startup_error("failed to load texture: images/replay.png");
 
     mgl::Texture record_button_texture;
-    if(!record_button_texture.load_from_file((program_root_dir + "images/record.png").c_str()))
+    if(!record_button_texture.load_from_file((project_dir + "images/record.png").c_str()))
         startup_error("failed to load texture: images/record.png");
 
     mgl::Texture stream_button_texture;
-    if(!stream_button_texture.load_from_file((program_root_dir + "images/stream.png").c_str()))
+    if(!stream_button_texture.load_from_file((project_dir + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
 
     // TODO: Get size from monitor, get region specific to the monitor
@@ -642,9 +643,10 @@ int main(int argc, char **argv) {
             main_buttons[1].button->set_item_label(id, "Start");
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
+            const std::string record_image_filepath = project_dir + "images/record.png";
             const char *notification_args[] = {
-                "gpu-screen-recorder-notification", "--text", "Recording has been saved", "--timeout", "3.0",
-                "--icon", "./images/record.png",
+                "gsr-notify", "--text", "Recording has been saved", "--timeout", "3.0",
+                "--icon", record_image_filepath.c_str(),
                 "--icon-color", "ffffff", "--bg-color", tint_color_as_hex.c_str(),
                 nullptr
             };
@@ -677,9 +679,10 @@ int main(int argc, char **argv) {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
+        const std::string record_image_filepath = project_dir + "images/record.png";
         const char *notification_args[] = {
-            "gpu-screen-recorder-notification", "--text", "Recording has started", "--timeout", "3.0",
-            "--icon", "./images/record.png",
+            "gsr-notify", "--text", "Recording has started", "--timeout", "3.0",
+            "--icon", record_image_filepath.c_str(),
             "--icon-color", tint_color_as_hex.c_str(), "--bg-color", tint_color_as_hex.c_str(),
             nullptr
         };
@@ -757,7 +760,7 @@ int main(int argc, char **argv) {
     }
 
     mgl::Texture close_texture;
-    if(!close_texture.load_from_file("images/cross.png"))
+    if(!close_texture.load_from_file((project_dir + "images/cross.png").c_str()))
         startup_error("failed to load texture: images/cross.png");
 
     mgl::Sprite close_sprite(&close_texture);
@@ -765,7 +768,7 @@ int main(int argc, char **argv) {
     close_sprite.set_position(mgl::vec2f(window.get_size().x - close_sprite.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_sprite.get_size().y * 0.5f).floor());
 
     mgl::Texture logo_texture;
-    if(!logo_texture.load_from_file("images/gpu_screen_recorder_logo.png"))
+    if(!logo_texture.load_from_file((project_dir + "images/gpu_screen_recorder_logo.png").c_str()))
         startup_error("failed to load texture: images/gpu_screen_recorder_logo.png");
 
     mgl::Sprite logo_sprite(&logo_texture);
