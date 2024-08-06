@@ -214,7 +214,7 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
     settings_page->add_widget(std::move(back_button));
 
     auto settings_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-    settings_list->set_position(mgl::vec2f(50.0f, 50.0f));
+    settings_list->set_position(mgl::vec2f(0.02f * gsr::get_theme().window_height, 0.02f * gsr::get_theme().window_height).floor());
     {
         auto record_area_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
         {
@@ -303,15 +303,6 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
                 color_range_list->add_widget(std::move(color_range_box));
             }
             quality_list->add_widget(std::move(color_range_list));
-
-            auto framerate_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                framerate_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate:", gsr::get_theme().text_color));
-                auto framerate_entry = std::make_unique<gsr::Entry>(&gsr::get_theme().body_font, "60", gsr::get_theme().body_font.get_character_size() * 2);
-                framerate_entry->validate_handler = gsr::create_entry_validator_integer_in_range(1, 500);
-                framerate_list->add_widget(std::move(framerate_entry));
-            }
-            quality_list->add_widget(std::move(framerate_list));
         }
         settings_list->add_widget(std::move(quality_list));
 
@@ -352,16 +343,29 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
         }
         settings_list->add_widget(std::move(codec_list));
 
-        auto framerate_mode_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
+        auto framerate_info_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
         {
-            framerate_mode_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate mode:", gsr::get_theme().text_color));
-            auto framerate_mode_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-            framerate_mode_box->add_item("Auto (Recommended)", "auto");
-            framerate_mode_box->add_item("Constant", "cfr");
-            framerate_mode_box->add_item("Variable", "vfr");
-            framerate_mode_list->add_widget(std::move(framerate_mode_box));
+            auto framerate_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
+            {
+                framerate_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate:", gsr::get_theme().text_color));
+                auto framerate_entry = std::make_unique<gsr::Entry>(&gsr::get_theme().body_font, "60", gsr::get_theme().body_font.get_character_size() * 3);
+                framerate_entry->validate_handler = gsr::create_entry_validator_integer_in_range(1, 500);
+                framerate_list->add_widget(std::move(framerate_entry));
+            }
+            framerate_info_list->add_widget(std::move(framerate_list));
+
+            auto framerate_mode_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
+            {
+                framerate_mode_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate mode:", gsr::get_theme().text_color));
+                auto framerate_mode_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
+                framerate_mode_box->add_item("Auto (Recommended)", "auto");
+                framerate_mode_box->add_item("Constant", "cfr");
+                framerate_mode_box->add_item("Variable", "vfr");
+                framerate_mode_list->add_widget(std::move(framerate_mode_box));
+            }
+            framerate_info_list->add_widget(std::move(framerate_mode_list));
         }
-        settings_list->add_widget(std::move(framerate_mode_list));
+        settings_list->add_widget(std::move(framerate_info_list));
 
         auto file_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
         {
