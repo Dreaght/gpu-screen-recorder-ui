@@ -85,6 +85,7 @@ namespace gsr {
                         offset.x = floor(size.x * 0.5f - widget->get_size().x * 0.5f);
                     else
                         offset.x = 0.0f;
+
                     widget->set_position(draw_pos + offset);
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
@@ -99,6 +100,7 @@ namespace gsr {
 
                     if(content_alignment == Alignment::CENTER)
                         offset.y = floor(size.y * 0.5f - widget->get_size().y * 0.5f);
+
                     widget->set_position(draw_pos + offset);
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));

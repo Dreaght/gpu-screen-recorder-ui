@@ -51,8 +51,8 @@ namespace gsr {
         Widget *parent_widget = nullptr;
         Widget *selected_child_widget = nullptr;
 
-        Alignment horizontal_aligment;
-        Alignment vertical_aligment;
+        Alignment horizontal_aligment = Alignment::START;
+        Alignment vertical_aligment = Alignment::START;
 
         bool visible = true;
     };
