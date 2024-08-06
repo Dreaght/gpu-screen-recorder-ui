@@ -10,7 +10,7 @@ namespace gsr {
         uint32_t modifiers = 0;
     };
 
-    struct MainConfig {
+    struct RecordOptions {
         std::string record_area_option;
         int32_t record_area_width = 0;
         int32_t record_area_height = 0;
@@ -29,8 +29,12 @@ namespace gsr {
         bool show_recording_saved_notifications = true;
         bool record_cursor = true;
         bool hide_window_when_recording = false;
-        bool software_encoding_warning_shown = false;
         bool restore_portal_session = true;
+    };
+
+    struct MainConfig {
+        int32_t config_file_version = 0;
+        bool software_encoding_warning_shown = false;
     };
 
     struct YoutubeStreamConfig {
@@ -47,6 +51,7 @@ namespace gsr {
     };
 
     struct StreamingConfig {
+        RecordOptions record_options;
         std::string streaming_service;
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
@@ -55,6 +60,7 @@ namespace gsr {
     };
 
     struct RecordConfig {
+        RecordOptions record_options;
         std::string save_directory;
         std::string container;
         ConfigHotkey start_stop_recording_hotkey;
@@ -62,9 +68,10 @@ namespace gsr {
     };
 
     struct ReplayConfig {
+        RecordOptions record_options;
         std::string save_directory;
         std::string container;
-        int32_t replay_time = 30;
+        int32_t replay_time = 60;
         ConfigHotkey start_stop_recording_hotkey;
         ConfigHotkey save_recording_hotkey;
     };

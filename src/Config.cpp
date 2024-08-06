@@ -4,36 +4,39 @@
 #include <inttypes.h>
 #include <libgen.h>
 
-namespace gsr {
-    #define FORMAT_I32 "%" PRIi32
-    #define FORMAT_I64 "%" PRIi64
-    #define FORMAT_U32 "%" PRIu32
+#define FORMAT_I32 "%" PRIi32
+#define FORMAT_I64 "%" PRIi64
+#define FORMAT_U32 "%" PRIu32
 
+#define CONFIG_FILE_VERSION 1
+
+namespace gsr {
     using ConfigValue = std::variant<bool*, std::string*, int32_t*, ConfigHotkey*, std::vector<std::string>*>;
 
-    static std::map<std::string_view, ConfigValue> get_config_options(Config &config) {
+    static std::unordered_map<std::string_view, ConfigValue> get_config_options(Config &config) {
         return {
-            {"main.record_area_option", &config.main_config.record_area_option},
-            {"main.record_area_width", &config.main_config.record_area_width},
-            {"main.record_area_height", &config.main_config.record_area_height},
-            {"main.fps", &config.main_config.fps},
-            {"main.merge_audio_tracks", &config.main_config.merge_audio_tracks},
-            {"main.audio_input", &config.main_config.audio_input},
-            {"main.color_range", &config.main_config.color_range},
-            {"main.quality", &config.main_config.quality},
-            {"main.codec", &config.main_config.video_codec},
-            {"main.audio_codec", &config.main_config.audio_codec},
-            {"main.framerate_mode", &config.main_config.framerate_mode},
-            {"main.advanced_view", &config.main_config.advanced_view},
-            {"main.overclock", &config.main_config.overclock},
-            {"main.show_recording_started_notifications", &config.main_config.show_recording_started_notifications},
-            {"main.show_recording_stopped_notifications", &config.main_config.show_recording_stopped_notifications},
-            {"main.show_recording_saved_notifications", &config.main_config.show_recording_saved_notifications},
-            {"main.record_cursor", &config.main_config.record_cursor},
-            {"main.hide_window_when_recording", &config.main_config.hide_window_when_recording},
+            {"main.config_file_version", &config.main_config.config_file_version},
             {"main.software_encoding_warning_shown", &config.main_config.software_encoding_warning_shown},
-            {"main.restore_portal_session", &config.main_config.restore_portal_session},
 
+            {"streaming.record_options.record_area_option", &config.streaming_config.record_options.record_area_option},
+            {"streaming.record_options.record_area_width", &config.streaming_config.record_options.record_area_width},
+            {"streaming.record_options.record_area_height", &config.streaming_config.record_options.record_area_height},
+            {"streaming.record_options.fps", &config.streaming_config.record_options.fps},
+            {"streaming.record_options.merge_audio_tracks", &config.streaming_config.record_options.merge_audio_tracks},
+            {"streaming.record_options.audio_input", &config.streaming_config.record_options.audio_input},
+            {"streaming.record_options.color_range", &config.streaming_config.record_options.color_range},
+            {"streaming.record_options.quality", &config.streaming_config.record_options.quality},
+            {"streaming.record_options.codec", &config.streaming_config.record_options.video_codec},
+            {"streaming.record_options.audio_codec", &config.streaming_config.record_options.audio_codec},
+            {"streaming.record_options.framerate_mode", &config.streaming_config.record_options.framerate_mode},
+            {"streaming.record_options.advanced_view", &config.streaming_config.record_options.advanced_view},
+            {"streaming.record_options.overclock", &config.streaming_config.record_options.overclock},
+            {"streaming.record_options.show_recording_started_notifications", &config.streaming_config.record_options.show_recording_started_notifications},
+            {"streaming.record_options.show_recording_stopped_notifications", &config.streaming_config.record_options.show_recording_stopped_notifications},
+            {"streaming.record_options.show_recording_saved_notifications", &config.streaming_config.record_options.show_recording_saved_notifications},
+            {"streaming.record_options.record_cursor", &config.streaming_config.record_options.record_cursor},
+            {"streaming.record_options.hide_window_when_recording", &config.streaming_config.record_options.hide_window_when_recording},
+            {"streaming.record_options.restore_portal_session", &config.streaming_config.record_options.restore_portal_session},
             {"streaming.service", &config.streaming_config.streaming_service},
             {"streaming.youtube.key", &config.streaming_config.youtube.stream_key},
             {"streaming.twitch.key", &config.streaming_config.twitch.stream_key},
@@ -41,11 +44,49 @@ namespace gsr {
             {"streaming.custom.container", &config.streaming_config.custom.container},
             {"streaming.start_stop_recording_hotkey", &config.streaming_config.start_stop_recording_hotkey},
 
+            {"record.record_options.record_area_option", &config.record_config.record_options.record_area_option},
+            {"record.record_options.record_area_width", &config.record_config.record_options.record_area_width},
+            {"record.record_options.record_area_height", &config.record_config.record_options.record_area_height},
+            {"record.record_options.fps", &config.record_config.record_options.fps},
+            {"record.record_options.merge_audio_tracks", &config.record_config.record_options.merge_audio_tracks},
+            {"record.record_options.audio_input", &config.record_config.record_options.audio_input},
+            {"record.record_options.color_range", &config.record_config.record_options.color_range},
+            {"record.record_options.quality", &config.record_config.record_options.quality},
+            {"record.record_options.codec", &config.record_config.record_options.video_codec},
+            {"record.record_options.audio_codec", &config.record_config.record_options.audio_codec},
+            {"record.record_options.framerate_mode", &config.record_config.record_options.framerate_mode},
+            {"record.record_options.advanced_view", &config.record_config.record_options.advanced_view},
+            {"record.record_options.overclock", &config.record_config.record_options.overclock},
+            {"record.record_options.show_recording_started_notifications", &config.record_config.record_options.show_recording_started_notifications},
+            {"record.record_options.show_recording_stopped_notifications", &config.record_config.record_options.show_recording_stopped_notifications},
+            {"record.record_options.show_recording_saved_notifications", &config.record_config.record_options.show_recording_saved_notifications},
+            {"record.record_options.record_cursor", &config.record_config.record_options.record_cursor},
+            {"record.record_options.hide_window_when_recording", &config.record_config.record_options.hide_window_when_recording},
+            {"record.record_options.restore_portal_session", &config.record_config.record_options.restore_portal_session},
             {"record.save_directory", &config.record_config.save_directory},
             {"record.container", &config.record_config.container},
             {"record.start_stop_recording_hotkey", &config.record_config.start_stop_recording_hotkey},
             {"record.pause_unpause_recording_hotkey", &config.record_config.pause_unpause_recording_hotkey},
 
+            {"replay.record_options.record_area_option", &config.replay_config.record_options.record_area_option},
+            {"replay.record_options.record_area_width", &config.replay_config.record_options.record_area_width},
+            {"replay.record_options.record_area_height", &config.replay_config.record_options.record_area_height},
+            {"replay.record_options.fps", &config.replay_config.record_options.fps},
+            {"replay.record_options.merge_audio_tracks", &config.replay_config.record_options.merge_audio_tracks},
+            {"replay.record_options.audio_input", &config.replay_config.record_options.audio_input},
+            {"replay.record_options.color_range", &config.replay_config.record_options.color_range},
+            {"replay.record_options.quality", &config.replay_config.record_options.quality},
+            {"replay.record_options.codec", &config.replay_config.record_options.video_codec},
+            {"replay.record_options.audio_codec", &config.replay_config.record_options.audio_codec},
+            {"replay.record_options.framerate_mode", &config.replay_config.record_options.framerate_mode},
+            {"replay.record_options.advanced_view", &config.replay_config.record_options.advanced_view},
+            {"replay.record_options.overclock", &config.replay_config.record_options.overclock},
+            {"replay.record_options.show_recording_started_notifications", &config.replay_config.record_options.show_recording_started_notifications},
+            {"replay.record_options.show_recording_stopped_notifications", &config.replay_config.record_options.show_recording_stopped_notifications},
+            {"replay.record_options.show_recording_saved_notifications", &config.replay_config.record_options.show_recording_saved_notifications},
+            {"replay.record_options.record_cursor", &config.replay_config.record_options.record_cursor},
+            {"replay.record_options.hide_window_when_recording", &config.replay_config.record_options.hide_window_when_recording},
+            {"replay.record_options.restore_portal_session", &config.replay_config.record_options.restore_portal_session},
             {"replay.save_directory", &config.replay_config.save_directory},
             {"replay.container", &config.replay_config.container},
             {"replay.time", &config.replay_config.replay_time},
@@ -108,10 +149,18 @@ namespace gsr {
             return true;
         });
 
+        if(config.main_config.config_file_version != CONFIG_FILE_VERSION) {
+            fprintf(stderr, "Info: the config file is outdated, resetting it\n");
+            config_empty = true;
+            config = Config();
+        }
+
         return config;
     }
 
     void save_config(Config &config) {
+        config.main_config.config_file_version = CONFIG_FILE_VERSION;
+
         const std::string config_path = get_config_dir() + "/config";
 
         char dir_tmp[PATH_MAX];
