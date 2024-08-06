@@ -240,7 +240,7 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
                 record_area_box->add_item("All monitors", "screen");
             for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
                 char name[256];
-                snprintf(name, sizeof(name), "%s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
+                snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
                 record_area_box->add_item(name, monitor.name);
             }
             if(gsr_info.supported_capture_options.portal)
