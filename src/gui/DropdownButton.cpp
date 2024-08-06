@@ -12,7 +12,7 @@ namespace gsr {
     static const float padding_bottom = 15.0f;
     static const float padding_left = 20.0f;
     static const float padding_right = 20.0f;
-    static const int border_size = 5;
+    static const float border_scale = 0.003f;
 
     DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size) :
         title_font(title_font), description_font(description_font), size(size), title(title, *title_font), description(description_deactivated, *description_font),
@@ -59,6 +59,7 @@ namespace gsr {
         update_if_dirty();
 
         const mgl::vec2f draw_pos = position + offset;
+        const int border_size = border_scale * gsr::get_theme().window_height;
 
         if(show_dropdown) {
             // Background
@@ -73,7 +74,7 @@ namespace gsr {
 
             // Green line at top
             {
-                mgl::Rectangle rect({ size.x, border_size });
+                mgl::Rectangle rect({ size.x, (float)border_size });
                 rect.set_position(draw_pos);
                 rect.set_color(border_color);
                 window.draw(rect);

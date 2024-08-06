@@ -4,6 +4,7 @@
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/Button.hpp"
 #include "../include/gui/Entry.hpp"
+#include "../include/gui/CheckBox.hpp"
 #include "../include/gui/ComboBox.hpp"
 #include "../include/gui/Label.hpp"
 #include "../include/gui/List.hpp"
@@ -208,6 +209,7 @@ static const mgl_monitor* find_monitor_by_cursor_position(mgl::Window &window) {
 static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f settings_page_position, mgl::vec2f settings_page_size, gsr::Page *settings_page, gsr::Page *settings_content_page, const gsr::GsrInfo &gsr_info, const std::vector<gsr::AudioDevice> &audio_devices, std::function<void()> settings_back_button_callback) {
     auto back_button = std::make_unique<gsr::Button>(&gsr::get_theme().title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
     back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
+    back_button->set_border_scale(0.003f);
     back_button->on_click = settings_back_button_callback;
     settings_page->add_widget(std::move(back_button));
 
@@ -386,6 +388,11 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
             file_list->add_widget(std::move(container_list));
         }
         settings_list->add_widget(std::move(file_list));
+
+        settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Record cursor"));
+        settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show recording started notification"));
+        //settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show recording stopped notification"));
+        settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show video saved notification"));
     }
     settings_content_page->add_widget(std::move(settings_list));
 }

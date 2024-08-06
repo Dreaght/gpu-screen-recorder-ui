@@ -28,6 +28,7 @@ namespace gsr {
 
     void Button::draw(mgl::Window &window, mgl::vec2f offset) {
         const mgl::vec2f draw_pos = position + offset;
+
         const mgl::vec2f item_size = get_size().floor();
         mgl::Rectangle background(item_size);
         background.set_position(draw_pos.floor());
@@ -38,11 +39,8 @@ namespace gsr {
         window.draw(text);
 
         const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
-        if(mouse_inside) {
-            const int border_size = 5;
-            const mgl::Color border_color = gsr::get_theme().tint_color;
-            draw_rectangle_outline(window, position, item_size, border_color, border_size);
-        }
+        if(mouse_inside)
+            draw_rectangle_outline(window, draw_pos, item_size, gsr::get_theme().tint_color, border_scale * gsr::get_theme().window_height);
     }
 
     mgl::vec2f Button::get_size() {
@@ -53,5 +51,9 @@ namespace gsr {
         if(s.y < 0.0001f)
             s.y = padding_top + text_bounds.y + padding_bottom;
         return s;
+    }
+
+    void Button::set_border_scale(float scale) {
+        border_scale = scale;
     }
 }

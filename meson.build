@@ -11,6 +11,7 @@ src = [
     'src/gui/ScrollablePage.cpp',
     'src/gui/Button.cpp',
     'src/gui/Entry.cpp',
+    'src/gui/CheckBox.cpp',
     'src/gui/ComboBox.cpp',
     'src/gui/Page.cpp',
     'src/gui/StaticPage.cpp',

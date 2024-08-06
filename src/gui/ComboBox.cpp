@@ -12,6 +12,7 @@ namespace gsr {
     static const float padding_bottom = 10.0f;
     static const float padding_left = 10.0f;
     static const float padding_right = 10.0f;
+    static const float border_scale = 0.0015f;
 
     ComboBox::ComboBox(mgl::Font *font) : font(font), dropdown_arrow(&get_theme().combobox_arrow) {
         assert(font);
@@ -82,12 +83,13 @@ namespace gsr {
             window.draw(dropdown_arrow);
         }
 
+        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
         mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
 
         Item &item = items[selected_item];
         item.text.set_position(pos.floor());
-        if(show_dropdown) {
-            const int border_size = 3;
+        if(show_dropdown || mouse_inside) {
+            const int border_size = border_scale * gsr::get_theme().window_height;
             const mgl::Color border_color = gsr::get_theme().tint_color;
             draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
         }

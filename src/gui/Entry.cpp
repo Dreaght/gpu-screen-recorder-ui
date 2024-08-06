@@ -13,6 +13,7 @@ namespace gsr {
     static const float padding_bottom = 10.0f;
     static const float padding_left = 10.0f;
     static const float padding_right = 10.0f;
+    static const float border_scale = 0.0015f;
 
     Entry::Entry(mgl::Font *font, const char *text, float max_width) : text("", *font), max_width(max_width) {
         this->text.set_color(get_theme().text_color);
@@ -46,7 +47,7 @@ namespace gsr {
         window.draw(background);
 
         if(selected) {
-            const int border_size = 3;
+            const int border_size = border_scale * gsr::get_theme().window_height;
             draw_rectangle_outline(window, draw_pos.floor(), get_size().floor(), get_theme().tint_color, border_size);
 
             const int caret_width = 2;
