@@ -17,6 +17,9 @@ namespace gsr {
     }
 
     bool Button::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
         const mgl::vec2f item_size = get_size().floor();
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const bool clicked_inside = mgl::FloatRect(position + offset, item_size).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
@@ -27,6 +30,9 @@ namespace gsr {
     }
 
     void Button::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         const mgl::vec2f draw_pos = position + offset;
 
         const mgl::vec2f item_size = get_size().floor();
@@ -38,12 +44,15 @@ namespace gsr {
         text.set_position((draw_pos + item_size * 0.5f - text.get_bounds().size * 0.5f).floor());
         window.draw(text);
 
-        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
+        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
         if(mouse_inside)
             draw_rectangle_outline(window, draw_pos, item_size, get_theme().tint_color, border_scale * get_theme().window_height);
     }
 
     mgl::vec2f Button::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;

@@ -14,6 +14,12 @@ namespace gsr {
         friend class List;
         friend class Page;
     public:
+        enum class Alignment {
+            START,
+            CENTER,
+            END
+        };
+
         Widget();
         Widget(const Widget&) = delete;
         Widget& operator=(const Widget&) = delete;
@@ -28,12 +34,26 @@ namespace gsr {
 
         virtual mgl::vec2f get_position() const;
         virtual mgl::vec2f get_size() = 0;
+
+        void set_horizontal_alignment(Alignment alignment);
+        void set_vertical_alignment(Alignment alignment);
+
+        Alignment get_horizontal_alignment() const;
+        Alignment get_vertical_alignment() const;
+
+        void set_visible(bool visible);
     protected:
         void set_widget_as_selected_in_parent();
         void remove_widget_as_selected_in_parent();
+        bool has_parent_with_selected_child_widget() const;
     protected:
         mgl::vec2f position;
         Widget *parent_widget = nullptr;
         Widget *selected_child_widget = nullptr;
+
+        Alignment horizontal_aligment;
+        Alignment vertical_aligment;
+
+        bool visible = true;
     };
 }

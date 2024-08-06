@@ -26,6 +26,9 @@ namespace gsr {
     }
 
     bool DropdownButton::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
         if(event.type == mgl::Event::MouseMoved) {
             const mgl::vec2f draw_pos = position + offset;
             const mgl::vec2f collision_margin(1.0f, 1.0f); // Makes sure that multiple buttons that are next to each other wont activate at the same time when the cursor is right between them
@@ -56,6 +59,9 @@ namespace gsr {
     }
 
     void DropdownButton::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         update_if_dirty();
 
         const mgl::vec2f draw_pos = position + offset;
@@ -199,6 +205,9 @@ namespace gsr {
     }
 
     mgl::vec2f DropdownButton::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         update_if_dirty();
         return size;
     }

@@ -6,6 +6,9 @@ namespace gsr {
     StaticPage::StaticPage(mgl::vec2f size) : size(size) {}
     
     bool StaticPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
         const mgl::vec2f draw_pos = position + offset;
         offset = draw_pos;
         Widget *selected_widget = selected_child_widget;
@@ -27,6 +30,9 @@ namespace gsr {
     }
 
     void StaticPage::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         const mgl::vec2f draw_pos = position + offset;
         offset = draw_pos;
         Widget *selected_widget = selected_child_widget;
@@ -49,5 +55,12 @@ namespace gsr {
             selected_widget->draw(window, offset);
 
         mgl_window_set_scissor(window.internal_window(), &prev_scissor);
+    }
+
+    mgl::vec2f StaticPage::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        return size;
     }
 }

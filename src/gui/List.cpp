@@ -12,6 +12,9 @@ namespace gsr {
     List::List(Orientation orientation, Alignment content_alignment) : orientation(orientation), content_alignment(content_alignment) {}
     
     bool List::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
+        if(!visible)
+            return true;
+
         // We want to store the selected child widget since it can change in the event loop below
         Widget *selected_widget = selected_child_widget;
         if(selected_widget) {
@@ -55,19 +58,33 @@ namespace gsr {
     void List::draw(mgl::Window &window, mgl::vec2f offset) {
         update();
 
+        if(!visible)
+            return;
+
         mgl::vec2f draw_pos = position + offset;
         offset = {0.0f, 0.0f};
         Widget *selected_widget = selected_child_widget;
 
         // TODO: Handle start/end alignment
         const mgl::vec2f size = get_size();
+        const mgl::vec2f parent_size = parent_widget ? parent_widget->get_size() : mgl::vec2f(0.0f, 0.0f);
 
         const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(auto &widget : widgets) {
-                    if(content_alignment == Alignment::CENTER)
+                    if(!widget->visible)
+                        continue;
+
+                    // TODO: Do this parent widget alignment for horizontal alignment and for other types of widget alignment
+                    // and other widgets.
+                    // Also take this widget alignment into consideration in get_size.
+                    if(widget->get_horizontal_alignment() == Widget::Alignment::CENTER && parent_size.x > 0.001f)
+                        offset.x = floor(parent_size.x * 0.5f - widget->get_size().x * 0.5f);
+                    else if(content_alignment == Alignment::CENTER)
                         offset.x = floor(size.x * 0.5f - widget->get_size().x * 0.5f);
+                    else
+                        offset.x = 0.0f;
                     widget->set_position(draw_pos + offset);
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
@@ -77,6 +94,9 @@ namespace gsr {
             }
             case Orientation::HORIZONTAL: {
                 for(auto &widget : widgets) {
+                    if(!widget->visible)
+                        continue;
+
                     if(content_alignment == Alignment::CENTER)
                         offset.y = floor(size.y * 0.5f - widget->get_size().y * 0.5f);
                     widget->set_position(draw_pos + offset);
@@ -121,11 +141,17 @@ namespace gsr {
 
     // TODO: Cache result
     mgl::vec2f List::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         mgl::vec2f size;
         const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(auto &widget : widgets) {
+                    if(!widget->visible)
+                        continue;
+
                     const auto widget_size = widget->get_size();
                     size.x = std::max(size.x, widget_size.x);
                     size.y += widget_size.y + spacing.y;
@@ -134,6 +160,9 @@ namespace gsr {
             }
             case Orientation::HORIZONTAL: {
                 for(auto &widget : widgets) {
+                    if(!widget->visible)
+                        continue;
+
                     const auto widget_size = widget->get_size();
                     size.x += widget_size.x + spacing.x;
                     size.y = std::max(size.y, widget_size.y);

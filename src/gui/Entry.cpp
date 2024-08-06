@@ -22,6 +22,9 @@ namespace gsr {
     }
 
     bool Entry::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             selected = mgl::FloatRect(position + offset, get_size()).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
         } else if(event.type == mgl::Event::KeyPressed && selected) {
@@ -40,6 +43,9 @@ namespace gsr {
     }
 
     void Entry::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         const mgl::vec2f draw_pos = position + offset;
 
         const int padding_top = padding_top_scale * get_theme().window_height;
@@ -66,6 +72,9 @@ namespace gsr {
     }
 
     mgl::vec2f Entry::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         return { max_width, text.get_bounds().size.y + padding_top + padding_bottom };

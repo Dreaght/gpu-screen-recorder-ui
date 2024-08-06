@@ -15,3 +15,5 @@ Optimize list/page when having a few items in it (dont use vector<unique_ptr<Wid
 Only redraw ui if changed (dirty state, propagate upward. Set dirty when adding widget or changing any visible properly on a widget or when event updates how the widget should be displayed).
 
 Use _NET_WM_ALLOWED_ACTIONS. Same for notifications.
+
+Handle events in draw function because the render position of elements is available there so why duplicate it in event handler.

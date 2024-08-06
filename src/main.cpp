@@ -3,6 +3,7 @@
 #include "../include/gui/ScrollablePage.hpp"
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/Button.hpp"
+#include "../include/gui/RadioButton.hpp"
 #include "../include/gui/Entry.hpp"
 #include "../include/gui/CheckBox.hpp"
 #include "../include/gui/ComboBox.hpp"
@@ -214,8 +215,18 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
     settings_page->add_widget(std::move(back_button));
 
     auto settings_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-    settings_list->set_position(mgl::vec2f(0.02f * gsr::get_theme().window_height, 0.02f * gsr::get_theme().window_height).floor());
     {
+        auto view_radio_button = std::make_unique<gsr::RadioButton>(&gsr::get_theme().body_font);
+        view_radio_button->add_item("Simple view", "simple");
+        view_radio_button->add_item("Advanced view", "advanced");
+        view_radio_button->set_horizontal_alignment(gsr::Widget::Alignment::CENTER);
+        gsr::RadioButton *view_radio_button_ptr = view_radio_button.get();
+        settings_list->add_widget(std::move(view_radio_button));
+
+        gsr::Widget *color_range_list_ptr = nullptr;
+        gsr::Widget *codec_list_ptr = nullptr;
+        gsr::Widget *framerate_mode_list_ptr = nullptr;
+
         auto record_area_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
         {
             record_area_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Record area:", gsr::get_theme().text_color));
@@ -302,6 +313,7 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
                 color_range_box->add_item("Full", "full");
                 color_range_list->add_widget(std::move(color_range_box));
             }
+            color_range_list_ptr = color_range_list.get();
             quality_list->add_widget(std::move(color_range_list));
         }
         settings_list->add_widget(std::move(quality_list));
@@ -341,6 +353,7 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
             }
             codec_list->add_widget(std::move(audio_codec_list));
         }
+        codec_list_ptr = codec_list.get();
         settings_list->add_widget(std::move(codec_list));
 
         auto framerate_info_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
@@ -363,6 +376,7 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
                 framerate_mode_box->add_item("Variable", "vfr");
                 framerate_mode_list->add_widget(std::move(framerate_mode_box));
             }
+            framerate_mode_list_ptr = framerate_mode_list.get();
             framerate_info_list->add_widget(std::move(framerate_mode_list));
         }
         settings_list->add_widget(std::move(framerate_info_list));
@@ -397,6 +411,16 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
         settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show recording started notification"));
         //settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show recording stopped notification"));
         settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show video saved notification"));
+
+        view_radio_button_ptr->on_selection_changed = [=](const std::string &text, const std::string &id) {
+            (void)text;
+            const bool advanced_view = id == "advanced";
+            color_range_list_ptr->set_visible(advanced_view);
+            codec_list_ptr->set_visible(advanced_view);
+            framerate_mode_list_ptr->set_visible(advanced_view);
+        };
+
+        view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }
     settings_content_page->add_widget(std::move(settings_list));
 }
@@ -515,18 +539,22 @@ int main(int argc, char **argv) {
 
     const mgl::vec2f settings_page_size(window_size.x * 0.3333f, window_size.y * 0.7f);
     const mgl::vec2f settings_page_position = (window_size.to_vec2f() * 0.5f - settings_page_size * 0.5f).floor();
+    const float settings_body_margin = 0.02f;
 
     auto replay_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
     gsr::ScrollablePage *replay_settings_content_ptr = replay_settings_content.get();
     replay_settings_content->set_position(settings_page_position);
+    replay_settings_content->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
 
     auto record_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
     gsr::ScrollablePage *record_settings_content_ptr = record_settings_content.get();
     record_settings_content->set_position(settings_page_position);
+    record_settings_content->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
 
     auto stream_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
     gsr::ScrollablePage *stream_settings_content_ptr = stream_settings_content.get();
     stream_settings_content->set_position(settings_page_position);
+    stream_settings_content->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
 
     gsr::StaticPage replay_settings_page(window_size.to_vec2f());
     replay_settings_page.add_widget(std::move(replay_settings_content));

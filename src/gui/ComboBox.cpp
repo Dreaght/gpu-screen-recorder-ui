@@ -19,6 +19,9 @@ namespace gsr {
     }
 
     bool ComboBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
@@ -60,6 +63,9 @@ namespace gsr {
     }
 
     void ComboBox::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         update_if_dirty();
 
         if(items.empty())
@@ -92,7 +98,7 @@ namespace gsr {
             window.draw(dropdown_arrow);
         }
 
-        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
+        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
         mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
 
         Item &item = items[selected_item];
@@ -164,6 +170,9 @@ namespace gsr {
     }
 
     mgl::vec2f ComboBox::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         update_if_dirty();
 
         const int padding_top = padding_top_scale * get_theme().window_height;

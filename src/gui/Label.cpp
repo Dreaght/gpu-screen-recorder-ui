@@ -11,11 +11,17 @@ namespace gsr {
     }
 
     void Label::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         text.set_position((position + offset).floor());
         window.draw(text);
     }
 
     mgl::vec2f Label::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         return text.get_bounds().size;
     }
 }

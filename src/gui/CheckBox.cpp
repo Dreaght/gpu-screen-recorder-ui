@@ -16,6 +16,9 @@ namespace gsr {
     }
 
     bool CheckBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const bool clicked_inside = mgl::FloatRect(position + offset, get_size()).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
             if(clicked_inside)
@@ -25,6 +28,9 @@ namespace gsr {
     }
 
     void CheckBox::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
         const mgl::vec2f draw_pos = position + offset;
 
         const mgl::vec2f checkbox_size = get_checkbox_size();
@@ -45,7 +51,7 @@ namespace gsr {
         text.set_position((draw_pos + mgl::vec2f(checkbox_size.x + spacing_scale * get_theme().window_height, checkbox_size.y * 0.5f - text_bounds.y * 0.5f)).floor());
         window.draw(text);
 
-        const bool mouse_inside = mgl::FloatRect(draw_pos, get_size()).contains(window.get_mouse_position().to_vec2f());
+        const bool mouse_inside = mgl::FloatRect(draw_pos, get_size()).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
         if(mouse_inside) {
             const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
             const mgl::Color border_color = get_theme().tint_color;
@@ -54,6 +60,9 @@ namespace gsr {
     }
 
     mgl::vec2f CheckBox::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
         mgl::vec2f size = text.get_bounds().size;
         const mgl::vec2f checkbox_size = get_checkbox_size();
         size.x += checkbox_size.x + spacing_scale * get_theme().window_height;

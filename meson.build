@@ -10,6 +10,7 @@ src = [
     'src/Theme.cpp',
     'src/gui/ScrollablePage.cpp',
     'src/gui/Button.cpp',
+    'src/gui/RadioButton.cpp',
     'src/gui/Entry.cpp',
     'src/gui/CheckBox.cpp',
     'src/gui/ComboBox.cpp',
