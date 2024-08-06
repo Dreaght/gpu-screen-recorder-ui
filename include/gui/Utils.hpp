@@ -3,6 +3,9 @@
 #include <mglpp/system/vec.hpp>
 #include <mglpp/graphics/Color.hpp>
 
+#include <functional>
+#include <string_view>
+
 namespace mgl {
     class Window;
 }

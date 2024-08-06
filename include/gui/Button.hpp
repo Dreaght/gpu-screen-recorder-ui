@@ -24,7 +24,6 @@ namespace gsr {
     private:
         mgl::vec2f size;
         mgl::Color bg_color;
-        bool mouse_inside = false;
         mgl::Text text;
     };
 }

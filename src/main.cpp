@@ -253,7 +253,7 @@ static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f sett
                 auto audio_device_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL, gsr::List::Alignment::CENTER);
                 gsr::List *audio_device_list_ptr = audio_device_list.get();
                 {
-                    audio_device_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "*", gsr::get_theme().text_color));
+                    audio_device_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "  ", gsr::get_theme().text_color));
                     auto audio_device_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                     for(const auto &audio_device : audio_devices) {
                         audio_device_box->add_item(audio_device.description, audio_device.name);

@@ -1,0 +1,32 @@
+#pragma once
+
+#include <functional>
+#include <optional>
+#include <string_view>
+#include <map>
+#include <string>
+
+namespace gsr {
+    struct KeyValue {
+        std::string_view key;
+        std::string_view value;
+    };
+
+    using StringSplitCallback = std::function<bool(std::string_view line)>;
+
+    void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func);
+
+    // key value separated by one space
+    std::optional<KeyValue> parse_key_value(std::string_view line);
+
+    std::string get_home_dir();
+    std::string get_config_dir();
+
+    // Whoever designed xdg-user-dirs is retarded. Why are some XDG variables environment variables
+    // while others are in this pseudo shell config file ~/.config/user-dirs.dirs
+    std::map<std::string, std::string> get_xdg_variables();
+
+    std::string get_videos_dir();
+    int create_directory_recursive(char *path);
+    bool file_get_content(const char *filepath, std::string &file_content);
+}

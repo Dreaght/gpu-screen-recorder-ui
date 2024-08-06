@@ -1,57 +1,38 @@
 #include "../include/GsrInfo.hpp"
+#include "../include/Utils.hpp"
+#include <optional>
 #include <string.h>
-#include <functional>
 
 namespace gsr {
-    using StringSplitCallback = std::function<bool(std::string_view line)>;
-
-    static void string_split_char(const std::string &str, char delimiter, StringSplitCallback callback_func) {
-        size_t index = 0;
-        while(index < str.size()) {
-            size_t new_index = str.find(delimiter, index);
-            if(new_index == std::string::npos)
-                new_index = str.size();
-
-            if(!callback_func({str.data() + index, new_index - index}))
-                break;
-
-            index = new_index + 1;
-        }
-    }
-
-    static void parse_system_info_line(GsrInfo *gsr_info, const std::string &line) {
-        const size_t space_index = line.find(' ');
-        if(space_index == std::string::npos)
+    static void parse_system_info_line(GsrInfo *gsr_info, std::string_view line) {
+        const std::optional<KeyValue> key_value = parse_key_value(line);
+        if(!key_value)
             return;
 
-        const std::string_view attribute_name = {line.c_str(), space_index};
-        const std::string_view attribute_value = {line.c_str() + space_index + 1, line.size() - (space_index + 1)};
-        if(attribute_name == "display_server") {
-            if(attribute_value == "x11")
+        if(key_value->key == "display_server") {
+            if(key_value->value == "x11")
                 gsr_info->system_info.display_server = DisplayServer::X11;
-            else if(attribute_value == "wayland")
+            else if(key_value->value == "wayland")
                 gsr_info->system_info.display_server = DisplayServer::WAYLAND;
         }
     }
 
-    static void parse_gpu_info_line(GsrInfo *gsr_info, const std::string &line) {
-        const size_t space_index = line.find(' ');
-        if(space_index == std::string::npos)
+    static void parse_gpu_info_line(GsrInfo *gsr_info, std::string_view line) {
+        const std::optional<KeyValue> key_value = parse_key_value(line);
+        if(!key_value)
             return;
 
-        const std::string_view attribute_name = {line.c_str(), space_index};
-        const std::string_view attribute_value = {line.c_str() + space_index + 1, line.size() - (space_index + 1)};
-        if(attribute_name == "vendor") {
-            if(attribute_value == "amd")
+        if(key_value->key == "vendor") {
+            if(key_value->value == "amd")
                 gsr_info->gpu_info.vendor = GpuVendor::AMD;
-            else if(attribute_value == "intel")
+            else if(key_value->value == "intel")
                 gsr_info->gpu_info.vendor = GpuVendor::INTEL;
-            else if(attribute_value == "nvidia")
+            else if(key_value->value == "nvidia")
                 gsr_info->gpu_info.vendor = GpuVendor::NVIDIA;
         }
     }
 
-    static void parse_video_codecs_line(GsrInfo *gsr_info, const std::string &line) {
+    static void parse_video_codecs_line(GsrInfo *gsr_info, std::string_view line) {
         if(line == "h264")
             gsr_info->supported_video_codecs.h264 = true;
         else if(line == "h264_software")
@@ -66,19 +47,23 @@ namespace gsr {
             gsr_info->supported_video_codecs.vp9 = true;
     }
 
-    static GsrMonitor capture_option_line_to_monitor(const std::string &line) {
-        size_t space_index = line.find(' ');
-        if(space_index == std::string::npos)
-            return { line, {0, 0} };
+    static std::optional<GsrMonitor> capture_option_line_to_monitor(std::string_view line) {
+        std::optional<GsrMonitor> monitor;
+        const std::optional<KeyValue> key_value = parse_key_value(line);
+        if(!key_value)
+            return monitor;
 
-        mgl::vec2i size = {0, 0};
-        if(sscanf(line.c_str() + space_index + 1, "%dx%d", &size.x, &size.y) != 2)
-            size = {0, 0};
+        char value_buffer[256];
+        snprintf(value_buffer, sizeof(value_buffer), "%.*s", (int)key_value->value.size(), key_value->value.data());
 
-        return { line.substr(0, space_index), size };
+        monitor = GsrMonitor{std::string(key_value->key), mgl::vec2i{0, 0}};
+        if(sscanf(value_buffer, "%dx%d", &monitor->size.x, &monitor->size.y) != 2)
+            monitor->size = {0, 0};
+
+        return monitor;
     }
 
-    static void parse_capture_options_line(GsrInfo *gsr_info, const std::string &line) {
+    static void parse_capture_options_line(GsrInfo *gsr_info, std::string_view line) {
         if(line == "window")
             gsr_info->supported_capture_options.window = true;
         else if(line == "focused")
@@ -87,8 +72,11 @@ namespace gsr {
             gsr_info->supported_capture_options.screen = true;
         else if(line == "portal")
             gsr_info->supported_capture_options.portal = true;
-        else
-            gsr_info->supported_capture_options.monitors.push_back(capture_option_line_to_monitor(line));
+        else {
+            std::optional<GsrMonitor> monitor = capture_option_line_to_monitor(line);
+            if(monitor)
+                gsr_info->supported_capture_options.monitors.push_back(std::move(monitor.value()));
+        }
     }
 
     enum class GsrInfoSection {
@@ -99,7 +87,7 @@ namespace gsr {
         CAPTURE_OPTIONS
     };
 
-    static bool starts_with(const std::string &str, const char *substr) {
+    static bool starts_with(std::string_view str, const char *substr) {
         size_t len = strlen(substr);
         return str.size() >= len && memcmp(str.data(), substr, len) == 0;
     }
@@ -123,18 +111,16 @@ namespace gsr {
         output[bytes_read] = '\0';
 
         GsrInfoSection section = GsrInfoSection::UNKNOWN;
-        string_split_char(output, '\n', [&](std::string_view line) {
-            const std::string line_str(line.data(), line.size());
-
-            if(starts_with(line_str, "section=")) {
-                const char *section_name = line_str.c_str() + 8;
-                if(strcmp(section_name, "system_info") == 0)
+        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+            if(starts_with(line, "section=")) {
+                const std::string_view section_name = line.substr(8);
+                if(section_name == "system_info")
                     section = GsrInfoSection::SYSTEM_INFO;
-                else if(strcmp(section_name, "gpu_info") == 0)
+                else if(section_name == "gpu_info")
                     section = GsrInfoSection::GPU_INFO;
-                else if(strcmp(section_name, "video_codecs") == 0)
+                else if(section_name == "video_codecs")
                     section = GsrInfoSection::VIDEO_CODECS;
-                else if(strcmp(section_name, "capture_options") == 0)
+                else if(section_name == "capture_options")
                     section = GsrInfoSection::CAPTURE_OPTIONS;
                 else
                     section = GsrInfoSection::UNKNOWN;
@@ -146,19 +132,19 @@ namespace gsr {
                     break;
                 }
                 case GsrInfoSection::SYSTEM_INFO: {
-                    parse_system_info_line(gsr_info, line_str);
+                    parse_system_info_line(gsr_info, line);
                     break;
                 }
                 case GsrInfoSection::GPU_INFO: {
-                    parse_gpu_info_line(gsr_info, line_str);
+                    parse_gpu_info_line(gsr_info, line);
                     break;
                 }
                 case GsrInfoSection::VIDEO_CODECS: {
-                    parse_video_codecs_line(gsr_info, line_str);
+                    parse_video_codecs_line(gsr_info, line);
                     break;
                 }
                 case GsrInfoSection::CAPTURE_OPTIONS: {
-                    parse_capture_options_line(gsr_info, line_str);
+                    parse_capture_options_line(gsr_info, line);
                     break;
                 }
             }
@@ -179,16 +165,13 @@ namespace gsr {
         return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
     }
 
-    static AudioDevice parse_audio_device_line(const std::string &line) {
-        AudioDevice audio_device;
-        const size_t space_index = line.find(' ');
-        if(space_index == std::string::npos)
+    static std::optional<AudioDevice> parse_audio_device_line(std::string_view line) {
+        std::optional<AudioDevice> audio_device;
+        const std::optional<KeyValue> key_value = parse_key_value(line);
+        if(!key_value)
             return audio_device;
 
-        const std::string_view audio_input_name = {line.c_str(), space_index};
-        const std::string_view audio_input_description = {line.c_str() + space_index + 1, line.size() - (space_index + 1)};
-        audio_device.name.assign(audio_input_name.data(), audio_input_name.size());
-        audio_device.description.assign(audio_input_description.data(), audio_input_description.size());
+        audio_device = AudioDevice{std::string(key_value->key), std::string(key_value->value)};
         return audio_device;
     }
 
@@ -210,9 +193,10 @@ namespace gsr {
         }
         output[bytes_read] = '\0';
 
-        string_split_char(output, '\n', [&](std::string_view line) {
-            const std::string line_str(line.data(), line.size());
-            audio_devices.push_back(parse_audio_device_line(line_str));
+        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+            std::optional<AudioDevice> audio_device = parse_audio_device_line(line);
+            if(audio_device)
+                audio_devices.push_back(std::move(audio_device.value()));
             return true;
         });
 
