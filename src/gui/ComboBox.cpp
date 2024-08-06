@@ -13,7 +13,7 @@ namespace gsr {
     static const float padding_left = 10.0f;
     static const float padding_right = 10.0f;
 
-    ComboBox::ComboBox(mgl::Font *font) : font(font) {
+    ComboBox::ComboBox(mgl::Font *font) : font(font), dropdown_arrow(&get_theme().combobox_arrow) {
         assert(font);
     }
 
@@ -60,20 +60,27 @@ namespace gsr {
         if(items.empty())
             return;
 
-        const mgl::vec2f draw_pos = position + offset;
+        const mgl::vec2f draw_pos = (position + offset).floor();
 
         const mgl::vec2f item_size(max_size.x, font->get_character_size() + padding_top + padding_bottom);
         const mgl::vec2i mouse_pos = window.get_mouse_position();
         bool inside = false;
 
-        mgl::Rectangle background(draw_pos, mgl::vec2f(max_size.x, item_size.y));
+        mgl::Rectangle background(draw_pos, item_size.floor());
         if(show_dropdown) {
-            background.set_size(max_size);
+            background.set_size(max_size.floor());
             background.set_color(mgl::Color(0, 0, 0));
         } else {
             background.set_color(mgl::Color(0, 0, 0, 120));
         }
         window.draw(background);
+
+        if(!show_dropdown) {
+            dropdown_arrow.set_height(get_dropdown_arrow_height());
+            dropdown_arrow.set_position(draw_pos + mgl::vec2f(item_size.x - dropdown_arrow.get_size().x - padding_right, item_size.y * 0.5f - dropdown_arrow.get_size().y * 0.5f).floor());
+            dropdown_arrow.set_color(mgl::Color(255, 255, 255, 30));
+            window.draw(dropdown_arrow);
+        }
 
         mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
 
@@ -82,7 +89,7 @@ namespace gsr {
         if(show_dropdown) {
             const int border_size = 3;
             const mgl::Color border_color = gsr::get_theme().tint_color;
-            draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size, border_color, border_size);
+            draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
         }
         window.draw(item.text);
         pos.y += item.text.get_bounds().size.y + padding_top + padding_bottom;
@@ -136,11 +143,16 @@ namespace gsr {
             max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
             max_size.y += bounds.y + padding_top + padding_bottom;
         }
+        max_size.x += padding_left + get_dropdown_arrow_height();
         dirty = false;
     }
 
     mgl::vec2f ComboBox::get_size() {
         update_if_dirty();
         return { max_size.x, font->get_character_size() + padding_top + padding_bottom };
+    }
+
+    float ComboBox::get_dropdown_arrow_height() const {
+        return (font->get_character_size() + padding_top + padding_bottom) * 0.4f;
     }
 }

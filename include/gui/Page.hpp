@@ -12,6 +12,8 @@ namespace gsr {
         Page& operator=(const Page&) = delete;
         virtual ~Page() = default;
 
+        //void remove_child_widget(Widget *widget) override;
+
         void add_widget(std::unique_ptr<Widget> widget);
     protected:
         std::vector<std::unique_ptr<Widget>> widgets;

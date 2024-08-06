@@ -29,14 +29,12 @@
 #include <X11/Xutil.h>
 
 #include <mglpp/mglpp.hpp>
-#include <mglpp/graphics/Font.hpp>
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/graphics/Texture.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
-#include <mglpp/system/MemoryMappedFile.hpp>
 #include <mglpp/system/Clock.hpp>
 
 // TODO: If no compositor is running but a fullscreen application is running (on the focused monitor)
@@ -58,7 +56,7 @@ extern "C" {
 #include <mgl/mgl.h>
 }
 
-const mgl::Color bg_color(0, 0, 0, 160);
+const mgl::Color bg_color(0, 0, 0, 100);
 
 static void usage() {
     fprintf(stderr, "usage: window-overlay\n");
@@ -207,8 +205,8 @@ static const mgl_monitor* find_monitor_by_cursor_position(mgl::Window &window) {
 }
 */
 
-static void add_widgets_to_settings_page(mgl::Font &title_font, mgl::vec2i window_size, mgl::vec2f settings_page_position, mgl::vec2f settings_page_size, gsr::Page *settings_page, gsr::Page *settings_content_page, const gsr::GsrInfo &gsr_info, const std::vector<gsr::AudioDevice> &audio_devices, std::function<void()> settings_back_button_callback) {
-auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
+static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f settings_page_position, mgl::vec2f settings_page_size, gsr::Page *settings_page, gsr::Page *settings_content_page, const gsr::GsrInfo &gsr_info, const std::vector<gsr::AudioDevice> &audio_devices, std::function<void()> settings_back_button_callback) {
+    auto back_button = std::make_unique<gsr::Button>(&gsr::get_theme().title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
     back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
     back_button->on_click = settings_back_button_callback;
     settings_page->add_widget(std::move(back_button));
@@ -218,8 +216,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
     {
         auto record_area_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
         {
-            record_area_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Record area:", gsr::get_theme().text_color));
-            auto record_area_box = std::make_unique<gsr::ComboBox>(&title_font);
+            record_area_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Record area:", gsr::get_theme().text_color));
+            auto record_area_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
             // TODO: Show options not supported but disable them
             if(gsr_info.supported_capture_options.window)
                 record_area_box->add_item("Window", "window");
@@ -246,19 +244,34 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
 
         auto audio_device_section_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
         {
-            audio_device_section_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Audio:", gsr::get_theme().text_color));
+            audio_device_section_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Audio:", gsr::get_theme().text_color));
             auto audio_devices_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            for(int i = 0; i < 3; ++i) {
+            gsr::List *audio_devices_list_ptr = audio_devices_list.get();
+
+            auto add_audio_track_button = std::make_unique<gsr::Button>(&gsr::get_theme().body_font, "Add audio track", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+            auto add_audio_track = [&audio_devices, audio_devices_list_ptr]() {
                 auto audio_device_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL, gsr::List::Alignment::CENTER);
+                gsr::List *audio_device_list_ptr = audio_device_list.get();
                 {
-                    audio_device_list->add_widget(std::make_unique<gsr::Label>(&title_font, (std::to_string(1 + i) + ":").c_str(), gsr::get_theme().text_color));
-                    auto audio_device_box = std::make_unique<gsr::ComboBox>(&title_font);
+                    audio_device_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "*", gsr::get_theme().text_color));
+                    auto audio_device_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                     for(const auto &audio_device : audio_devices) {
                         audio_device_box->add_item(audio_device.description, audio_device.name);
                     }
                     audio_device_list->add_widget(std::move(audio_device_box));
+                    auto remove_audio_track_button = std::make_unique<gsr::Button>(&gsr::get_theme().body_font, "Remove", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+                    remove_audio_track_button->on_click = [=]() {
+                        audio_devices_list_ptr->remove_widget(audio_device_list_ptr);
+                    };
+                    audio_device_list->add_widget(std::move(remove_audio_track_button));
                 }
-                audio_devices_list->add_widget(std::move(audio_device_list));
+                audio_devices_list_ptr->add_widget(std::move(audio_device_list));
+            };
+            add_audio_track_button->on_click = add_audio_track;
+            audio_device_section_list->add_widget(std::move(add_audio_track_button));
+
+            for(int i = 0; i < 3; ++i) {
+                add_audio_track();
             }
             audio_device_section_list->add_widget(std::move(audio_devices_list));
         }
@@ -268,8 +281,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
         {
             auto video_quality_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                video_quality_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Video quality:", gsr::get_theme().text_color));
-                auto video_quality_box = std::make_unique<gsr::ComboBox>(&title_font);
+                video_quality_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Video quality:", gsr::get_theme().text_color));
+                auto video_quality_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                 video_quality_box->add_item("Medium", "medium");
                 video_quality_box->add_item("High (Recommended for live streaming)", "high");
                 video_quality_box->add_item("Very high (Recommended)", "very_high");
@@ -281,8 +294,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
 
             auto color_range_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                color_range_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Color range:", gsr::get_theme().text_color));
-                auto color_range_box = std::make_unique<gsr::ComboBox>(&title_font);
+                color_range_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Color range:", gsr::get_theme().text_color));
+                auto color_range_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                 color_range_box->add_item("Limited", "limited");
                 color_range_box->add_item("Full", "full");
                 color_range_list->add_widget(std::move(color_range_box));
@@ -291,8 +304,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
 
             auto framerate_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                framerate_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Frame rate:", gsr::get_theme().text_color));
-                auto framerate_entry = std::make_unique<gsr::Entry>(&title_font, "60", title_font.get_character_size() * 2);
+                framerate_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate:", gsr::get_theme().text_color));
+                auto framerate_entry = std::make_unique<gsr::Entry>(&gsr::get_theme().body_font, "60", gsr::get_theme().body_font.get_character_size() * 2);
                 framerate_entry->validate_handler = gsr::create_entry_validator_integer_in_range(1, 500);
                 framerate_list->add_widget(std::move(framerate_entry));
             }
@@ -304,8 +317,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
         {
             auto video_codec_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                video_codec_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Video codec:", gsr::get_theme().text_color));
-                auto video_codec_box = std::make_unique<gsr::ComboBox>(&title_font);
+                video_codec_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Video codec:", gsr::get_theme().text_color));
+                auto video_codec_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                 // TODO: Show options not supported but disable them
                 video_codec_box->add_item("Auto (Recommended)", "auto");
                 if(gsr_info.supported_video_codecs.h264)
@@ -327,8 +340,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
 
             auto audio_codec_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                audio_codec_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Audio codec:", gsr::get_theme().text_color));
-                auto audio_codec_box = std::make_unique<gsr::ComboBox>(&title_font);
+                audio_codec_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Audio codec:", gsr::get_theme().text_color));
+                auto audio_codec_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                 audio_codec_box->add_item("Opus (Recommended)", "opus");
                 audio_codec_box->add_item("AAC", "aac");
                 audio_codec_list->add_widget(std::move(audio_codec_box));
@@ -339,8 +352,8 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
 
         auto framerate_mode_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
         {
-            framerate_mode_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Frame rate mode:", gsr::get_theme().text_color));
-            auto framerate_mode_box = std::make_unique<gsr::ComboBox>(&title_font);
+            framerate_mode_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate mode:", gsr::get_theme().text_color));
+            auto framerate_mode_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
             framerate_mode_box->add_item("Auto (Recommended)", "auto");
             framerate_mode_box->add_item("Constant", "cfr");
             framerate_mode_box->add_item("Variable", "vfr");
@@ -352,16 +365,16 @@ auto back_button = std::make_unique<gsr::Button>(&title_font, "Back", mgl::vec2f
         {
             auto save_directory_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                save_directory_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Directory to save the video:", gsr::get_theme().text_color));
+                save_directory_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Directory to save the video:", gsr::get_theme().text_color));
                 // TODO:
-                save_directory_list->add_widget(std::make_unique<gsr::Entry>(&title_font, "/home/dec05eba/Videos", title_font.get_character_size() * 20));
+                save_directory_list->add_widget(std::make_unique<gsr::Entry>(&gsr::get_theme().body_font, "/home/dec05eba/Videos", gsr::get_theme().body_font.get_character_size() * 20));
             }
             file_list->add_widget(std::move(save_directory_list));
 
             auto container_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
             {
-                container_list->add_widget(std::make_unique<gsr::Label>(&title_font, "Container:", gsr::get_theme().text_color));
-                auto container_box = std::make_unique<gsr::ComboBox>(&title_font);
+                container_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Container:", gsr::get_theme().text_color));
+                auto container_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
                 container_box->add_item("mp4", "mp4");
                 container_box->add_item("mkv", "matroska");
                 container_box->add_item("flv", "flv");
@@ -393,16 +406,14 @@ int main(int argc, char **argv) {
 
     const std::vector<gsr::AudioDevice> audio_devices = gsr::get_audio_devices();
 
-    gsr::init_theme(gsr_info);
-
-    std::string project_dir;
+    std::string resources_path;
     if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0) {
-        project_dir = "./";
+        resources_path = "./";
     } else {
 #ifdef GSR_OVERLAY_RESOURCES_PATH
-        project_dir = GSR_OVERLAY_RESOURCES_PATH "/";
+        resources_path = GSR_OVERLAY_RESOURCES_PATH "/";
 #else
-        project_dir = "/usr/share/gsr-overlay/";
+        resources_path = "/usr/share/gsr-overlay/";
 #endif
     }
 
@@ -446,42 +457,27 @@ int main(int argc, char **argv) {
     window.set_size(window_size);
     window.set_position(window_pos);
 
+    if(!gsr::init_theme(gsr_info, window_size, resources_path)) {
+        fprintf(stderr, "Error: failed to load theme\n");
+        exit(1);
+    }
+
     unsigned char data = 2; // Prefer being composed to allow transparency
     XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
     data = 1;
     XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
-    mgl::MemoryMappedFile title_font_file;
-    if(!title_font_file.load("/usr/share/fonts/noto/NotoSans-Bold.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
-        startup_error("failed to load file: fonts/Orbitron-Bold.ttf");
-
-    mgl::MemoryMappedFile font_file;
-    if(!font_file.load("/usr/share/fonts/noto/NotoSans-Regular.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
-        startup_error("failed to load file: fonts/Orbitron-Regular.ttf");
-
-    mgl::Font top_bar_font;
-    if(!top_bar_font.load_from_file(title_font_file, window_size.y * 0.03f))
-        startup_error("failed to load font: fonts/NotoSans-Bold.ttf");
-
-    mgl::Font title_font;
-    if(!title_font.load_from_file(title_font_file, window_size.y * 0.019f))
-        startup_error("failed to load font: fonts/NotoSans-Regular.ttf");
-
-    mgl::Font font;
-    if(!font.load_from_file(font_file, window_size.y * 0.015f))
-        startup_error("failed to load font: fonts/NotoSans-Regular.ttf");
-
     mgl::Texture replay_button_texture;
-    if(!replay_button_texture.load_from_file((project_dir + "images/replay.png").c_str()))
+    if(!replay_button_texture.load_from_file((resources_path + "images/replay.png").c_str()))
         startup_error("failed to load texture: images/replay.png");
 
     mgl::Texture record_button_texture;
-    if(!record_button_texture.load_from_file((project_dir + "images/record.png").c_str()))
+    if(!record_button_texture.load_from_file((resources_path + "images/record.png").c_str()))
         startup_error("failed to load texture: images/record.png");
 
     mgl::Texture stream_button_texture;
-    if(!stream_button_texture.load_from_file((project_dir + "images/stream.png").c_str()))
+    if(!stream_button_texture.load_from_file((resources_path + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
 
     mgl::Texture screenshot_texture;
@@ -569,7 +565,7 @@ int main(int argc, char **argv) {
     std::vector<MainButton> main_buttons;
 
     for(int i = 0; i < num_frontpage_buttons; ++i) {
-        auto button = std::make_unique<gsr::DropdownButton>(&title_font, &font, titles[i], descriptions_on[i], descriptions_off[i], textures[i], mgl::vec2f(button_width, button_height));
+        auto button = std::make_unique<gsr::DropdownButton>(&gsr::get_theme().title_font, &gsr::get_theme().body_font, titles[i], descriptions_on[i], descriptions_off[i], textures[i], mgl::vec2f(button_width, button_height));
         button->add_item("Start", "start");
         button->add_item("Settings", "settings");
         gsr::DropdownButton *button_ptr = button.get();
@@ -671,7 +667,7 @@ int main(int argc, char **argv) {
             main_buttons[1].button->set_item_label(id, "Start");
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            const std::string record_image_filepath = project_dir + "images/record.png";
+            const std::string record_image_filepath = resources_path + "images/record.png";
             const char *notification_args[] = {
                 "gsr-notify", "--text", "Recording has been saved", "--timeout", "3.0",
                 "--icon", record_image_filepath.c_str(),
@@ -707,7 +703,7 @@ int main(int argc, char **argv) {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        const std::string record_image_filepath = project_dir + "images/record.png";
+        const std::string record_image_filepath = resources_path + "images/record.png";
         const char *notification_args[] = {
             "gsr-notify", "--text", "Recording has started", "--timeout", "3.0",
             "--icon", record_image_filepath.c_str(),
@@ -759,7 +755,7 @@ int main(int argc, char **argv) {
     mgl::Rectangle top_bar_background(mgl::vec2f(window_size.x, window_size.y*0.06f).floor());
     top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
 
-    mgl::Text top_bar_text("GPU Screen Recorder", top_bar_font);
+    mgl::Text top_bar_text("GPU Screen Recorder", gsr::get_theme().top_bar_font);
     //top_bar_text.set_color(gsr::get_theme().tint_color);
     top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
 
@@ -784,11 +780,11 @@ int main(int argc, char **argv) {
     for(int i = 0; i < num_settings_pages; ++i) {
         gsr::Page *settings_page = settings_pages[i];
         gsr::Page *settings_content_page = settings_content_pages[i];
-        add_widgets_to_settings_page(title_font, window_size, settings_page_position, settings_page_size, settings_page, settings_content_page, gsr_info, audio_devices, settings_back_button_callback);
+        add_widgets_to_settings_page(window_size, settings_page_position, settings_page_size, settings_page, settings_content_page, gsr_info, audio_devices, settings_back_button_callback);
     }
 
     mgl::Texture close_texture;
-    if(!close_texture.load_from_file((project_dir + "images/cross.png").c_str()))
+    if(!close_texture.load_from_file((resources_path + "images/cross.png").c_str()))
         startup_error("failed to load texture: images/cross.png");
 
     mgl::Sprite close_sprite(&close_texture);
@@ -796,7 +792,7 @@ int main(int argc, char **argv) {
     close_sprite.set_position(mgl::vec2f(window_size.x - close_sprite.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_sprite.get_size().y * 0.5f).floor());
 
     mgl::Texture logo_texture;
-    if(!logo_texture.load_from_file((project_dir + "images/gpu_screen_recorder_logo.png").c_str()))
+    if(!logo_texture.load_from_file((resources_path + "images/gpu_screen_recorder_logo.png").c_str()))
         startup_error("failed to load texture: images/gpu_screen_recorder_logo.png");
 
     mgl::Sprite logo_sprite(&logo_texture);

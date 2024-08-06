@@ -1,13 +1,13 @@
 #include "../../include/gui/List.hpp"
+#include "../../include/Theme.hpp"
 
 static float floor(float f) {
     return (int)f;
 }
 
 namespace gsr {
-    // TODO: Make this modifiable, multiple by window size.
     // TODO: Add homogeneous option, using a specified max size of this list.
-    static const mgl::vec2f spacing(30.0f, 10.0f);
+    static const mgl::vec2f spacing_scale(0.009f, 0.009f);
 
     List::List(Orientation orientation, Alignment content_alignment) : orientation(orientation), content_alignment(content_alignment) {}
     
@@ -31,7 +31,30 @@ namespace gsr {
         return true;
     }
 
+    // TODO: Maybe call this from main on all widgets instead of from draw
+    void List::update() {
+        //widgets.insert(widgets.back(), std::make_move_iterator(add_queue.begin()), std::make_move_iterator(add_queue.end()));
+        std::move(add_queue.begin(), add_queue.end(), std::back_inserter(widgets));
+        add_queue.clear();
+
+        for(Widget *widget_to_remove : remove_queue) {
+            remove_widget_immediate(widget_to_remove);
+        }
+        remove_queue.clear();
+    }
+
+    void List::remove_widget_immediate(Widget *widget) {
+        for(auto it = widgets.begin(), end = widgets.end(); it != end; ++it) {
+            if(it->get() == widget) {
+                widgets.erase(it);
+                return;
+            }
+        }
+    }
+
     void List::draw(mgl::Window &window, mgl::vec2f offset) {
+        update();
+
         mgl::vec2f draw_pos = position + offset;
         offset = {0.0f, 0.0f};
         Widget *selected_widget = selected_child_widget;
@@ -39,6 +62,7 @@ namespace gsr {
         // TODO: Handle start/end alignment
         const mgl::vec2f size = get_size();
 
+        const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(auto &widget : widgets) {
@@ -68,14 +92,37 @@ namespace gsr {
             selected_widget->draw(window, mgl::vec2f(0.0f, 0.0f));
     }
 
+    // void List::remove_child_widget(Widget *widget) {
+    //     for(auto it = widgets.begin(), end = widgets.end(); it != end; ++it) {
+    //         if(it->get() == widget) {
+    //             widgets.erase(it);
+    //             return;
+    //         }
+    //     }
+    // }
+
     void List::add_widget(std::unique_ptr<Widget> widget) {
         widget->parent_widget = this;
-        widgets.push_back(std::move(widget));
+        // TODO: Maybe only do this if this is called inside an event handler
+        //widgets.push_back(std::move(widget));
+        add_queue.push_back(std::move(widget));
+    }
+
+    void List::remove_widget(Widget *widget) {
+        for(auto it = add_queue.begin(), end = add_queue.end(); it != end; ++it) {
+            if(it->get() == widget) {
+                add_queue.erase(it);
+                return;
+            }
+        }
+        // TODO: Maybe only do this if this is called inside an event handler
+        remove_queue.push_back(widget);
     }
 
     // TODO: Cache result
     mgl::vec2f List::get_size() {
         mgl::vec2f size;
+        const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(auto &widget : widgets) {

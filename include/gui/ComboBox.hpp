@@ -2,6 +2,7 @@
 
 #include "Widget.hpp"
 #include <mglpp/graphics/Text.hpp>
+#include <mglpp/graphics/Sprite.hpp>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@ namespace gsr {
         mgl::vec2f get_size() override;
     private:
         void update_if_dirty();
+        float get_dropdown_arrow_height() const;
     private:
         struct Item {
             mgl::Text text;
@@ -30,6 +32,7 @@ namespace gsr {
         mgl::vec2f max_size;
         mgl::Font *font;
         std::vector<Item> items;
+        mgl::Sprite dropdown_arrow;
         bool dirty = true;
         bool show_dropdown = false;
         size_t selected_item = 0;

@@ -24,6 +24,8 @@ namespace gsr {
         virtual void draw(mgl::Window &window, mgl::vec2f offset) = 0;
         virtual void set_position(mgl::vec2f position);
 
+        //virtual void remove_child_widget(Widget *widget) { (void)widget; }
+
         virtual mgl::vec2f get_position() const;
         virtual mgl::vec2f get_size() = 0;
     protected:

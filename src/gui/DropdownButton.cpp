@@ -8,10 +8,10 @@
 #include <mglpp/system/FloatRect.hpp>
 
 namespace gsr {
-    static const float padding_top = 10.0f;
-    static const float padding_bottom = 10.0f;
-    static const float padding_left = 10.0f;
-    static const float padding_right = 10.0f;
+    static const float padding_top = 15.0f;
+    static const float padding_bottom = 15.0f;
+    static const float padding_left = 20.0f;
+    static const float padding_right = 20.0f;
     static const int border_size = 5;
 
     DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size) :

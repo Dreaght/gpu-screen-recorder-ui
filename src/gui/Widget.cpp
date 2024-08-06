@@ -6,7 +6,9 @@ namespace gsr {
     }
 
     Widget::~Widget() {
-        
+        remove_widget_as_selected_in_parent();
+        // if(parent_widget)
+        //     parent_widget->remove_child_widget(this);
     }
 
     void Widget::set_position(mgl::vec2f position) {

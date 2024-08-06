@@ -5,9 +5,13 @@
 namespace gsr {
     static Theme *theme = nullptr;
 
-    void init_theme(const gsr::GsrInfo &gsr_info) {
-        assert(!theme);
+    bool init_theme(const gsr::GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path) {
+        if(theme)
+            return true;
+
         theme = new Theme();
+
+        theme->window_height = window_size.y;
 
         switch(gsr_info.gpu_info.vendor) {
             case gsr::GpuVendor::UNKNOWN: {
@@ -26,15 +30,40 @@ namespace gsr {
                 break;
             }
         }
+
+        if(!theme->body_font_file.load("/usr/share/fonts/noto/NotoSans-Regular.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
+            goto error;
+
+        if(!theme->title_font_file.load("/usr/share/fonts/noto/NotoSans-Bold.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
+            goto error;
+
+        if(!theme->title_font.load_from_file(theme->title_font_file, window_size.y * 0.019f))
+            goto error;
+
+        if(!theme->top_bar_font.load_from_file(theme->title_font_file, window_size.y * 0.03f))
+            goto error;
+
+        if(!theme->body_font.load_from_file(theme->body_font_file, window_size.y * 0.015f))
+            goto error;
+
+        if(!theme->combobox_arrow.load_from_file((resources_path + "images/combobox_arrow.png").c_str(), {false, false, false}))
+            goto error;
+
+        return true;
+
+        error:
+        deinit_theme();
+        return false;
     }
 
     void deinit_theme() {
-        assert(theme);
-        delete theme;
-        theme = nullptr;
+        if(theme) {
+            delete theme;
+            theme = nullptr;
+        }
     }
 
-    const Theme& get_theme() {
+    Theme& get_theme() {
         assert(theme);
         return *theme;
     }
