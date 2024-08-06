@@ -9,11 +9,12 @@
 #include <optional>
 
 namespace gsr {
-    static const float padding_top = 10.0f;
-    static const float padding_bottom = 10.0f;
-    static const float padding_left = 10.0f;
-    static const float padding_right = 10.0f;
+    static const float padding_top_scale = 0.004629f;
+    static const float padding_bottom_scale = 0.004629f;
+    static const float padding_left_scale = 0.007f;
+    static const float padding_right_scale = 0.007f;
     static const float border_scale = 0.0015f;
+    static const float caret_width_scale = 0.001f;
 
     Entry::Entry(mgl::Font *font, const char *text, float max_width) : text("", *font), max_width(max_width) {
         this->text.set_color(get_theme().text_color);
@@ -41,17 +42,20 @@ namespace gsr {
     void Entry::draw(mgl::Window &window, mgl::vec2f offset) {
         const mgl::vec2f draw_pos = position + offset;
 
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+
         mgl::Rectangle background(get_size());
         background.set_position(draw_pos.floor());
         background.set_color(selected ? mgl::Color(0, 0, 0, 255) : mgl::Color(0, 0, 0, 120));
         window.draw(background);
 
         if(selected) {
-            const int border_size = border_scale * gsr::get_theme().window_height;
+            const int border_size = border_scale * get_theme().window_height;
             draw_rectangle_outline(window, draw_pos.floor(), get_size().floor(), get_theme().tint_color, border_size);
 
-            const int caret_width = 2;
-            mgl::Rectangle caret({caret_width, text.get_bounds().size.y});
+            const int caret_width = std::max(1.0f, caret_width_scale * get_theme().window_height);
+            mgl::Rectangle caret({(float)caret_width, text.get_bounds().size.y});
             caret.set_position((draw_pos + mgl::vec2f(padding_left + caret_offset_x, padding_top)).floor());
             caret.set_color(mgl::Color(255, 255, 255));
             window.draw(caret);
@@ -62,6 +66,8 @@ namespace gsr {
     }
 
     mgl::vec2f Entry::get_size() {
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         return { max_width, text.get_bounds().size.y + padding_top + padding_bottom };
     }
 

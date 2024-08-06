@@ -37,13 +37,13 @@ namespace gsr {
         if(!theme->title_font_file.load("/usr/share/fonts/noto/NotoSans-Bold.ttf", mgl::MemoryMappedFile::LoadOptions{true, false}))
             goto error;
 
-        if(!theme->title_font.load_from_file(theme->title_font_file, window_size.y * 0.019f))
+        if(!theme->title_font.load_from_file(theme->title_font_file, std::max(16.0f, window_size.y * 0.019f)))
             goto error;
 
-        if(!theme->top_bar_font.load_from_file(theme->title_font_file, window_size.y * 0.03f))
+        if(!theme->top_bar_font.load_from_file(theme->title_font_file, std::max(23.0f, window_size.y * 0.03f)))
             goto error;
 
-        if(!theme->body_font.load_from_file(theme->body_font_file, window_size.y * 0.015f))
+        if(!theme->body_font.load_from_file(theme->body_font_file, std::max(13.0f, window_size.y * 0.015f)))
             goto error;
 
         if(!theme->combobox_arrow.load_from_file((resources_path + "images/combobox_arrow.png").c_str(), {false, false, false}))

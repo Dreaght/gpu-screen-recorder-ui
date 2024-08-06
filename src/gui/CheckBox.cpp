@@ -18,11 +18,8 @@ namespace gsr {
     bool CheckBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const bool clicked_inside = mgl::FloatRect(position + offset, get_size()).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
-            if(clicked_inside) {
+            if(clicked_inside)
                 checked = !checked;
-                if(on_click)
-                    on_click();
-            }
         }
         return true;
     }
@@ -40,7 +37,7 @@ namespace gsr {
             const float side_margin = checked_margin_scale * get_theme().window_height;
             mgl::Rectangle background(get_checkbox_size() - mgl::vec2f(side_margin, side_margin).floor() * 2.0f);
             background.set_position(draw_pos.floor() + mgl::vec2f(side_margin, side_margin).floor());
-            background.set_color(gsr::get_theme().tint_color);
+            background.set_color(get_theme().tint_color);
             window.draw(background);
         }
 
@@ -50,8 +47,8 @@ namespace gsr {
 
         const bool mouse_inside = mgl::FloatRect(draw_pos, get_size()).contains(window.get_mouse_position().to_vec2f());
         if(mouse_inside) {
-            const int border_size = border_scale * gsr::get_theme().window_height;
-            const mgl::Color border_color = gsr::get_theme().tint_color;
+            const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
+            const mgl::Color border_color = get_theme().tint_color;
             draw_rectangle_outline(window, draw_pos, checkbox_size, border_color, border_size);
         }
     }
@@ -67,5 +64,9 @@ namespace gsr {
     mgl::vec2f CheckBox::get_checkbox_size() {
         const mgl::vec2f text_bounds = text.get_bounds().size;
         return mgl::vec2f(text_bounds.y, text_bounds.y).floor();
+    }
+
+    bool CheckBox::is_checked() const {
+        return checked;
     }
 }

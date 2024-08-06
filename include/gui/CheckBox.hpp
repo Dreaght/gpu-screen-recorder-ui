@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Widget.hpp"
-#include <functional>
 
 #include <mglpp/graphics/Color.hpp>
 #include <mglpp/graphics/Text.hpp>
@@ -17,8 +16,7 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
-
-        std::function<void()> on_click;
+        bool is_checked() const;
     private:
         mgl::vec2f get_checkbox_size();
     private:

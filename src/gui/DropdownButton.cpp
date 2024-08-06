@@ -8,10 +8,10 @@
 #include <mglpp/system/FloatRect.hpp>
 
 namespace gsr {
-    static const float padding_top = 15.0f;
-    static const float padding_bottom = 15.0f;
-    static const float padding_left = 20.0f;
-    static const float padding_right = 20.0f;
+    static const float padding_top_scale = 0.00694f;
+    static const float padding_bottom_scale = 0.00694f;
+    static const float padding_left_scale = 0.009259f;
+    static const float padding_right_scale = 0.009259f;
     static const float border_scale = 0.003f;
 
     DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size) :
@@ -59,7 +59,11 @@ namespace gsr {
         update_if_dirty();
 
         const mgl::vec2f draw_pos = position + offset;
-        const int border_size = border_scale * gsr::get_theme().window_height;
+
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+        const int border_size = border_scale * get_theme().window_height;
 
         if(show_dropdown) {
             // Background
@@ -70,7 +74,7 @@ namespace gsr {
                 window.draw(rect);
             }
 
-            const mgl::Color border_color = gsr::get_theme().tint_color;
+            const mgl::Color border_color = get_theme().tint_color;
 
             // Green line at top
             {
@@ -88,7 +92,7 @@ namespace gsr {
                 window.draw(rect);
             }
 
-            const mgl::Color border_color = gsr::get_theme().tint_color;
+            const mgl::Color border_color = get_theme().tint_color;
             draw_rectangle_outline(window, draw_pos, size, border_color, border_size);
         } else {
             // Background
@@ -132,7 +136,7 @@ namespace gsr {
                     const mgl::vec2f item_size(max_size.x, item_height);
                     const bool inside = mgl::FloatRect(item_position, item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
                     if(inside) {
-                        draw_rectangle_outline(window, item_position, item_size, gsr::get_theme().tint_color, 5);
+                        draw_rectangle_outline(window, item_position, item_size, get_theme().tint_color, border_size);
                         mouse_inside_item = i;
                     }
                 }
@@ -179,6 +183,11 @@ namespace gsr {
     void DropdownButton::update_if_dirty() {
         if(!dirty)
             return;
+
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+        const int padding_right = padding_right_scale * get_theme().window_height;
 
         max_size = { size.x, 0.0f };
         for(Item &item : items) {

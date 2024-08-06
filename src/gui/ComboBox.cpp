@@ -8,10 +8,10 @@
 #include <assert.h>
 
 namespace gsr {
-    static const float padding_top = 10.0f;
-    static const float padding_bottom = 10.0f;
-    static const float padding_left = 10.0f;
-    static const float padding_right = 10.0f;
+    static const float padding_top_scale = 0.004629f;
+    static const float padding_bottom_scale = 0.004629f;
+    static const float padding_left_scale = 0.007f;
+    static const float padding_right_scale = 0.007f;
     static const float border_scale = 0.0015f;
 
     ComboBox::ComboBox(mgl::Font *font) : font(font), dropdown_arrow(&get_theme().combobox_arrow) {
@@ -19,6 +19,10 @@ namespace gsr {
     }
 
     bool ComboBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const mgl::vec2f draw_pos = position + offset;
             const mgl::vec2f mouse_pos = { (float)event.mouse_button.x, (float)event.mouse_button.y };
@@ -61,6 +65,11 @@ namespace gsr {
         if(items.empty())
             return;
 
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+        const int padding_right = padding_right_scale * get_theme().window_height;
+
         const mgl::vec2f draw_pos = (position + offset).floor();
 
         const mgl::vec2f item_size(max_size.x, font->get_character_size() + padding_top + padding_bottom);
@@ -89,8 +98,8 @@ namespace gsr {
         Item &item = items[selected_item];
         item.text.set_position(pos.floor());
         if(show_dropdown || mouse_inside) {
-            const int border_size = border_scale * gsr::get_theme().window_height;
-            const mgl::Color border_color = gsr::get_theme().tint_color;
+            const int border_size = border_scale * get_theme().window_height;
+            const mgl::Color border_color = get_theme().tint_color;
             draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
         }
         window.draw(item.text);
@@ -105,8 +114,8 @@ namespace gsr {
                 if(!inside) {
                     inside = mgl::FloatRect(text_bounds.position - mgl::vec2f(padding_left, padding_top), item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
                     if(inside) {
-                        mgl::Rectangle item_background(text_bounds.position - mgl::vec2f(padding_left, padding_top), item_size);
-                        item_background.set_color(gsr::get_theme().tint_color);
+                        mgl::Rectangle item_background((text_bounds.position - mgl::vec2f(padding_left, padding_top)).floor(), item_size.floor());
+                        item_background.set_color(get_theme().tint_color);
                         window.draw(item_background);
                     } else {
                         /*const int border_size = 3;
@@ -139,7 +148,12 @@ namespace gsr {
         if(!dirty)
             return;
 
-        max_size = { 0.0f, font->get_character_size() + padding_top + padding_bottom };
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+        const int padding_right = padding_right_scale * get_theme().window_height;
+
+        max_size = { 0.0f, font->get_character_size() + (float)padding_top + (float)padding_bottom };
         for(Item &item : items) {
             const mgl::vec2f bounds = item.text.get_bounds().size;
             max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
@@ -151,10 +165,15 @@ namespace gsr {
 
     mgl::vec2f ComboBox::get_size() {
         update_if_dirty();
-        return { max_size.x, font->get_character_size() + padding_top + padding_bottom };
+
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+        return { max_size.x, font->get_character_size() + (float)padding_top + (float)padding_bottom };
     }
 
     float ComboBox::get_dropdown_arrow_height() const {
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         return (font->get_character_size() + padding_top + padding_bottom) * 0.4f;
     }
 }
