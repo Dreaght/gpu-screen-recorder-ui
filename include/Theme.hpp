@@ -15,6 +15,7 @@ namespace gsr {
         Theme(const Theme&) = delete;
         Theme& operator=(const Theme&) = delete;
 
+        float window_width = 0.0f;
         float window_height = 0.0f;
 
         mgl::Color tint_color = mgl::Color(118, 185, 0);

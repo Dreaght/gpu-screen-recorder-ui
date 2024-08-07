@@ -34,6 +34,8 @@ namespace gsr {
 
         virtual mgl::vec2f get_position() const;
         virtual mgl::vec2f get_size() = 0;
+        // This can be different from get_size, for example with ScrollablePage this excludes the margins
+        virtual mgl::vec2f get_inner_size() { return get_size(); }
 
         void set_horizontal_alignment(Alignment alignment);
         void set_vertical_alignment(Alignment alignment);

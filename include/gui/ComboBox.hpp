@@ -3,6 +3,8 @@
 #include "Widget.hpp"
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/graphics/Sprite.hpp>
+
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -17,9 +19,11 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         void add_item(const std::string &text, const std::string &id);
-        void set_selected_item(const std::string &id);
+        void set_selected_item(const std::string &id, bool trigger_event = true);
 
         mgl::vec2f get_size() override;
+
+        std::function<void(const std::string &text, const std::string &id)> on_selection_changed;
     private:
         void update_if_dirty();
         float get_dropdown_arrow_height() const;

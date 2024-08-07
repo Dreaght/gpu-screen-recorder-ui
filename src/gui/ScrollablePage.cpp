@@ -57,7 +57,7 @@ namespace gsr {
         mgl_scissor prev_scissor;
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
 
-        const mgl::vec2f content_size = get_size();
+        const mgl::vec2f content_size = get_inner_size();
         mgl_scissor new_scissor = {
             mgl_vec2i{(int)offset.x, (int)offset.y},
             mgl_vec2i{(int)content_size.x, (int)content_size.y}
@@ -78,6 +78,13 @@ namespace gsr {
     }
 
     mgl::vec2f ScrollablePage::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        return size;
+    }
+
+    mgl::vec2f ScrollablePage::get_inner_size() {
         if(!visible)
             return {0.0f, 0.0f};
 

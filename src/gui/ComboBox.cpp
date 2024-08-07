@@ -39,9 +39,14 @@ namespace gsr {
                     Item &item = items[i];
                     const mgl::FloatRect text_bounds = item.text.get_bounds();
                     if(mgl::FloatRect(pos - mgl::vec2f(padding_left, padding_top), item_size).contains(mouse_pos)) {
+                        const size_t prev_selected_item = selected_item;
                         selected_item = i;
                         show_dropdown = false;
                         remove_widget_as_selected_in_parent();
+
+                        if(selected_item != prev_selected_item && on_selection_changed)
+                            on_selection_changed(item.text.get_string(), item.id);
+
                         return false;
                     }
                     pos.y += text_bounds.size.y + padding_top + padding_bottom;
@@ -141,10 +146,16 @@ namespace gsr {
         dirty = true;
     }
 
-    void ComboBox::set_selected_item(const std::string &id) {
+    void ComboBox::set_selected_item(const std::string &id, bool trigger_event) {
         for(size_t i = 0; i < items.size(); ++i) {
-            if(items[i].id == id) {
+            auto &item = items[i];
+            if(item.id == id) {
+                const size_t prev_selected_item = selected_item;
                 selected_item = i;
+
+                if(trigger_event && selected_item != prev_selected_item && on_selection_changed)
+                    on_selection_changed(item.text.get_string(), item.id);
+
                 break;
             }
         }

@@ -13,6 +13,7 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
+        mgl::vec2f get_inner_size() override;
 
         void set_margins(float top, float bottom, float left, float right);
     private:

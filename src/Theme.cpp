@@ -11,6 +11,7 @@ namespace gsr {
 
         theme = new Theme();
 
+        theme->window_width = window_size.x;
         theme->window_height = window_size.y;
 
         switch(gsr_info.gpu_info.vendor) {

@@ -1,18 +1,11 @@
 
 #include "../include/gui/StaticPage.hpp"
-#include "../include/gui/ScrollablePage.hpp"
 #include "../include/gui/DropdownButton.hpp"
-#include "../include/gui/Button.hpp"
-#include "../include/gui/RadioButton.hpp"
-#include "../include/gui/Entry.hpp"
-#include "../include/gui/CheckBox.hpp"
-#include "../include/gui/ComboBox.hpp"
-#include "../include/gui/Label.hpp"
-#include "../include/gui/List.hpp"
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
 #include "../include/GsrInfo.hpp"
 #include "../include/window_texture.h"
+#include "../include/SettingsPage.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,246 +224,6 @@ static const mgl_monitor* find_monitor_by_cursor_position(mgl::Window &window) {
     return &win->monitors[0];
 }
 
-/*
-{
-    {
-        gsr::List::Orientation::VERTICAL,
-        "Record area:",
-        {
-            {"Window, "window"},
-            {"Focused window", "focused"},
-        },
-    },
-    {
-        gsr::List::Orientation::VERTICAL,
-        "Video quality:",
-        {
-            {"Medium, "medium"},
-            {"High", "high"},
-            {"Very high", "very_high"},
-        },
-    }
-}
-*/
-
-static void add_widgets_to_settings_page(mgl::vec2i window_size, mgl::vec2f settings_page_position, mgl::vec2f settings_page_size, gsr::Page *settings_page, gsr::Page *settings_content_page, const gsr::GsrInfo &gsr_info, const std::vector<gsr::AudioDevice> &audio_devices, std::function<void()> settings_back_button_callback) {
-    auto back_button = std::make_unique<gsr::Button>(&gsr::get_theme().title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15), gsr::get_theme().scrollable_page_bg_color);
-    back_button->set_position(settings_page_position + mgl::vec2f(settings_page_size.x + window_size.x / 50, 0.0f).floor());
-    back_button->set_border_scale(0.003f);
-    back_button->on_click = settings_back_button_callback;
-    settings_page->add_widget(std::move(back_button));
-
-    auto settings_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-    {
-        auto view_radio_button = std::make_unique<gsr::RadioButton>(&gsr::get_theme().body_font);
-        view_radio_button->add_item("Simple view", "simple");
-        view_radio_button->add_item("Advanced view", "advanced");
-        view_radio_button->set_horizontal_alignment(gsr::Widget::Alignment::CENTER);
-        gsr::RadioButton *view_radio_button_ptr = view_radio_button.get();
-        settings_list->add_widget(std::move(view_radio_button));
-
-        gsr::Widget *color_range_list_ptr = nullptr;
-        gsr::Widget *codec_list_ptr = nullptr;
-        gsr::Widget *framerate_mode_list_ptr = nullptr;
-
-        auto record_area_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-        {
-            record_area_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Record area:", gsr::get_theme().text_color));
-            auto record_area_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-            // TODO: Show options not supported but disable them
-            if(gsr_info.supported_capture_options.window)
-                record_area_box->add_item("Window", "window");
-            if(gsr_info.supported_capture_options.focused)
-                record_area_box->add_item("Focused window", "focused");
-            if(gsr_info.supported_capture_options.screen)
-                record_area_box->add_item("All monitors", "screen");
-            for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
-                char name[256];
-                snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
-                record_area_box->add_item(name, monitor.name);
-            }
-            if(gsr_info.supported_capture_options.portal)
-                record_area_box->add_item("Desktop portal", "portal");
-
-            if(!gsr_info.supported_capture_options.monitors.empty())
-                record_area_box->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
-            else if(gsr_info.supported_capture_options.portal)
-                record_area_box->set_selected_item("portal");
-
-            record_area_list->add_widget(std::move(record_area_box));
-        }
-        settings_list->add_widget(std::move(record_area_list));
-
-        auto audio_device_section_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-        {
-            audio_device_section_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Audio:", gsr::get_theme().text_color));
-            auto audio_devices_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            gsr::List *audio_devices_list_ptr = audio_devices_list.get();
-
-            auto add_audio_track_button = std::make_unique<gsr::Button>(&gsr::get_theme().body_font, "Add audio track", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
-            auto add_audio_track = [&audio_devices, audio_devices_list_ptr]() {
-                auto audio_device_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL, gsr::List::Alignment::CENTER);
-                gsr::List *audio_device_list_ptr = audio_device_list.get();
-                {
-                    audio_device_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "  ", gsr::get_theme().text_color));
-                    auto audio_device_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                    for(const auto &audio_device : audio_devices) {
-                        audio_device_box->add_item(audio_device.description, audio_device.name);
-                    }
-                    audio_device_list->add_widget(std::move(audio_device_box));
-                    auto remove_audio_track_button = std::make_unique<gsr::Button>(&gsr::get_theme().body_font, "Remove", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
-                    remove_audio_track_button->on_click = [=]() {
-                        audio_devices_list_ptr->remove_widget(audio_device_list_ptr);
-                    };
-                    audio_device_list->add_widget(std::move(remove_audio_track_button));
-                }
-                audio_devices_list_ptr->add_widget(std::move(audio_device_list));
-            };
-            add_audio_track_button->on_click = add_audio_track;
-            audio_device_section_list->add_widget(std::move(add_audio_track_button));
-
-            for(int i = 0; i < 3; ++i) {
-                add_audio_track();
-            }
-            audio_device_section_list->add_widget(std::move(audio_devices_list));
-        }
-        settings_list->add_widget(std::move(audio_device_section_list));
-
-        auto quality_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
-        {
-            auto video_quality_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                video_quality_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Video quality:", gsr::get_theme().text_color));
-                auto video_quality_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                video_quality_box->add_item("Medium", "medium");
-                video_quality_box->add_item("High (Recommended for live streaming)", "high");
-                video_quality_box->add_item("Very high (Recommended)", "very_high");
-                video_quality_box->add_item("Ultra", "ultra");
-                video_quality_box->set_selected_item("very_high");
-                video_quality_list->add_widget(std::move(video_quality_box));
-            }
-            quality_list->add_widget(std::move(video_quality_list));
-
-            auto color_range_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                color_range_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Color range:", gsr::get_theme().text_color));
-                auto color_range_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                color_range_box->add_item("Limited", "limited");
-                color_range_box->add_item("Full", "full");
-                color_range_list->add_widget(std::move(color_range_box));
-            }
-            color_range_list_ptr = color_range_list.get();
-            quality_list->add_widget(std::move(color_range_list));
-        }
-        settings_list->add_widget(std::move(quality_list));
-
-        auto codec_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
-        {
-            auto video_codec_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                video_codec_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Video codec:", gsr::get_theme().text_color));
-                auto video_codec_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                // TODO: Show options not supported but disable them
-                video_codec_box->add_item("Auto (Recommended)", "auto");
-                if(gsr_info.supported_video_codecs.h264)
-                    video_codec_box->add_item("H264", "h264");
-                if(gsr_info.supported_video_codecs.hevc)
-                    video_codec_box->add_item("HEVC", "hevc");
-                if(gsr_info.supported_video_codecs.av1)
-                    video_codec_box->add_item("AV1", "av1");
-                if(gsr_info.supported_video_codecs.vp8)
-                    video_codec_box->add_item("VP8", "vp8");
-                if(gsr_info.supported_video_codecs.vp9)
-                    video_codec_box->add_item("VP9", "vp9");
-                // TODO: Add hdr options
-                if(gsr_info.supported_video_codecs.h264_software)
-                    video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
-                video_codec_list->add_widget(std::move(video_codec_box));
-            }
-            codec_list->add_widget(std::move(video_codec_list));
-
-            auto audio_codec_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                audio_codec_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Audio codec:", gsr::get_theme().text_color));
-                auto audio_codec_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                audio_codec_box->add_item("Opus (Recommended)", "opus");
-                audio_codec_box->add_item("AAC", "aac");
-                audio_codec_list->add_widget(std::move(audio_codec_box));
-            }
-            codec_list->add_widget(std::move(audio_codec_list));
-        }
-        codec_list_ptr = codec_list.get();
-        settings_list->add_widget(std::move(codec_list));
-
-        auto framerate_info_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
-        {
-            auto framerate_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                framerate_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate:", gsr::get_theme().text_color));
-                auto framerate_entry = std::make_unique<gsr::Entry>(&gsr::get_theme().body_font, "60", gsr::get_theme().body_font.get_character_size() * 3);
-                framerate_entry->validate_handler = gsr::create_entry_validator_integer_in_range(1, 500);
-                framerate_list->add_widget(std::move(framerate_entry));
-            }
-            framerate_info_list->add_widget(std::move(framerate_list));
-
-            auto framerate_mode_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                framerate_mode_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Frame rate mode:", gsr::get_theme().text_color));
-                auto framerate_mode_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                framerate_mode_box->add_item("Auto (Recommended)", "auto");
-                framerate_mode_box->add_item("Constant", "cfr");
-                framerate_mode_box->add_item("Variable", "vfr");
-                framerate_mode_list->add_widget(std::move(framerate_mode_box));
-            }
-            framerate_mode_list_ptr = framerate_mode_list.get();
-            framerate_info_list->add_widget(std::move(framerate_mode_list));
-        }
-        settings_list->add_widget(std::move(framerate_info_list));
-
-        auto file_list = std::make_unique<gsr::List>(gsr::List::Orientation::HORIZONTAL);
-        {
-            auto save_directory_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                save_directory_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Directory to save the video:", gsr::get_theme().text_color));
-                // TODO:
-                save_directory_list->add_widget(std::make_unique<gsr::Entry>(&gsr::get_theme().body_font, "/home/dec05eba/Videos", gsr::get_theme().body_font.get_character_size() * 20));
-            }
-            file_list->add_widget(std::move(save_directory_list));
-
-            auto container_list = std::make_unique<gsr::List>(gsr::List::Orientation::VERTICAL);
-            {
-                container_list->add_widget(std::make_unique<gsr::Label>(&gsr::get_theme().body_font, "Container:", gsr::get_theme().text_color));
-                auto container_box = std::make_unique<gsr::ComboBox>(&gsr::get_theme().body_font);
-                container_box->add_item("mp4", "mp4");
-                container_box->add_item("mkv", "matroska");
-                container_box->add_item("flv", "flv");
-                container_box->add_item("mov", "mov");
-                container_box->add_item("ts", "mpegts");
-                container_box->add_item("m3u8", "hls");
-                container_list->add_widget(std::move(container_box));
-            }
-            file_list->add_widget(std::move(container_list));
-        }
-        settings_list->add_widget(std::move(file_list));
-
-        settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Record cursor"));
-        settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show recording started notification"));
-        //settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show recording stopped notification"));
-        settings_list->add_widget(std::make_unique<gsr::CheckBox>(&gsr::get_theme().body_font, "Show video saved notification"));
-
-        view_radio_button_ptr->on_selection_changed = [=](const std::string &text, const std::string &id) {
-            (void)text;
-            const bool advanced_view = id == "advanced";
-            color_range_list_ptr->set_visible(advanced_view);
-            codec_list_ptr->set_visible(advanced_view);
-            framerate_mode_list_ptr->set_visible(advanced_view);
-        };
-
-        view_radio_button_ptr->on_selection_changed("Simple", "simple");
-    }
-    settings_content_page->add_widget(std::move(settings_list));
-}
-
 int main(int argc, char **argv) {
     if(argc != 1)
         usage();
@@ -621,36 +374,16 @@ int main(int argc, char **argv) {
 
     gsr::StaticPage front_page(window_size.to_vec2f());
 
-    const mgl::vec2f settings_page_size(window_size.x * 0.3333f, window_size.y * 0.7f);
-    const mgl::vec2f settings_page_position = (window_size.to_vec2f() * 0.5f - settings_page_size * 0.5f).floor();
-    const float settings_body_margin = 0.02f;
-
-    auto replay_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
-    gsr::ScrollablePage *replay_settings_content_ptr = replay_settings_content.get();
-    replay_settings_content->set_position(settings_page_position);
-    replay_settings_content->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
-
-    auto record_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
-    gsr::ScrollablePage *record_settings_content_ptr = record_settings_content.get();
-    record_settings_content->set_position(settings_page_position);
-    record_settings_content->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
-
-    auto stream_settings_content = std::make_unique<gsr::ScrollablePage>(settings_page_size);
-    gsr::ScrollablePage *stream_settings_content_ptr = stream_settings_content.get();
-    stream_settings_content->set_position(settings_page_position);
-    stream_settings_content->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
-
-    gsr::StaticPage replay_settings_page(window_size.to_vec2f());
-    replay_settings_page.add_widget(std::move(replay_settings_content));
-
-    gsr::StaticPage record_settings_page(window_size.to_vec2f());
-    record_settings_page.add_widget(std::move(record_settings_content));
-
-    gsr::StaticPage stream_settings_page(window_size.to_vec2f());
-    stream_settings_page.add_widget(std::move(stream_settings_content));
-
     std::stack<gsr::Page*> page_stack;
     page_stack.push(&front_page);
+
+    const auto settings_back_button_callback = [&] {
+        page_stack.pop();
+    };
+
+    gsr::SettingsPage replay_settings_page(gsr::SettingsPage::Type::REPLAY, gsr_info, audio_devices, settings_back_button_callback);
+    gsr::SettingsPage record_settings_page(gsr::SettingsPage::Type::RECORD, gsr_info, audio_devices, settings_back_button_callback);
+    gsr::SettingsPage stream_settings_page(gsr::SettingsPage::Type::STREAM, gsr_info, audio_devices, settings_back_button_callback);
 
     struct MainButton {
         gsr::DropdownButton* button;
@@ -737,7 +470,7 @@ int main(int argc, char **argv) {
     // Replay
     main_buttons[0].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&replay_settings_page);
+            page_stack.push(&replay_settings_page.get_page());
             return;
         }
         /*
@@ -762,7 +495,7 @@ int main(int argc, char **argv) {
     // Record
     main_buttons[1].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&record_settings_page);
+            page_stack.push(&record_settings_page.get_page());
             return;
         }
 
@@ -847,7 +580,7 @@ int main(int argc, char **argv) {
     // Stream
     main_buttons[2].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&stream_settings_page);
+            page_stack.push(&stream_settings_page.get_page());
             return;
         }
     };
@@ -882,30 +615,6 @@ int main(int argc, char **argv) {
     mgl::Text top_bar_text("GPU Screen Recorder", gsr::get_theme().top_bar_font);
     //top_bar_text.set_color(gsr::get_theme().tint_color);
     top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
-
-    const int num_settings_pages = 3;
-
-    gsr::Page *settings_pages[num_settings_pages] = {
-        &replay_settings_page,
-        &record_settings_page,
-        &stream_settings_page
-    };
-
-    gsr::Page *settings_content_pages[num_settings_pages] = {
-        replay_settings_content_ptr,
-        record_settings_content_ptr,
-        stream_settings_content_ptr
-    };
-
-    const auto settings_back_button_callback = [&] {
-        page_stack.pop();
-    };
-
-    for(int i = 0; i < num_settings_pages; ++i) {
-        gsr::Page *settings_page = settings_pages[i];
-        gsr::Page *settings_content_page = settings_content_pages[i];
-        add_widgets_to_settings_page(window_size, settings_page_position, settings_page_size, settings_page, settings_content_page, gsr_info, audio_devices, settings_back_button_callback);
-    }
 
     mgl::Texture close_texture;
     if(!close_texture.load_from_file((resources_path + "images/cross.png").c_str()))

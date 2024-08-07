@@ -21,6 +21,7 @@ src = [
     'src/gui/Utils.cpp',
     'src/gui/DropdownButton.cpp',
     'src/gui/Label.cpp',
+    'src/SettingsPage.cpp',
     'src/Utils.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',

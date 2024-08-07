@@ -67,7 +67,7 @@ namespace gsr {
 
         // TODO: Handle start/end alignment
         const mgl::vec2f size = get_size();
-        const mgl::vec2f parent_size = parent_widget ? parent_widget->get_size() : mgl::vec2f(0.0f, 0.0f);
+        const mgl::vec2f parent_inner_size = parent_widget ? parent_widget->get_inner_size() : mgl::vec2f(0.0f, 0.0f);
 
         const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
@@ -80,8 +80,8 @@ namespace gsr {
                     // TODO: Do this parent widget alignment for horizontal alignment and for other types of widget alignment
                     // and other widgets.
                     // Also take this widget alignment into consideration in get_size.
-                    if(widget->get_horizontal_alignment() == Widget::Alignment::CENTER && parent_size.x > 0.001f)
-                        offset.x = floor(parent_size.x * 0.5f - widget_size.x * 0.5f);
+                    if(widget->get_horizontal_alignment() == Widget::Alignment::CENTER && parent_inner_size.x > 0.001f)
+                        offset.x = floor(parent_inner_size.x * 0.5f - widget_size.x * 0.5f);
                     else if(content_alignment == Alignment::CENTER)
                         offset.x = floor(size.x * 0.5f - widget_size.x * 0.5f);
                     else
