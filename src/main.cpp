@@ -938,6 +938,7 @@ int main(int argc, char **argv) {
         if(window_texture_loaded && window_texture.texture_id) {
             window.clear(mgl::Color(0, 0, 0, 255));
             window.draw(window_texture_sprite);
+            window.draw(bg_screenshot_overlay);
         } else if(screenshot_texture.is_valid()) {
             window.clear(bg_color);
             window.draw(screenshot_sprite);
