@@ -8,7 +8,7 @@ Maybe change design to have black triangles appear and get larger until they fil
     Have buttons appear slanted in 3D.
     All of these things should be done with vertex buffer, for real 3D.
 
-DISPLAY gamescope-0
+WAYLAND_DISPLAY gamescope-0, DISPLAY=:1 (gamescope xwayland)
 
 Optimize list/page when having a few items in it (dont use vector<unique_ptr<Widget>>).
 

@@ -76,20 +76,23 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
+                    const auto widget_size = widget->get_size();
                     // TODO: Do this parent widget alignment for horizontal alignment and for other types of widget alignment
                     // and other widgets.
                     // Also take this widget alignment into consideration in get_size.
                     if(widget->get_horizontal_alignment() == Widget::Alignment::CENTER && parent_size.x > 0.001f)
-                        offset.x = floor(parent_size.x * 0.5f - widget->get_size().x * 0.5f);
+                        offset.x = floor(parent_size.x * 0.5f - widget_size.x * 0.5f);
                     else if(content_alignment == Alignment::CENTER)
-                        offset.x = floor(size.x * 0.5f - widget->get_size().x * 0.5f);
+                        offset.x = floor(size.x * 0.5f - widget_size.x * 0.5f);
                     else
                         offset.x = 0.0f;
 
                     widget->set_position(draw_pos + offset);
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
-                    draw_pos.y += widget->get_size().y + spacing.y;
+                    draw_pos.y += widget_size.y;
+                    if(widget_size.y > 0.001f)
+                        draw_pos.y += spacing.y;
                 }
                 break;
             }
@@ -98,13 +101,16 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
+                    const auto widget_size = widget->get_size();
                     if(content_alignment == Alignment::CENTER)
-                        offset.y = floor(size.y * 0.5f - widget->get_size().y * 0.5f);
+                        offset.y = floor(size.y * 0.5f - widget_size.y * 0.5f);
 
                     widget->set_position(draw_pos + offset);
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
-                    draw_pos.x += widget->get_size().x + spacing.x;
+                    draw_pos.x += widget_size.x;
+                    if(widget_size.x > 0.001f)
+                        draw_pos.x += spacing.x;
                 }
                 break;
             }
@@ -156,7 +162,9 @@ namespace gsr {
 
                     const auto widget_size = widget->get_size();
                     size.x = std::max(size.x, widget_size.x);
-                    size.y += widget_size.y + spacing.y;
+                    size.y += widget_size.y;
+                    if(widget_size.y > 0.001f)
+                        size.y += spacing.y;
                 }
                 break;
             }
@@ -166,7 +174,9 @@ namespace gsr {
                         continue;
 
                     const auto widget_size = widget->get_size();
-                    size.x += widget_size.x + spacing.x;
+                    size.x += widget_size.x;
+                    if(widget_size.x > 0.001f)
+                        size.x += spacing.x;
                     size.y = std::max(size.y, widget_size.y);
                 }
                 break;

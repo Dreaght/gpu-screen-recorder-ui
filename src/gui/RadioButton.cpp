@@ -56,6 +56,9 @@ namespace gsr {
 
         update_if_dirty();
 
+        if(items.empty())
+            return;
+
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
@@ -106,7 +109,7 @@ namespace gsr {
     }
 
     mgl::vec2f RadioButton::get_size() {
-        if(!visible)
+        if(!visible || items.empty())
             return {0.0f, 0.0f};
 
         update_if_dirty();

@@ -24,6 +24,7 @@
 #include <optional>
 #include <signal.h>
 #include <assert.h>
+#include <stack>
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
@@ -565,7 +566,8 @@ int main(int argc, char **argv) {
     gsr::StaticPage stream_settings_page(window_size.to_vec2f());
     stream_settings_page.add_widget(std::move(stream_settings_content));
 
-    gsr::Page *current_page = &front_page;
+    std::stack<gsr::Page*> page_stack;
+    page_stack.push(&front_page);
 
     struct MainButton {
         gsr::DropdownButton* button;
@@ -652,7 +654,7 @@ int main(int argc, char **argv) {
     // Replay
     main_buttons[0].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            current_page = &replay_settings_page;
+            page_stack.push(&replay_settings_page);
             return;
         }
         /*
@@ -677,7 +679,7 @@ int main(int argc, char **argv) {
     // Record
     main_buttons[1].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            current_page = &record_settings_page;
+            page_stack.push(&record_settings_page);
             return;
         }
 
@@ -762,7 +764,7 @@ int main(int argc, char **argv) {
     // Stream
     main_buttons[2].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            current_page = &stream_settings_page;
+            page_stack.push(&stream_settings_page);
             return;
         }
     };
@@ -813,7 +815,7 @@ int main(int argc, char **argv) {
     };
 
     const auto settings_back_button_callback = [&] {
-        current_page = &front_page;
+        page_stack.pop();
     };
 
     for(int i = 0; i < num_settings_pages; ++i) {
@@ -850,7 +852,7 @@ int main(int argc, char **argv) {
     event.type = mgl::Event::MouseMoved;
     event.mouse_move.x = window.get_mouse_position().x;
     event.mouse_move.y = window.get_mouse_position().y;
-    current_page->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
+    page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
 
     const auto render = [&] {
         window.clear(bg_color);
@@ -862,26 +864,25 @@ int main(int argc, char **argv) {
         window.draw(top_bar_text);
         window.draw(logo_sprite);
         window.draw(close_sprite);
-        current_page->draw(window, mgl::vec2f(0.0f, 0.0f));
+        page_stack.top()->draw(window, mgl::vec2f(0.0f, 0.0f));
         window.display();
     };
 
     while(window.is_open()) {
-        if(!running) {
-            window.set_visible(false);
-            window.close();
-            break;
+        if(page_stack.empty() || !running) {
+            running = false;
+            goto quit;
         }
 
         while(window.poll_event(event)) {
-            current_page->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
+            page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
             if(event.type == mgl::Event::KeyPressed) {
-                if(event.key.code == mgl::Keyboard::Escape) {
-                    window.set_visible(false);
-                    window.close();
-                    break;
-                }
+                if(event.key.code == mgl::Keyboard::Escape && !page_stack.empty())
+                    page_stack.pop();
             }
+
+            if(page_stack.empty())
+                break;
         }
 
         // if(state_update_timer.get_elapsed_time_seconds() >= state_update_timeout_sec) {
@@ -889,10 +890,14 @@ int main(int argc, char **argv) {
         //     update_overlay_shape();
         // }
 
-        render();
+        if(!page_stack.empty())
+            render();
     }
 
+    quit:
     fprintf(stderr, "shutting down!\n");
+    gsr::deinit_theme();
+    window.close();
 
     if(gpu_screen_recorder_process != -1) {
         kill(gpu_screen_recorder_process, SIGINT);
@@ -904,6 +909,5 @@ int main(int argc, char **argv) {
         gpu_screen_recorder_process = -1;
     }
 
-    gsr::deinit_theme();
     return 0;
 }
