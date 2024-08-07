@@ -1,9 +1,9 @@
-project('gsr-overlay', ['cpp'], version : '1.0.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-overlay', ['c', 'cpp'], version : '1.0.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 if get_option('buildtype') == 'debug'
-    add_project_arguments('-g3', language : ['cpp'])
+    add_project_arguments('-g3', language : ['c', 'cpp'])
 elif get_option('buildtype') == 'release'
-    add_project_arguments('-DNDEBUG', language : ['cpp'])
+    add_project_arguments('-DNDEBUG', language : ['c', 'cpp'])
 endif
 
 src = [
@@ -25,6 +25,7 @@ src = [
     'src/Config.cpp',
     'src/GsrInfo.cpp',
     'src/Process.cpp',
+    'src/window_texture.c',
     'src/main.cpp',
 ]
 
@@ -33,6 +34,7 @@ mglpp_dep = mglpp_proj.get_variable('mglpp_dep')
 
 dep = [
     mglpp_dep,
+    dependency('xcomposite'),
 ]
 
 prefix = get_option('prefix')

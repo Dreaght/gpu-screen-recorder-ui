@@ -12,6 +12,7 @@
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
 #include "../include/GsrInfo.hpp"
+#include "../include/window_texture.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,10 +41,6 @@
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/Clock.hpp>
 
-// TODO: If no compositor is running but a fullscreen application is running (on the focused monitor)
-// then use xcomposite to get that window as a texture and use that as a background because then the background can update.
-// That case can also happen when using a compositor but when the compositor gets turned off when running a fullscreen application.
-// This can also happen after this overlay has started, in which case we want to update the background capture method.
 // TODO: Make keyboard controllable for steam deck (and other controllers).
 // TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
 // TODO: Remove gpu-screen-recorder-overlay-daemon and handle that alt+z global hotkey here instead, to show/hide the window
@@ -172,6 +169,54 @@ static std::string color_to_hex_str(mgl::Color color) {
     result[5] = hex_value_to_str(color.b & 0x0F);
 
     return result;
+}
+
+static Window get_window_at_cursor_position(Display *display) {
+    Window root_window = None;
+    Window window = None;
+    int dummy_i;
+    unsigned int dummy_u;
+    int cursor_pos_x = 0;
+    int cursor_pos_y = 0;
+    XQueryPointer(display, DefaultRootWindow(display), &root_window, &window, &dummy_i, &dummy_i, &cursor_pos_x, &cursor_pos_y, &dummy_u);
+    return window;
+}
+
+struct DrawableGeometry {
+    int x, y, width, height;
+};
+
+static bool get_drawable_geometry(Display *display, Drawable drawable, DrawableGeometry *geometry) {
+    geometry->x = 0;
+    geometry->y = 0;
+    geometry->width = 0;
+    geometry->height = 0;
+
+    Window root_window;
+    unsigned int w, h;
+    unsigned int dummy_border, dummy_depth;
+    Status s = XGetGeometry(display, drawable, &root_window, &geometry->x, &geometry->y, &w, &h, &dummy_border, &dummy_depth);
+
+    geometry->width = w;
+    geometry->height = h;
+    return s != Success;
+}
+
+static bool diff_int(int a, int b, int difference) {
+    return std::abs(a - b) <= difference;
+}
+
+static bool is_window_fullscreen_on_monitor(Display *display, Window window, const mgl_monitor *monitor) {
+    if(!window)
+        return false;
+
+    DrawableGeometry geometry;
+    if(!get_drawable_geometry(display, window, &geometry))
+        return false;
+
+    const int margin = 2;
+    return diff_int(geometry.x, monitor->pos.x, margin) && diff_int(geometry.y, monitor->pos.y, margin)
+        && diff_int(geometry.width, monitor->size.x, margin) && diff_int(geometry.height, monitor->size.y, margin);
 }
 
 // Returns the first monitor if not found. Assumes there is at least one monitor connected.
@@ -454,11 +499,21 @@ int main(int argc, char **argv) {
     }
 
     mgl::Init init;
-    Display *display = (Display*)mgl_get_context()->connection;
+    mgl_context *context = mgl_get_context();
+    Display *display = (Display*)context->connection;
 
-    // TODO: Put window on the focused monitor right side and update when monitor changes resolution or other modes.
-    // Use monitor size instead of screen size.
-    // mgl now has monitor events so this can be handled directly with mgl.
+    egl_functions egl_funcs;
+    egl_funcs.eglGetError = (decltype(egl_funcs.eglGetError))context->gl.eglGetProcAddress("eglGetError");
+    egl_funcs.eglCreateImage = (decltype(egl_funcs.eglCreateImage))context->gl.eglGetProcAddress("eglCreateImage");
+    egl_funcs.eglDestroyImage = (decltype(egl_funcs.eglDestroyImage))context->gl.eglGetProcAddress("eglDestroyImage");
+    egl_funcs.glEGLImageTargetTexture2DOES = (decltype(egl_funcs.glEGLImageTargetTexture2DOES))context->gl.eglGetProcAddress("glEGLImageTargetTexture2DOES");
+
+    if(!egl_funcs.eglGetError || !egl_funcs.eglCreateImage || !egl_funcs.eglDestroyImage || !egl_funcs.glEGLImageTargetTexture2DOES) {
+        fprintf(stderr, "Error: required opengl functions not available on your system\n");
+        exit(1);
+    }
+
+    const bool compositor_running = is_compositor_running(display, DefaultScreen(display));
 
     mgl::vec2i window_size = { 1280, 720 };
     mgl::vec2i window_pos = { 0, 0 };
@@ -516,16 +571,44 @@ int main(int argc, char **argv) {
     if(!stream_button_texture.load_from_file((resources_path + "images/stream.png").c_str()))
         startup_error("failed to load texture: images/stream.png");
 
-    mgl::Texture screenshot_texture;
-    if(!is_compositor_running(display, 0)) {
-        XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
-        if(!img)
-            fprintf(stderr, "Error: failed to take a screenshot\n");
+    WindowTexture window_texture;
+    bool window_texture_loaded = false;
 
-        if(img) {
-            screenshot_texture = texture_from_ximage(img);
-            XDestroyImage(img);
-            img = NULL;
+    mgl_texture window_texture_tex;
+    memset(&window_texture_tex, 0, sizeof(window_texture_tex));
+    mgl::Texture window_texture_texture;
+    mgl::Sprite window_texture_sprite;
+
+    mgl::Texture screenshot_texture;
+    if(!compositor_running) {
+        const Window window_at_cursor_position = get_window_at_cursor_position(display);
+        if(is_window_fullscreen_on_monitor(display, window_at_cursor_position, focused_monitor) && window_at_cursor_position)
+            window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window.internal_window()), window_at_cursor_position, egl_funcs) == 0;
+
+        if(window_texture_loaded && window_texture.texture_id) {
+            DrawableGeometry geometry;
+            get_drawable_geometry(display, (Drawable)window_texture.pixmap, &geometry);
+
+            window_texture_tex.id = window_texture.texture_id;
+            window_texture_tex.width = geometry.width;
+            window_texture_tex.height = geometry.height;
+            window_texture_tex.format = MGL_TEXTURE_FORMAT_RGBA;
+            window_texture_tex.max_width = 1 << 15;
+            window_texture_tex.max_height = 1 << 15;
+            window_texture_tex.pixel_coordinates = false;
+            window_texture_tex.mipmap = false;
+            window_texture_texture = mgl::Texture::reference(window_texture_tex);
+            window_texture_sprite.set_texture(&window_texture_texture);
+        } else {
+            XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
+            if(!img)
+                fprintf(stderr, "Error: failed to take a screenshot\n");
+
+            if(img) {
+                screenshot_texture = texture_from_ximage(img);
+                XDestroyImage(img);
+                img = NULL;
+            }
         }
     }
 
@@ -844,9 +927,6 @@ int main(int argc, char **argv) {
         top_bar_background.get_size().y * 0.5f - logo_sprite.get_size().y * 0.5f
     ).floor());
 
-    // mgl::Clock state_update_timer;
-    // const double state_update_timeout_sec = 2.0;
-
     mgl::Event event;
 
     event.type = mgl::Event::MouseMoved;
@@ -855,8 +935,11 @@ int main(int argc, char **argv) {
     page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
 
     const auto render = [&] {
-        window.clear(bg_color);
-        if(screenshot_texture.is_valid()) {
+        if(window_texture_loaded && window_texture.texture_id) {
+            window.clear(mgl::Color(0, 0, 0, 255));
+            window.draw(window_texture_sprite);
+        } else if(screenshot_texture.is_valid()) {
+            window.clear(bg_color);
             window.draw(screenshot_sprite);
             window.draw(bg_screenshot_overlay);
         }
@@ -876,7 +959,7 @@ int main(int argc, char **argv) {
 
         while(window.poll_event(event)) {
             page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
-            if(event.type == mgl::Event::KeyPressed) {
+            if(event.type == mgl::Event::KeyReleased) {
                 if(event.key.code == mgl::Keyboard::Escape && !page_stack.empty())
                     page_stack.pop();
             }
@@ -896,6 +979,8 @@ int main(int argc, char **argv) {
 
     quit:
     fprintf(stderr, "shutting down!\n");
+    if(window_texture_loaded)
+        window_texture_deinit(&window_texture);
     gsr::deinit_theme();
     window.close();
 
