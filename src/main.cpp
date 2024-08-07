@@ -592,7 +592,7 @@ int main(int argc, char **argv) {
             window_texture_tex.id = window_texture.texture_id;
             window_texture_tex.width = geometry.width;
             window_texture_tex.height = geometry.height;
-            window_texture_tex.format = MGL_TEXTURE_FORMAT_RGBA;
+            window_texture_tex.format = MGL_TEXTURE_FORMAT_RGB;
             window_texture_tex.max_width = 1 << 15;
             window_texture_tex.max_height = 1 << 15;
             window_texture_tex.pixel_coordinates = false;
@@ -935,12 +935,11 @@ int main(int argc, char **argv) {
     page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
 
     const auto render = [&] {
+        window.clear(bg_color);
         if(window_texture_loaded && window_texture.texture_id) {
-            window.clear(mgl::Color(0, 0, 0, 255));
             window.draw(window_texture_sprite);
             window.draw(bg_screenshot_overlay);
         } else if(screenshot_texture.is_valid()) {
-            window.clear(bg_color);
             window.draw(screenshot_sprite);
             window.draw(bg_screenshot_overlay);
         }
