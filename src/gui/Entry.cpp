@@ -57,7 +57,7 @@ namespace gsr {
         window.draw(background);
 
         if(selected) {
-            const int border_size = border_scale * get_theme().window_height;
+            const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
             draw_rectangle_outline(window, draw_pos.floor(), get_size().floor(), get_theme().tint_color, border_size);
 
             const int caret_width = std::max(1.0f, caret_width_scale * get_theme().window_height);

@@ -77,7 +77,7 @@ namespace gsr {
 
             const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
             if(can_select_item && mouse_inside) {
-                const int border_size = border_scale * get_theme().window_height;
+                const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
                 const mgl::Color border_color = get_theme().tint_color;
                 draw_rectangle_outline(window, draw_pos.floor(), item_size.floor(), border_color, border_size);
             }

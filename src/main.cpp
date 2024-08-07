@@ -1,6 +1,8 @@
 
 #include "../include/gui/StaticPage.hpp"
 #include "../include/gui/DropdownButton.hpp"
+#include "../include/gui/CustomRendererWidget.hpp"
+#include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
 #include "../include/GsrInfo.hpp"
@@ -620,9 +622,32 @@ int main(int argc, char **argv) {
     if(!close_texture.load_from_file((resources_path + "images/cross.png").c_str()))
         startup_error("failed to load texture: images/cross.png");
 
-    mgl::Sprite close_sprite(&close_texture);
-    close_sprite.set_height(int(top_bar_background.get_size().y * 0.3f));
-    close_sprite.set_position(mgl::vec2f(window_size.x - close_sprite.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_sprite.get_size().y * 0.5f).floor());
+    gsr::CustomRendererWidget close_button_widget(mgl::vec2f(top_bar_background.get_size().y * 0.3f, top_bar_background.get_size().y * 0.3f).floor());
+    close_button_widget.set_position(mgl::vec2f(window_size.x - close_button_widget.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_button_widget.get_size().y * 0.5f).floor());
+    close_button_widget.draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+        if(mgl::FloatRect(pos, size).contains(window.get_mouse_position().to_vec2f())) {
+            const float border_scale = 0.0015f;
+            const int border_size = std::max(1.0f, border_scale * gsr::get_theme().window_height);
+            gsr::draw_rectangle_outline(window, pos, size, gsr::get_theme().tint_color, border_size);
+        }
+
+        mgl::Sprite close_sprite(&close_texture);
+        close_sprite.set_position(pos);
+        close_sprite.set_size(size);
+        window.draw(close_sprite);
+    };
+    bool close_button_pressed_inside = false;
+    close_button_widget.event_handler = [&](mgl::Event &event, mgl::Window&, mgl::vec2f pos, mgl::vec2f size) {
+        if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
+            close_button_pressed_inside = mgl::FloatRect(pos, size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y));
+        } else if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && close_button_pressed_inside) {
+            if(mgl::FloatRect(pos, size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
+                running = false;
+                return false;
+            }
+        }
+        return true;
+    };
 
     mgl::Texture logo_texture;
     if(!logo_texture.load_from_file((resources_path + "images/gpu_screen_recorder_logo.png").c_str()))
@@ -655,7 +680,7 @@ int main(int argc, char **argv) {
         window.draw(top_bar_background);
         window.draw(top_bar_text);
         window.draw(logo_sprite);
-        window.draw(close_sprite);
+        close_button_widget.draw(window, mgl::vec2f(0.0f, 0.0f));
         page_stack.top()->draw(window, mgl::vec2f(0.0f, 0.0f));
         window.display();
     };
@@ -668,6 +693,7 @@ int main(int argc, char **argv) {
 
         while(window.poll_event(event)) {
             page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
+            close_button_widget.on_event(event, window, mgl::vec2f(0.0f, 0.0f));
             if(event.type == mgl::Event::KeyReleased) {
                 if(event.key.code == mgl::Keyboard::Escape && !page_stack.empty())
                     page_stack.pop();

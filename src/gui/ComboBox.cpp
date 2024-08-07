@@ -14,7 +14,7 @@ namespace gsr {
     static const float padding_right_scale = 0.007f;
     static const float border_scale = 0.0015f;
 
-    ComboBox::ComboBox(mgl::Font *font) : font(font), dropdown_arrow(&get_theme().combobox_arrow) {
+    ComboBox::ComboBox(mgl::Font *font) : font(font), dropdown_arrow(&get_theme().combobox_arrow_texture) {
         assert(font);
     }
 
@@ -109,7 +109,7 @@ namespace gsr {
         Item &item = items[selected_item];
         item.text.set_position(pos.floor());
         if(show_dropdown || mouse_inside) {
-            const int border_size = border_scale * get_theme().window_height;
+            const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
             const mgl::Color border_color = get_theme().tint_color;
             draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
         }

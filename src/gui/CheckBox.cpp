@@ -75,6 +75,10 @@ namespace gsr {
         return mgl::vec2f(text_bounds.y, text_bounds.y).floor();
     }
 
+    void CheckBox::set_checked(bool checked) {
+        this->checked = checked;
+    }
+
     bool CheckBox::is_checked() const {
         return checked;
     }

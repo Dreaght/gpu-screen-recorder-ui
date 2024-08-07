@@ -8,7 +8,13 @@
 #include "../include/gui/Entry.hpp"
 #include "../include/gui/CheckBox.hpp"
 #include "../include/gui/ScrollablePage.hpp"
+#include "../include/gui/CustomRendererWidget.hpp"
 #include "../include/GsrInfo.hpp"
+
+#include <mglpp/graphics/Rectangle.hpp>
+#include <mglpp/graphics/Sprite.hpp>
+#include <mglpp/graphics/Text.hpp>
+#include <mglpp/window/Window.hpp>
 
 namespace gsr {
     SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::function<void()> back_button_callback) :
@@ -50,6 +56,26 @@ namespace gsr {
         back_button->set_border_scale(0.003f);
         back_button->on_click = back_button_callback;
         page.add_widget(std::move(back_button));
+
+        auto settings_icon_widget = std::make_unique<CustomRendererWidget>(mgl::vec2f(window_size.x / 10, window_size.x / 10).floor());
+        settings_icon_widget->set_position(content_page_ptr->get_position().floor() - mgl::vec2f(settings_icon_widget->get_size().x + window_size.x / 50, 0.0f).floor());
+        settings_icon_widget->draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+            mgl::Rectangle background(size);
+            background.set_position(pos);
+            background.set_color(mgl::Color(0, 0, 0, 255));
+            window.draw(background);
+
+            const int text_margin = size.y * 0.085;
+            mgl::Text title("Settings", get_theme().title_font);
+            title.set_position((pos + mgl::vec2f(size.x * 0.5f - title.get_bounds().size.x * 0.5f, text_margin)).floor());
+            window.draw(title);
+
+            mgl::Sprite icon(&get_theme().settings_texture);
+            icon.set_height((int)(size.y * 0.5f));
+            icon.set_position((pos + size * 0.5f - icon.get_size() * 0.5f).floor());
+            window.draw(icon);
+        };
+        page.add_widget(std::move(settings_icon_widget));
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         {
@@ -306,10 +332,21 @@ namespace gsr {
         }
         settings_list_ptr->add_widget(std::move(file_list));
 
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show replay started notification"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show replay stopped notification"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show replay saved notification"));
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(record_cursor_checkbox));
+
+        auto show_replay_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay started notification");
+        show_replay_started_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_replay_started_notification_checkbox));
+
+        auto show_replay_stopped_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay stopped notification");
+        show_replay_stopped_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_replay_stopped_notification_checkbox));
+
+        auto show_replay_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay saved notification");
+        show_replay_saved_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_replay_saved_notification_checkbox));
     }
 
     void SettingsPage::add_record_widgets() {
@@ -337,9 +374,17 @@ namespace gsr {
         }
         settings_list_ptr->add_widget(std::move(file_list));
 
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show recording started notification"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show video saved notification"));
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(record_cursor_checkbox));
+
+        auto show_recording_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show recording started notification");
+        show_recording_started_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_recording_started_notification_checkbox));
+
+        auto show_video_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show video saved notification");
+        show_video_saved_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_video_saved_notification_checkbox));
     }
 
     void SettingsPage::add_stream_widgets() {
@@ -395,9 +440,17 @@ namespace gsr {
         }
         settings_list_ptr->add_widget(std::move(streaming_info_list));
 
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming started notification"));
-        settings_list_ptr->add_widget(std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming stopped notification"));
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(record_cursor_checkbox));
+
+        auto show_streaming_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming started notification");
+        show_streaming_started_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_streaming_started_notification_checkbox));
+
+        auto show_streaming_stopped_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming stopped notification");
+        show_streaming_stopped_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_streaming_stopped_notification_checkbox));
 
         streaming_service_box_ptr->on_selection_changed = [=](const std::string &text, const std::string &id) {
             (void)text;

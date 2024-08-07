@@ -28,7 +28,8 @@ namespace gsr {
         mgl::Font title_font;
         mgl::Font top_bar_font;
 
-        mgl::Texture combobox_arrow;
+        mgl::Texture combobox_arrow_texture;
+        mgl::Texture settings_texture;
     };
 
     bool init_theme(const gsr::GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path);

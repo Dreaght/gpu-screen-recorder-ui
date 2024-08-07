@@ -47,7 +47,10 @@ namespace gsr {
         if(!theme->body_font.load_from_file(theme->body_font_file, std::max(13.0f, window_size.y * 0.015f)))
             goto error;
 
-        if(!theme->combobox_arrow.load_from_file((resources_path + "images/combobox_arrow.png").c_str(), {false, false, false}))
+        if(!theme->combobox_arrow_texture.load_from_file((resources_path + "images/combobox_arrow.png").c_str(), {false, false, false}))
+            goto error;
+
+        if(!theme->settings_texture.load_from_file((resources_path + "images/settings.png").c_str(), {false, false, false}))
             goto error;
 
         return true;
