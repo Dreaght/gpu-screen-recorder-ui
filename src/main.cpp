@@ -2,12 +2,13 @@
 #include "../include/gui/StaticPage.hpp"
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/CustomRendererWidget.hpp"
+#include "../include/gui/SettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
 #include "../include/GsrInfo.hpp"
 #include "../include/window_texture.h"
-#include "../include/SettingsPage.hpp"
+#include "../include/Config.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,6 +228,7 @@ static const mgl_monitor* find_monitor_by_cursor_position(mgl::Window &window) {
 }
 
 int main(int argc, char **argv) {
+    (void)argv;
     if(argc != 1)
         usage();
 
@@ -380,12 +382,26 @@ int main(int argc, char **argv) {
     page_stack.push(&front_page);
 
     const auto settings_back_button_callback = [&] {
+        page_stack.top()->on_navigate_away_from_page();
         page_stack.pop();
     };
 
-    gsr::SettingsPage replay_settings_page(gsr::SettingsPage::Type::REPLAY, gsr_info, audio_devices, settings_back_button_callback);
-    gsr::SettingsPage record_settings_page(gsr::SettingsPage::Type::RECORD, gsr_info, audio_devices, settings_back_button_callback);
-    gsr::SettingsPage stream_settings_page(gsr::SettingsPage::Type::STREAM, gsr_info, audio_devices, settings_back_button_callback);
+    std::optional<gsr::Config> config = gsr::read_config();
+
+    gsr::SettingsPage replay_settings_page(gsr::SettingsPage::Type::REPLAY, gsr_info, audio_devices, config);
+    replay_settings_page.on_back_button_handler = settings_back_button_callback;
+
+    gsr::SettingsPage record_settings_page(gsr::SettingsPage::Type::RECORD, gsr_info, audio_devices, config);
+    record_settings_page.on_back_button_handler = settings_back_button_callback;
+
+    gsr::SettingsPage stream_settings_page(gsr::SettingsPage::Type::STREAM, gsr_info, audio_devices, config);
+    stream_settings_page.on_back_button_handler = settings_back_button_callback;
+
+    if(!config) {
+        replay_settings_page.save();
+        record_settings_page.save();
+        stream_settings_page.save();
+    }
 
     struct MainButton {
         gsr::DropdownButton* button;
@@ -472,7 +488,7 @@ int main(int argc, char **argv) {
     // Replay
     main_buttons[0].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&replay_settings_page.get_page());
+            page_stack.push(&replay_settings_page);
             return;
         }
         /*
@@ -497,7 +513,7 @@ int main(int argc, char **argv) {
     // Record
     main_buttons[1].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&record_settings_page.get_page());
+            page_stack.push(&record_settings_page);
             return;
         }
 
@@ -582,7 +598,7 @@ int main(int argc, char **argv) {
     // Stream
     main_buttons[2].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&stream_settings_page.get_page());
+            page_stack.push(&stream_settings_page);
             return;
         }
     };
@@ -597,6 +613,7 @@ int main(int argc, char **argv) {
 
     // TODO: Retry if these fail.
     // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
+    // Remove these grabs when debugging with a debugger, or your X11 session will appear frozen
     XGrabPointer(display, window.get_system_handle(), True,
        ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
        Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
@@ -695,8 +712,10 @@ int main(int argc, char **argv) {
             page_stack.top()->on_event(event, window, mgl::vec2f(0.0f, 0.0f));
             close_button_widget.on_event(event, window, mgl::vec2f(0.0f, 0.0f));
             if(event.type == mgl::Event::KeyReleased) {
-                if(event.key.code == mgl::Keyboard::Escape && !page_stack.empty())
+                if(event.key.code == mgl::Keyboard::Escape && !page_stack.empty()) {
+                    page_stack.top()->on_navigate_away_from_page();
                     page_stack.pop();
+                }
             }
 
             if(page_stack.empty())

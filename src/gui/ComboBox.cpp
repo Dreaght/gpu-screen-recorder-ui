@@ -161,6 +161,15 @@ namespace gsr {
         }
     }
 
+    const std::string& ComboBox::get_selected_id() const {
+        if(items.empty()) {
+            static std::string dummy;
+            return dummy;
+        } else {
+            return items[selected_item].id;
+        }
+    }
+
     void ComboBox::update_if_dirty() {
         if(!dirty)
             return;

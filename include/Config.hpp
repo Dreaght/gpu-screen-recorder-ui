@@ -1,8 +1,10 @@
 
 #pragma once
 
-#include "Utils.hpp"
 #include <stdint.h>
+#include <string>
+#include <vector>
+#include <optional>
 
 namespace gsr {
     struct ConfigHotkey {
@@ -16,19 +18,15 @@ namespace gsr {
         int32_t record_area_height = 0;
         int32_t fps = 60;
         bool merge_audio_tracks = true;
-        std::vector<std::string> audio_input;
+        std::vector<std::string> audio_tracks;
         std::string color_range;
-        std::string quality;
+        std::string video_quality;
         std::string video_codec;
         std::string audio_codec;
         std::string framerate_mode;
         bool advanced_view = false;
         bool overclock = false;
-        bool show_recording_started_notifications = false;
-        bool show_recording_stopped_notifications = false;
-        bool show_recording_saved_notifications = true;
         bool record_cursor = true;
-        bool hide_window_when_recording = false;
         bool restore_portal_session = true;
     };
 
@@ -52,6 +50,8 @@ namespace gsr {
 
     struct StreamingConfig {
         RecordOptions record_options;
+        bool show_streaming_started_notifications = true;
+        bool show_streaming_stopped_notifications = true;
         std::string streaming_service;
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
@@ -61,6 +61,8 @@ namespace gsr {
 
     struct RecordConfig {
         RecordOptions record_options;
+        bool show_recording_started_notifications = true;
+        bool show_video_saved_notifications = true;
         std::string save_directory;
         std::string container;
         ConfigHotkey start_stop_recording_hotkey;
@@ -69,6 +71,9 @@ namespace gsr {
 
     struct ReplayConfig {
         RecordOptions record_options;
+        bool show_replay_started_notifications = true;
+        bool show_replay_stopped_notifications = true;
+        bool show_replay_saved_notifications = true;
         std::string save_directory;
         std::string container;
         int32_t replay_time = 60;
@@ -83,6 +88,6 @@ namespace gsr {
         ReplayConfig replay_config;
     };
 
-    Config read_config(bool &config_empty);
+    std::optional<Config> read_config();
     void save_config(Config &config);
 }

@@ -20,7 +20,8 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
 
-        void set_string(std::string str);
+        void set_text(std::string str);
+        const std::string& get_text() const;
 
         // Return false to specify that the string should not be accepted. This reverts the string back to its previous value.
         // The input can be changed by changing the input parameter and returning true.

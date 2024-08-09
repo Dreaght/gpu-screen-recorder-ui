@@ -1,4 +1,5 @@
 #include "../include/Config.hpp"
+#include "../include/Utils.hpp"
 #include <variant>
 #include <limits.h>
 #include <inttypes.h>
@@ -13,7 +14,7 @@
 namespace gsr {
     using ConfigValue = std::variant<bool*, std::string*, int32_t*, ConfigHotkey*, std::vector<std::string>*>;
 
-    static std::unordered_map<std::string_view, ConfigValue> get_config_options(Config &config) {
+    static std::map<std::string_view, ConfigValue> get_config_options(Config &config) {
         return {
             {"main.config_file_version", &config.main_config.config_file_version},
             {"main.software_encoding_warning_shown", &config.main_config.software_encoding_warning_shown},
@@ -23,20 +24,18 @@ namespace gsr {
             {"streaming.record_options.record_area_height", &config.streaming_config.record_options.record_area_height},
             {"streaming.record_options.fps", &config.streaming_config.record_options.fps},
             {"streaming.record_options.merge_audio_tracks", &config.streaming_config.record_options.merge_audio_tracks},
-            {"streaming.record_options.audio_input", &config.streaming_config.record_options.audio_input},
+            {"streaming.record_options.audio_track", &config.streaming_config.record_options.audio_tracks},
             {"streaming.record_options.color_range", &config.streaming_config.record_options.color_range},
-            {"streaming.record_options.quality", &config.streaming_config.record_options.quality},
+            {"streaming.record_options.video_quality", &config.streaming_config.record_options.video_quality},
             {"streaming.record_options.codec", &config.streaming_config.record_options.video_codec},
             {"streaming.record_options.audio_codec", &config.streaming_config.record_options.audio_codec},
             {"streaming.record_options.framerate_mode", &config.streaming_config.record_options.framerate_mode},
             {"streaming.record_options.advanced_view", &config.streaming_config.record_options.advanced_view},
             {"streaming.record_options.overclock", &config.streaming_config.record_options.overclock},
-            {"streaming.record_options.show_recording_started_notifications", &config.streaming_config.record_options.show_recording_started_notifications},
-            {"streaming.record_options.show_recording_stopped_notifications", &config.streaming_config.record_options.show_recording_stopped_notifications},
-            {"streaming.record_options.show_recording_saved_notifications", &config.streaming_config.record_options.show_recording_saved_notifications},
             {"streaming.record_options.record_cursor", &config.streaming_config.record_options.record_cursor},
-            {"streaming.record_options.hide_window_when_recording", &config.streaming_config.record_options.hide_window_when_recording},
             {"streaming.record_options.restore_portal_session", &config.streaming_config.record_options.restore_portal_session},
+            {"streaming.show_streaming_started_notifications", &config.streaming_config.show_streaming_started_notifications},
+            {"streaming.show_streaming_stopped_notifications", &config.streaming_config.show_streaming_stopped_notifications},
             {"streaming.service", &config.streaming_config.streaming_service},
             {"streaming.youtube.key", &config.streaming_config.youtube.stream_key},
             {"streaming.twitch.key", &config.streaming_config.twitch.stream_key},
@@ -49,20 +48,18 @@ namespace gsr {
             {"record.record_options.record_area_height", &config.record_config.record_options.record_area_height},
             {"record.record_options.fps", &config.record_config.record_options.fps},
             {"record.record_options.merge_audio_tracks", &config.record_config.record_options.merge_audio_tracks},
-            {"record.record_options.audio_input", &config.record_config.record_options.audio_input},
+            {"record.record_options.audio_track", &config.record_config.record_options.audio_tracks},
             {"record.record_options.color_range", &config.record_config.record_options.color_range},
-            {"record.record_options.quality", &config.record_config.record_options.quality},
+            {"record.record_options.video_quality", &config.record_config.record_options.video_quality},
             {"record.record_options.codec", &config.record_config.record_options.video_codec},
             {"record.record_options.audio_codec", &config.record_config.record_options.audio_codec},
             {"record.record_options.framerate_mode", &config.record_config.record_options.framerate_mode},
             {"record.record_options.advanced_view", &config.record_config.record_options.advanced_view},
             {"record.record_options.overclock", &config.record_config.record_options.overclock},
-            {"record.record_options.show_recording_started_notifications", &config.record_config.record_options.show_recording_started_notifications},
-            {"record.record_options.show_recording_stopped_notifications", &config.record_config.record_options.show_recording_stopped_notifications},
-            {"record.record_options.show_recording_saved_notifications", &config.record_config.record_options.show_recording_saved_notifications},
             {"record.record_options.record_cursor", &config.record_config.record_options.record_cursor},
-            {"record.record_options.hide_window_when_recording", &config.record_config.record_options.hide_window_when_recording},
             {"record.record_options.restore_portal_session", &config.record_config.record_options.restore_portal_session},
+            {"record.show_recording_started_notifications", &config.record_config.show_recording_started_notifications},
+            {"record.show_video_saved_notifications", &config.record_config.show_video_saved_notifications},
             {"record.save_directory", &config.record_config.save_directory},
             {"record.container", &config.record_config.container},
             {"record.start_stop_recording_hotkey", &config.record_config.start_stop_recording_hotkey},
@@ -73,20 +70,19 @@ namespace gsr {
             {"replay.record_options.record_area_height", &config.replay_config.record_options.record_area_height},
             {"replay.record_options.fps", &config.replay_config.record_options.fps},
             {"replay.record_options.merge_audio_tracks", &config.replay_config.record_options.merge_audio_tracks},
-            {"replay.record_options.audio_input", &config.replay_config.record_options.audio_input},
+            {"replay.record_options.audio_track", &config.replay_config.record_options.audio_tracks},
             {"replay.record_options.color_range", &config.replay_config.record_options.color_range},
-            {"replay.record_options.quality", &config.replay_config.record_options.quality},
+            {"replay.record_options.video_quality", &config.replay_config.record_options.video_quality},
             {"replay.record_options.codec", &config.replay_config.record_options.video_codec},
             {"replay.record_options.audio_codec", &config.replay_config.record_options.audio_codec},
             {"replay.record_options.framerate_mode", &config.replay_config.record_options.framerate_mode},
             {"replay.record_options.advanced_view", &config.replay_config.record_options.advanced_view},
             {"replay.record_options.overclock", &config.replay_config.record_options.overclock},
-            {"replay.record_options.show_recording_started_notifications", &config.replay_config.record_options.show_recording_started_notifications},
-            {"replay.record_options.show_recording_stopped_notifications", &config.replay_config.record_options.show_recording_stopped_notifications},
-            {"replay.record_options.show_recording_saved_notifications", &config.replay_config.record_options.show_recording_saved_notifications},
             {"replay.record_options.record_cursor", &config.replay_config.record_options.record_cursor},
-            {"replay.record_options.hide_window_when_recording", &config.replay_config.record_options.hide_window_when_recording},
             {"replay.record_options.restore_portal_session", &config.replay_config.record_options.restore_portal_session},
+            {"replay.show_replay_started_notifications", &config.replay_config.show_replay_started_notifications},
+            {"replay.show_replay_stopped_notifications", &config.replay_config.show_replay_stopped_notifications},
+            {"replay.show_replay_saved_notifications", &config.replay_config.show_replay_saved_notifications},
             {"replay.save_directory", &config.replay_config.save_directory},
             {"replay.container", &config.replay_config.container},
             {"replay.time", &config.replay_config.replay_time},
@@ -95,18 +91,18 @@ namespace gsr {
         };
     }
 
-    Config read_config(bool &config_empty) {
-        Config config;
+    std::optional<Config> read_config() {
+        std::optional<Config> config;
 
-        const std::string config_path = get_config_dir() + "/config";
+        const std::string config_path = get_config_dir() + "/overlay_config";
         std::string file_content;
         if(!file_get_content(config_path.c_str(), file_content)) {
             fprintf(stderr, "Warning: Failed to read config file: %s\n", config_path.c_str());
-            config_empty = true;
             return config;
         }
 
-        auto config_options = get_config_options(config);
+        config = Config();
+        auto config_options = get_config_options(config.value());
 
         string_split_char(file_content, '\n', [&](std::string_view line) {
             const std::optional<KeyValue> key_value = parse_key_value(line);
@@ -141,7 +137,7 @@ namespace gsr {
                     config_hotkey->keysym = 0;
                     config_hotkey->modifiers = 0;
                 }
-            } else if(std::holds_alternative<ConfigHotkey*>(it->second)) {
+            } else if(std::holds_alternative<std::vector<std::string>*>(it->second)) {
                 std::string array_value(key_value->value);
                 std::get<std::vector<std::string>*>(it->second)->push_back(std::move(array_value));
             }
@@ -149,10 +145,9 @@ namespace gsr {
             return true;
         });
 
-        if(config.main_config.config_file_version != CONFIG_FILE_VERSION) {
+        if(config->main_config.config_file_version != CONFIG_FILE_VERSION) {
             fprintf(stderr, "Info: the config file is outdated, resetting it\n");
-            config_empty = true;
-            config = Config();
+            config = std::nullopt;
         }
 
         return config;
@@ -161,7 +156,7 @@ namespace gsr {
     void save_config(Config &config) {
         config.main_config.config_file_version = CONFIG_FILE_VERSION;
 
-        const std::string config_path = get_config_dir() + "/config";
+        const std::string config_path = get_config_dir() + "/overlay_config";
 
         char dir_tmp[PATH_MAX];
         snprintf(dir_tmp, sizeof(dir_tmp), "%s", config_path.c_str());
@@ -189,7 +184,7 @@ namespace gsr {
             } else if(std::holds_alternative<ConfigHotkey*>(it.second)) {
                 const ConfigHotkey *config_hotkey = std::get<ConfigHotkey*>(it.second);
                     fprintf(file, "%.*s " FORMAT_I64 " " FORMAT_U32 "\n", (int)it.first.size(), it.first.data(), config_hotkey->keysym, config_hotkey->modifiers);
-            } else if(std::holds_alternative<ConfigHotkey*>(it.second)) {
+            } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
                 std::vector<std::string> *array = std::get<std::vector<std::string>*>(it.second);
                 for(const std::string &value : *array) {
                     fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), value.c_str());

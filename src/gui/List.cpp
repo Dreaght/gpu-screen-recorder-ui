@@ -15,22 +15,28 @@ namespace gsr {
         if(!visible)
             return true;
 
+        inside_event_handler = true;
         // We want to store the selected child widget since it can change in the event loop below
         Widget *selected_widget = selected_child_widget;
         if(selected_widget) {
-            if(!selected_widget->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
+            if(!selected_widget->on_event(event, window, mgl::vec2f(0.0f, 0.0f))) {
+                inside_event_handler = false;
                 return false;
+            }
         }
 
         // Process widgets by visibility (backwards)
         for(auto it = widgets.rbegin(), end = widgets.rend(); it != end; ++it) {
             // Ignore offset because widgets are positioned with offset in ::draw, this solution is simpler
             if(it->get() != selected_widget) {
-                if(!(*it)->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
+                if(!(*it)->on_event(event, window, mgl::vec2f(0.0f, 0.0f))) {
+                    inside_event_handler = false;
                     return false;
+                }
             }
         }
 
+        inside_event_handler = false;
         return true;
     }
 
@@ -72,7 +78,8 @@ namespace gsr {
         const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
             case Orientation::VERTICAL: {
-                for(auto &widget : widgets) {
+                for(size_t i = 0; i < widgets.size(); ++i) {
+                    auto &widget = widgets[i];
                     if(!widget->visible)
                         continue;
 
@@ -91,25 +98,28 @@ namespace gsr {
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
                     draw_pos.y += widget_size.y;
-                    if(widget_size.y > 0.001f)
+                    if(widget_size.y > 0.001f && i + 1 < widgets.size())
                         draw_pos.y += spacing.y;
                 }
                 break;
             }
             case Orientation::HORIZONTAL: {
-                for(auto &widget : widgets) {
+                for(size_t i = 0; i < widgets.size(); ++i) {
+                    auto &widget = widgets[i];
                     if(!widget->visible)
                         continue;
 
                     const auto widget_size = widget->get_size();
                     if(content_alignment == Alignment::CENTER)
                         offset.y = floor(size.y * 0.5f - widget_size.y * 0.5f);
+                    else
+                        offset.y = 0.0f;
 
                     widget->set_position(draw_pos + offset);
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
                     draw_pos.x += widget_size.x;
-                    if(widget_size.x > 0.001f)
+                    if(widget_size.x > 0.001f && i + 1 < widgets.size())
                         draw_pos.x += spacing.x;
                 }
                 break;
@@ -131,9 +141,10 @@ namespace gsr {
 
     void List::add_widget(std::unique_ptr<Widget> widget) {
         widget->parent_widget = this;
-        // TODO: Maybe only do this if this is called inside an event handler
-        //widgets.push_back(std::move(widget));
-        add_queue.push_back(std::move(widget));
+        if(inside_event_handler)
+            add_queue.push_back(std::move(widget));
+        else
+            widgets.push_back(std::move(widget));
     }
 
     void List::remove_widget(Widget *widget) {
@@ -143,8 +154,22 @@ namespace gsr {
                 return;
             }
         }
-        // TODO: Maybe only do this if this is called inside an event handler
-        remove_queue.push_back(widget);
+
+        if(inside_event_handler)
+            remove_queue.push_back(widget);
+        else
+            remove_widget_immediate(widget);
+    }
+
+    const std::vector<std::unique_ptr<Widget>>& List::get_child_widgets() const {
+        return widgets;
+    }
+
+    Widget* List::get_child_widget_by_index(size_t index) const {
+        if(index < widgets.size())
+            return widgets[index].get();
+        else
+            return nullptr;
     }
 
     // TODO: Cache result
@@ -156,26 +181,28 @@ namespace gsr {
         const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
         switch(orientation) {
             case Orientation::VERTICAL: {
-                for(auto &widget : widgets) {
+                for(size_t i = 0; i < widgets.size(); ++i) {
+                    auto &widget = widgets[i];
                     if(!widget->visible)
                         continue;
 
                     const auto widget_size = widget->get_size();
                     size.x = std::max(size.x, widget_size.x);
                     size.y += widget_size.y;
-                    if(widget_size.y > 0.001f)
+                    if(widget_size.y > 0.001f && i + 1 < widgets.size())
                         size.y += spacing.y;
                 }
                 break;
             }
             case Orientation::HORIZONTAL: {
-                for(auto &widget : widgets) {
+                for(size_t i = 0; i < widgets.size(); ++i) {
+                    auto &widget = widgets[i];
                     if(!widget->visible)
                         continue;
 
                     const auto widget_size = widget->get_size();
                     size.x += widget_size.x;
-                    if(widget_size.x > 0.001f)
+                    if(widget_size.x > 0.001f && i + 1 < widgets.size())
                         size.x += spacing.x;
                     size.y = std::max(size.y, widget_size.y);
                 }

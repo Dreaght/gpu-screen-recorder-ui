@@ -18,7 +18,7 @@ namespace gsr {
 
     Entry::Entry(mgl::Font *font, const char *text, float max_width) : text("", *font), max_width(max_width) {
         this->text.set_color(get_theme().text_color);
-        set_string(text);
+        set_text(text);
     }
 
     bool Entry::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
@@ -32,12 +32,12 @@ namespace gsr {
                 std::string str = text.get_string();
                 const size_t prev_index = mgl::utf8_get_start_of_codepoint((const unsigned char*)str.c_str(), str.size(), str.size());
                 str.erase(prev_index, std::string::npos);
-                set_string(std::move(str));
+                set_text(std::move(str));
             }
         } else if(event.type == mgl::Event::TextEntered && selected && event.text.codepoint >= 32) {
             std::string str = text.get_string();
             str.append(event.text.str, event.text.size);
-            set_string(std::move(str));
+            set_text(std::move(str));
         }
         return true;
     }
@@ -80,12 +80,16 @@ namespace gsr {
         return { max_width, text.get_bounds().size.y + padding_top + padding_bottom };
     }
 
-    void Entry::set_string(std::string str) {
+    void Entry::set_text(std::string str) {
         if(!validate_handler || validate_handler(str)) {
             text.set_string(std::move(str));
             caret_offset_x = text.find_character_pos(99999).x - this->text.get_position().x;
             fprintf(stderr, "caret offset: %f\n", caret_offset_x);
         }
+    }
+
+    const std::string& Entry::get_text() const {
+        return text.get_string();
     }
 
     static bool is_number(uint8_t c) {

@@ -27,8 +27,14 @@ namespace gsr {
 
         //void remove_child_widget(Widget *widget) override;
 
+        // Might not take effect immediately but at the next draw iteration if inside an event loop
         void add_widget(std::unique_ptr<Widget> widget);
+        // Might not take effect immediately but at the next draw iteration if inside an event loop
         void remove_widget(Widget *widget);
+        // Excludes widgets from queue
+        const std::vector<std::unique_ptr<Widget>>& get_child_widgets() const;
+        // Returns nullptr if index is invalid
+        Widget* get_child_widget_by_index(size_t index) const;
 
         mgl::vec2f get_size() override;
     private:
@@ -40,5 +46,6 @@ namespace gsr {
         std::vector<Widget*> remove_queue;
         Orientation orientation;
         Alignment content_alignment;
+        bool inside_event_handler = false;
     };
 }

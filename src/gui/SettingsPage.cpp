@@ -1,0 +1,628 @@
+#include "../../include/gui/SettingsPage.hpp"
+#include "../../include/gui/ScrollablePage.hpp"
+#include "../../include/gui/Label.hpp"
+#include "../../include/Theme.hpp"
+#include "../../include/GsrInfo.hpp"
+
+#include <mglpp/graphics/Rectangle.hpp>
+#include <mglpp/graphics/Sprite.hpp>
+#include <mglpp/graphics/Text.hpp>
+#include <mglpp/window/Window.hpp>
+
+namespace gsr {
+    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::optional<Config> &config) :
+        StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
+        type(type),
+        config(config),
+        settings_title_text("Settings", get_theme().title_font)
+    {
+        const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
+        const mgl::vec2f content_page_size = (window_size * mgl::vec2f(0.3333f, 0.7f)).floor();
+        const mgl::vec2f content_page_position = mgl::vec2f(window_size * 0.5f - content_page_size * 0.5f).floor();
+        const float settings_body_margin = 0.02f;
+
+        auto content_page = std::make_unique<ScrollablePage>(content_page_size);
+        content_page->set_position(content_page_position);
+        content_page->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
+        content_page_ptr = content_page.get();
+        add_widget(std::move(content_page));
+
+        add_widgets(gsr_info, audio_devices);
+        add_page_specific_widgets();
+    }
+
+    std::unique_ptr<Button> SettingsPage::create_back_button() {
+        const mgl::vec2i window_size(get_theme().window_width, get_theme().window_height);
+        auto back_button = std::make_unique<Button>(&get_theme().title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15).floor(), get_theme().scrollable_page_bg_color);
+        back_button->set_position(content_page_ptr->get_position().floor() + mgl::vec2f(content_page_ptr->get_size().x + window_size.x / 50, 0.0f).floor());
+        back_button->set_border_scale(0.003f);
+        back_button->on_click = [this]() {
+            if(on_back_button_handler)
+                on_back_button_handler();
+        };
+        return back_button;
+    }
+
+    std::unique_ptr<CustomRendererWidget> SettingsPage::create_settings_icon() {
+        const mgl::vec2i window_size(get_theme().window_width, get_theme().window_height);
+        auto settings_icon_widget = std::make_unique<CustomRendererWidget>(mgl::vec2f(window_size.x / 10, window_size.x / 10).floor());
+        settings_icon_widget->set_position(content_page_ptr->get_position().floor() - mgl::vec2f(settings_icon_widget->get_size().x + window_size.x / 50, 0.0f).floor());
+        settings_icon_widget->draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+            mgl::Rectangle background(size);
+            background.set_position(pos);
+            background.set_color(mgl::Color(0, 0, 0, 255));
+            window.draw(background);
+
+            const int text_margin = size.y * 0.085;
+            settings_title_text.set_position((pos + mgl::vec2f(size.x * 0.5f - settings_title_text.get_bounds().size.x * 0.5f, text_margin)).floor());
+            window.draw(settings_title_text);
+
+            mgl::Sprite icon(&get_theme().settings_texture);
+            icon.set_height((int)(size.y * 0.5f));
+            icon.set_position((pos + size * 0.5f - icon.get_size() * 0.5f).floor());
+            window.draw(icon);
+        };
+        return settings_icon_widget;
+    }
+
+    std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
+        auto view_radio_button = std::make_unique<RadioButton>(&get_theme().body_font);
+        view_radio_button->add_item("Simple view", "simple");
+        view_radio_button->add_item("Advanced view", "advanced");
+        view_radio_button->set_horizontal_alignment(Widget::Alignment::CENTER);
+        view_radio_button_ptr = view_radio_button.get();
+        return view_radio_button;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_record_area_box(const GsrInfo &gsr_info) {
+        auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        // TODO: Show options not supported but disable them
+        if(gsr_info.supported_capture_options.window)
+            record_area_box->add_item("Window", "window");
+        if(gsr_info.supported_capture_options.focused)
+            record_area_box->add_item("Follow focused window", "focused");
+        if(gsr_info.supported_capture_options.screen)
+            record_area_box->add_item("All monitors", "screen");
+        for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
+            char name[256];
+            snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
+            record_area_box->add_item(name, monitor.name);
+        }
+        if(gsr_info.supported_capture_options.portal)
+            record_area_box->add_item("Desktop portal", "portal");
+        record_area_box_ptr = record_area_box.get();
+        return record_area_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_record_area(const GsrInfo &gsr_info) {
+        auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Record area:", get_theme().text_color));
+        record_area_list->add_widget(create_record_area_box(gsr_info));
+        return record_area_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_select_window() {
+        auto select_window_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        select_window_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Select window:", get_theme().text_color));
+        select_window_list->add_widget(std::make_unique<Button>(&get_theme().body_font, "Click here to select a window...", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120)));
+        select_window_list_ptr = select_window_list.get();
+        return select_window_list;
+    }
+
+    std::unique_ptr<Entry> SettingsPage::create_area_width_entry() {
+        auto area_width_entry = std::make_unique<Entry>(&get_theme().body_font, "1920", get_theme().body_font.get_character_size() * 5);
+        area_width_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        area_width_entry_ptr = area_width_entry.get();
+        return area_width_entry;
+    }
+
+    std::unique_ptr<Entry> SettingsPage::create_area_height_entry() {
+        auto area_height_entry = std::make_unique<Entry>(&get_theme().body_font, "1080", get_theme().body_font.get_character_size() * 5);
+        area_height_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        area_height_entry_ptr = area_height_entry.get();
+        return area_height_entry;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_area_size() {
+        auto area_size_params_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        area_size_params_list->add_widget(create_area_width_entry());
+        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_theme().text_color));
+        area_size_params_list->add_widget(create_area_height_entry());
+        return area_size_params_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_area_size_section() {
+        auto area_size_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        area_size_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Area size:", get_theme().text_color));
+        area_size_list->add_widget(create_area_size());
+        area_size_list_ptr = area_size_list.get();
+        return area_size_list;
+    }
+
+    std::unique_ptr<CheckBox> SettingsPage::create_restore_portal_session_checkbox() {
+        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Restore portal session");
+        restore_portal_session_checkbox->set_checked(true);
+        restore_portal_session_checkbox_ptr = restore_portal_session_checkbox.get();
+        return restore_portal_session_checkbox;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_restore_portal_session_section() {
+        auto restore_portal_session_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        restore_portal_session_list->add_widget(std::make_unique<Label>(&get_theme().body_font, " ", get_theme().text_color));
+        restore_portal_session_list->add_widget(create_restore_portal_session_checkbox());
+        restore_portal_session_list_ptr = restore_portal_session_list.get();
+        return restore_portal_session_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_capture_target(const GsrInfo &gsr_info) {
+        // TODO: List::Alignment::Center causes 1 frame glitch when switching record area but only the first time
+        auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        capture_target_list->add_widget(create_record_area(gsr_info));
+        capture_target_list->add_widget(create_select_window());
+        capture_target_list->add_widget(create_area_size_section());
+        capture_target_list->add_widget(create_restore_portal_session_section());
+        return capture_target_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_audio_track_selection_checkbox(const std::vector<AudioDevice> &audio_devices) {
+        auto audio_device_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        for(const auto &audio_device : audio_devices) {
+            audio_device_box->add_item(audio_device.description, audio_device.name);
+        }
+        return audio_device_box;
+    }
+
+    std::unique_ptr<Button> SettingsPage::create_remove_audio_track_button(List *audio_device_list_ptr) {
+        auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Remove", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        remove_audio_track_button->on_click = [this, audio_device_list_ptr]() {
+            audio_devices_list_ptr->remove_widget(audio_device_list_ptr);
+        };
+        return remove_audio_track_button;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_audio_track(const std::vector<AudioDevice> &audio_devices) {
+        auto audio_device_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        audio_device_list->add_widget(std::make_unique<Label>(&get_theme().body_font, ">", get_theme().text_color));
+        audio_device_list->add_widget(create_audio_track_selection_checkbox(audio_devices));
+        audio_device_list->add_widget(create_remove_audio_track_button(audio_device_list.get()));
+        return audio_device_list;
+    }
+
+    std::unique_ptr<Button> SettingsPage::create_add_audio_track_button(const std::vector<AudioDevice> &audio_devices) {
+        auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add audio track", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto add_audio_track = [&audio_devices, this]() {
+            audio_devices_list_ptr->add_widget(create_audio_track(audio_devices));
+        };
+        add_audio_track_button->on_click = add_audio_track;
+        return add_audio_track_button;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_audio_track_section(const std::vector<AudioDevice> &audio_devices) {
+        auto audio_devices_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        audio_devices_list_ptr = audio_devices_list.get();
+        audio_devices_list_ptr->add_widget(create_audio_track(audio_devices));
+        return audio_devices_list;
+    }
+
+    std::unique_ptr<CheckBox> SettingsPage::create_merge_audio_tracks_checkbox() {
+        auto merge_audio_tracks_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Merge audio tracks");
+        merge_audio_tracks_checkbox->set_checked(true);
+        merge_audio_tracks_checkbox_ptr = merge_audio_tracks_checkbox.get();
+        return merge_audio_tracks_checkbox;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_audio_device_section(const std::vector<AudioDevice> &audio_devices) {
+        auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        audio_device_section_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Audio:", get_theme().text_color));
+        audio_device_section_list->add_widget(create_add_audio_track_button(audio_devices));
+        audio_device_section_list->add_widget(create_audio_track_section(audio_devices));
+        audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
+        return audio_device_section_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_video_quality_box() {
+        auto video_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        video_quality_box->add_item("Medium", "medium");
+        video_quality_box->add_item("High (Recommended for live streaming)", "high");
+        video_quality_box->add_item("Very high (Recommended)", "very_high");
+        video_quality_box->add_item("Ultra", "ultra");
+        video_quality_box->set_selected_item("very_high");
+        video_quality_box_ptr = video_quality_box.get();
+        return video_quality_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_video_quality() {
+        auto video_quality_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_quality_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_theme().text_color));
+        video_quality_list->add_widget(create_video_quality_box());
+        return video_quality_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_color_range_box() {
+        auto color_range_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        color_range_box->add_item("Limited", "limited");
+        color_range_box->add_item("Full", "full");
+        color_range_box_ptr = color_range_box.get();
+        return color_range_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_color_range() {
+        auto color_range_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        color_range_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Color range:", get_theme().text_color));
+        color_range_list->add_widget(create_color_range_box());
+        color_range_list_ptr = color_range_list.get();
+        return color_range_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_video_quality_section() {
+        auto quality_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        quality_list->add_widget(create_video_quality());
+        quality_list->add_widget(create_color_range());
+        return quality_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_video_codec_box(const GsrInfo &gsr_info) {
+        auto video_codec_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        // TODO: Show options not supported but disable them
+        video_codec_box->add_item("Auto (Recommended)", "auto");
+        if(gsr_info.supported_video_codecs.h264)
+            video_codec_box->add_item("H264", "h264");
+        if(gsr_info.supported_video_codecs.hevc)
+            video_codec_box->add_item("HEVC", "hevc");
+        if(gsr_info.supported_video_codecs.av1)
+            video_codec_box->add_item("AV1", "av1");
+        if(gsr_info.supported_video_codecs.vp8)
+            video_codec_box->add_item("VP8", "vp8");
+        if(gsr_info.supported_video_codecs.vp9)
+            video_codec_box->add_item("VP9", "vp9");
+        // TODO: Add hdr options
+        if(gsr_info.supported_video_codecs.h264_software)
+            video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
+        video_codec_box_ptr = video_codec_box.get();
+        return video_codec_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_video_codec(const GsrInfo &gsr_info) {
+        auto video_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video codec:", get_theme().text_color));
+        video_codec_list->add_widget(create_video_codec_box(gsr_info));
+        return video_codec_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_audio_codec_box() {
+        auto audio_codec_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        audio_codec_box->add_item("Opus (Recommended)", "opus");
+        audio_codec_box->add_item("AAC", "aac");
+        audio_codec_box_ptr = audio_codec_box.get();
+        return audio_codec_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_audio_codec() {
+        auto audio_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        audio_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Audio codec:", get_theme().text_color));
+        audio_codec_list->add_widget(create_audio_codec_box());
+        return audio_codec_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_codec_section(const GsrInfo &gsr_info) {
+        auto codec_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        codec_list->add_widget(create_video_codec(gsr_info));
+        codec_list->add_widget(create_audio_codec());
+        codec_list_ptr = codec_list.get();
+        return codec_list;
+    }
+
+    std::unique_ptr<Entry> SettingsPage::create_framerate_entry() {
+        auto framerate_entry = std::make_unique<Entry>(&get_theme().body_font, "60", get_theme().body_font.get_character_size() * 3);
+        framerate_entry->validate_handler = create_entry_validator_integer_in_range(1, 500);
+        framerate_entry_ptr = framerate_entry.get();
+        return framerate_entry;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_framerate() {
+        auto framerate_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        framerate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate:", get_theme().text_color));
+        framerate_list->add_widget(create_framerate_entry());
+        return framerate_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_framerate_mode_box() {
+        auto framerate_mode_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        framerate_mode_box->add_item("Auto (Recommended)", "auto");
+        framerate_mode_box->add_item("Constant", "cfr");
+        framerate_mode_box->add_item("Variable", "vfr");
+        framerate_mode_box_ptr = framerate_mode_box.get();
+        return framerate_mode_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_framerate_mode() {
+        auto framerate_mode_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        framerate_mode_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate mode:", get_theme().text_color));
+        framerate_mode_list->add_widget(create_framerate_mode_box());
+        framerate_mode_list_ptr = framerate_mode_list.get();
+        return framerate_mode_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_framerate_section() {
+        auto framerate_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        framerate_info_list->add_widget(create_framerate());
+        framerate_info_list->add_widget(create_framerate_mode());
+        return framerate_info_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
+        auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        settings_list->add_widget(create_view_radio_button());
+        settings_list->add_widget(create_capture_target(gsr_info));
+        settings_list->add_widget(create_audio_device_section(audio_devices));
+        settings_list->add_widget(create_video_quality_section());
+        settings_list->add_widget(create_codec_section(gsr_info));
+        settings_list->add_widget(create_framerate_section());
+        settings_list_ptr = settings_list.get();
+        return settings_list;
+    }
+
+    void SettingsPage::add_widgets(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
+        add_widget(create_back_button());
+        add_widget(create_settings_icon());
+        content_page_ptr->add_widget(create_settings(gsr_info, audio_devices));
+
+        record_area_box_ptr->on_selection_changed = [=](const std::string &text, const std::string &id) {
+            (void)text;
+            const bool window_selected = id == "window";
+            const bool focused_selected = id == "focused";
+            const bool portal_selected = id == "portal";
+            select_window_list_ptr->set_visible(window_selected);
+            area_size_list_ptr->set_visible(focused_selected);
+            restore_portal_session_list_ptr->set_visible(portal_selected);
+        };
+
+        view_radio_button_ptr->on_selection_changed = [=](const std::string &text, const std::string &id) {
+            (void)text;
+            const bool advanced_view = id == "advanced";
+            color_range_list_ptr->set_visible(advanced_view);
+            codec_list_ptr->set_visible(advanced_view);
+            framerate_mode_list_ptr->set_visible(advanced_view);
+        };
+        view_radio_button_ptr->on_selection_changed("Simple", "simple");
+
+        if(!gsr_info.supported_capture_options.monitors.empty())
+            record_area_box_ptr->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
+        else if(gsr_info.supported_capture_options.portal)
+            record_area_box_ptr->set_selected_item("portal");
+    }
+
+    void SettingsPage::add_page_specific_widgets() {
+        switch(type) {
+            case Type::REPLAY:
+                add_replay_widgets();
+                break;
+            case Type::RECORD:
+                add_record_widgets();
+                break;
+            case Type::STREAM:
+                add_stream_widgets();
+                break;
+        }
+    }
+
+    std::unique_ptr<List> SettingsPage::create_save_directory(const char *label) {
+        auto save_directory_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_theme().text_color));
+        save_directory_list->add_widget(std::make_unique<Entry>(&get_theme().body_font, "/home/dec05eba/Videos", get_theme().body_font.get_character_size() * 20));
+        return save_directory_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_container_box() {
+        auto container_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        container_box->add_item("mp4", "mp4");
+        container_box->add_item("mkv", "matroska");
+        container_box->add_item("flv", "flv");
+        container_box->add_item("mov", "mov");
+        container_box_ptr = container_box.get();
+        return container_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_container_section() {
+        auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_theme().text_color));
+        container_list->add_widget(create_container_box());
+        return container_list;
+    }
+
+    void SettingsPage::add_replay_widgets() {
+        auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        file_list->add_widget(create_save_directory("Directory to save replays:"));
+        file_list->add_widget(create_container_section());
+        settings_list_ptr->add_widget(std::move(file_list));
+
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
+        settings_list_ptr->add_widget(std::move(record_cursor_checkbox));
+
+        auto show_replay_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay started notification");
+        show_replay_started_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_replay_started_notification_checkbox));
+
+        auto show_replay_stopped_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay stopped notification");
+        show_replay_stopped_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_replay_stopped_notification_checkbox));
+
+        auto show_replay_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay saved notification");
+        show_replay_saved_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_replay_saved_notification_checkbox));
+    }
+
+    void SettingsPage::add_record_widgets() {
+        auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        file_list->add_widget(create_save_directory("Directory to save the video:"));
+        file_list->add_widget(create_container_section());
+        settings_list_ptr->add_widget(std::move(file_list));
+
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
+        settings_list_ptr->add_widget(std::move(record_cursor_checkbox));
+
+        auto show_recording_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show recording started notification");
+        show_recording_started_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_recording_started_notification_checkbox));
+
+        auto show_video_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show video saved notification");
+        show_video_saved_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_video_saved_notification_checkbox));
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_streaming_service_box() {
+        auto streaming_service_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        streaming_service_box->add_item("Twitch", "twitch");
+        streaming_service_box->add_item("YouTube", "youtube");
+        streaming_service_box->add_item("Custom", "custom");
+        streaming_service_box_ptr = streaming_service_box.get();
+        return streaming_service_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_streaming_service_section() {
+        auto streaming_service_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        streaming_service_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream service:", get_theme().text_color));
+        streaming_service_list->add_widget(create_streaming_service_box());
+        return streaming_service_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_stream_key_section() {
+        auto stream_key_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_theme().text_color));
+        stream_key_list->add_widget(std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20));
+        stream_key_list_ptr = stream_key_list.get();
+        return stream_key_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_stream_url_section() {
+        auto stream_url_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "URL:", get_theme().text_color));
+        stream_url_list->add_widget(std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20));
+        stream_url_list_ptr = stream_url_list.get();
+        return stream_url_list;
+    }
+
+    std::unique_ptr<ComboBox> SettingsPage::create_stream_container_box() {
+        auto container_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        container_box->add_item("mp4", "mp4");
+        container_box->add_item("mkv", "matroska");
+        container_box->add_item("flv", "flv");
+        container_box->add_item("mov", "mov");
+        container_box->add_item("ts", "mpegts");
+        container_box->add_item("m3u8", "hls");
+        container_box_ptr = container_box.get();
+        return container_box;
+    }
+    
+    std::unique_ptr<List> SettingsPage::create_stream_container_section() {
+        auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_theme().text_color));
+        container_list->add_widget(create_stream_container_box());
+        container_list_ptr = container_list.get();
+        return container_list;
+    }
+
+    void SettingsPage::add_stream_widgets() {
+        auto streaming_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        streaming_info_list->add_widget(create_streaming_service_section());
+        streaming_info_list->add_widget(create_stream_key_section());
+        streaming_info_list->add_widget(create_stream_url_section());
+        streaming_info_list->add_widget(create_stream_container_section());
+        settings_list_ptr->add_widget(std::move(streaming_info_list));
+
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
+        settings_list_ptr->add_widget(std::move(record_cursor_checkbox));
+
+        auto show_streaming_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming started notification");
+        show_streaming_started_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_streaming_started_notification_checkbox));
+
+        auto show_streaming_stopped_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming stopped notification");
+        show_streaming_stopped_notification_checkbox->set_checked(true);
+        settings_list_ptr->add_widget(std::move(show_streaming_stopped_notification_checkbox));
+
+        streaming_service_box_ptr->on_selection_changed = [=](const std::string &text, const std::string &id) {
+            (void)text;
+            const bool custom_option = id == "custom";
+            stream_key_list_ptr->set_visible(!custom_option);
+            stream_url_list_ptr->set_visible(custom_option);
+            container_list_ptr->set_visible(custom_option);
+        };
+        streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
+    }
+
+    void SettingsPage::on_navigate_away_from_page() {
+        save();
+    }
+
+    void SettingsPage::save() {
+        if(!config)
+            config = Config();
+
+        switch(type) {
+            case Type::REPLAY:
+                save_replay();
+                break;
+            case Type::RECORD:
+                save_record();
+                break;
+            case Type::STREAM:
+                save_stream();
+                break;
+        }
+        save_config(config.value());
+    }
+
+    static void save_audio_tracks(std::vector<std::string> &audio_tracks, List *audio_devices_list_ptr) {
+        audio_tracks.clear();
+        const std::vector<std::unique_ptr<Widget>> &audio_devices_list = audio_devices_list_ptr->get_child_widgets();
+        for(const std::unique_ptr<Widget> &child_widget : audio_devices_list) {
+            List *audio_device_line = static_cast<List*>(child_widget.get());
+            ComboBox *audio_device_box = static_cast<ComboBox*>(audio_device_line->get_child_widget_by_index(1));
+            audio_tracks.push_back(audio_device_box->get_selected_id());
+        }
+    }
+
+    void SettingsPage::save_common(RecordOptions &record_options) {
+        record_options.record_area_option = record_area_box_ptr->get_selected_id();
+        record_options.record_area_width = atoi(area_width_entry_ptr->get_text().c_str());
+        record_options.record_area_height = atoi(area_height_entry_ptr->get_text().c_str());
+        record_options.fps = atoi(framerate_entry_ptr->get_text().c_str());
+        record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
+        save_audio_tracks(record_options.audio_tracks, audio_devices_list_ptr);
+        record_options.color_range = color_range_box_ptr->get_selected_id();
+        record_options.video_quality = video_quality_box_ptr->get_selected_id();
+        record_options.video_codec = video_codec_box_ptr->get_selected_id();
+        record_options.audio_codec = audio_codec_box_ptr->get_selected_id();
+        record_options.framerate_mode = framerate_mode_box_ptr->get_selected_id();
+        record_options.advanced_view = view_radio_button_ptr->get_selected_id() == "advanced";
+        // TODO:
+        //record_options.overclock = false;
+        record_options.record_cursor = record_cursor_checkbox_ptr->is_checked();
+        record_options.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
+    }
+
+    void SettingsPage::save_replay() {
+        save_common(config->replay_config.record_options);
+        config->replay_config.container = container_box_ptr->get_selected_id();
+        // TODO: More options
+    }
+
+    void SettingsPage::save_record() {
+        save_common(config->record_config.record_options);
+        config->record_config.container = container_box_ptr->get_selected_id();
+        // TODO: More options
+    }
+
+    void SettingsPage::save_stream() {
+        save_common(config->streaming_config.record_options);
+        config->streaming_config.custom.container = container_box_ptr->get_selected_id();
+        // TODO: More options
+    }
+}

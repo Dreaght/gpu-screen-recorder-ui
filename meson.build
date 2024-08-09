@@ -22,7 +22,7 @@ src = [
     'src/gui/DropdownButton.cpp',
     'src/gui/Label.cpp',
     'src/gui/CustomRendererWidget.cpp',
-    'src/SettingsPage.cpp',
+    'src/gui/SettingsPage.cpp',
     'src/Utils.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
