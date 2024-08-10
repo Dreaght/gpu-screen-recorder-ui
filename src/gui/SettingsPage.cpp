@@ -182,7 +182,6 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_audio_track(const std::vector<AudioDevice> &audio_devices) {
         auto audio_device_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        audio_device_list->add_widget(std::make_unique<Label>(&get_theme().body_font, ">", get_theme().text_color));
         audio_device_list->add_widget(create_audio_track_selection_checkbox(audio_devices));
         audio_device_list->add_widget(create_remove_audio_track_button(audio_device_list.get()));
         return audio_device_list;
@@ -662,7 +661,7 @@ namespace gsr {
         const std::vector<std::unique_ptr<Widget>> &audio_devices_list = audio_devices_list_ptr->get_child_widgets();
         for(const std::unique_ptr<Widget> &child_widget : audio_devices_list) {
             List *audio_device_line = static_cast<List*>(child_widget.get());
-            ComboBox *audio_device_box = static_cast<ComboBox*>(audio_device_line->get_child_widget_by_index(1));
+            ComboBox *audio_device_box = static_cast<ComboBox*>(audio_device_line->get_child_widget_by_index(0));
             audio_tracks.push_back(audio_device_box->get_selected_id());
         }
     }
