@@ -17,3 +17,7 @@ Only redraw ui if changed (dirty state, propagate upward. Set dirty when adding 
 Use _NET_WM_ALLOWED_ACTIONS. Same for notifications.
 
 Handle events in draw function because the render position of elements is available there so why duplicate it in event handler.
+
+Add nvidia overclock option.
+
+Add support for window selection in capture.

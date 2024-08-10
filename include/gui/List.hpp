@@ -36,6 +36,8 @@ namespace gsr {
         // Returns nullptr if index is invalid
         Widget* get_child_widget_by_index(size_t index) const;
 
+        void set_spacing(float spacing);
+
         mgl::vec2f get_size() override;
     private:
         void update();
@@ -47,5 +49,6 @@ namespace gsr {
         Orientation orientation;
         Alignment content_alignment;
         bool inside_event_handler = false;
+        float spacing_scale = 0.009f;
     };
 }

@@ -84,7 +84,6 @@ namespace gsr {
         if(!validate_handler || validate_handler(str)) {
             text.set_string(std::move(str));
             caret_offset_x = text.find_character_pos(99999).x - this->text.get_position().x;
-            fprintf(stderr, "caret offset: %f\n", caret_offset_x);
         }
     }
 

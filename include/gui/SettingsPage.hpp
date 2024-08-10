@@ -76,6 +76,8 @@ namespace gsr {
         std::unique_ptr<List> create_save_directory(const char *label);
         std::unique_ptr<ComboBox> create_container_box();
         std::unique_ptr<List> create_container_section();
+        std::unique_ptr<Entry> create_replay_time_entry();
+        std::unique_ptr<List> create_replay_time();
         void add_replay_widgets();
         void add_record_widgets();
 
@@ -122,6 +124,18 @@ namespace gsr {
         List *stream_key_list_ptr = nullptr;
         List *stream_url_list_ptr = nullptr;
         List *container_list_ptr = nullptr;
+        CheckBox *show_replay_started_notification_checkbox_ptr = nullptr;
+        CheckBox *show_replay_stopped_notification_checkbox_ptr = nullptr;
+        CheckBox *show_replay_saved_notification_checkbox_ptr = nullptr;
+        CheckBox *show_recording_started_notification_checkbox_ptr = nullptr;
+        CheckBox *show_video_saved_notification_checkbox_ptr = nullptr;
+        CheckBox *show_streaming_started_notification_checkbox_ptr = nullptr;
+        CheckBox *show_streaming_stopped_notification_checkbox_ptr = nullptr;
+        Entry *save_directory_entry_ptr = nullptr;
+        Entry *twitch_stream_key_entry_ptr = nullptr;
+        Entry *youtube_stream_key_entry_ptr = nullptr;
+        Entry *stream_url_entry_ptr = nullptr;
+        Entry *replay_time_entry_ptr = nullptr;
 
         mgl::Text settings_title_text;
     };

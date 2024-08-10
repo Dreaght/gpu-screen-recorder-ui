@@ -7,7 +7,6 @@ static float floor(float f) {
 
 namespace gsr {
     // TODO: Add homogeneous option, using a specified max size of this list.
-    static const mgl::vec2f spacing_scale(0.009f, 0.009f);
 
     List::List(Orientation orientation, Alignment content_alignment) : orientation(orientation), content_alignment(content_alignment) {}
     
@@ -75,7 +74,7 @@ namespace gsr {
         const mgl::vec2f size = get_size();
         const mgl::vec2f parent_inner_size = parent_widget ? parent_widget->get_inner_size() : mgl::vec2f(0.0f, 0.0f);
 
-        const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
+        const float spacing = floor(spacing_scale * get_theme().window_height);
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(size_t i = 0; i < widgets.size(); ++i) {
@@ -99,7 +98,7 @@ namespace gsr {
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
                     draw_pos.y += widget_size.y;
                     if(widget_size.y > 0.001f && i + 1 < widgets.size())
-                        draw_pos.y += spacing.y;
+                        draw_pos.y += spacing;
                 }
                 break;
             }
@@ -120,7 +119,7 @@ namespace gsr {
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
                     draw_pos.x += widget_size.x;
                     if(widget_size.x > 0.001f && i + 1 < widgets.size())
-                        draw_pos.x += spacing.x;
+                        draw_pos.x += spacing;
                 }
                 break;
             }
@@ -172,13 +171,17 @@ namespace gsr {
             return nullptr;
     }
 
+    void List::set_spacing(float spacing) {
+        spacing_scale = spacing;
+    }
+
     // TODO: Cache result
     mgl::vec2f List::get_size() {
         if(!visible)
             return {0.0f, 0.0f};
 
         mgl::vec2f size;
-        const mgl::vec2f spacing = (spacing_scale * get_theme().window_height).floor();
+        const float spacing = floor(spacing_scale * get_theme().window_height);
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(size_t i = 0; i < widgets.size(); ++i) {
@@ -190,7 +193,7 @@ namespace gsr {
                     size.x = std::max(size.x, widget_size.x);
                     size.y += widget_size.y;
                     if(widget_size.y > 0.001f && i + 1 < widgets.size())
-                        size.y += spacing.y;
+                        size.y += spacing;
                 }
                 break;
             }
@@ -203,7 +206,7 @@ namespace gsr {
                     const auto widget_size = widget->get_size();
                     size.x += widget_size.x;
                     if(widget_size.x > 0.001f && i + 1 < widgets.size())
-                        size.x += spacing.x;
+                        size.x += spacing;
                     size.y = std::max(size.y, widget_size.y);
                 }
                 break;
