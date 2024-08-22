@@ -5,7 +5,7 @@
 namespace gsr {
     static Theme *theme = nullptr;
 
-    bool init_theme(const gsr::GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path) {
+    bool init_theme(const GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path) {
         if(theme)
             return true;
 
@@ -15,18 +15,18 @@ namespace gsr {
         theme->window_height = window_size.y;
 
         switch(gsr_info.gpu_info.vendor) {
-            case gsr::GpuVendor::UNKNOWN: {
+            case GpuVendor::UNKNOWN: {
                 break;
             }
-            case gsr::GpuVendor::AMD: {
+            case GpuVendor::AMD: {
                 theme->tint_color = mgl::Color(221, 0, 49);
                 break;
             }
-            case gsr::GpuVendor::INTEL: {
+            case GpuVendor::INTEL: {
                 theme->tint_color = mgl::Color(8, 109, 183);
                 break;
             }
-            case gsr::GpuVendor::NVIDIA: {
+            case GpuVendor::NVIDIA: {
                 theme->tint_color = mgl::Color(118, 185, 0);
                 break;
             }
@@ -51,6 +51,9 @@ namespace gsr {
             goto error;
 
         if(!theme->settings_texture.load_from_file((resources_path + "images/settings.png").c_str(), {false, false, false}))
+            goto error;
+
+        if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str(), {false, false, false}))
             goto error;
 
         return true;

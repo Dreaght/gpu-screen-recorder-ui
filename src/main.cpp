@@ -4,24 +4,17 @@
 #include "../include/gui/CustomRendererWidget.hpp"
 #include "../include/gui/SettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
+#include "../include/gui/PageStack.hpp"
 #include "../include/Process.hpp"
 #include "../include/Theme.hpp"
 #include "../include/GsrInfo.hpp"
 #include "../include/window_texture.h"
 #include "../include/Config.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <errno.h>
-#include <libgen.h>
 #include <signal.h>
 #include <sys/wait.h>
-#include <optional>
-#include <signal.h>
 #include <assert.h>
-#include <stack>
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
@@ -235,10 +228,10 @@ int main(int argc, char **argv) {
     signal(SIGINT, sigint_handler);
 
     gsr::GsrInfo gsr_info;
-    // TODO:
+    // TODO: Show the error in ui
     gsr::GsrInfoExitStatus gsr_info_exit_status = gsr::get_gpu_screen_recorder_info(&gsr_info);
     if(gsr_info_exit_status != gsr::GsrInfoExitStatus::OK) {
-        fprintf(stderr, "error: failed to get gpu-screen-recorder info\n");
+        fprintf(stderr, "error: failed to get gpu-screen-recorder info, error: %d\n", (int)gsr_info_exit_status);
         exit(1);
     }
 
@@ -331,8 +324,6 @@ int main(int argc, char **argv) {
     WindowTexture window_texture;
     bool window_texture_loaded = false;
 
-    mgl_texture window_texture_tex;
-    memset(&window_texture_tex, 0, sizeof(window_texture_tex));
     mgl::Texture window_texture_texture;
     mgl::Sprite window_texture_sprite;
 
@@ -343,18 +334,7 @@ int main(int argc, char **argv) {
             window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window.internal_window()), window_at_cursor_position, egl_funcs) == 0;
 
         if(window_texture_loaded && window_texture.texture_id) {
-            DrawableGeometry geometry;
-            get_drawable_geometry(display, (Drawable)window_texture.pixmap, &geometry);
-
-            window_texture_tex.id = window_texture.texture_id;
-            window_texture_tex.width = geometry.width;
-            window_texture_tex.height = geometry.height;
-            window_texture_tex.format = MGL_TEXTURE_FORMAT_RGB;
-            window_texture_tex.max_width = 1 << 15;
-            window_texture_tex.max_height = 1 << 15;
-            window_texture_tex.pixel_coordinates = false;
-            window_texture_tex.mipmap = false;
-            window_texture_texture = mgl::Texture::reference(window_texture_tex);
+            window_texture_texture = mgl::Texture(window_texture.texture_id, MGL_TEXTURE_FORMAT_RGB);
             window_texture_sprite.set_texture(&window_texture_texture);
         } else {
             XImage *img = XGetImage(display, DefaultRootWindow(display), window_pos.x, window_pos.y, window_size.x, window_size.y, AllPlanes, ZPixmap);
@@ -376,32 +356,13 @@ int main(int argc, char **argv) {
     mgl::Rectangle bg_screenshot_overlay(window_size.to_vec2f());
     bg_screenshot_overlay.set_color(bg_color);
 
-    gsr::StaticPage front_page(window_size.to_vec2f());
+    auto front_page = std::make_unique<gsr::StaticPage>(window_size.to_vec2f());
+    gsr::StaticPage *front_page_ptr = front_page.get();
 
-    std::stack<gsr::Page*> page_stack;
-    page_stack.push(&front_page);
-
-    const auto settings_back_button_callback = [&] {
-        page_stack.top()->on_navigate_away_from_page();
-        page_stack.pop();
-    };
+    gsr::PageStack page_stack;
+    page_stack.push(std::move(front_page));
 
     std::optional<gsr::Config> config = gsr::read_config();
-
-    gsr::SettingsPage replay_settings_page(gsr::SettingsPage::Type::REPLAY, gsr_info, audio_devices, config);
-    replay_settings_page.on_back_button_handler = settings_back_button_callback;
-
-    gsr::SettingsPage record_settings_page(gsr::SettingsPage::Type::RECORD, gsr_info, audio_devices, config);
-    record_settings_page.on_back_button_handler = settings_back_button_callback;
-
-    gsr::SettingsPage stream_settings_page(gsr::SettingsPage::Type::STREAM, gsr_info, audio_devices, config);
-    stream_settings_page.on_back_button_handler = settings_back_button_callback;
-
-    if(!config) {
-        replay_settings_page.save();
-        record_settings_page.save();
-        stream_settings_page.save();
-    }
 
     struct MainButton {
         gsr::DropdownButton* button;
@@ -444,7 +405,7 @@ int main(int argc, char **argv) {
         button->add_item("Start", "start");
         button->add_item("Settings", "settings");
         gsr::DropdownButton *button_ptr = button.get();
-        front_page.add_widget(std::move(button));
+        front_page_ptr->add_widget(std::move(button));
 
         MainButton main_button = {
             button_ptr,
@@ -488,7 +449,8 @@ int main(int argc, char **argv) {
     // Replay
     main_buttons[0].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&replay_settings_page);
+            auto replay_settings_page = std::make_unique<gsr::SettingsPage>(gsr::SettingsPage::Type::REPLAY, gsr_info, audio_devices, config, &page_stack);
+            page_stack.push(std::move(replay_settings_page));
             return;
         }
         /*
@@ -513,7 +475,8 @@ int main(int argc, char **argv) {
     // Record
     main_buttons[1].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&record_settings_page);
+            auto record_settings_page = std::make_unique<gsr::SettingsPage>(gsr::SettingsPage::Type::RECORD, gsr_info, audio_devices, config, &page_stack);
+            page_stack.push(std::move(record_settings_page));
             return;
         }
 
@@ -598,7 +561,8 @@ int main(int argc, char **argv) {
     // Stream
     main_buttons[2].button->on_click = [&](const std::string &id) {
         if(id == "settings") {
-            page_stack.push(&stream_settings_page);
+            auto stream_settings_page = std::make_unique<gsr::SettingsPage>(gsr::SettingsPage::Type::STREAM, gsr_info, audio_devices, config, &page_stack);
+            page_stack.push(std::move(stream_settings_page));
             return;
         }
     };
@@ -733,6 +697,8 @@ int main(int argc, char **argv) {
 
     quit:
     fprintf(stderr, "shutting down!\n");
+    XUngrabKeyboard(display, CurrentTime);
+    XUngrabPointer(display, CurrentTime);
     if(window_texture_loaded)
         window_texture_deinit(&window_texture);
     gsr::deinit_theme();

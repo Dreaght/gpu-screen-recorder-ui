@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Widget.hpp"
-#include <vector>
+#include "../SafeVector.hpp"
 #include <memory>
 
 namespace gsr {
@@ -27,28 +27,20 @@ namespace gsr {
 
         //void remove_child_widget(Widget *widget) override;
 
-        // Might not take effect immediately but at the next draw iteration if inside an event loop
         void add_widget(std::unique_ptr<Widget> widget);
-        // Might not take effect immediately but at the next draw iteration if inside an event loop
         void remove_widget(Widget *widget);
-        // Excludes widgets from queue
-        const std::vector<std::unique_ptr<Widget>>& get_child_widgets() const;
+        // Return true from |callback| to continue
+        void for_each_child_widget(std::function<bool(std::unique_ptr<Widget> &widget)> callback);
         // Returns nullptr if index is invalid
         Widget* get_child_widget_by_index(size_t index) const;
 
         void set_spacing(float spacing);
 
         mgl::vec2f get_size() override;
-    private:
-        void update();
-        void remove_widget_immediate(Widget *widget);
     protected:
-        std::vector<std::unique_ptr<Widget>> widgets;
-        std::vector<std::unique_ptr<Widget>> add_queue;
-        std::vector<Widget*> remove_queue;
+        SafeVector<std::unique_ptr<Widget>> widgets;
         Orientation orientation;
         Alignment content_alignment;
-        bool inside_event_handler = false;
         float spacing_scale = 0.009f;
     };
 }

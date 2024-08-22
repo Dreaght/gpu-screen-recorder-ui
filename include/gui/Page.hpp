@@ -17,7 +17,7 @@ namespace gsr {
 
         //void remove_child_widget(Widget *widget) override;
 
-        void add_widget(std::unique_ptr<Widget> widget);
+        virtual void add_widget(std::unique_ptr<Widget> widget);
     protected:
         std::vector<std::unique_ptr<Widget>> widgets;
     };

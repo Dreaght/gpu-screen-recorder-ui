@@ -1,6 +1,8 @@
 #include "../../include/gui/SettingsPage.hpp"
-#include "../../include/gui/ScrollablePage.hpp"
+#include "../../include/gui/GsrPage.hpp"
 #include "../../include/gui/Label.hpp"
+#include "../../include/gui/PageStack.hpp"
+#include "../../include/gui/FileChooser.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
 
@@ -10,59 +12,22 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
-    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::optional<Config> &config) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::optional<Config> &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
+        page_stack(page_stack),
         settings_title_text("Settings", get_theme().title_font)
     {
-        const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
-        const mgl::vec2f content_page_size = (window_size * mgl::vec2f(0.3333f, 0.7f)).floor();
-        const mgl::vec2f content_page_position = mgl::vec2f(window_size * 0.5f - content_page_size * 0.5f).floor();
-        const float settings_body_margin = 0.02f;
-
-        auto content_page = std::make_unique<ScrollablePage>(content_page_size);
-        content_page->set_position(content_page_position);
-        content_page->set_margins(settings_body_margin, settings_body_margin, settings_body_margin, settings_body_margin);
+        auto content_page = std::make_unique<GsrPage>();
+        content_page->set_on_back_button_click([page_stack]() {
+            page_stack->pop();
+        });
         content_page_ptr = content_page.get();
         add_widget(std::move(content_page));
 
         add_widgets(gsr_info, audio_devices);
         add_page_specific_widgets();
-    }
-
-    std::unique_ptr<Button> SettingsPage::create_back_button() {
-        const mgl::vec2i window_size(get_theme().window_width, get_theme().window_height);
-        auto back_button = std::make_unique<Button>(&get_theme().title_font, "Back", mgl::vec2f(window_size.x / 10, window_size.y / 15).floor(), get_theme().scrollable_page_bg_color);
-        back_button->set_position(content_page_ptr->get_position().floor() + mgl::vec2f(content_page_ptr->get_size().x + window_size.x / 50, 0.0f).floor());
-        back_button->set_border_scale(0.003f);
-        back_button->on_click = [this]() {
-            if(on_back_button_handler)
-                on_back_button_handler();
-        };
-        return back_button;
-    }
-
-    std::unique_ptr<CustomRendererWidget> SettingsPage::create_settings_icon() {
-        const mgl::vec2i window_size(get_theme().window_width, get_theme().window_height);
-        auto settings_icon_widget = std::make_unique<CustomRendererWidget>(mgl::vec2f(window_size.x / 10, window_size.x / 10).floor());
-        settings_icon_widget->set_position(content_page_ptr->get_position().floor() - mgl::vec2f(settings_icon_widget->get_size().x + window_size.x / 50, 0.0f).floor());
-        settings_icon_widget->draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
-            mgl::Rectangle background(size);
-            background.set_position(pos);
-            background.set_color(mgl::Color(0, 0, 0, 255));
-            window.draw(background);
-
-            const int text_margin = size.y * 0.085;
-            settings_title_text.set_position((pos + mgl::vec2f(size.x * 0.5f - settings_title_text.get_bounds().size.x * 0.5f, text_margin)).floor());
-            window.draw(settings_title_text);
-
-            mgl::Sprite icon(&get_theme().settings_texture);
-            icon.set_height((int)(size.y * 0.5f));
-            icon.set_position((pos + size * 0.5f - icon.get_size() * 0.5f).floor());
-            window.draw(icon);
-        };
-        return settings_icon_widget;
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
@@ -363,8 +328,6 @@ namespace gsr {
     }
 
     void SettingsPage::add_widgets(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
-        add_widget(create_back_button());
-        add_widget(create_settings_icon());
         content_page_ptr->add_widget(create_settings(gsr_info, audio_devices));
 
         record_area_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
@@ -400,9 +363,20 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_save_directory(const char *label) {
         auto save_directory_list = std::make_unique<List>(List::Orientation::VERTICAL);
         save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_theme().text_color));
-        auto save_directory_entry = std::make_unique<Entry>(&get_theme().body_font, "/home/dec05eba/Videos", get_theme().body_font.get_character_size() * 20);
-        save_directory_entry_ptr = save_directory_entry.get();
-        save_directory_list->add_widget(std::move(save_directory_entry));
+        auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, "/home/dec05eba/Videos", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        save_directory_button->on_click = [this]() {
+            auto select_directory_page = std::make_unique<GsrPage>();
+            select_directory_page->set_on_back_button_click([this]() {
+                page_stack->pop();
+            });
+            
+            auto file_chooser = std::make_unique<gsr::FileChooser>("/home/dec05eba", select_directory_page->get_size());
+            select_directory_page->add_widget(std::move(file_chooser));
+
+            page_stack->push(std::move(select_directory_page));
+        };
+        save_directory_button_ptr = save_directory_button.get();
+        save_directory_list->add_widget(std::move(save_directory_button));
         return save_directory_list;
     }
 
@@ -658,12 +632,12 @@ namespace gsr {
 
     static void save_audio_tracks(std::vector<std::string> &audio_tracks, List *audio_devices_list_ptr) {
         audio_tracks.clear();
-        const std::vector<std::unique_ptr<Widget>> &audio_devices_list = audio_devices_list_ptr->get_child_widgets();
-        for(const std::unique_ptr<Widget> &child_widget : audio_devices_list) {
+        audio_devices_list_ptr->for_each_child_widget([&audio_tracks](std::unique_ptr<Widget> &child_widget) {
             List *audio_device_line = static_cast<List*>(child_widget.get());
             ComboBox *audio_device_box = static_cast<ComboBox*>(audio_device_line->get_child_widget_by_index(0));
             audio_tracks.push_back(audio_device_box->get_selected_id());
-        }
+            return true;
+        });
     }
 
     void SettingsPage::save_common(RecordOptions &record_options) {
@@ -705,7 +679,7 @@ namespace gsr {
         config->replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
         config->replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
         config->replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();
-        config->replay_config.save_directory = save_directory_entry_ptr->get_text();
+        config->replay_config.save_directory = save_directory_button_ptr->get_text();
         config->replay_config.container = container_box_ptr->get_selected_id();
         config->replay_config.replay_time = atoi(replay_time_entry_ptr->get_text().c_str());
 
@@ -719,7 +693,7 @@ namespace gsr {
         save_common(config->record_config.record_options);
         config->record_config.show_recording_started_notifications = show_recording_started_notification_checkbox_ptr->is_checked();
         config->record_config.show_video_saved_notifications = show_video_saved_notification_checkbox_ptr->is_checked();
-        config->record_config.save_directory = save_directory_entry_ptr->get_text();
+        config->record_config.save_directory = save_directory_button_ptr->get_text();
         config->record_config.container = container_box_ptr->get_selected_id();
     }
 

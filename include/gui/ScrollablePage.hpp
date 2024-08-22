@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Page.hpp"
+#include "Widget.hpp"
+#include <memory>
+#include <vector>
 
 namespace gsr {
-    class ScrollablePage : public Page {
+    class ScrollablePage : public Widget {
     public:
         ScrollablePage(mgl::vec2f size);
         ScrollablePage(const ScrollablePage&) = delete;
@@ -13,16 +15,11 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
-        mgl::vec2f get_inner_size() override;
+        void set_size(mgl::vec2f size);
 
-        void set_margins(float top, float bottom, float left, float right);
-    private:
-        float get_border_size() const;
+        void add_widget(std::unique_ptr<Widget> widget);
     private:
         mgl::vec2f size;
-        float margin_top_scale = 0.0f;
-        float margin_bottom_scale = 0.0f;
-        float margin_left_scale = 0.0f;
-        float margin_right_scale = 0.0f;
+        std::vector<std::unique_ptr<Widget>> widgets;
     };
 }

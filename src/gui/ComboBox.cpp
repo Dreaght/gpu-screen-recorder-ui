@@ -146,14 +146,14 @@ namespace gsr {
         dirty = true;
     }
 
-    void ComboBox::set_selected_item(const std::string &id, bool trigger_event) {
+    void ComboBox::set_selected_item(const std::string &id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
             if(item.id == id) {
                 const size_t prev_selected_item = selected_item;
                 selected_item = i;
 
-                if(trigger_event && selected_item != prev_selected_item && on_selection_changed)
+                if(trigger_event && (trigger_event_even_if_selection_not_changed || selected_item != prev_selected_item) && on_selection_changed)
                     on_selection_changed(item.text.get_string(), item.id);
 
                 break;

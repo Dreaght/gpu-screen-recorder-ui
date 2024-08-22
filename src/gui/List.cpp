@@ -14,55 +14,25 @@ namespace gsr {
         if(!visible)
             return true;
 
-        inside_event_handler = true;
         // We want to store the selected child widget since it can change in the event loop below
         Widget *selected_widget = selected_child_widget;
         if(selected_widget) {
-            if(!selected_widget->on_event(event, window, mgl::vec2f(0.0f, 0.0f))) {
-                inside_event_handler = false;
+            if(!selected_widget->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
                 return false;
-            }
         }
 
         // Process widgets by visibility (backwards)
-        for(auto it = widgets.rbegin(), end = widgets.rend(); it != end; ++it) {
+        return widgets.for_each_reverse([selected_widget, &event, &window](std::unique_ptr<Widget> &widget) {
             // Ignore offset because widgets are positioned with offset in ::draw, this solution is simpler
-            if(it->get() != selected_widget) {
-                if(!(*it)->on_event(event, window, mgl::vec2f(0.0f, 0.0f))) {
-                    inside_event_handler = false;
+            if(widget.get() != selected_widget) {
+                if(!widget->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
                     return false;
-                }
             }
-        }
-
-        inside_event_handler = false;
-        return true;
-    }
-
-    // TODO: Maybe call this from main on all widgets instead of from draw
-    void List::update() {
-        //widgets.insert(widgets.back(), std::make_move_iterator(add_queue.begin()), std::make_move_iterator(add_queue.end()));
-        std::move(add_queue.begin(), add_queue.end(), std::back_inserter(widgets));
-        add_queue.clear();
-
-        for(Widget *widget_to_remove : remove_queue) {
-            remove_widget_immediate(widget_to_remove);
-        }
-        remove_queue.clear();
-    }
-
-    void List::remove_widget_immediate(Widget *widget) {
-        for(auto it = widgets.begin(), end = widgets.end(); it != end; ++it) {
-            if(it->get() == widget) {
-                widgets.erase(it);
-                return;
-            }
-        }
+            return true;
+        });
     }
 
     void List::draw(mgl::Window &window, mgl::vec2f offset) {
-        update();
-
         if(!visible)
             return;
 
@@ -140,28 +110,15 @@ namespace gsr {
 
     void List::add_widget(std::unique_ptr<Widget> widget) {
         widget->parent_widget = this;
-        if(inside_event_handler)
-            add_queue.push_back(std::move(widget));
-        else
-            widgets.push_back(std::move(widget));
+        widgets.push_back(std::move(widget));
     }
 
     void List::remove_widget(Widget *widget) {
-        for(auto it = add_queue.begin(), end = add_queue.end(); it != end; ++it) {
-            if(it->get() == widget) {
-                add_queue.erase(it);
-                return;
-            }
-        }
-
-        if(inside_event_handler)
-            remove_queue.push_back(widget);
-        else
-            remove_widget_immediate(widget);
+        widgets.remove(widget);
     }
 
-    const std::vector<std::unique_ptr<Widget>>& List::get_child_widgets() const {
-        return widgets;
+    void List::for_each_child_widget(std::function<bool(std::unique_ptr<Widget> &widget)> callback) {
+        widgets.for_each(callback);
     }
 
     Widget* List::get_child_widget_by_index(size_t index) const {

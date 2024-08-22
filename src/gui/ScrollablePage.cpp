@@ -1,7 +1,5 @@
 #include "../../include/gui/ScrollablePage.hpp"
-#include "../../include/Theme.hpp"
 
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
@@ -11,11 +9,8 @@ namespace gsr {
         if(!visible)
             return true;
 
-        const int margin_top = margin_top_scale * get_theme().window_height;
-        const int margin_left = margin_left_scale * get_theme().window_height;
-
         const mgl::vec2f draw_pos = position + offset;
-        offset = draw_pos + mgl::vec2f(margin_left, get_border_size() + margin_top).floor();
+        offset = draw_pos;
         Widget *selected_widget = selected_child_widget;
 
         if(selected_widget) {
@@ -38,21 +33,8 @@ namespace gsr {
         if(!visible)
             return;
 
-        const int margin_top = margin_top_scale * get_theme().window_height;
-        const int margin_left = margin_left_scale * get_theme().window_height;
-
         const mgl::vec2f draw_pos = position + offset;
-        offset = draw_pos + mgl::vec2f(margin_left, get_border_size() + margin_top).floor();
-
-        mgl::Rectangle background(size.floor());
-        background.set_position(draw_pos);
-        background.set_color(get_theme().scrollable_page_bg_color);
-        window.draw(background);
-
-        mgl::Rectangle border(mgl::vec2f(size.x, get_border_size()).floor());
-        border.set_position(draw_pos);
-        border.set_color(get_theme().tint_color);
-        window.draw(border);
+        offset = draw_pos;
 
         mgl_scissor prev_scissor;
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
@@ -84,25 +66,11 @@ namespace gsr {
         return size;
     }
 
-    mgl::vec2f ScrollablePage::get_inner_size() {
-        if(!visible)
-            return {0.0f, 0.0f};
-
-        const int margin_top = margin_top_scale * get_theme().window_height;
-        const int margin_bottom = margin_bottom_scale * get_theme().window_height;
-        const int margin_left = margin_left_scale * get_theme().window_height;
-        const int margin_right = margin_right_scale * get_theme().window_height;
-        return size - mgl::vec2f(margin_left + margin_right, margin_top + margin_bottom + get_border_size());
+    void ScrollablePage::set_size(mgl::vec2f size) {
+        this->size = size;
     }
 
-    void ScrollablePage::set_margins(float top, float bottom, float left, float right) {
-        margin_top_scale = top;
-        margin_bottom_scale = bottom;
-        margin_left_scale = left;
-        margin_right_scale = right;
-    }
-
-    float ScrollablePage::get_border_size() const {
-        return 0.004f * get_theme().window_height;
+    void ScrollablePage::add_widget(std::unique_ptr<Widget> widget) {
+        widgets.push_back(std::move(widget));
     }
 }

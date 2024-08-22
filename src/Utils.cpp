@@ -22,13 +22,6 @@ namespace gsr {
         }
     }
 
-    std::optional<KeyValue> parse_key_value(std::string_view line) {
-        const size_t space_index = line.find(' ');
-        if(space_index == std::string_view::npos)
-            return std::nullopt;
-        return KeyValue{line.substr(0, space_index), line.substr(space_index + 1)};
-    }
-
     std::string get_home_dir() {
         const char *home_dir = getenv("HOME");
         if(!home_dir) {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <optional>
 #include <string_view>
 #include <map>
 #include <string>
@@ -15,9 +14,6 @@ namespace gsr {
     using StringSplitCallback = std::function<bool(std::string_view line)>;
 
     void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func);
-
-    // key value separated by one space
-    std::optional<KeyValue> parse_key_value(std::string_view line);
 
     std::string get_home_dir();
     std::string get_config_dir();

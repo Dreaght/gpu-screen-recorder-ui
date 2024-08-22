@@ -70,4 +70,8 @@ namespace gsr {
     void Button::set_border_scale(float scale) {
         border_scale = scale;
     }
+
+    const std::string& Button::get_text() const {
+        return text.get_string();
+    }
 }

@@ -58,6 +58,7 @@ namespace gsr {
 
     enum class GsrInfoExitStatus {
         OK,
+        BROKEN_DRIVERS,
         FAILED_TO_RUN_COMMAND,
         OPENGL_FAILED,
         NO_DRM_CARD

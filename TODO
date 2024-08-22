@@ -21,3 +21,9 @@ Handle events in draw function because the render position of elements is availa
 Add nvidia overclock option.
 
 Add support for window selection in capture.
+
+Add option to record the focused monitor. This works on wayland too when using kms capture since we can get cursor position without root and see which monitor (crtc) the cursor is on.
+
+Add option to select hevc_10bit and av1_10bit.
+
+For system startup dont allow default output/input audio, as that can change after startup. For example if default output is a bluetooth devices that gets connected after startup.

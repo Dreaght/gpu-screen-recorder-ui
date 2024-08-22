@@ -30,9 +30,12 @@ namespace gsr {
 
         mgl::Texture combobox_arrow_texture;
         mgl::Texture settings_texture;
+        mgl::Texture folder_texture;
+
+        double double_click_timeout_seconds = 0.4;
     };
 
-    bool init_theme(const gsr::GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path);
+    bool init_theme(const GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path);
     void deinit_theme();
     Theme& get_theme();
 }

@@ -7,14 +7,12 @@
 #include "RadioButton.hpp"
 #include "CheckBox.hpp"
 #include "Button.hpp"
-#include "CustomRendererWidget.hpp"
 #include "../GsrInfo.hpp"
 #include "../Config.hpp"
 
-#include <functional>
-
 namespace gsr {
-    class ScrollablePage;
+    class GsrPage;
+    class PageStack;
 
     class SettingsPage : public StaticPage {
     public:
@@ -24,17 +22,13 @@ namespace gsr {
             STREAM
         };
 
-        SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::optional<Config> &config);
+        SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::optional<Config> &config, PageStack *page_stack);
         SettingsPage(const SettingsPage&) = delete;
         SettingsPage& operator=(const SettingsPage&) = delete;
 
         void save();
         void on_navigate_away_from_page() override;
-
-        std::function<void()> on_back_button_handler;
     private:
-        std::unique_ptr<Button> create_back_button();
-        std::unique_ptr<CustomRendererWidget> create_settings_icon();
         std::unique_ptr<RadioButton> create_view_radio_button();
         std::unique_ptr<ComboBox> create_record_area_box(const GsrInfo &gsr_info);
         std::unique_ptr<List> create_record_area(const GsrInfo &gsr_info);
@@ -69,7 +63,7 @@ namespace gsr {
         std::unique_ptr<List> create_framerate_mode();
         std::unique_ptr<List> create_framerate_section();
         std::unique_ptr<List> create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices);
-        void add_widgets(const gsr::GsrInfo &gsr_info, const std::vector<gsr::AudioDevice> &audio_devices);
+        void add_widgets(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices);
 
         void add_page_specific_widgets();
 
@@ -97,7 +91,7 @@ namespace gsr {
         Type type;
         std::optional<Config> &config;
 
-        ScrollablePage *content_page_ptr = nullptr;
+        GsrPage *content_page_ptr = nullptr;
         List *settings_list_ptr = nullptr;
         List *select_window_list_ptr = nullptr;
         List *area_size_list_ptr = nullptr;
@@ -131,11 +125,13 @@ namespace gsr {
         CheckBox *show_video_saved_notification_checkbox_ptr = nullptr;
         CheckBox *show_streaming_started_notification_checkbox_ptr = nullptr;
         CheckBox *show_streaming_stopped_notification_checkbox_ptr = nullptr;
-        Entry *save_directory_entry_ptr = nullptr;
+        Button *save_directory_button_ptr = nullptr;
         Entry *twitch_stream_key_entry_ptr = nullptr;
         Entry *youtube_stream_key_entry_ptr = nullptr;
         Entry *stream_url_entry_ptr = nullptr;
         Entry *replay_time_entry_ptr = nullptr;
+
+        PageStack *page_stack = nullptr;
 
         mgl::Text settings_title_text;
     };

@@ -4,6 +4,13 @@
 #include <string.h>
 
 namespace gsr {
+    static std::optional<KeyValue> parse_key_value(std::string_view line) {
+        const size_t space_index = line.find('|');
+        if(space_index == std::string_view::npos)
+            return std::nullopt;
+        return KeyValue{line.substr(0, space_index), line.substr(space_index + 1)};
+    }
+
     static void parse_system_info_line(GsrInfo *gsr_info, std::string_view line) {
         const std::optional<KeyValue> key_value = parse_key_value(line);
         if(!key_value)
@@ -156,6 +163,7 @@ namespace gsr {
         if(WIFEXITED(status)) {
             switch(WEXITSTATUS(status)) {
                 case 0:  return GsrInfoExitStatus::OK;
+                case 14: return GsrInfoExitStatus::BROKEN_DRIVERS;
                 case 22: return GsrInfoExitStatus::OPENGL_FAILED;
                 case 23: return GsrInfoExitStatus::NO_DRM_CARD;
                 default: return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
@@ -180,14 +188,14 @@ namespace gsr {
 
         FILE *f = popen("gpu-screen-recorder --list-audio-devices", "r");
         if(!f) {
-            fprintf(stderr, "error: 'gpu-screen-recorder --info' failed\n");
+            fprintf(stderr, "error: 'gpu-screen-recorder --list-audio-devices' failed\n");
             return audio_devices;
         }
 
         char output[16384];
         ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
         if(bytes_read < 0 || ferror(f)) {
-            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --info' output\n");
+            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-audio-devices' output\n");
             pclose(f);
             return audio_devices;
         }

@@ -21,6 +21,8 @@ namespace gsr {
         mgl::vec2f get_size() override;
         void set_border_scale(float scale);
 
+        const std::string& get_text() const;
+
         std::function<void()> on_click;
     private:
         mgl::vec2f size;
