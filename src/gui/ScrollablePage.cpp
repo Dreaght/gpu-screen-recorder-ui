@@ -19,14 +19,13 @@ namespace gsr {
         }
 
         // Process widgets by visibility (backwards)
-        for(auto it = widgets.rbegin(), end = widgets.rend(); it != end; ++it) {
-            if(it->get() != selected_widget) {
-                if(!(*it)->on_event(event, window, offset))
+        return widgets.for_each_reverse([selected_widget, &window, &event, offset](std::unique_ptr<Widget> &widget) {
+            if(widget.get() != selected_widget) {
+                if(!widget->on_event(event, window, offset))
                     return false;
             }
-        }
-
-        return true;
+            return true;
+        });
     }
 
     void ScrollablePage::draw(mgl::Window &window, mgl::vec2f offset) {
@@ -48,7 +47,8 @@ namespace gsr {
 
         Widget *selected_widget = selected_child_widget;
 
-        for(auto &widget : widgets) {
+        for(size_t i = 0; i < widgets.size(); ++i) {
+            auto &widget = widgets[i];
             if(widget.get() != selected_widget)
                 widget->draw(window, offset);
         }

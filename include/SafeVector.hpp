@@ -21,7 +21,7 @@ public:
     }
 
     // Might not remove the data immediately if inside for_each loop.
-    // In that case the item is remove at the end of the loop.
+    // In that case the item is removed at the end of the loop.
     void remove(PointerType item_to_remove) {
         if(for_each_depth == 0)
             remove_item(item_to_remove);

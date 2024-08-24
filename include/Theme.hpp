@@ -19,7 +19,7 @@ namespace gsr {
         float window_height = 0.0f;
 
         mgl::Color tint_color = mgl::Color(118, 185, 0);
-        mgl::Color scrollable_page_bg_color = mgl::Color(38, 43, 47);
+        mgl::Color page_bg_color = mgl::Color(38, 43, 47);
         mgl::Color text_color = mgl::Color(255, 255, 255);
 
         mgl::MemoryMappedFile body_font_file;

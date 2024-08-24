@@ -370,7 +370,7 @@ namespace gsr {
                 page_stack->pop();
             });
             
-            auto file_chooser = std::make_unique<gsr::FileChooser>("/home/dec05eba", select_directory_page->get_size());
+            auto file_chooser = std::make_unique<gsr::FileChooser>("/home/dec05eba", select_directory_page->get_inner_size());
             select_directory_page->add_widget(std::move(file_chooser));
 
             page_stack->push(std::move(select_directory_page));

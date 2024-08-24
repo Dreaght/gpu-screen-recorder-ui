@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "../SafeVector.hpp"
 #include <memory>
-#include <vector>
 
 namespace gsr {
     class ScrollablePage : public Widget {
@@ -20,6 +20,6 @@ namespace gsr {
         void add_widget(std::unique_ptr<Widget> widget);
     private:
         mgl::vec2f size;
-        std::vector<std::unique_ptr<Widget>> widgets;
+        SafeVector<std::unique_ptr<Widget>> widgets;
     };
 }

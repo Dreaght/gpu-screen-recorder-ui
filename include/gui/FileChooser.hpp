@@ -13,7 +13,7 @@
 namespace gsr {
     class FileChooser : public Widget {
     public:
-        FileChooser(const char *start_directory, mgl::vec2f content_size);
+        FileChooser(const char *start_directory, mgl::vec2f size);
         FileChooser(const FileChooser&) = delete;
         FileChooser& operator=(const FileChooser&) = delete;
 
@@ -24,11 +24,16 @@ namespace gsr {
 
         void set_current_directory(const char *directory);
     private:
-        mgl::vec2f content_size;
+        struct Folder {
+            mgl::Text text;
+            time_t last_modified_seconds = 0;
+        };
+
+        mgl::vec2f size;
         mgl::Text current_directory_text;
         int mouse_over_item = -1;
         int selected_item = -1;
-        std::vector<mgl::Text> folders;
+        std::vector<Folder> folders;
         mgl::Clock double_click_timer;
         int times_clicked_within_timer = 0;
     };

@@ -1,15 +1,18 @@
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
+
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/FloatRect.hpp>
+
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
+#include <algorithm>
 
 namespace gsr {
     static const float current_directory_padding_top_scale = 0.004629f;
@@ -17,14 +20,14 @@ namespace gsr {
     static const float current_directory_padding_left_scale = 0.004629f;
     static const float current_directory_padding_right_scale = 0.004629f;
     static const float spacing_between_current_directory_and_content = 0.015f;
-    static const int num_columns = 6;
-    static const float content_padding_top_scale = 0.015f;
-    static const float content_padding_bottom_scale = 0.015f;
-    static const float content_padding_left_scale = 0.015f;
-    static const float content_padding_right_scale = 0.015f;
+    static const int num_columns = 5;
+    static const float content_padding_top_scale = 0.03f;
+    static const float content_padding_bottom_scale = 0.03f;
+    static const float content_padding_left_scale = 0.03f;
+    static const float content_padding_right_scale = 0.03f;
 
-    FileChooser::FileChooser(const char *start_directory, mgl::vec2f content_size) :
-        content_size(content_size), current_directory_text(start_directory, get_theme().body_font)
+    FileChooser::FileChooser(const char *start_directory, mgl::vec2f size) :
+        size(size), current_directory_text(start_directory, get_theme().body_font)
     {
         set_current_directory(start_directory);
     }
@@ -45,7 +48,7 @@ namespace gsr {
 
             if(selected_item != -1 && times_clicked_within_timer > 0 && times_clicked_within_timer % 2 == 0) {
                 char new_directory[PATH_MAX];
-                snprintf(new_directory, sizeof(new_directory), "%s/%s", current_directory_text.get_string().c_str(), folders[selected_item].get_string().c_str());
+                snprintf(new_directory, sizeof(new_directory), "%s/%s", current_directory_text.get_string().c_str(), folders[selected_item].text.get_string().c_str());
                 set_current_directory(new_directory);
             }
         }
@@ -58,13 +61,14 @@ namespace gsr {
         if(!visible)
             return;
 
-        const mgl::vec2f draw_pos = position + offset;
+        const mgl::vec2f draw_pos_start = position + offset;
+        mgl::vec2f draw_pos = draw_pos_start;
         const mgl::vec2f current_directory_padding(
             current_directory_padding_left_scale * get_theme().window_height + current_directory_padding_right_scale * get_theme().window_height,
             current_directory_padding_top_scale * get_theme().window_height + current_directory_padding_bottom_scale * get_theme().window_height
         );
 
-        mgl::Rectangle current_directory_background(mgl::vec2f(content_size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y).floor());
+        mgl::Rectangle current_directory_background(mgl::vec2f(size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y).floor());
         current_directory_background.set_color(mgl::Color(0, 0, 0, 120));
         current_directory_background.set_position(draw_pos.floor());
         window.draw(current_directory_background);
@@ -73,9 +77,10 @@ namespace gsr {
         current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background.get_size().y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());
         window.draw(current_directory_text);
 
-        mgl::Rectangle content_background(content_size.floor());
+        draw_pos += mgl::vec2f(0.0f, current_directory_background.get_size().y + spacing_between_current_directory_and_content * get_theme().window_height);
+        mgl::Rectangle content_background(mgl::vec2f(size.x, size.y - (draw_pos.y - draw_pos_start.y)).floor());
         content_background.set_color(mgl::Color(0, 0, 0, 120));
-        content_background.set_position((draw_pos + mgl::vec2f(0.0f, current_directory_background.get_size().y + spacing_between_current_directory_and_content * get_theme().window_height)).floor());
+        content_background.set_position(draw_pos.floor());
         window.draw(content_background);
 
         const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
@@ -85,11 +90,11 @@ namespace gsr {
         const int content_padding_left = content_padding_left_scale * get_theme().window_height;
         const int content_padding_right = content_padding_right_scale * get_theme().window_height;
 
-        const float folder_width = (int)((content_size.x - (content_padding_left + content_padding_right) * num_columns) / num_columns);
+        const float folder_width = (int)((content_background.get_size().x - (content_padding_left + content_padding_right) * num_columns) / num_columns);
         const float width_per_item_after = content_padding_right + folder_width + content_padding_left;
         mgl::vec2f folder_pos = content_background.get_position() + mgl::vec2f(content_padding_left, content_padding_top);
         for(int i = 0; i < (int)folders.size(); ++i) {
-            auto &folder_text = folders[i];
+            auto &folder = folders[i];
 
             mgl::Sprite folder_sprite(&get_theme().folder_texture);
             folder_sprite.set_position(folder_pos.floor());
@@ -116,11 +121,11 @@ namespace gsr {
             window.draw(folder_sprite);
 
             // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
-            folder_text.set_position(folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder_text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y));
-            window.draw(folder_text);
+            folder.text.set_position(folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y));
+            window.draw(folder.text);
 
             folder_pos.x += width_per_item_after;
-            if(folder_pos.x + folder_width > content_background.get_position().x + content_size.x) {
+            if(folder_pos.x + folder_width > content_background.get_position().x + content_background.get_size().x) {
                 folder_pos.x = content_background.get_position().x + content_padding_left;
                 folder_pos.y += content_padding_bottom + folder_sprite.get_size().y + content_padding_top;
             }
@@ -131,22 +136,7 @@ namespace gsr {
         if(!visible)
             return {0.0f, 0.0f};
 
-        const mgl::vec2f current_directory_padding(
-            current_directory_padding_left_scale * get_theme().window_height + current_directory_padding_right_scale * get_theme().window_height,
-            current_directory_padding_top_scale * get_theme().window_height + current_directory_padding_bottom_scale * get_theme().window_height
-        );
-        return {content_size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y + spacing_between_current_directory_and_content * get_theme().window_height + content_size.y};
-    }
-
-    static bool is_dir(struct dirent *dir, const char *parent_directory) {
-        if(dir->d_type == DT_DIR)
-            return true;
-
-        char filepath[PATH_MAX];
-        snprintf(filepath, sizeof(filepath), "%s/%s", parent_directory, dir->d_name);
-
-        struct stat st;
-        return stat(filepath, &st) != -1 && S_ISDIR(st.st_mode);
+        return size;
     }
 
     void FileChooser::set_current_directory(const char *directory) {
@@ -162,13 +152,28 @@ namespace gsr {
         }
 
         struct dirent *dir = NULL;
+        char filepath[PATH_MAX];
         while((dir = readdir(d)) != NULL) {
             /* Ignore hidden files */
-            if(dir->d_name[0] == '.' || !is_dir(dir, directory))
+            if(dir->d_name[0] == '.')
                 continue;
-            folders.push_back(mgl::Text(dir->d_name, get_theme().body_font));
+
+            snprintf(filepath, sizeof(filepath), "%s/%s", directory, dir->d_name);
+
+            struct stat st;
+            if(stat(filepath, &st) == -1)
+                continue;
+
+            if(!S_ISDIR(st.st_mode))
+                continue;
+
+            folders.push_back({mgl::Text(dir->d_name, get_theme().body_font), st.st_mtim.tv_sec});
         }
 
         closedir(d);
+
+        std::sort(folders.begin(), folders.end(), [](const Folder &folder_a, const Folder &folder_b) {
+            return folder_a.last_modified_seconds > folder_b.last_modified_seconds;
+        });
     }
 }

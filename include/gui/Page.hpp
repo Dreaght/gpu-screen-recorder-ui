@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Widget.hpp"
-#include <vector>
+#include "../SafeVector.hpp"
 #include <memory>
 
 namespace gsr {
@@ -19,6 +19,6 @@ namespace gsr {
 
         virtual void add_widget(std::unique_ptr<Widget> widget);
     protected:
-        std::vector<std::unique_ptr<Widget>> widgets;
+        SafeVector<std::unique_ptr<Widget>> widgets;
     };
 }
