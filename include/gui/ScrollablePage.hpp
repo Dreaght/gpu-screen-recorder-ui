@@ -18,8 +18,12 @@ namespace gsr {
         void set_size(mgl::vec2f size);
 
         void add_widget(std::unique_ptr<Widget> widget);
+
+        void reset_scroll();
     private:
         mgl::vec2f size;
         SafeVector<std::unique_ptr<Widget>> widgets;
+        int scroll_target_y = 0;
+        double scroll_y = 0.0;
     };
 }

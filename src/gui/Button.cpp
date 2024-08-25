@@ -23,8 +23,9 @@ namespace gsr {
         const mgl::vec2f item_size = get_size().floor();
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const bool clicked_inside = mgl::FloatRect(position + offset, item_size).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
-            if(clicked_inside && on_click) {
-                on_click();
+            if(clicked_inside) {
+                if(on_click)
+                    on_click();
                 return false;
             }
         }
@@ -75,5 +76,9 @@ namespace gsr {
 
     const std::string& Button::get_text() const {
         return text.get_string();
+    }
+
+    void Button::set_text(std::string str) {
+        text.set_string(std::move(str));
     }
 }

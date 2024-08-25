@@ -31,6 +31,7 @@ namespace gsr {
         mgl::Texture combobox_arrow_texture;
         mgl::Texture settings_texture;
         mgl::Texture folder_texture;
+        mgl::Texture up_arrow_texture;
 
         double double_click_timeout_seconds = 0.4;
     };

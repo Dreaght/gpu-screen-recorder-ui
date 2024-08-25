@@ -6,23 +6,24 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
+    static const float button_spacing_scale = 0.015f;
+
     GsrPage::GsrPage() :
-        back_button(&get_theme().title_font, "Back",
-            mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor(), get_theme().page_bg_color),
         label_text("Settings", get_theme().title_font)
     {
-        //set_position(content_page_position);
         const float margin = 0.02f;
         set_margins(margin, margin, margin, margin);
-        back_button.set_border_scale(0.003f);
     }
 
     bool GsrPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
         if(!visible)
             return true;
 
-        if(!back_button.on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
-            return false;
+        for(size_t i = 0; i < buttons.size(); ++i) {
+            ButtonItem &button_item = buttons[i];
+            if(!button_item.button->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
+                return false;
+        }
 
         const int margin_top = margin_top_scale * get_theme().window_height;
         const int margin_left = margin_left_scale * get_theme().window_height;
@@ -49,8 +50,8 @@ namespace gsr {
         if(!visible)
             return;
 
-        const mgl::vec2f content_page_size = get_size();
         const mgl::vec2f content_page_position = get_content_position();
+        const mgl::vec2f content_page_size = get_size();
 
         mgl::Rectangle background(content_page_size);
         background.set_position(content_page_position);
@@ -63,9 +64,7 @@ namespace gsr {
         window.draw(border);
 
         draw_page_label(window, content_page_position);
-
-        back_button.set_position(content_page_position + mgl::vec2f(content_page_size.x + get_horizontal_spacing(), 0.0f).floor());
-        back_button.draw(window, mgl::vec2f(0.0f, 0.0f));
+        draw_buttons(window, content_page_position, content_page_size);
 
         const int margin_top = margin_top_scale * get_theme().window_height;
         const int margin_left = margin_left_scale * get_theme().window_height;
@@ -88,6 +87,16 @@ namespace gsr {
         icon.set_height((int)(background.get_size().y * 0.5f));
         icon.set_position((background.get_position() + background.get_size() * 0.5f - icon.get_size() * 0.5f).floor());
         window.draw(icon);
+    }
+
+    void GsrPage::draw_buttons(mgl::Window &window, mgl::vec2f body_pos, mgl::vec2f body_size) {
+        float offset_y = 0.0f;
+        for(size_t i = 0; i < buttons.size(); ++i) {
+            ButtonItem &button_item = buttons[i];
+            button_item.button->set_position(body_pos + mgl::vec2f(body_size.x + get_horizontal_spacing(), offset_y).floor());
+            button_item.button->draw(window, mgl::vec2f(0.0f, 0.0f));
+            offset_y +=  button_item.button->get_size().y + (button_spacing_scale * get_theme().window_height);
+        }
     }
 
     void GsrPage::draw_children(mgl::Window &window, mgl::vec2f position) {
@@ -142,8 +151,15 @@ namespace gsr {
         margin_right_scale = right;
     }
 
-    void GsrPage::set_on_back_button_click(std::function<void()> on_click_handler) {
-        back_button.on_click = std::move(on_click_handler);
+    void GsrPage::add_button(const std::string &text, const std::string &id, mgl::Color color) {
+        auto button = std::make_unique<Button>(&get_theme().title_font, text.c_str(),
+            mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor(), color);
+        button->set_border_scale(0.003f);
+        button->on_click = [this, id]() {
+            if(on_click)
+                on_click(id);
+        };
+        buttons.push_back({ std::move(button), id });
     }
 
     float GsrPage::get_border_size() const {

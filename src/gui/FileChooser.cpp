@@ -1,5 +1,6 @@
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/Utils.hpp"
+#include "../../include/Utils.hpp"
 #include "../../include/Theme.hpp"
 
 #include <mglpp/graphics/Rectangle.hpp>
@@ -25,14 +26,12 @@ namespace gsr {
     static const float content_padding_bottom_scale = 0.03f;
     static const float content_padding_left_scale = 0.03f;
     static const float content_padding_right_scale = 0.03f;
+    static const float up_button_spacing_scale = 0.01f;
 
-    FileChooser::FileChooser(const char *start_directory, mgl::vec2f size) :
-        size(size), current_directory_text(start_directory, get_theme().body_font)
-    {
-        set_current_directory(start_directory);
-    }
+    FileChooserBody::FileChooserBody(FileChooser *file_chooser, mgl::vec2f size) :
+        file_chooser(file_chooser), size(size), inner_size(size) {}
 
-    bool FileChooser::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+    bool FileChooserBody::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f) {
         if(!visible)
             return true;
 
@@ -44,45 +43,29 @@ namespace gsr {
             }
             double_click_timer.restart();
 
+            const int prev_selected_item = selected_item;
             selected_item = mouse_over_item;
+            const bool item_changed = selected_item != prev_selected_item;
+            if(item_changed)
+                times_clicked_within_timer = 1;
 
             if(selected_item != -1 && times_clicked_within_timer > 0 && times_clicked_within_timer % 2 == 0) {
-                char new_directory[PATH_MAX];
-                snprintf(new_directory, sizeof(new_directory), "%s/%s", current_directory_text.get_string().c_str(), folders[selected_item].text.get_string().c_str());
-                set_current_directory(new_directory);
+                file_chooser->open_subdirectory(folders[selected_item].text.get_string().c_str());
             }
         }
         return true;
     }
 
-    void FileChooser::draw(mgl::Window &window, mgl::vec2f offset) {
+    void FileChooserBody::draw(mgl::Window &window, mgl::vec2f offset) {
         mouse_over_item = -1;
 
         if(!visible)
             return;
 
-        const mgl::vec2f draw_pos_start = position + offset;
-        mgl::vec2f draw_pos = draw_pos_start;
-        const mgl::vec2f current_directory_padding(
-            current_directory_padding_left_scale * get_theme().window_height + current_directory_padding_right_scale * get_theme().window_height,
-            current_directory_padding_top_scale * get_theme().window_height + current_directory_padding_bottom_scale * get_theme().window_height
-        );
+        mgl_scissor scissor;
+        mgl_window_get_scissor(window.internal_window(), &scissor);
 
-        mgl::Rectangle current_directory_background(mgl::vec2f(size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y).floor());
-        current_directory_background.set_color(mgl::Color(0, 0, 0, 120));
-        current_directory_background.set_position(draw_pos.floor());
-        window.draw(current_directory_background);
-
-        current_directory_text.set_color(get_theme().text_color);
-        current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background.get_size().y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());
-        window.draw(current_directory_text);
-
-        draw_pos += mgl::vec2f(0.0f, current_directory_background.get_size().y + spacing_between_current_directory_and_content * get_theme().window_height);
-        mgl::Rectangle content_background(mgl::vec2f(size.x, size.y - (draw_pos.y - draw_pos_start.y)).floor());
-        content_background.set_color(mgl::Color(0, 0, 0, 120));
-        content_background.set_position(draw_pos.floor());
-        window.draw(content_background);
-
+        const mgl::vec2f draw_pos = position + offset;
         const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
 
         const int content_padding_top = content_padding_top_scale * get_theme().window_height;
@@ -90,9 +73,11 @@ namespace gsr {
         const int content_padding_left = content_padding_left_scale * get_theme().window_height;
         const int content_padding_right = content_padding_right_scale * get_theme().window_height;
 
-        const float folder_width = (int)((content_background.get_size().x - (content_padding_left + content_padding_right) * num_columns) / num_columns);
+        const float folder_width = (int)((size.x - (content_padding_left + content_padding_right) * num_columns) / num_columns);
         const float width_per_item_after = content_padding_right + folder_width + content_padding_left;
-        mgl::vec2f folder_pos = content_background.get_position() + mgl::vec2f(content_padding_left, content_padding_top);
+        mgl::vec2f folder_pos = draw_pos + mgl::vec2f(content_padding_left, content_padding_top);
+        bool end_is_newline = false;
+
         for(int i = 0; i < (int)folders.size(); ++i) {
             auto &folder = folders[i];
 
@@ -118,32 +103,33 @@ namespace gsr {
                 mouse_over_item = i;
             }
 
-            window.draw(folder_sprite);
+            if(item_pos.y + item_size.y >= draw_pos.y && item_pos.y < scissor.position.y + scissor.size.y) {
+                window.draw(folder_sprite);
 
-            // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
-            folder.text.set_position(folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y));
-            window.draw(folder.text);
+                // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
+                folder.text.set_position(folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y));
+                window.draw(folder.text);
+            }
 
             folder_pos.x += width_per_item_after;
-            if(folder_pos.x + folder_width > content_background.get_position().x + content_background.get_size().x) {
-                folder_pos.x = content_background.get_position().x + content_padding_left;
+            if(folder_pos.x + folder_width > draw_pos.x + size.x) {
+                folder_pos.x = draw_pos.x + content_padding_left;
                 folder_pos.y += content_padding_bottom + folder_sprite.get_size().y + content_padding_top;
+                if(i == (int)folders.size() - 1)
+                    end_is_newline = true;
             }
         }
+
+        if(!end_is_newline)
+            folder_pos.y += content_padding_bottom + folder_width;
+
+        inner_size = mgl::vec2f(size.x, folder_pos.y - draw_pos.y);
     }
 
-    mgl::vec2f FileChooser::get_size() {
-        if(!visible)
-            return {0.0f, 0.0f};
-
-        return size;
-    }
-
-    void FileChooser::set_current_directory(const char *directory) {
+    void FileChooserBody::set_current_directory(const char *directory) {
         folders.clear();
         selected_item = -1;
         mouse_over_item = -1;
-        current_directory_text.set_string(directory);
 
         DIR *d = opendir(directory);
         if(!d) {
@@ -175,5 +161,118 @@ namespace gsr {
         std::sort(folders.begin(), folders.end(), [](const Folder &folder_a, const Folder &folder_b) {
             return folder_a.last_modified_seconds > folder_b.last_modified_seconds;
         });
+    }
+
+    mgl::vec2f FileChooserBody::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        return size;
+    }
+
+    mgl::vec2f FileChooserBody::get_inner_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        return inner_size;
+    }
+
+    void FileChooserBody::set_size(mgl::vec2f size) {
+        this->size = size;
+    }
+
+    FileChooser::FileChooser(const char *start_directory, mgl::vec2f size) :
+        size(size),
+        current_directory_text(start_directory, get_theme().body_font),
+        up_arrow_sprite(&get_theme().up_arrow_texture),
+        scrollable_page(size)
+    {
+        auto file_chooser_body = std::make_unique<FileChooserBody>(this, size);
+        file_chooser_body_ptr = file_chooser_body.get();
+        scrollable_page.add_widget(std::move(file_chooser_body));
+        set_current_directory(start_directory);
+    }
+
+    bool FileChooser::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return true;
+
+        if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
+            if(mgl::FloatRect(up_arrow_sprite.get_position(), up_arrow_sprite.get_size()).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
+                open_parent_directory();
+                return false;
+            }
+        }
+
+        return scrollable_page.on_event(event, window, offset);
+    }
+
+    void FileChooser::draw(mgl::Window &window, mgl::vec2f offset) {
+        if(!visible)
+            return;
+
+        const mgl::vec2f draw_pos_start = position + offset;
+        mgl::vec2f draw_pos = draw_pos_start;
+        const mgl::vec2f current_directory_padding(
+            current_directory_padding_left_scale * get_theme().window_height + current_directory_padding_right_scale * get_theme().window_height,
+            current_directory_padding_top_scale * get_theme().window_height + current_directory_padding_bottom_scale * get_theme().window_height
+        );
+
+        mgl::vec2f current_directory_background_size = mgl::vec2f(size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y).floor();
+
+        up_arrow_sprite.set_height((int)(current_directory_background_size.y * 0.8f));
+        up_arrow_sprite.set_position((draw_pos + mgl::vec2f(size.x - up_arrow_sprite.get_size().x, current_directory_background_size.y * 0.5f - up_arrow_sprite.get_size().y * 0.5f)).floor());
+        const bool mouse_inside_up_arrow = mgl::FloatRect(up_arrow_sprite.get_position(), up_arrow_sprite.get_size()).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
+        up_arrow_sprite.set_color(mouse_inside_up_arrow ? get_theme().tint_color : mgl::Color(255, 255, 255));
+        window.draw(up_arrow_sprite);
+
+        current_directory_background_size.x -= (up_arrow_sprite.get_size().x + up_button_spacing_scale * get_theme().window_height);
+        mgl::Rectangle current_directory_background(current_directory_background_size.floor());
+        current_directory_background.set_color(mgl::Color(0, 0, 0, 120));
+        current_directory_background.set_position(draw_pos.floor());
+        window.draw(current_directory_background);
+
+        current_directory_text.set_color(get_theme().text_color);
+        current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background_size.y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());
+        window.draw(current_directory_text);
+
+        draw_pos += mgl::vec2f(0.0f, current_directory_background_size.y + spacing_between_current_directory_and_content * get_theme().window_height);
+        const mgl::vec2f body_size = mgl::vec2f(size.x, size.y - (draw_pos.y - draw_pos_start.y)).floor();
+        scrollable_page.set_size(body_size);
+        file_chooser_body_ptr->set_size(body_size);
+
+        mgl::Rectangle content_background(size.floor());
+        content_background.set_position(draw_pos.floor());
+        content_background.set_color(mgl::Color(0, 0, 0, 120));
+        window.draw(content_background);
+
+        scrollable_page.draw(window, draw_pos.floor());
+    }
+
+    mgl::vec2f FileChooser::get_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        return size;
+    }
+
+    void FileChooser::set_current_directory(const char *directory) {
+        current_directory_text.set_string(directory);
+        file_chooser_body_ptr->set_current_directory(directory);
+        scrollable_page.reset_scroll();
+    }
+
+    void FileChooser::open_subdirectory(const char *name) {
+        char filepath[PATH_MAX];
+        snprintf(filepath, sizeof(filepath), "%s/%s", current_directory_text.get_string().c_str(), name);
+        set_current_directory(filepath);
+    }
+
+    void FileChooser::open_parent_directory() {
+        set_current_directory(get_parent_directory(current_directory_text.get_string()).c_str());
+    }
+
+    const std::string& FileChooser::get_current_directory() const {
+        return current_directory_text.get_string();
     }
 }

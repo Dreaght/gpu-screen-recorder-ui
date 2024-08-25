@@ -666,7 +666,12 @@ int main(int argc, char **argv) {
         window.display();
     };
 
+    mgl::Clock frame_delta_clock;
     while(window.is_open()) {
+        const double frame_delta_seconds = frame_delta_clock.get_elapsed_time_seconds();
+        frame_delta_clock.restart();
+        gsr::set_frame_delta_seconds(frame_delta_seconds);
+
         if(page_stack.empty() || !running) {
             running = false;
             goto quit;

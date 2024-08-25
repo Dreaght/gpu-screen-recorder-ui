@@ -56,6 +56,9 @@ namespace gsr {
         if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str(), {false, false, false}))
             goto error;
 
+        if(!theme->up_arrow_texture.load_from_file((resources_path + "images/up_arrow.png").c_str(), {false, false, false}))
+            goto error;
+
         return true;
 
         error:

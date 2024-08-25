@@ -22,6 +22,7 @@ namespace gsr {
         void set_border_scale(float scale);
 
         const std::string& get_text() const;
+        void set_text(std::string str);
 
         std::function<void()> on_click;
     private:

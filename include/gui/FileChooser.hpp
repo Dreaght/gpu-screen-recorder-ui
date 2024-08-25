@@ -1,16 +1,51 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "ScrollablePage.hpp"
 #include <functional>
 #include <vector>
 
 #include <mglpp/graphics/Text.hpp>
+#include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/system/Clock.hpp>
 
 // This currently only supports displaying folders
 // TODO: Support files as well
 
 namespace gsr {
+    class FileChooser;
+
+    class FileChooserBody : public Widget {
+        friend class FileChooser;
+    public:
+        FileChooserBody(FileChooser *file_chooser, mgl::vec2f size);
+        FileChooserBody(const FileChooserBody&) = delete;
+        FileChooserBody& operator=(const FileChooserBody&) = delete;
+
+        bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
+        void draw(mgl::Window &window, mgl::vec2f offset) override;
+
+        mgl::vec2f get_size() override;
+        mgl::vec2f get_inner_size() override;
+        void set_size(mgl::vec2f size);
+    private:
+        void set_current_directory(const char *directory);
+    private:
+        struct Folder {
+            mgl::Text text;
+            time_t last_modified_seconds = 0;
+        };
+
+        FileChooser *file_chooser = nullptr;
+        mgl::vec2f size;
+        mgl::vec2f inner_size;
+        std::vector<Folder> folders;
+        int mouse_over_item = -1;
+        int selected_item = -1;
+        mgl::Clock double_click_timer;
+        int times_clicked_within_timer = 0;
+    };
+
     class FileChooser : public Widget {
     public:
         FileChooser(const char *start_directory, mgl::vec2f size);
@@ -23,6 +58,9 @@ namespace gsr {
         mgl::vec2f get_size() override;
 
         void set_current_directory(const char *directory);
+        void open_subdirectory(const char *name);
+        void open_parent_directory();
+        const std::string& get_current_directory() const;
     private:
         struct Folder {
             mgl::Text text;
@@ -31,10 +69,8 @@ namespace gsr {
 
         mgl::vec2f size;
         mgl::Text current_directory_text;
-        int mouse_over_item = -1;
-        int selected_item = -1;
-        std::vector<Folder> folders;
-        mgl::Clock double_click_timer;
-        int times_clicked_within_timer = 0;
+        mgl::Sprite up_arrow_sprite;
+        ScrollablePage scrollable_page;
+        FileChooserBody *file_chooser_body_ptr = nullptr;
     };
 }

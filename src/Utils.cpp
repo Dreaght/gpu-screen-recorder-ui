@@ -166,4 +166,22 @@ namespace gsr {
         fclose(file);
         return success;
     }
+
+    std::string get_parent_directory(std::string_view directory) {
+        std::string result;
+
+        while(directory.size() > 1 && directory.back() == '/') {
+            directory.remove_suffix(1);
+        }
+
+        const size_t prev_slash_index = directory.rfind('/');
+        if(prev_slash_index == 0) {
+            result = "/";
+        } else if(prev_slash_index == std::string_view::npos) {
+            result = ".";
+        } else {
+            result = directory.substr(0, prev_slash_index);
+        }
+        return result;
+    }
 }

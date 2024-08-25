@@ -25,4 +25,8 @@ namespace gsr {
     std::string get_videos_dir();
     int create_directory_recursive(char *path);
     bool file_get_content(const char *filepath, std::string &file_content);
+
+    // Returns the path to the parent directory (ignoring trailing /)
+    // of "." if there is no parent directory and the directory path is relative
+    std::string get_parent_directory(std::string_view directory);
 }

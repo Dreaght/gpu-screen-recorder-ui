@@ -20,9 +20,11 @@ namespace gsr {
         settings_title_text("Settings", get_theme().title_font)
     {
         auto content_page = std::make_unique<GsrPage>();
-        content_page->set_on_back_button_click([page_stack]() {
-            page_stack->pop();
-        });
+        content_page->add_button("Back", "back", get_theme().page_bg_color);
+        content_page->on_click = [page_stack](const std::string &id) {
+            if(id == "back")
+                page_stack->pop();
+        };
         content_page_ptr = content_page.get();
         add_widget(std::move(content_page));
 
@@ -363,19 +365,25 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_save_directory(const char *label) {
         auto save_directory_list = std::make_unique<List>(List::Orientation::VERTICAL);
         save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_theme().text_color));
-        auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, "/home/dec05eba/Videos", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, "/home/dec05eba", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
             auto select_directory_page = std::make_unique<GsrPage>();
-            select_directory_page->set_on_back_button_click([this]() {
-                page_stack->pop();
-            });
+            select_directory_page->add_button("Save", "save", get_theme().tint_color);
+            select_directory_page->add_button("Cancel", "cancel", get_theme().page_bg_color);
             
-            auto file_chooser = std::make_unique<gsr::FileChooser>("/home/dec05eba", select_directory_page->get_inner_size());
+            auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text().c_str(), select_directory_page->get_inner_size());
+            FileChooser *file_chooser_ptr = file_chooser.get();
             select_directory_page->add_widget(std::move(file_chooser));
+
+            select_directory_page->on_click = [this, file_chooser_ptr](const std::string &id) {
+                if(id == "save")
+                    save_directory_button_ptr->set_text(file_chooser_ptr->get_current_directory());
+                page_stack->pop();
+            };
 
             page_stack->push(std::move(select_directory_page));
         };
-        save_directory_button_ptr = save_directory_button.get();
         save_directory_list->add_widget(std::move(save_directory_button));
         return save_directory_list;
     }

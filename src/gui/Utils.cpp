@@ -3,6 +3,8 @@
 #include <mglpp/graphics/Rectangle.hpp>
 
 namespace gsr {
+    static double frame_delta_seconds = 1.0;
+
     // TODO: Use vertices to make it one draw call
     void draw_rectangle_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, float border_size) {
         pos = pos.floor();
@@ -39,5 +41,13 @@ namespace gsr {
             rect.set_color(color);
             window.draw(rect);
         }
+    }
+
+    double get_frame_delta_seconds() {
+        return frame_delta_seconds;
+    }
+
+    void set_frame_delta_seconds(double frame_delta) {
+        frame_delta_seconds = frame_delta;
     }
 }
