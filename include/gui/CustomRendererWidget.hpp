@@ -15,6 +15,7 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
+        void set_size(mgl::vec2f size);
 
         std::function<void(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size)> draw_handler;
         // Return true to allow other widgets to handle events

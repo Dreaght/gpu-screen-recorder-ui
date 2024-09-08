@@ -1,0 +1,137 @@
+#include "../include/GlobalHotkeysX11.hpp"
+#define XK_MISCELLANY
+#include <X11/keysymdef.h>
+
+namespace gsr {
+    static bool x_failed = false;
+    static int xerror_grab_error(Display*, XErrorEvent*) {
+        x_failed = true;
+        return 0;
+    }
+
+    static unsigned int x11_get_numlock_mask(Display *dpy) {
+        unsigned int numlockmask = 0;
+        KeyCode numlock_keycode = XKeysymToKeycode(dpy, XK_Num_Lock);
+        XModifierKeymap *modmap = XGetModifierMapping(dpy);
+        if(modmap) {
+            for(int i = 0; i < 8; ++i) {
+                for(int j = 0; j < modmap->max_keypermod; ++j) {
+                    if(modmap->modifiermap[i * modmap->max_keypermod + j] == numlock_keycode)
+                        numlockmask = (1 << i);
+                }
+            }
+            XFreeModifiermap(modmap);
+        }
+        return numlockmask;
+    }
+
+    GlobalHotkeysX11::GlobalHotkeysX11() {
+        dpy = XOpenDisplay(NULL);
+        if(!dpy)
+            fprintf(stderr, "GlobalHotkeysX11 error: failed to connect to X11 server, global hotkeys wont be available\n");
+    }
+
+    GlobalHotkeysX11::~GlobalHotkeysX11() {
+        if(dpy) {
+            XCloseDisplay(dpy);
+            dpy = nullptr;
+        }
+    }
+
+    bool GlobalHotkeysX11::bind_key_press(Hotkey hotkey, const std::string &id, GlobalHotkeyCallback callback) {
+        if(!dpy)
+            return false;
+
+        auto it = bound_keys_by_id.find(id);
+        if(it != bound_keys_by_id.end())
+            return false;
+
+        x_failed = false;
+        XErrorHandler prev_xerror = XSetErrorHandler(xerror_grab_error);
+
+        unsigned int numlock_mask = x11_get_numlock_mask(dpy);
+        unsigned int modifiers[] = { 0, LockMask, numlock_mask, numlock_mask|LockMask };
+        for(int i = 0; i < 4; ++i) {
+            XGrabKey(dpy, XKeysymToKeycode(dpy, hotkey.key), hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy), False, GrabModeAsync, GrabModeAsync);
+        }
+        XSync(dpy, False);
+        
+        if(x_failed) {
+            for(int i = 0; i < 4; ++i) {
+                XUngrabKey(dpy, XKeysymToKeycode(dpy, hotkey.key), hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy));
+            }
+            XSync(dpy, False);
+            XSetErrorHandler(prev_xerror);
+            return false;
+        } else {
+            XSetErrorHandler(prev_xerror);
+            bound_keys_by_id[id] = { hotkey, std::move(callback) };
+            return true;
+        }
+    }
+
+    void GlobalHotkeysX11::unbind_key_press(const std::string &id) {
+        if(!dpy)
+            return;
+
+        auto it = bound_keys_by_id.find(id);
+        if(it == bound_keys_by_id.end())
+            return;
+
+        x_failed = false;
+        XErrorHandler prev_xerror = XSetErrorHandler(xerror_grab_error);
+
+        unsigned int numlock_mask = x11_get_numlock_mask(dpy);
+        unsigned int modifiers[] = { 0, LockMask, numlock_mask, numlock_mask|LockMask };
+        for(int i = 0; i < 4; ++i) {
+            XUngrabKey(dpy, XKeysymToKeycode(dpy, it->second.hotkey.key), it->second.hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy));
+        }
+        XSync(dpy, False);
+
+        XSetErrorHandler(prev_xerror);
+        bound_keys_by_id.erase(id);
+    }
+
+    void GlobalHotkeysX11::unbind_all_keys() {
+        if(!dpy)
+            return;
+
+        x_failed = false;
+        XErrorHandler prev_xerror = XSetErrorHandler(xerror_grab_error);
+
+        unsigned int numlock_mask = x11_get_numlock_mask(dpy);
+        unsigned int modifiers[] = { 0, LockMask, numlock_mask, numlock_mask|LockMask };
+        for(auto it = bound_keys_by_id.begin(); it != bound_keys_by_id.end();) {
+            for(int i = 0; i < 4; ++i) {
+                XUngrabKey(dpy, XKeysymToKeycode(dpy, it->second.hotkey.key), it->second.hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy));
+            }
+        }
+        bound_keys_by_id.clear();
+        XSync(dpy, False);
+
+        XSetErrorHandler(prev_xerror);
+    }
+
+    void GlobalHotkeysX11::poll_events() {
+        while(XPending(dpy)) {
+            XNextEvent(dpy, &xev);
+            if(xev.type == KeyPress) {
+                const KeySym key_sym = XLookupKeysym(&xev.xkey, 0);
+                call_hotkey_callback({ key_sym, xev.xkey.state });
+            }
+        }
+    }
+
+    static unsigned int key_state_without_locks(unsigned int key_state) {
+        return key_state & ~(Mod2Mask|LockMask);
+    }
+
+    void GlobalHotkeysX11::call_hotkey_callback(Hotkey hotkey) const {
+        for(const auto &[key, val] : bound_keys_by_id) {
+            if(val.hotkey.key == hotkey.key && key_state_without_locks(val.hotkey.modifiers) == key_state_without_locks(hotkey.modifiers)) {
+                val.callback(key);
+                return;
+            }
+        }
+    }
+}

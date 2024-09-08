@@ -7,6 +7,7 @@ elif get_option('buildtype') == 'release'
 endif
 
 src = [
+    'src/window_texture.c',
     'src/Theme.cpp',
     'src/gui/Widget.cpp',
     'src/gui/ScrollablePage.cpp',
@@ -26,11 +27,13 @@ src = [
     'src/gui/FileChooser.cpp',
     'src/gui/SettingsPage.cpp',
     'src/gui/GsrPage.cpp',
+    'src/gui/Subsection.cpp',
     'src/Utils.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
     'src/Process.cpp',
-    'src/window_texture.c',
+    'src/Overlay.cpp',
+    'src/GlobalHotkeysX11.cpp',
     'src/main.cpp',
 ]
 
@@ -54,4 +57,12 @@ executable(
     cpp_args : '-DGSR_OVERLAY_RESOURCES_PATH="' + gsr_overlay_resources_path + '"',
 )
 
+executable(
+    'gsr-overlay-daemon',
+    ['gpu-screen-recorder-overlay-daemon/main.c'],
+    install : true,
+    dependencies : [dependency('x11')],
+)
+
 install_subdir('images', install_dir : gsr_overlay_resources_path)
+install_subdir('fonts', install_dir : gsr_overlay_resources_path)

@@ -52,6 +52,9 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
+                    if(i > 0)
+                        draw_pos.y += spacing;
+
                     const auto widget_size = widget->get_size();
                     // TODO: Do this parent widget alignment for horizontal alignment and for other types of widget alignment
                     // and other widgets.
@@ -67,8 +70,6 @@ namespace gsr {
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
                     draw_pos.y += widget_size.y;
-                    if(widget_size.y > 0.001f && i + 1 < widgets.size())
-                        draw_pos.y += spacing;
                 }
                 break;
             }
@@ -77,6 +78,9 @@ namespace gsr {
                     auto &widget = widgets[i];
                     if(!widget->visible)
                         continue;
+
+                    if(i > 0)
+                        draw_pos.x += spacing;
 
                     const auto widget_size = widget->get_size();
                     if(content_alignment == Alignment::CENTER)
@@ -88,8 +92,6 @@ namespace gsr {
                     if(widget.get() != selected_widget)
                         widget->draw(window, mgl::vec2f(0.0f, 0.0f));
                     draw_pos.x += widget_size.x;
-                    if(widget_size.x > 0.001f && i + 1 < widgets.size())
-                        draw_pos.x += spacing;
                 }
                 break;
             }
@@ -146,11 +148,12 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
+                    if(i > 0)
+                        size.y += spacing;
+
                     const auto widget_size = widget->get_size();
                     size.x = std::max(size.x, widget_size.x);
                     size.y += widget_size.y;
-                    if(widget_size.y > 0.001f && i + 1 < widgets.size())
-                        size.y += spacing;
                 }
                 break;
             }
@@ -160,10 +163,11 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
+                    if(i > 0)
+                        size.x += spacing;
+
                     const auto widget_size = widget->get_size();
                     size.x += widget_size.x;
-                    if(widget_size.x > 0.001f && i + 1 < widgets.size())
-                        size.x += spacing;
                     size.y = std::max(size.y, widget_size.y);
                 }
                 break;

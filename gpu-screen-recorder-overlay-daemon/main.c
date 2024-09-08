@@ -2,6 +2,8 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <sys/wait.h>
+#include <unistd.h>
+
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 

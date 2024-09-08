@@ -10,7 +10,11 @@ namespace gsr {
         bool h264 = false;
         bool h264_software = false;
         bool hevc = false;
+        bool hevc_hdr = false;
+        bool hevc_10bit = false;
         bool av1 = false;
+        bool av1_hdr = false;
+        bool av1_10bit = false;
         bool vp8 = false;
         bool vp9 = false;
     };

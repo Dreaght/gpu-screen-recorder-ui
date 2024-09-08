@@ -38,4 +38,8 @@ namespace gsr {
 
         return size;
     }
+
+    void CustomRendererWidget::set_size(mgl::vec2f size) {
+        this->size = size;
+    }
 }

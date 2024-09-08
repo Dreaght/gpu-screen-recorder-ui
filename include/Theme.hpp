@@ -32,11 +32,20 @@ namespace gsr {
         mgl::Texture settings_texture;
         mgl::Texture folder_texture;
         mgl::Texture up_arrow_texture;
+        mgl::Texture replay_button_texture;
+        mgl::Texture record_button_texture;
+        mgl::Texture stream_button_texture;
+        mgl::Texture close_texture;
+        mgl::Texture logo_texture;
 
         double double_click_timeout_seconds = 0.4;
+
+        // Reloads fonts
+        bool set_window_size(mgl::vec2i window_size);
     };
 
-    bool init_theme(const GsrInfo &gsr_info, mgl::vec2i window_size, const std::string &resources_path);
+    bool init_theme(const GsrInfo &gsr_info, const std::string &resources_path);
     void deinit_theme();
+
     Theme& get_theme();
 }

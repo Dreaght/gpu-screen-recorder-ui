@@ -13,6 +13,7 @@
 namespace gsr {
     class GsrPage;
     class PageStack;
+    class ScrollablePage;
 
     class SettingsPage : public StaticPage {
     public:
@@ -31,7 +32,7 @@ namespace gsr {
     private:
         std::unique_ptr<RadioButton> create_view_radio_button();
         std::unique_ptr<ComboBox> create_record_area_box(const GsrInfo &gsr_info);
-        std::unique_ptr<List> create_record_area(const GsrInfo &gsr_info);
+        std::unique_ptr<Widget> create_record_area(const GsrInfo &gsr_info);
         std::unique_ptr<List> create_select_window();
         std::unique_ptr<Entry> create_area_width_entry();
         std::unique_ptr<Entry> create_area_height_entry();
@@ -39,14 +40,14 @@ namespace gsr {
         std::unique_ptr<List> create_area_size_section();
         std::unique_ptr<CheckBox> create_restore_portal_session_checkbox();
         std::unique_ptr<List> create_restore_portal_session_section();
-        std::unique_ptr<List> create_capture_target(const GsrInfo &gsr_info);
+        std::unique_ptr<Widget> create_capture_target(const GsrInfo &gsr_info);
         std::unique_ptr<ComboBox> create_audio_track_selection_checkbox(const std::vector<AudioDevice> &audio_devices);
         std::unique_ptr<Button> create_remove_audio_track_button(List *audio_device_list_ptr);
         std::unique_ptr<List> create_audio_track(const std::vector<AudioDevice> &audio_devices);
         std::unique_ptr<Button> create_add_audio_track_button(const std::vector<AudioDevice> &audio_devices);
         std::unique_ptr<List> create_audio_track_section(const std::vector<AudioDevice> &audio_devices);
         std::unique_ptr<CheckBox> create_merge_audio_tracks_checkbox();
-        std::unique_ptr<List> create_audio_device_section(const std::vector<AudioDevice> &audio_devices);
+        std::unique_ptr<Widget> create_audio_device_section(const std::vector<AudioDevice> &audio_devices);
         std::unique_ptr<ComboBox> create_video_quality_box();
         std::unique_ptr<List> create_video_quality();
         std::unique_ptr<ComboBox> create_color_range_box();
@@ -62,7 +63,9 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_framerate_mode_box();
         std::unique_ptr<List> create_framerate_mode();
         std::unique_ptr<List> create_framerate_section();
-        std::unique_ptr<List> create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices);
+        std::unique_ptr<Widget> create_record_cursor_section();
+        std::unique_ptr<Widget> create_video_section(const GsrInfo &gsr_info);
+        std::unique_ptr<Widget> create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices);
         void add_widgets(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices);
 
         void add_page_specific_widgets();
@@ -92,6 +95,7 @@ namespace gsr {
         std::optional<Config> &config;
 
         GsrPage *content_page_ptr = nullptr;
+        ScrollablePage *settings_scrollable_page_ptr = nullptr;
         List *settings_list_ptr = nullptr;
         List *select_window_list_ptr = nullptr;
         List *area_size_list_ptr = nullptr;

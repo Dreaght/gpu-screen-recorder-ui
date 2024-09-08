@@ -13,6 +13,7 @@ namespace gsr {
         friend class ScrollablePage;
         friend class List;
         friend class Page;
+        friend class Subsection;
     public:
         enum class Alignment {
             START,

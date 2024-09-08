@@ -46,8 +46,16 @@ namespace gsr {
             gsr_info->supported_video_codecs.h264_software = true;
         else if(line == "hevc")
             gsr_info->supported_video_codecs.hevc = true;
+        else if(line == "hevc_hdr")
+            gsr_info->supported_video_codecs.hevc_hdr = true;
+        else if(line == "hevc_10bit")
+            gsr_info->supported_video_codecs.hevc_10bit = true;
         else if(line == "av1")
             gsr_info->supported_video_codecs.av1 = true;
+        else if(line == "av1_hdr")
+            gsr_info->supported_video_codecs.av1_hdr = true;
+        else if(line == "av1_10bit")
+            gsr_info->supported_video_codecs.av1_10bit = true;
         else if(line == "vp8")
             gsr_info->supported_video_codecs.vp8 = true;
         else if(line == "vp9")

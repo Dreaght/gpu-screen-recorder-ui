@@ -22,6 +22,9 @@ namespace gsr {
         if(!visible)
             return true;
 
+        if(items.empty())
+            return true;
+
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
@@ -73,9 +76,6 @@ namespace gsr {
 
         update_if_dirty();
 
-        if(items.empty())
-            return;
-
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
@@ -106,15 +106,17 @@ namespace gsr {
         const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
         mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
 
-        Item &item = items[selected_item];
-        item.text.set_position(pos.floor());
-        if(show_dropdown || mouse_inside) {
-            const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
-            const mgl::Color border_color = get_theme().tint_color;
-            draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
+        if(selected_item < items.size()) {
+            Item &selected_item_widget = items[selected_item];
+            selected_item_widget.text.set_position(pos.floor());
+            if(show_dropdown || mouse_inside) {
+                const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
+                const mgl::Color border_color = get_theme().tint_color;
+                draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
+            }
+            window.draw(selected_item_widget.text);
+            pos.y += selected_item_widget.text.get_bounds().size.y + padding_top + padding_bottom;
         }
-        window.draw(item.text);
-        pos.y += item.text.get_bounds().size.y + padding_top + padding_bottom;
 
         for(size_t i = 0; i < items.size(); ++i) {
             Item &item = items[i];
@@ -185,6 +187,10 @@ namespace gsr {
             max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
             max_size.y += bounds.y + padding_top + padding_bottom;
         }
+
+        if(max_size.x <= 0.001f)
+            max_size.x = 50.0f;
+
         max_size.x += padding_left + get_dropdown_arrow_height();
         dirty = false;
     }

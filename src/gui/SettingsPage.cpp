@@ -3,8 +3,10 @@
 #include "../../include/gui/Label.hpp"
 #include "../../include/gui/PageStack.hpp"
 #include "../../include/gui/FileChooser.hpp"
+#include "../../include/gui/Subsection.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
+#include "../../include/Utils.hpp"
 
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Sprite.hpp>
@@ -61,9 +63,9 @@ namespace gsr {
         return record_area_box;
     }
 
-    std::unique_ptr<List> SettingsPage::create_record_area(const GsrInfo &gsr_info) {
+    std::unique_ptr<Widget> SettingsPage::create_record_area(const GsrInfo &gsr_info) {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Record area:", get_theme().text_color));
+        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_theme().text_color));
         record_area_list->add_widget(create_record_area_box(gsr_info));
         return record_area_list;
     }
@@ -121,14 +123,14 @@ namespace gsr {
         return restore_portal_session_list;
     }
 
-    std::unique_ptr<List> SettingsPage::create_capture_target(const GsrInfo &gsr_info) {
+    std::unique_ptr<Widget> SettingsPage::create_capture_target(const GsrInfo &gsr_info) {
         // TODO: List::Alignment::Center causes 1 frame glitch when switching record area but only the first time
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         capture_target_list->add_widget(create_record_area(gsr_info));
         capture_target_list->add_widget(create_select_window());
         capture_target_list->add_widget(create_area_size_section());
         capture_target_list->add_widget(create_restore_portal_session_section());
-        return capture_target_list;
+        return std::make_unique<Subsection>("Record area", std::move(capture_target_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_audio_track_selection_checkbox(const std::vector<AudioDevice> &audio_devices) {
@@ -177,13 +179,12 @@ namespace gsr {
         return merge_audio_tracks_checkbox;
     }
 
-    std::unique_ptr<List> SettingsPage::create_audio_device_section(const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<Widget> SettingsPage::create_audio_device_section(const std::vector<AudioDevice> &audio_devices) {
         auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_device_section_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Audio:", get_theme().text_color));
         audio_device_section_list->add_widget(create_add_audio_track_button(audio_devices));
         audio_device_section_list->add_widget(create_audio_track_section(audio_devices));
         audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
-        return audio_device_section_list;
+        return std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_video_quality_box() {
@@ -241,7 +242,14 @@ namespace gsr {
             video_codec_box->add_item("VP8", "vp8");
         if(gsr_info.supported_video_codecs.vp9)
             video_codec_box->add_item("VP9", "vp9");
-        // TODO: Add hdr options
+        if(gsr_info.supported_video_codecs.hevc_hdr)
+            video_codec_box->add_item("HEVC (HDR)", "hevc_hdr");
+        if(gsr_info.supported_video_codecs.hevc_10bit)
+            video_codec_box->add_item("HEVC (10 bit, reduces banding)", "hevc_10bit");
+        if(gsr_info.supported_video_codecs.av1_hdr)
+            video_codec_box->add_item("AV1 (HDR)", "av1_hdr");
+        if(gsr_info.supported_video_codecs.av1_10bit)
+            video_codec_box->add_item("AV1 (10 bit, reduces banding)", "av1_10bit");
         if(gsr_info.supported_video_codecs.h264_software)
             video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
         video_codec_box_ptr = video_codec_box.get();
@@ -315,18 +323,39 @@ namespace gsr {
         framerate_info_list->add_widget(create_framerate_mode());
         return framerate_info_list;
     }
+    
+    std::unique_ptr<Widget> SettingsPage::create_record_cursor_section() {
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        record_cursor_checkbox->set_checked(true);
+        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
+        return record_cursor_checkbox;
+    }
 
-    std::unique_ptr<List> SettingsPage::create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<Widget> SettingsPage::create_video_section(const GsrInfo &gsr_info) {
+        auto video_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_section_list->add_widget(create_video_quality_section());
+        video_section_list->add_widget(create_codec_section(gsr_info));
+        video_section_list->add_widget(create_framerate_section());
+        video_section_list->add_widget(create_record_cursor_section());
+        return std::make_unique<Subsection>("Video", std::move(video_section_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f));
+    }
+
+    std::unique_ptr<Widget> SettingsPage::create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
-        settings_list->add_widget(create_view_radio_button());
         settings_list->add_widget(create_capture_target(gsr_info));
         settings_list->add_widget(create_audio_device_section(audio_devices));
-        settings_list->add_widget(create_video_quality_section());
-        settings_list->add_widget(create_codec_section(gsr_info));
-        settings_list->add_widget(create_framerate_section());
+        settings_list->add_widget(create_video_section(gsr_info));
         settings_list_ptr = settings_list.get();
-        return settings_list;
+
+        auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        page_list->set_spacing(0.018f);
+        page_list->add_widget(create_view_radio_button());
+        auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size() - mgl::vec2f(0.0f, page_list->get_size().y + 0.018f * get_theme().window_height));
+        settings_scrollable_page_ptr = scrollable_page.get();
+        scrollable_page->add_widget(std::move(settings_list));
+        page_list->add_widget(std::move(scrollable_page));
+        return page_list;
     }
 
     void SettingsPage::add_widgets(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
@@ -346,6 +375,10 @@ namespace gsr {
             record_area_box_ptr->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
         else if(gsr_info.supported_capture_options.portal)
             record_area_box_ptr->set_selected_item("portal");
+        else if(gsr_info.supported_capture_options.window)
+            record_area_box_ptr->set_selected_item("window");
+        else
+            record_area_box_ptr->on_selection_changed("", "");
     }
 
     void SettingsPage::add_page_specific_widgets() {
@@ -365,7 +398,7 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_save_directory(const char *label) {
         auto save_directory_list = std::make_unique<List>(List::Orientation::VERTICAL);
         save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_theme().text_color));
-        auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, "/home/dec05eba", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
             auto select_directory_page = std::make_unique<GsrPage>();
@@ -424,14 +457,9 @@ namespace gsr {
         replay_data_list->add_widget(create_save_directory("Directory to save replays:"));
         replay_data_list->add_widget(create_container_section());
         replay_data_list->add_widget(create_replay_time());
-        settings_list_ptr->add_widget(std::move(replay_data_list));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(replay_data_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
-
-        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
-        record_cursor_checkbox->set_checked(true);
-        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
-        checkboxes_list->add_widget(std::move(record_cursor_checkbox));
 
         auto show_replay_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay started notification");
         show_replay_started_notification_checkbox->set_checked(true);
@@ -448,17 +476,18 @@ namespace gsr {
         show_replay_saved_notification_checkbox_ptr = show_replay_saved_notification_checkbox.get();
         checkboxes_list->add_widget(std::move(show_replay_saved_notification_checkbox));
 
-        settings_list_ptr->add_widget(std::move(checkboxes_list));
+        auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f));        
+        Subsection *notifications_subsection_ptr = notifications_subsection.get();
+        settings_list_ptr->add_widget(std::move(notifications_subsection));
 
-        view_radio_button_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
+        view_radio_button_ptr->on_selection_changed = [this, notifications_subsection_ptr](const std::string &text, const std::string &id) {
             (void)text;
             const bool advanced_view = id == "advanced";
             color_range_list_ptr->set_visible(advanced_view);
             codec_list_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            show_replay_started_notification_checkbox_ptr->set_visible(advanced_view);
-            show_replay_stopped_notification_checkbox_ptr->set_visible(advanced_view);
-            show_replay_saved_notification_checkbox_ptr->set_visible(advanced_view);
+            notifications_subsection_ptr->set_visible(advanced_view);
+            settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }
@@ -467,14 +496,9 @@ namespace gsr {
         auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_list->add_widget(create_save_directory("Directory to save the video:"));
         file_list->add_widget(create_container_section());
-        settings_list_ptr->add_widget(std::move(file_list));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
-
-        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
-        record_cursor_checkbox->set_checked(true);
-        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
-        checkboxes_list->add_widget(std::move(record_cursor_checkbox));
 
         auto show_recording_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show recording started notification");
         show_recording_started_notification_checkbox->set_checked(true);
@@ -486,16 +510,18 @@ namespace gsr {
         show_video_saved_notification_checkbox_ptr = show_video_saved_notification_checkbox.get();
         checkboxes_list->add_widget(std::move(show_video_saved_notification_checkbox));
 
-        settings_list_ptr->add_widget(std::move(checkboxes_list));
+        auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f));        
+        Subsection *notifications_subsection_ptr = notifications_subsection.get();
+        settings_list_ptr->add_widget(std::move(notifications_subsection));
 
-        view_radio_button_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
+        view_radio_button_ptr->on_selection_changed = [this, notifications_subsection_ptr](const std::string &text, const std::string &id) {
             (void)text;
             const bool advanced_view = id == "advanced";
             color_range_list_ptr->set_visible(advanced_view);
             codec_list_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            show_recording_started_notification_checkbox_ptr->set_visible(advanced_view);
-            show_video_saved_notification_checkbox_ptr->set_visible(advanced_view);
+            notifications_subsection_ptr->set_visible(advanced_view);
+            settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }
@@ -570,14 +596,9 @@ namespace gsr {
         streaming_info_list->add_widget(create_stream_key_section());
         streaming_info_list->add_widget(create_stream_url_section());
         streaming_info_list->add_widget(create_stream_container_section());
-        settings_list_ptr->add_widget(std::move(streaming_info_list));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
-
-        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
-        record_cursor_checkbox->set_checked(true);
-        record_cursor_checkbox_ptr = record_cursor_checkbox.get();
-        checkboxes_list->add_widget(std::move(record_cursor_checkbox));
 
         auto show_streaming_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming started notification");
         show_streaming_started_notification_checkbox->set_checked(true);
@@ -589,7 +610,9 @@ namespace gsr {
         show_streaming_stopped_notification_checkbox_ptr = show_streaming_stopped_notification_checkbox.get();
         checkboxes_list->add_widget(std::move(show_streaming_stopped_notification_checkbox));
 
-        settings_list_ptr->add_widget(std::move(checkboxes_list));
+        auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(content_page_ptr->get_inner_size().x, 0.0f));        
+        Subsection *notifications_subsection_ptr = notifications_subsection.get();
+        settings_list_ptr->add_widget(std::move(notifications_subsection));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
             (void)text;
@@ -604,14 +627,14 @@ namespace gsr {
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
 
-        view_radio_button_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
+        view_radio_button_ptr->on_selection_changed = [this, notifications_subsection_ptr](const std::string &text, const std::string &id) {
             (void)text;
             const bool advanced_view = id == "advanced";
             color_range_list_ptr->set_visible(advanced_view);
             codec_list_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            show_streaming_started_notification_checkbox_ptr->set_visible(advanced_view);
-            show_streaming_stopped_notification_checkbox_ptr->set_visible(advanced_view);
+            notifications_subsection_ptr->set_visible(advanced_view);
+            settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }
