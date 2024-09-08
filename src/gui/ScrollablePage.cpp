@@ -1,13 +1,15 @@
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/Utils.hpp"
+#include "../../include/Theme.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
-//#include <mglpp/graphics/Rectangle.hpp>
+#include <mglpp/graphics/Rectangle.hpp>
 
 namespace gsr {
     static const int scroll_speed = 80;
     static const double scroll_update_speed = 10.0;
+    static const float scrollbar_width_scale = 0.004f;
 
     ScrollablePage::ScrollablePage(mgl::vec2f size) : size(size) {}
 
@@ -49,6 +51,9 @@ namespace gsr {
             reset_scroll();
             return;
         }
+
+        const double scrollbar_width = std::max(5.0f, scrollbar_width_scale * get_theme().window_height);
+        const mgl::vec2f scrollbar_pos = position + offset + mgl::vec2f(size.x - scrollbar_width, 0.0f);
 
         offset = position + offset;
         const mgl::vec2f page_scroll_start = offset;
@@ -97,6 +102,8 @@ namespace gsr {
 
         const double child_height = child_bottom - child_top;
 
+        //fprintf(stderr, "scrollbar height: %f\n", scrollbar_height);
+
         // Debug output
         // mgl::Rectangle bottom(mgl::vec2f(size.x, 5.0f));
         // bottom.set_color(mgl::Color(255, 0, 0, 255));
@@ -126,6 +133,29 @@ namespace gsr {
         }
 
         mgl_window_set_scissor(window.internal_window(), &prev_scissor);
+
+        double scrollbar_height = 1.0;
+        if(child_height > 0.001)
+            scrollbar_height = size.y / child_height;
+        if(scrollbar_height > 1.0)
+            scrollbar_height = 1.0;
+
+        if(scrollbar_height < 0.999) {
+            double scroll_amount = -scroll_y / (child_height - size.y);
+            if(scroll_amount < 0.0)
+                scroll_amount = 0.0;
+            else if(scroll_amount > 1.0)
+                scroll_amount = 1.0;
+
+            const double scrollbar_height_absolute = size.y * scrollbar_height;
+            const double scrollbar_empty_space = size.y - scrollbar_height_absolute;
+
+            mgl::Rectangle scrollbar(
+                (scrollbar_pos + mgl::vec2f(0.0f, scroll_amount * scrollbar_empty_space)).floor(),
+                mgl::vec2f(scrollbar_width, scrollbar_height_absolute).floor());
+            scrollbar.set_color(mgl::Color(200, 200, 200));
+            window.draw(scrollbar);
+        }
     }
 
     mgl::vec2f ScrollablePage::get_size() {

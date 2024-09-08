@@ -30,5 +30,3 @@ Make hotkeys configurable.
 
 Move hotkey to gsr-overlay-daemon which should execute gpu-screen-recorder --info on start, write that output to /tmp/blabla (or $XDG_RUNTIME_DIR) and gsr-overlay
     should read that tmp file. gsr-overlay should remove show/hide functions for overlay and run show on startup.
-
-Add scrollbar to scrollable page.
