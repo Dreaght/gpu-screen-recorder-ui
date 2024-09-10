@@ -74,7 +74,6 @@ namespace gsr {
         const mgl::vec2f scrollbar_pos = position + offset + mgl::vec2f(size.x - scrollbar_width, 0.0f);
 
         offset = position + offset;
-        const mgl::vec2f page_scroll_start = offset;
 
         mgl_scissor prev_scissor;
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
@@ -143,11 +142,13 @@ namespace gsr {
         }
 
         // Top and bottom limit
-        const double child_draw_overflow = (page_scroll_start.y + size.y) - child_bottom;
+        const double scroll_bottom_limit = child_height - size.y;
         if(scroll_y > 0.001 || child_height < size.y) {
+            scroll_y = 0;
             scroll_target_y = 0;
-        } else if(child_draw_overflow > 0.001) {
-            scroll_target_y = scroll_y + child_draw_overflow;
+        } else if(scroll_y < -scroll_bottom_limit) {
+            scroll_y = -scroll_bottom_limit;
+            scroll_target_y = -scroll_bottom_limit;
         }
 
         mgl_window_set_scissor(window.internal_window(), &prev_scissor);
@@ -179,7 +180,6 @@ namespace gsr {
         }
 
         if(moving_scrollbar_with_cursor) {
-            const double scroll_bottom_limit = child_height - size.y;
             const mgl::vec2f scrollbar_move_diff = window.get_mouse_position().to_vec2f() - scrollbar_move_cursor_start_pos;
             const double scroll_amount = scrollbar_move_diff.y / scrollbar_empty_space;
             scroll_y = scrollbar_move_cursor_scroll_y_start - scroll_amount * (child_height - size.y);
