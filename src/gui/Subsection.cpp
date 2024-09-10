@@ -5,8 +5,8 @@
 #include <mglpp/graphics/Rectangle.hpp>
 
 namespace gsr {
-    static const float margin_top_scale = 0.015f;
-    static const float margin_bottom_scale = 0.015f;
+    static const float margin_top_scale = 0.012f;
+    static const float margin_bottom_scale = 0.012f;
     static const float margin_left_scale = 0.015f;
     static const float margin_right_scale = 0.015f;
     static const float title_spacing_scale = 0.015f;

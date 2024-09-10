@@ -57,7 +57,6 @@ namespace gsr {
         std::unique_ptr<List> create_video_codec(const GsrInfo &gsr_info);
         std::unique_ptr<ComboBox> create_audio_codec_box();
         std::unique_ptr<List> create_audio_codec();
-        std::unique_ptr<List> create_codec_section(const GsrInfo &gsr_info);
         std::unique_ptr<Entry> create_framerate_entry();
         std::unique_ptr<List> create_framerate();
         std::unique_ptr<ComboBox> create_framerate_mode_box();
@@ -101,7 +100,8 @@ namespace gsr {
         List *area_size_list_ptr = nullptr;
         List *restore_portal_session_list_ptr = nullptr;
         List *color_range_list_ptr = nullptr;
-        List *codec_list_ptr = nullptr;
+        Widget *video_codec_ptr = nullptr;
+        Widget *audio_codec_ptr = nullptr;
         List *framerate_mode_list_ptr = nullptr;
         ComboBox *record_area_box_ptr = nullptr;
         Entry *area_width_entry_ptr = nullptr;

@@ -26,6 +26,8 @@ namespace gsr {
     static const float content_padding_bottom_scale = 0.03f;
     static const float content_padding_left_scale = 0.03f;
     static const float content_padding_right_scale = 0.03f;
+    static const float content_margin_left_scale = 0.005f;
+    static const float content_margin_right_scale = 0.005f;
     static const float up_button_spacing_scale = 0.01f;
 
     FileChooserBody::FileChooserBody(FileChooser *file_chooser, mgl::vec2f size) :
@@ -107,6 +109,8 @@ namespace gsr {
                 window.draw(folder_sprite);
 
                 // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
+                folder.text.set_max_width(item_size.x);
+                folder.text.set_max_rows(2);
                 folder.text.set_position(folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y));
                 window.draw(folder.text);
             }
@@ -239,9 +243,9 @@ namespace gsr {
         draw_pos += mgl::vec2f(0.0f, current_directory_background_size.y + spacing_between_current_directory_and_content * get_theme().window_height);
         const mgl::vec2f body_size = mgl::vec2f(size.x, size.y - (draw_pos.y - draw_pos_start.y)).floor();
         scrollable_page.set_size(body_size);
-        file_chooser_body_ptr->set_size(body_size);
+        file_chooser_body_ptr->set_size(scrollable_page.get_inner_size());
 
-        mgl::Rectangle content_background(size.floor());
+        mgl::Rectangle content_background(scrollable_page.get_inner_size().floor());
         content_background.set_position(draw_pos.floor());
         content_background.set_color(mgl::Color(0, 0, 0, 120));
         window.draw(content_background);
@@ -264,7 +268,10 @@ namespace gsr {
 
     void FileChooser::open_subdirectory(const char *name) {
         char filepath[PATH_MAX];
-        snprintf(filepath, sizeof(filepath), "%s/%s", current_directory_text.get_string().c_str(), name);
+        if(current_directory_text.get_string() == "/")
+            snprintf(filepath, sizeof(filepath), "/%s", name);
+        else
+            snprintf(filepath, sizeof(filepath), "%s/%s", current_directory_text.get_string().c_str(), name);
         set_current_directory(filepath);
     }
 

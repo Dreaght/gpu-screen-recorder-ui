@@ -5,11 +5,13 @@
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
+#include <mglpp/system/FloatRect.hpp>
 
 namespace gsr {
     static const int scroll_speed = 80;
     static const double scroll_update_speed = 10.0;
     static const float scrollbar_width_scale = 0.004f;
+    static const float scrollbar_spacing_scale = 0.004f;
 
     ScrollablePage::ScrollablePage(mgl::vec2f size) : size(size) {}
 
@@ -19,6 +21,12 @@ namespace gsr {
 
         offset = position + offset + mgl::vec2f(0.0f, scroll_y);
         Widget *selected_widget = selected_child_widget;
+
+        if(event.type == mgl::Event::MouseButtonReleased && moving_scrollbar_with_cursor) {
+            moving_scrollbar_with_cursor = false;
+            remove_widget_as_selected_in_parent();
+            return false;
+        }
 
         if(selected_widget) {
             if(!selected_widget->on_event(event, window, offset))
@@ -43,16 +51,26 @@ namespace gsr {
             return false;
         }
 
+        if(event.type == mgl::Event::MouseButtonPressed && scrollbar_rect.contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
+            set_widget_as_selected_in_parent();
+            moving_scrollbar_with_cursor = true;
+            scrollbar_move_cursor_start_pos = mgl::vec2f(event.mouse_button.x, event.mouse_button.y);
+            scrollbar_move_cursor_scroll_y_start = scroll_y;
+            return false;
+        }
+
         return true;
     }
 
     void ScrollablePage::draw(mgl::Window &window, mgl::vec2f offset) {
+        scrollbar_rect = mgl::FloatRect();
+
         if(!visible || widgets.empty()) {
             reset_scroll();
             return;
         }
 
-        const double scrollbar_width = std::max(5.0f, scrollbar_width_scale * get_theme().window_height);
+        const double scrollbar_width = get_scrollbar_width();
         const mgl::vec2f scrollbar_pos = position + offset + mgl::vec2f(size.x - scrollbar_width, 0.0f);
 
         offset = position + offset;
@@ -140,6 +158,9 @@ namespace gsr {
         if(scrollbar_height > 1.0)
             scrollbar_height = 1.0;
 
+        const double scrollbar_height_absolute = std::max(10.0, size.y * scrollbar_height);
+        const double scrollbar_empty_space = size.y - scrollbar_height_absolute;
+
         if(scrollbar_height < 0.999) {
             double scroll_amount = -scroll_y / (child_height - size.y);
             if(scroll_amount < 0.0)
@@ -147,14 +168,26 @@ namespace gsr {
             else if(scroll_amount > 1.0)
                 scroll_amount = 1.0;
 
-            const double scrollbar_height_absolute = size.y * scrollbar_height;
-            const double scrollbar_empty_space = size.y - scrollbar_height_absolute;
-
             mgl::Rectangle scrollbar(
                 (scrollbar_pos + mgl::vec2f(0.0f, scroll_amount * scrollbar_empty_space)).floor(),
                 mgl::vec2f(scrollbar_width, scrollbar_height_absolute).floor());
             scrollbar.set_color(mgl::Color(200, 200, 200));
             window.draw(scrollbar);
+
+            scrollbar_rect.position = scrollbar.get_position();
+            scrollbar_rect.size = scrollbar.get_size();
+        }
+
+        if(moving_scrollbar_with_cursor) {
+            const double scroll_bottom_limit = child_height - size.y;
+            const mgl::vec2f scrollbar_move_diff = window.get_mouse_position().to_vec2f() - scrollbar_move_cursor_start_pos;
+            const double scroll_amount = scrollbar_move_diff.y / scrollbar_empty_space;
+            scroll_y = scrollbar_move_cursor_scroll_y_start - scroll_amount * (child_height - size.y);
+            if(scroll_y > 0.0)
+                scroll_y = 0.0;
+            else if(scroll_y < -scroll_bottom_limit)
+                scroll_y = -scroll_bottom_limit;
+            scroll_target_y = scroll_y;
         }
     }
 
@@ -163,6 +196,14 @@ namespace gsr {
             return {0.0f, 0.0f};
 
         return size;
+    }
+
+    mgl::vec2f ScrollablePage::get_inner_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        const float scrollbar_spacing = std::max(2.0f, scrollbar_spacing_scale * get_theme().window_height);
+        return size - mgl::vec2f(get_scrollbar_width() + scrollbar_spacing, 0.0f);
     }
 
     void ScrollablePage::set_size(mgl::vec2f size) {
@@ -177,5 +218,9 @@ namespace gsr {
     void ScrollablePage::reset_scroll() {
         scroll_y = 0;
         scroll_target_y = 0;
+    }
+
+    float ScrollablePage::get_scrollbar_width() const {
+        return std::max(5.0f, scrollbar_width_scale * get_theme().window_height);
     }
 }
