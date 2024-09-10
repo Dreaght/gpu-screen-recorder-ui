@@ -29,6 +29,7 @@ namespace gsr {
 
         void add_widget(std::unique_ptr<Widget> widget);
         void remove_widget(Widget *widget);
+        void clear();
         // Return true from |callback| to continue
         void for_each_child_widget(std::function<bool(std::unique_ptr<Widget> &widget)> callback);
         // Returns nullptr if index is invalid

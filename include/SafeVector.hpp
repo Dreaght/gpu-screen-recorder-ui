@@ -15,6 +15,7 @@ public:
     }
 
     // Safe to call when vector is empty
+    // TODO: Make this iterator safe
     void pop_back() {
         if(!data.empty())
             data.pop_back();
@@ -37,6 +38,7 @@ public:
             return &data.back();
     }
 
+    // TODO: Make this iterator safe
     void clear() {
         data.clear();
         remove_queue.clear();

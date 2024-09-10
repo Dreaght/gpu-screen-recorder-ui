@@ -119,6 +119,10 @@ namespace gsr {
         widgets.remove(widget);
     }
 
+    void List::clear() {
+        widgets.clear();
+    }
+
     void List::for_each_child_widget(std::function<bool(std::unique_ptr<Widget> &widget)> callback) {
         widgets.for_each(callback);
     }

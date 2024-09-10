@@ -14,10 +14,11 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
-    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices, std::optional<Config> &config, PageStack *page_stack) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, std::vector<AudioDevice> audio_devices, std::optional<Config> &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
+        audio_devices(std::move(audio_devices)),
         page_stack(page_stack),
         settings_title_text("Settings", get_theme().title_font)
     {
@@ -30,8 +31,9 @@ namespace gsr {
         content_page_ptr = content_page.get();
         add_widget(std::move(content_page));
 
-        add_widgets(gsr_info, audio_devices);
+        add_widgets(gsr_info);
         add_page_specific_widgets();
+        load();
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
@@ -133,7 +135,7 @@ namespace gsr {
         return std::make_unique<Subsection>("Record area", std::move(capture_target_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
-    std::unique_ptr<ComboBox> SettingsPage::create_audio_track_selection_checkbox(const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<ComboBox> SettingsPage::create_audio_track_selection_checkbox() {
         auto audio_device_box = std::make_unique<ComboBox>(&get_theme().body_font);
         for(const auto &audio_device : audio_devices) {
             audio_device_box->add_item(audio_device.description, audio_device.name);
@@ -149,26 +151,26 @@ namespace gsr {
         return remove_audio_track_button;
     }
 
-    std::unique_ptr<List> SettingsPage::create_audio_track(const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<List> SettingsPage::create_audio_track() {
         auto audio_device_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        audio_device_list->add_widget(create_audio_track_selection_checkbox(audio_devices));
+        audio_device_list->add_widget(create_audio_track_selection_checkbox());
         audio_device_list->add_widget(create_remove_audio_track_button(audio_device_list.get()));
         return audio_device_list;
     }
 
-    std::unique_ptr<Button> SettingsPage::create_add_audio_track_button(const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<Button> SettingsPage::create_add_audio_track_button() {
         auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add audio track", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
-        auto add_audio_track = [&audio_devices, this]() {
-            audio_devices_list_ptr->add_widget(create_audio_track(audio_devices));
+        auto add_audio_track = [this]() {
+            audio_devices_list_ptr->add_widget(create_audio_track());
         };
         add_audio_track_button->on_click = add_audio_track;
         return add_audio_track_button;
     }
 
-    std::unique_ptr<List> SettingsPage::create_audio_track_section(const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<List> SettingsPage::create_audio_track_section() {
         auto audio_devices_list = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_devices_list_ptr = audio_devices_list.get();
-        audio_devices_list_ptr->add_widget(create_audio_track(audio_devices));
+        audio_devices_list_ptr->add_widget(create_audio_track());
         return audio_devices_list;
     }
 
@@ -179,10 +181,10 @@ namespace gsr {
         return merge_audio_tracks_checkbox;
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_audio_device_section(const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<Widget> SettingsPage::create_audio_device_section() {
         auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_device_section_list->add_widget(create_add_audio_track_button(audio_devices));
-        audio_device_section_list->add_widget(create_audio_track_section(audio_devices));
+        audio_device_section_list->add_widget(create_add_audio_track_button());
+        audio_device_section_list->add_widget(create_audio_track_section());
         audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
         audio_device_section_list->add_widget(create_audio_codec());
         return std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
@@ -337,7 +339,7 @@ namespace gsr {
         return std::make_unique<Subsection>("Video", std::move(video_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_settings(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
+    std::unique_ptr<Widget> SettingsPage::create_settings(const GsrInfo &gsr_info) {
         auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
         page_list->set_spacing(0.018f);
         page_list->add_widget(create_view_radio_button());
@@ -348,15 +350,15 @@ namespace gsr {
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_capture_target(gsr_info));
-        settings_list->add_widget(create_audio_device_section(audio_devices));
+        settings_list->add_widget(create_audio_device_section());
         settings_list->add_widget(create_video_section(gsr_info));
         settings_list_ptr = settings_list.get();
         settings_scrollable_page_ptr->add_widget(std::move(settings_list));
         return page_list;
     }
 
-    void SettingsPage::add_widgets(const GsrInfo &gsr_info, const std::vector<AudioDevice> &audio_devices) {
-        content_page_ptr->add_widget(create_settings(gsr_info, audio_devices));
+    void SettingsPage::add_widgets(const GsrInfo &gsr_info) {
+        content_page_ptr->add_widget(create_settings(gsr_info));
 
         record_area_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
             (void)text;
@@ -643,6 +645,23 @@ namespace gsr {
         save();
     }
 
+    void SettingsPage::load() {
+        if(!config)
+            return;
+
+        switch(type) {
+            case Type::REPLAY:
+                load_replay();
+                break;
+            case Type::RECORD:
+                load_record();
+                break;
+            case Type::STREAM:
+                load_stream();
+                break;
+        }
+    }
+
     void SettingsPage::save() {
         if(!config)
             config = Config();
@@ -659,6 +678,80 @@ namespace gsr {
                 break;
         }
         save_config(config.value());
+    }
+
+    void SettingsPage::load_audio_tracks() {
+        audio_devices_list_ptr->clear();
+        for(const std::string &audio_track : config->replay_config.record_options.audio_tracks) {
+            std::unique_ptr<List> audio_track_widget = create_audio_track();
+            ComboBox *audio_device_box = static_cast<ComboBox*>(audio_track_widget->get_child_widget_by_index(0));
+            audio_device_box->set_selected_item(audio_track);
+            audio_devices_list_ptr->add_widget(std::move(audio_track_widget));
+        }
+    }
+
+    void SettingsPage::load_common(RecordOptions &record_options) {
+        record_area_box_ptr->set_selected_item(record_options.record_area_option);
+        area_width_entry_ptr->set_text(std::to_string(record_options.record_area_width));
+        area_height_entry_ptr->set_text(std::to_string(record_options.record_area_height));
+        framerate_entry_ptr->set_text(std::to_string(record_options.fps));
+        merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
+
+        load_audio_tracks();
+        color_range_box_ptr->set_selected_item(record_options.color_range);
+        video_quality_box_ptr->set_selected_item(record_options.video_quality);
+        video_codec_box_ptr->set_selected_item(record_options.video_codec);
+        audio_codec_box_ptr->set_selected_item(record_options.audio_codec);
+        framerate_mode_box_ptr->set_selected_item(record_options.framerate_mode);
+        view_radio_button_ptr->set_selected_item(record_options.advanced_view ? "advanced" : "simple");
+        // TODO:
+        //record_options.overclock = false;
+        record_cursor_checkbox_ptr->set_checked(record_options.record_cursor);
+        restore_portal_session_checkbox_ptr->set_checked(record_options.restore_portal_session);
+
+        if(record_options.record_area_width < 32)
+            record_options.record_area_width = 32;
+        area_width_entry_ptr->set_text(std::to_string(record_options.record_area_width));
+
+        if(record_options.record_area_height < 32)
+            record_options.record_area_height = 32;
+        area_height_entry_ptr->set_text(std::to_string(record_options.record_area_height));
+
+        if(record_options.fps < 1)
+            record_options.fps = 1;
+        framerate_entry_ptr->set_text(std::to_string(record_options.fps));
+    }
+
+    void SettingsPage::load_replay() {
+        load_common(config->replay_config.record_options);
+        show_replay_started_notification_checkbox_ptr->set_checked(config->replay_config.show_replay_started_notifications);
+        show_replay_stopped_notification_checkbox_ptr->set_checked(config->replay_config.show_replay_stopped_notifications);
+        show_replay_saved_notification_checkbox_ptr->set_checked(config->replay_config.show_replay_saved_notifications);
+        save_directory_button_ptr->set_text(config->replay_config.save_directory);
+        container_box_ptr->set_selected_item(config->replay_config.container);
+
+        if(config->replay_config.replay_time < 5)
+            config->replay_config.replay_time = 5;
+        replay_time_entry_ptr->set_text(std::to_string(config->replay_config.replay_time));
+    }
+
+    void SettingsPage::load_record() {
+        load_common(config->record_config.record_options);
+        show_recording_started_notification_checkbox_ptr->set_checked(config->record_config.show_recording_started_notifications);
+        show_video_saved_notification_checkbox_ptr->set_checked(config->record_config.show_video_saved_notifications);
+        save_directory_button_ptr->set_text(config->record_config.save_directory);
+        container_box_ptr->set_selected_item(config->record_config.container);
+    }
+
+    void SettingsPage::load_stream() {
+        load_common(config->streaming_config.record_options);
+        show_streaming_started_notification_checkbox_ptr->set_checked(config->streaming_config.show_streaming_started_notifications);
+        show_streaming_stopped_notification_checkbox_ptr->set_checked(config->streaming_config.show_streaming_stopped_notifications);
+        streaming_service_box_ptr->set_selected_item(config->streaming_config.streaming_service);
+        youtube_stream_key_entry_ptr->set_text(config->streaming_config.youtube.stream_key);
+        twitch_stream_key_entry_ptr->set_text(config->streaming_config.twitch.stream_key);
+        stream_url_entry_ptr->set_text(config->streaming_config.custom.url);
+        container_box_ptr->set_selected_item(config->streaming_config.custom.container);
     }
 
     static void save_audio_tracks(std::vector<std::string> &audio_tracks, List *audio_devices_list_ptr) {
