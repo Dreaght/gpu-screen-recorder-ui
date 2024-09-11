@@ -13,6 +13,8 @@
 #include <mglpp/graphics/Text.hpp>
 
 namespace gsr {
+    class DropdownButton;
+
     class Overlay {
     public:
         Overlay(mgl::Window &window, std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color);
@@ -28,6 +30,9 @@ namespace gsr {
         void toggle_show();
         bool is_open() const;
     private:
+        void on_press_start_replay(const std::string &id);
+        void on_press_start_record(const std::string &id);
+        void on_press_start_stream(const std::string &id);
         bool update_compositor_texture(const mgl_monitor *monitor);
     private:
         mgl::Window &window;
@@ -52,5 +57,8 @@ namespace gsr {
         uint64_t default_cursor = 0;
         pid_t gpu_screen_recorder_process = -1;
         std::optional<Config> config;
+        DropdownButton *replay_dropdown_button_ptr = nullptr;
+        DropdownButton *record_dropdown_button_ptr = nullptr;
+        DropdownButton *stream_dropdown_button_ptr = nullptr;
     };
 }

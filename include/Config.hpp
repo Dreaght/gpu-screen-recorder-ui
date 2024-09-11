@@ -13,17 +13,17 @@ namespace gsr {
     };
 
     struct RecordOptions {
-        std::string record_area_option;
+        std::string record_area_option = "screen";
         int32_t record_area_width = 0;
         int32_t record_area_height = 0;
         int32_t fps = 60;
         bool merge_audio_tracks = true;
         std::vector<std::string> audio_tracks;
-        std::string color_range;
-        std::string video_quality;
-        std::string video_codec;
-        std::string audio_codec;
-        std::string framerate_mode;
+        std::string color_range = "limited";
+        std::string video_quality = "very_high";
+        std::string video_codec = "auto";
+        std::string audio_codec = "opus";
+        std::string framerate_mode = "vfr";
         bool advanced_view = false;
         bool overclock = false;
         bool record_cursor = true;
@@ -45,14 +45,14 @@ namespace gsr {
 
     struct CustomStreamConfig {
         std::string url;
-        std::string container;
+        std::string container = "flv";
     };
 
     struct StreamingConfig {
         RecordOptions record_options;
         bool show_streaming_started_notifications = true;
         bool show_streaming_stopped_notifications = true;
-        std::string streaming_service;
+        std::string streaming_service = "twitch";
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
         CustomStreamConfig custom;
@@ -64,7 +64,7 @@ namespace gsr {
         bool show_recording_started_notifications = true;
         bool show_video_saved_notifications = true;
         std::string save_directory;
-        std::string container;
+        std::string container = "mp4";
         ConfigHotkey start_stop_recording_hotkey;
         ConfigHotkey pause_unpause_recording_hotkey;
     };
@@ -75,7 +75,7 @@ namespace gsr {
         bool show_replay_stopped_notifications = true;
         bool show_replay_saved_notifications = true;
         std::string save_directory;
-        std::string container;
+        std::string container = "mp4";
         int32_t replay_time = 60;
         ConfigHotkey start_stop_recording_hotkey;
         ConfigHotkey save_recording_hotkey;

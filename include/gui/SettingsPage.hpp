@@ -86,7 +86,7 @@ namespace gsr {
         std::unique_ptr<List> create_stream_container_section();
         void add_stream_widgets();
 
-        void load_audio_tracks();
+        void load_audio_tracks(RecordOptions &record_options);
         void load_common(RecordOptions &record_options);
         void load_replay();
         void load_record();

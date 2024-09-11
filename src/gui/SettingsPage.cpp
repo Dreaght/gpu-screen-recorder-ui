@@ -678,9 +678,9 @@ namespace gsr {
         save_config(config.value());
     }
 
-    void SettingsPage::load_audio_tracks() {
+    void SettingsPage::load_audio_tracks(RecordOptions &record_options) {
         audio_devices_list_ptr->clear();
-        for(const std::string &audio_track : config->replay_config.record_options.audio_tracks) {
+        for(const std::string &audio_track : record_options.audio_tracks) {
             std::unique_ptr<List> audio_track_widget = create_audio_track();
             ComboBox *audio_device_box = static_cast<ComboBox*>(audio_track_widget->get_child_widget_by_index(0));
             audio_device_box->set_selected_item(audio_track);
@@ -695,7 +695,7 @@ namespace gsr {
         framerate_entry_ptr->set_text(std::to_string(record_options.fps));
         merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
 
-        load_audio_tracks();
+        load_audio_tracks(record_options);
         color_range_box_ptr->set_selected_item(record_options.color_range);
         video_quality_box_ptr->set_selected_item(record_options.video_quality);
         video_codec_box_ptr->set_selected_item(record_options.video_codec);
