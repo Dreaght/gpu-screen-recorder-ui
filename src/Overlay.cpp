@@ -273,7 +273,7 @@ namespace gsr {
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
         top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
         logo_sprite = mgl::Sprite(&get_theme().logo_texture);
-        close_button_widget.set_size(mgl::vec2f(top_bar_background.get_size().y * 0.3f, top_bar_background.get_size().y * 0.3f).floor());
+        close_button_widget.set_size(mgl::vec2f(top_bar_background.get_size().y * 0.35f, top_bar_background.get_size().y * 0.35f).floor());
 
         bg_screenshot_overlay.set_color(bg_color);
         top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
@@ -434,15 +434,15 @@ namespace gsr {
         front_page_ptr->add_widget(std::move(main_buttons_list));
 
         close_button_widget.draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
-            if(mgl::FloatRect(pos, size).contains(window.get_mouse_position().to_vec2f())) {
-                const float border_scale = 0.0015f;
-                const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
-                draw_rectangle_outline(window, pos, size, get_theme().tint_color, border_size);
-            }
+            const int border_size = std::max(1.0f, 0.0015f * get_theme().window_height);
+            const float padding_size = std::max(1.0f, 0.003f * get_theme().window_height);
+            const mgl::vec2f padding(padding_size, padding_size);
+            if(mgl::FloatRect(pos, size).contains(window.get_mouse_position().to_vec2f()))
+                draw_rectangle_outline(window, pos.floor(), size.floor(), get_theme().tint_color, border_size);
 
             mgl::Sprite close_sprite(&get_theme().close_texture);
-            close_sprite.set_position(pos);
-            close_sprite.set_size(size);
+            close_sprite.set_position(pos + padding);
+            close_sprite.set_size(size - padding * 2.0f);
             window.draw(close_sprite);
         };
 

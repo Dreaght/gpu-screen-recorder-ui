@@ -58,8 +58,8 @@ namespace gsr {
         apply_animation();
 
         const mgl::Color background_color_unchecked(0, 0, 0, 120);
-        const mgl::Color background_color_checked = color_multiply(get_theme().tint_color, 0.7f);
-        background_sprite.set_color(interpolate_color(background_color_unchecked, background_color_checked, checked ? 1.0f : 0.0f));
+        const mgl::Color background_color_checked = color_multiply(get_theme().tint_color, 0.6f);
+        background_sprite.set_color(interpolate_color(background_color_unchecked, background_color_checked, toggle_animation_value));
         background_sprite.set_position(draw_pos.floor());
         window.draw(background_sprite);
 
