@@ -4,6 +4,7 @@
 
 #include <mglpp/graphics/Color.hpp>
 #include <mglpp/graphics/Text.hpp>
+#include <mglpp/graphics/Sprite.hpp>
 
 namespace gsr {
     class CheckBox : public Widget {
@@ -17,12 +18,16 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
 
-        void set_checked(bool checked);
+        void set_checked(bool checked, bool animated = false);
         bool is_checked() const;
     private:
+        void apply_animation();
         mgl::vec2f get_checkbox_size();
     private:
         mgl::Text text;
+        mgl::Sprite background_sprite;
+        mgl::Sprite circle_sprite;
         bool checked = false;
+        float toggle_animation_value = 0.0f;
     };
 }

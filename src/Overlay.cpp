@@ -483,7 +483,7 @@ namespace gsr {
             ButtonMotionMask,
             GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
         // TODO: This breaks global hotkeys
-        //XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+        XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
         XSetInputFocus(display, window.get_system_handle(), RevertToParent, CurrentTime);
         XFlush(display);
@@ -508,7 +508,7 @@ namespace gsr {
             default_cursor = 0;
         }
 
-        //XUngrabKeyboard(display, CurrentTime);
+        XUngrabKeyboard(display, CurrentTime);
         XUngrabPointer(display, CurrentTime);
         XFlush(display);
 

@@ -8,11 +8,32 @@
 
 namespace gsr {
     static const float spacing_scale = 0.005f;
-    static const float checked_margin_scale = 0.003f;
-    static const float border_scale = 0.001f;
+    static const float check_animation_speed = 10.0f;
 
-    CheckBox::CheckBox(mgl::Font *font, const char *text) : text(text, *font) {
+    static mgl::Color color_multiply(mgl::Color color, float multiply) {
+        return mgl::Color(color.r * multiply, color.g * multiply, color.b * multiply, color.a);
+    }
 
+    static float linear_interpolation(float source, float destination, float interpolation) {
+        return source + (destination - source) * interpolation;
+    }
+
+    static mgl::Color interpolate_color(mgl::Color source, mgl::Color destination, float interpolation) {
+        mgl::Color color;
+        color.r = linear_interpolation(source.r, destination.r, interpolation);
+        color.g = linear_interpolation(source.g, destination.g, interpolation);
+        color.b = linear_interpolation(source.b, destination.b, interpolation);
+        color.a = linear_interpolation(source.a, destination.a, interpolation);
+        return color;
+    }
+
+    CheckBox::CheckBox(mgl::Font *font, const char *text) :
+        text(text, *font),
+        background_sprite(&get_theme().checkbox_background_texture),
+        circle_sprite(&get_theme().checkbox_circle_texture)
+    {
+        background_sprite.set_color(get_theme().tint_color);
+        circle_sprite.set_color(get_theme().tint_color);
     }
 
     bool CheckBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
@@ -32,31 +53,36 @@ namespace gsr {
             return;
 
         const mgl::vec2f draw_pos = position + offset;
-
         const mgl::vec2f checkbox_size = get_checkbox_size();
-        mgl::Rectangle background(get_checkbox_size());
-        background.set_position(draw_pos.floor());
-        background.set_color(mgl::Color(0, 0, 0, 120));
-        window.draw(background);
 
-        if(checked) {
-            const float side_margin = checked_margin_scale * get_theme().window_height;
-            mgl::Rectangle background(get_checkbox_size() - mgl::vec2f(side_margin, side_margin).floor() * 2.0f);
-            background.set_position(draw_pos.floor() + mgl::vec2f(side_margin, side_margin).floor());
-            background.set_color(get_theme().tint_color);
-            window.draw(background);
-        }
+        apply_animation();
+
+        const mgl::Color background_color_unchecked(0, 0, 0, 120);
+        const mgl::Color background_color_checked = color_multiply(get_theme().tint_color, 0.7f);
+        background_sprite.set_color(interpolate_color(background_color_unchecked, background_color_checked, checked ? 1.0f : 0.0f));
+        background_sprite.set_position(draw_pos.floor());
+        window.draw(background_sprite);
+
+        circle_sprite.set_height((int)background_sprite.get_size().y);
+        const float circle_animation_x = linear_interpolation(0.0f, background_sprite.get_size().x - circle_sprite.get_size().x, toggle_animation_value);
+        circle_sprite.set_position((draw_pos + mgl::vec2f(circle_animation_x, 0.0f)).floor());
+        window.draw(circle_sprite);
 
         const mgl::vec2f text_bounds = text.get_bounds().size;
         text.set_position((draw_pos + mgl::vec2f(checkbox_size.x + spacing_scale * get_theme().window_height, checkbox_size.y * 0.5f - text_bounds.y * 0.5f)).floor());
         window.draw(text);
+    }
 
-        const bool mouse_inside = mgl::FloatRect(draw_pos, get_size()).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
-        if(mouse_inside) {
-            const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
-            const mgl::Color border_color = get_theme().tint_color;
-            draw_rectangle_outline(window, draw_pos, checkbox_size, border_color, border_size);
-        }
+    void CheckBox::apply_animation() {
+        if(checked)
+            toggle_animation_value += (get_frame_delta_seconds() * check_animation_speed);
+        else
+            toggle_animation_value -= (get_frame_delta_seconds() * check_animation_speed);
+
+        if(toggle_animation_value < 0.0f)
+            toggle_animation_value = 0.0f;
+        else if(toggle_animation_value > 1.0f)
+            toggle_animation_value = 1.0f;
     }
 
     mgl::vec2f CheckBox::get_size() {
@@ -71,12 +97,14 @@ namespace gsr {
     }
 
     mgl::vec2f CheckBox::get_checkbox_size() {
-        const mgl::vec2f text_bounds = text.get_bounds().size;
-        return mgl::vec2f(text_bounds.y, text_bounds.y).floor();
+        background_sprite.set_height((int)text.get_bounds().size.y);
+        return background_sprite.get_size().floor();
     }
 
-    void CheckBox::set_checked(bool checked) {
+    void CheckBox::set_checked(bool checked, bool animated) {
         this->checked = checked;
+        if(!animated)
+            toggle_animation_value = checked ? 1.0f : 0.0f;
     }
 
     bool CheckBox::is_checked() const {

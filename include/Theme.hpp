@@ -37,6 +37,8 @@ namespace gsr {
         mgl::Texture stream_button_texture;
         mgl::Texture close_texture;
         mgl::Texture logo_texture;
+        mgl::Texture checkbox_circle_texture;
+        mgl::Texture checkbox_background_texture;
 
         double double_click_timeout_seconds = 0.4;
 

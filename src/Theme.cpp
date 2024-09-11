@@ -82,6 +82,12 @@ namespace gsr {
         if(!theme->logo_texture.load_from_file((resources_path + "images/gpu_screen_recorder_logo.png").c_str()))
             goto error;
 
+        if(!theme->checkbox_circle_texture.load_from_file((resources_path + "images/checkbox_circle.png").c_str()))
+            goto error;
+
+        if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str()))
+            goto error;
+
         return true;
 
         error:

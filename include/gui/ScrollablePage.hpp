@@ -24,6 +24,10 @@ namespace gsr {
 
         void reset_scroll();
     private:
+        void apply_animation();
+        void limit_scroll(double child_height);
+        void limit_scroll_cursor(mgl::Window &window, double child_height, double scrollbar_empty_space);
+        void draw_scrollbar();
         float get_scrollbar_width() const;
     private:
         mgl::vec2f size;

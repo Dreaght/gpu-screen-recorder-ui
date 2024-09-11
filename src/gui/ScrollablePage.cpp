@@ -132,24 +132,8 @@ namespace gsr {
         // bottom_d.set_position(mgl::vec2f(offset.x, page_scroll_start.y + size.y - 5));
         // window.draw(bottom_d);
 
-        // Scroll animation
-        const double scroll_diff = scroll_target_y - scroll_y;
-        if(std::abs(scroll_diff) < 0.1) {
-            scroll_y = scroll_target_y;
-        } else {
-            const double frame_scroll_speed = std::min(1.0, get_frame_delta_seconds() * scroll_update_speed);
-            scroll_y += (scroll_diff * frame_scroll_speed);
-        }
-
-        // Top and bottom limit
-        const double scroll_bottom_limit = child_height - size.y;
-        if(scroll_y > 0.001 || child_height < size.y) {
-            scroll_y = 0;
-            scroll_target_y = 0;
-        } else if(scroll_y < -scroll_bottom_limit) {
-            scroll_y = -scroll_bottom_limit;
-            scroll_target_y = -scroll_bottom_limit;
-        }
+        apply_animation();
+        limit_scroll(child_height);
 
         mgl_window_set_scissor(window.internal_window(), &prev_scissor);
 
@@ -179,7 +163,33 @@ namespace gsr {
             scrollbar_rect.size = scrollbar.get_size();
         }
 
+        limit_scroll_cursor(window, child_height, scrollbar_empty_space);
+    }
+
+    void ScrollablePage::apply_animation() {
+        const double scroll_diff = scroll_target_y - scroll_y;
+        if(std::abs(scroll_diff) < 0.1) {
+            scroll_y = scroll_target_y;
+        } else {
+            const double frame_scroll_speed = std::min(1.0, get_frame_delta_seconds() * scroll_update_speed);
+            scroll_y += (scroll_diff * frame_scroll_speed);
+        }
+    }
+
+    void ScrollablePage::limit_scroll(double child_height) {
+        const double scroll_bottom_limit = child_height - size.y;
+        if(scroll_y > 0.001 || child_height < size.y) {
+            scroll_y = 0;
+            scroll_target_y = 0;
+        } else if(scroll_y < -scroll_bottom_limit) {
+            scroll_y = -scroll_bottom_limit;
+            scroll_target_y = -scroll_bottom_limit;
+        }
+    }
+
+    void ScrollablePage::limit_scroll_cursor(mgl::Window &window, double child_height, double scrollbar_empty_space) {
         if(moving_scrollbar_with_cursor) {
+            const double scroll_bottom_limit = child_height - size.y;
             const mgl::vec2f scrollbar_move_diff = window.get_mouse_position().to_vec2f() - scrollbar_move_cursor_start_pos;
             const double scroll_amount = scrollbar_move_diff.y / scrollbar_empty_space;
             scroll_y = scrollbar_move_cursor_scroll_y_start - scroll_amount * (child_height - size.y);
