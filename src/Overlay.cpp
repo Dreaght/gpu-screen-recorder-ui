@@ -304,8 +304,9 @@ namespace gsr {
             auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "On", "Off", &get_theme().replay_button_texture,
                 mgl::vec2f(button_width, button_height));
             replay_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start");
+            button->add_item("Turn on", "start", "Alt+Shift+F10");
             button->add_item("Settings", "settings");
+            button->set_item_icon("start", &get_theme().play_texture);
             button->on_click = std::bind(&Overlay::on_press_start_replay, this, std::placeholders::_1);
             main_buttons_list->add_widget(std::move(button));
         }
@@ -313,8 +314,10 @@ namespace gsr {
             auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Record", "Recording", "Not recording", &get_theme().record_button_texture,
                 mgl::vec2f(button_width, button_height));
             record_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start");
+            button->add_item("Start", "start", "Alt+F9");
+            button->add_item("Pause", "pause", "Alt+F7");
             button->add_item("Settings", "settings");
+            button->set_item_icon("start", &get_theme().play_texture);
             button->on_click = std::bind(&Overlay::on_press_start_record, this, std::placeholders::_1);
             main_buttons_list->add_widget(std::move(button));
         }
@@ -322,8 +325,9 @@ namespace gsr {
             auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Livestream", "Streaming", "Not streaming", &get_theme().stream_button_texture,
                 mgl::vec2f(button_width, button_height));
             stream_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start");
+            button->add_item("Start", "start", "Alt+F8");
             button->add_item("Settings", "settings");
+            button->set_item_icon("start", &get_theme().play_texture);
             button->on_click = std::bind(&Overlay::on_press_start_replay, this, std::placeholders::_1);
             main_buttons_list->add_widget(std::move(button));
         }
@@ -509,6 +513,7 @@ namespace gsr {
             gpu_screen_recorder_process = -1;
             record_dropdown_button_ptr->set_item_label(id, "Start");
             record_dropdown_button_ptr->set_activated(false);
+            record_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(config->record_config.show_video_saved_notifications) {
@@ -565,8 +570,9 @@ namespace gsr {
         if(gpu_screen_recorder_process == -1) {
             // TODO: Show notification failed to start
         } else {
-            record_dropdown_button_ptr->set_item_label(id, "Stop");
+            record_dropdown_button_ptr->set_item_label(id, "Stop and save");
             record_dropdown_button_ptr->set_activated(true);
+            record_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
         }
 
         // TODO: Start recording after this notification has disappeared to make sure it doesn't show up in the video.

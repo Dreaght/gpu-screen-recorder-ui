@@ -88,6 +88,12 @@ namespace gsr {
         if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str()))
             goto error;
 
+        if(!theme->play_texture.load_from_file((resources_path + "images/play.png").c_str()))
+            goto error;
+
+        if(!theme->stop_texture.load_from_file((resources_path + "images/stop.png").c_str()))
+            goto error;
+
         return true;
 
         error:

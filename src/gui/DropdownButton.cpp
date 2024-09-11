@@ -12,6 +12,7 @@ namespace gsr {
     static const float padding_bottom_scale = 0.00694f;
     static const float padding_left_scale = 0.009259f;
     static const float padding_right_scale = 0.009259f;
+    static const float icon_spacing_scale = 0.008f;
     static const float border_scale = 0.003f;
 
     DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size) :
@@ -69,6 +70,8 @@ namespace gsr {
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
+        const int padding_right = padding_right_scale * get_theme().window_height;
+        const int icon_spacing = icon_spacing_scale * get_theme().window_height;
         const int border_size = border_scale * get_theme().window_height;
 
         if(show_dropdown) {
@@ -137,9 +140,16 @@ namespace gsr {
                 auto &item = items[i];
                 const auto text_bounds = item.text.get_bounds();
                 const float item_height = padding_top + text_bounds.size.y + padding_bottom;
+                const mgl::vec2f item_size(max_size.x, item_height);
+
+                if(i > 0) {
+                    const float separator_height = std::max(1.0f, item_size.y * 0.05f);
+                    mgl::Rectangle separator((item_position - mgl::vec2f(0.0f, separator_height * 0.5f)).floor(), mgl::vec2f(item_size.x, separator_height).floor());
+                    separator.set_color(get_theme().page_bg_color);
+                    window.draw(separator);
+                }
 
                 if(mouse_inside_item == -1) {
-                    const mgl::vec2f item_size(max_size.x, item_height);
                     const bool inside = mgl::FloatRect(item_position, item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
                     if(inside) {
                         draw_rectangle_outline(window, item_position, item_size, get_theme().tint_color, border_size);
@@ -147,15 +157,30 @@ namespace gsr {
                     }
                 }
 
-                item.text.set_position((item_position + mgl::vec2f(padding_left, item_height * 0.5f - text_bounds.size.y * 0.5f)).floor());
+                float icon_offset = 0.0f;
+                if(item.icon_texture) {
+                    mgl::Sprite icon(item.icon_texture);
+                    icon.set_height((int)(item_size.y * 0.4f));
+                    icon.set_position((item_position + mgl::vec2f(padding_left, item_size.y * 0.5f - icon.get_size().y * 0.5f)).floor());
+                    window.draw(icon);
+                    icon_offset = icon.get_size().x + icon_spacing;
+                }
+
+                item.text.set_position((item_position + mgl::vec2f(padding_left + icon_offset, item_size.y * 0.5f - text_bounds.size.y * 0.5f)).floor());
                 window.draw(item.text);
-                item_position.y += item_height;
+
+                const auto description_bounds = item.description_text.get_bounds();
+                item.description_text.set_position((item_position + mgl::vec2f(item_size.x - description_bounds.size.x - padding_right, item_size.y * 0.5f - description_bounds.size.y * 0.5f)).floor());
+                item.description_text.set_color(mgl::Color(255, 255, 255, 120));
+                window.draw(item.description_text);
+
+                item_position.y += item_size.y;
             }
         }
     }
 
-    void DropdownButton::add_item(const std::string &text, const std::string &id) {
-        items.push_back({mgl::Text(text, *title_font), id});
+    void DropdownButton::add_item(const std::string &text, const std::string &id, const std::string &description) {
+        items.push_back({mgl::Text(text, *title_font), mgl::Text(description, *description_font), nullptr, id});
         dirty = true;
     }
 
@@ -163,7 +188,15 @@ namespace gsr {
         for(auto &item : items) {
             if(item.id == id) {
                 item.text.set_string(new_label);
-                dirty = true;
+                return;
+            }
+        }
+    }
+
+    void DropdownButton::set_item_icon(const std::string &id, mgl::Texture *texture) {
+        for(auto &item : items) {
+            if(item.id == id) {
+                item.icon_texture = texture;
                 return;
             }
         }
@@ -192,13 +225,10 @@ namespace gsr {
 
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
-        const int padding_left = padding_left_scale * get_theme().window_height;
-        const int padding_right = padding_right_scale * get_theme().window_height;
 
         max_size = { size.x, 0.0f };
         for(Item &item : items) {
             const mgl::vec2f bounds = item.text.get_bounds().size;
-            max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
             max_size.y += bounds.y + padding_top + padding_bottom;
         }
         dirty = false;
