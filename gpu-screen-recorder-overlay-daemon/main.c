@@ -80,6 +80,8 @@ int main(void) {
 
     pid_t overlay_pid = -1;
 
+    fprintf(stderr, "gsr overlay is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+
     XEvent xev;
     for(;;) {
         XNextEvent(display, &xev);

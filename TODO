@@ -33,8 +33,10 @@ Move hotkey to gsr-overlay-daemon which should execute gpu-screen-recorder --inf
 
 Combobox shouldn't show all items if its the combobox at the bottom and scrolling is needed to show them all.
 
-Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation.
+Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation. Also a button to create a new directory.
 
 Start recording/replay/streaming with correct data from settings.
 Save recording/replay/streaming status to file.
 Save gsr info data to file to quick re-open.
+
+Support wayland (excluding gnome, or force xwayland on gnome).

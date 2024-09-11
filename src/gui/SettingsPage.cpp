@@ -486,7 +486,7 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            notifications_subsection_ptr->set_visible(advanced_view);
+            //notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -521,7 +521,7 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            notifications_subsection_ptr->set_visible(advanced_view);
+            //notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -574,9 +574,7 @@ namespace gsr {
     std::unique_ptr<ComboBox> SettingsPage::create_stream_container_box() {
         auto container_box = std::make_unique<ComboBox>(&get_theme().body_font);
         container_box->add_item("mp4", "mp4");
-        container_box->add_item("mkv", "matroska");
         container_box->add_item("flv", "flv");
-        container_box->add_item("mov", "mov");
         container_box->add_item("ts", "mpegts");
         container_box->add_item("m3u8", "hls");
         container_box_ptr = container_box.get();
@@ -635,7 +633,7 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            notifications_subsection_ptr->set_visible(advanced_view);
+            //notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");

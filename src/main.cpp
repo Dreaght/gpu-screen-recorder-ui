@@ -63,6 +63,11 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    if(gsr_info.system_info.display_server == gsr::DisplayServer::WAYLAND) {
+        fprintf(stderr, "error: Wayland is currently not supported\n");
+        exit(1);
+    }
+
     std::string resources_path;
     if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0) {
         resources_path = "./";

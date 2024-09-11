@@ -28,6 +28,7 @@ namespace gsr {
     static const float content_padding_right_scale = 0.03f;
     static const float content_margin_left_scale = 0.005f;
     static const float content_margin_right_scale = 0.005f;
+    static const float folder_text_spacing_scale = 0.005f;
     static const float up_button_spacing_scale = 0.01f;
 
     FileChooserBody::FileChooserBody(FileChooser *file_chooser, mgl::vec2f size) :
@@ -84,8 +85,8 @@ namespace gsr {
             auto &folder = folders[i];
 
             mgl::Sprite folder_sprite(&get_theme().folder_texture);
-            folder_sprite.set_position(folder_pos.floor());
             folder_sprite.set_width((int)folder_width);
+            folder_sprite.set_position((folder_pos - mgl::vec2f(0.0f, folder_sprite.get_size().y * 0.3f)).floor());
 
             const mgl::vec2f item_pos = folder_pos - mgl::vec2f(content_padding_left, content_padding_top);
             const mgl::vec2f item_size = folder_sprite.get_size() + mgl::vec2f(content_padding_left + content_padding_right, content_padding_top + content_padding_bottom);
@@ -111,7 +112,7 @@ namespace gsr {
                 // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
                 folder.text.set_max_width(item_size.x);
                 folder.text.set_max_rows(2);
-                folder.text.set_position(folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y));
+                folder.text.set_position((folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y + folder_text_spacing_scale * get_theme().window_height)).floor());
                 window.draw(folder.text);
             }
 
