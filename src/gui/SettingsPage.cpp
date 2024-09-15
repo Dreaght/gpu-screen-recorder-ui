@@ -486,7 +486,7 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            //notifications_subsection_ptr->set_visible(advanced_view);
+            notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -521,7 +521,7 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            //notifications_subsection_ptr->set_visible(advanced_view);
+            notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -633,7 +633,7 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
-            //notifications_subsection_ptr->set_visible(advanced_view);
+            notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");

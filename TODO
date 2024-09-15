@@ -40,3 +40,5 @@ Save recording/replay/streaming status to file.
 Save gsr info data to file to quick re-open.
 
 Support wayland (excluding gnome, or force xwayland on gnome).
+
+Restart replay on system start if monitor resolution changes.

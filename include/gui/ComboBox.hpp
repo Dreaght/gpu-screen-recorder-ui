@@ -26,12 +26,16 @@ namespace gsr {
 
         std::function<void(const std::string &text, const std::string &id)> on_selection_changed;
     private:
+        void draw_selected(mgl::Window &window, mgl::vec2f draw_pos);
+        void draw_unselected(mgl::Window &window, mgl::vec2f draw_pos);
+        void draw_item_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size);
         void update_if_dirty();
         float get_dropdown_arrow_height() const;
     private:
         struct Item {
             mgl::Text text;
             std::string id;
+            mgl::vec2f position;
         };
 
         mgl::vec2f max_size;

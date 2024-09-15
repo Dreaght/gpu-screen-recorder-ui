@@ -25,23 +25,14 @@ namespace gsr {
         if(items.empty())
             return true;
 
-        const int padding_top = padding_top_scale * get_theme().window_height;
-        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
-        const int padding_left = padding_left_scale * get_theme().window_height;
-
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
-            const mgl::vec2f draw_pos = position + offset;
             const mgl::vec2f mouse_pos = { (float)event.mouse_button.x, (float)event.mouse_button.y };
-            const mgl::vec2f item_size(max_size.x, font->get_character_size() + padding_top + padding_bottom);
+            const mgl::vec2f item_size = get_size();
 
-            if(show_dropdown && !items.empty()) {
-                mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
-                pos.y += items[selected_item].text.get_bounds().size.y + padding_top + padding_bottom;
-
+            if(show_dropdown) {
                 for(size_t i = 0; i < items.size(); ++i) {
                     Item &item = items[i];
-                    const mgl::FloatRect text_bounds = item.text.get_bounds();
-                    if(mgl::FloatRect(pos - mgl::vec2f(padding_left, padding_top), item_size).contains(mouse_pos)) {
+                    if(mgl::FloatRect(item.position, item_size).contains(mouse_pos)) {
                         const size_t prev_selected_item = selected_item;
                         selected_item = i;
                         show_dropdown = false;
@@ -52,10 +43,10 @@ namespace gsr {
 
                         return false;
                     }
-                    pos.y += text_bounds.size.y + padding_top + padding_bottom;
                 }
             }
 
+            const mgl::vec2f draw_pos = position + offset;
             if(mgl::FloatRect(draw_pos, item_size).contains(mouse_pos)) {
                 show_dropdown = !show_dropdown;
                 if(show_dropdown)
@@ -67,6 +58,7 @@ namespace gsr {
                 remove_widget_as_selected_in_parent();
             }
         }
+
         return true;
     }
 
@@ -76,75 +68,16 @@ namespace gsr {
 
         update_if_dirty();
 
-        const int padding_top = padding_top_scale * get_theme().window_height;
-        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
-        const int padding_left = padding_left_scale * get_theme().window_height;
-        const int padding_right = padding_right_scale * get_theme().window_height;
-
         const mgl::vec2f draw_pos = (position + offset).floor();
 
-        const mgl::vec2f item_size(max_size.x, font->get_character_size() + padding_top + padding_bottom);
-        const mgl::vec2i mouse_pos = window.get_mouse_position();
-        bool inside = false;
-
-        mgl::Rectangle background(draw_pos, item_size.floor());
-        if(show_dropdown) {
-            background.set_size(max_size.floor());
-            background.set_color(mgl::Color(0, 0, 0));
-        } else {
-            background.set_color(mgl::Color(0, 0, 0, 120));
-        }
-        window.draw(background);
-
-        if(!show_dropdown) {
-            dropdown_arrow.set_height(get_dropdown_arrow_height());
-            dropdown_arrow.set_position(draw_pos + mgl::vec2f(item_size.x - dropdown_arrow.get_size().x - padding_right, item_size.y * 0.5f - dropdown_arrow.get_size().y * 0.5f).floor());
-            dropdown_arrow.set_color(mgl::Color(255, 255, 255, 30));
-            window.draw(dropdown_arrow);
-        }
-
-        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
-        mgl::vec2f pos = draw_pos + mgl::vec2f(padding_left, padding_top);
-
-        if(selected_item < items.size()) {
-            Item &selected_item_widget = items[selected_item];
-            selected_item_widget.text.set_position(pos.floor());
-            if(show_dropdown || mouse_inside) {
-                const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
-                const mgl::Color border_color = get_theme().tint_color;
-                draw_rectangle_outline(window, pos - mgl::vec2f(padding_left, padding_top), item_size.floor(), border_color, border_size);
-            }
-            window.draw(selected_item_widget.text);
-            pos.y += selected_item_widget.text.get_bounds().size.y + padding_top + padding_bottom;
-        }
-
-        for(size_t i = 0; i < items.size(); ++i) {
-            Item &item = items[i];
-            item.text.set_position(pos.floor());
-            const mgl::FloatRect text_bounds = item.text.get_bounds();
-
-            if(show_dropdown) {
-                if(!inside) {
-                    inside = mgl::FloatRect(text_bounds.position - mgl::vec2f(padding_left, padding_top), item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
-                    if(inside) {
-                        mgl::Rectangle item_background((text_bounds.position - mgl::vec2f(padding_left, padding_top)).floor(), item_size.floor());
-                        item_background.set_color(get_theme().tint_color);
-                        window.draw(item_background);
-                    } else {
-                        /*const int border_size = 3;
-                        const mgl::Color border_color(150, 150, 150);
-                        draw_rectangle_outline(window, text_bounds.position, item_size, border_color, border_size);*/
-                    }
-                }
-                window.draw(item.text);
-            }
-
-            pos.y += text_bounds.size.y + padding_top + padding_bottom;
-        }
+        if(show_dropdown)
+            draw_selected(window, draw_pos);
+        else
+            draw_unselected(window, draw_pos);
     }
 
     void ComboBox::add_item(const std::string &text, const std::string &id) {
-        items.push_back({mgl::Text(text, *font), id});
+        items.push_back({mgl::Text(text, *font), id, {0.0f, 0.0f}});
         dirty = true;
     }
 
@@ -170,6 +103,89 @@ namespace gsr {
         } else {
             return items[selected_item].id;
         }
+    }
+
+    void ComboBox::draw_selected(mgl::Window &window, mgl::vec2f draw_pos) {
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+
+        mgl_scissor scissor;
+        mgl_window_get_scissor(window.internal_window(), &scissor);
+        const bool bottom_is_outside_scissor = draw_pos.y + max_size.y > scissor.position.y + scissor.size.y;
+
+        const mgl::vec2f item_size = get_size();
+        mgl::vec2f items_draw_pos = draw_pos + mgl::vec2f(0.0f, item_size.y);
+
+        mgl::Rectangle background(draw_pos, item_size.floor());
+        background.set_size(max_size.floor());
+        background.set_color(mgl::Color(0, 0, 0));
+        if(bottom_is_outside_scissor) {
+            background.set_position((draw_pos - mgl::vec2f(0.0f, background.get_size().y - item_size.y)).floor());
+            items_draw_pos = background.get_position();
+        }
+        window.draw(background);
+
+        if(selected_item < items.size()) {
+            draw_item_outline(window, draw_pos, item_size);
+
+            Item &selected_item_widget = items[selected_item];
+            selected_item_widget.text.set_position(draw_pos + mgl::vec2f(padding_left, padding_top).floor());
+            window.draw(selected_item_widget.text);
+        }
+
+        bool cursor_inside = false;
+        const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
+
+        for(size_t i = 0; i < items.size(); ++i) {
+            if(!cursor_inside) {
+                cursor_inside = mgl::FloatRect(items_draw_pos, item_size).contains(mouse_pos);
+                if(cursor_inside) {
+                    mgl::Rectangle item_background(items_draw_pos.floor(), item_size.floor());
+                    item_background.set_color(get_theme().tint_color);
+                    window.draw(item_background);
+                }
+            }
+
+            Item &item = items[i];
+            item.text.set_position((items_draw_pos + mgl::vec2f(padding_left, padding_top)).floor());
+            window.draw(item.text);
+
+            item.position = items_draw_pos;
+            items_draw_pos.y += item_size.y;
+        }
+    }
+
+    void ComboBox::draw_unselected(mgl::Window &window, mgl::vec2f draw_pos) {
+        const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_left = padding_left_scale * get_theme().window_height;
+        const int padding_right = padding_right_scale * get_theme().window_height;
+
+        const mgl::vec2f item_size = get_size();
+        mgl::Rectangle background(draw_pos.floor(), item_size.floor());
+        background.set_color(mgl::Color(0, 0, 0, 120));
+        window.draw(background);
+
+        dropdown_arrow.set_height(get_dropdown_arrow_height());
+        dropdown_arrow.set_position(draw_pos + mgl::vec2f(item_size.x - dropdown_arrow.get_size().x - padding_right, item_size.y * 0.5f - dropdown_arrow.get_size().y * 0.5f).floor());
+        dropdown_arrow.set_color(mgl::Color(255, 255, 255, 30));
+        window.draw(dropdown_arrow);
+
+        if(selected_item < items.size()) {
+            const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
+            const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(mouse_pos) && !has_parent_with_selected_child_widget();
+            if(mouse_inside)
+                draw_item_outline(window, draw_pos, item_size);
+
+            Item &selected_item_widget = items[selected_item];
+            selected_item_widget.text.set_position(draw_pos + mgl::vec2f(padding_left, padding_top).floor());
+            window.draw(selected_item_widget.text);
+        }
+    }
+
+    void ComboBox::draw_item_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+        const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
+        const mgl::Color border_color = get_theme().tint_color;
+        draw_rectangle_outline(window, pos.floor(), size.floor(), border_color, border_size);
     }
 
     void ComboBox::update_if_dirty() {

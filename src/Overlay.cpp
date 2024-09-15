@@ -328,7 +328,7 @@ namespace gsr {
             button->add_item("Start", "start", "Alt+F8");
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
-            button->on_click = std::bind(&Overlay::on_press_start_replay, this, std::placeholders::_1);
+            button->on_click = std::bind(&Overlay::on_press_start_stream, this, std::placeholders::_1);
             main_buttons_list->add_widget(std::move(button));
         }
 
