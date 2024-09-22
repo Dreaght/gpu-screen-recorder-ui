@@ -15,6 +15,13 @@
 namespace gsr {
     class DropdownButton;
 
+    enum class RecordingStatus {
+        NONE,
+        REPLAY,
+        RECORD,
+        STREAM
+    };
+
     class Overlay {
     public:
         Overlay(mgl::Window &window, std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color);
@@ -30,6 +37,17 @@ namespace gsr {
         void toggle_show();
         bool is_open() const;
     private:
+        void update_gsr_process_status();
+
+        void load_program_status();
+        void save_program_status();
+        void load_program_pid();
+        void save_program_pid();
+        void recording_stopped_remove_runtime_files();
+
+        void update_ui_recording_started();
+        void update_ui_recording_stopped();
+
         void on_press_start_replay(const std::string &id);
         void on_press_start_record(const std::string &id);
         void on_press_start_stream(const std::string &id);
@@ -60,5 +78,7 @@ namespace gsr {
         DropdownButton *replay_dropdown_button_ptr = nullptr;
         DropdownButton *record_dropdown_button_ptr = nullptr;
         DropdownButton *stream_dropdown_button_ptr = nullptr;
+
+        RecordingStatus recording_status = RecordingStatus::NONE;
     };
 }

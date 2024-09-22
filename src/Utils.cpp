@@ -167,6 +167,20 @@ namespace gsr {
         return success;
     }
 
+    bool file_overwrite(const char *filepath, const std::string &data) {
+        bool success = false;
+
+        FILE *file = fopen(filepath, "wb");
+        if(!file)
+            return success;
+
+        if(fwrite(data.data(), 1, data.size(), file) == data.size())
+            success = true;
+
+        fclose(file);
+        return success;
+    }
+
     std::string get_parent_directory(std::string_view directory) {
         std::string result;
 
@@ -182,6 +196,23 @@ namespace gsr {
         } else {
             result = directory.substr(0, prev_slash_index);
         }
+        return result;
+    }
+
+    std::optional<std::string> get_gsr_runtime_dir() {
+        std::optional<std::string> result;
+        char runtime_dir_path[256];
+        snprintf(runtime_dir_path, sizeof(runtime_dir_path), "/run/user/%u", (unsigned int)getuid());
+
+        struct stat st;
+        if(stat(runtime_dir_path, &st) == -1 || !S_ISDIR(st.st_mode))
+            snprintf(runtime_dir_path, sizeof(runtime_dir_path), "/tmp");
+
+        strcat(runtime_dir_path, "/gsr-overlay");
+        if(create_directory_recursive(runtime_dir_path) != 0)
+            return result;
+
+        result = runtime_dir_path;
         return result;
     }
 }

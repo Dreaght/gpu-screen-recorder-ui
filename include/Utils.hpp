@@ -4,6 +4,7 @@
 #include <string_view>
 #include <map>
 #include <string>
+#include <optional>
 
 namespace gsr {
     struct KeyValue {
@@ -23,10 +24,14 @@ namespace gsr {
     std::map<std::string, std::string> get_xdg_variables();
 
     std::string get_videos_dir();
+    // Returns 0 on success
     int create_directory_recursive(char *path);
     bool file_get_content(const char *filepath, std::string &file_content);
+    bool file_overwrite(const char *filepath, const std::string &data);
 
     // Returns the path to the parent directory (ignoring trailing /)
     // of "." if there is no parent directory and the directory path is relative
     std::string get_parent_directory(std::string_view directory);
+
+    std::optional<std::string> get_gsr_runtime_dir();
 }
