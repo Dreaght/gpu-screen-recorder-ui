@@ -717,6 +717,7 @@ namespace gsr {
 
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config->record_config.record_options.fps);
+        const std::string video_bitrate = std::to_string(config->record_config.record_options.video_bitrate);
         const std::string output_file = config->record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config->record_config.container.c_str());
         const std::string audio_tracks_merged = merge_audio_tracks(config->record_config.record_options.audio_tracks);
         const std::string framerate_mode = config->record_config.record_options.framerate_mode == "auto" ? "vfr" : config->record_config.record_options.framerate_mode;
@@ -735,6 +736,16 @@ namespace gsr {
             "-f", fps.c_str(),
             "-o", output_file.c_str()
         };
+
+        if(config->record_config.record_options.video_quality == "custom") {
+            args.push_back("-bm");
+            args.push_back("cbr");
+            args.push_back("-q");
+            args.push_back(video_bitrate.c_str());
+        } else {
+            args.push_back("-q");
+            args.push_back(config->record_config.record_options.video_quality.c_str());
+        }
 
         if(config->record_config.record_options.record_area_option == "window" || config->record_config.record_options.record_area_option == "focused") {
             args.push_back("-s");

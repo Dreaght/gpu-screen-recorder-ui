@@ -190,22 +190,36 @@ namespace gsr {
         return std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
-    std::unique_ptr<ComboBox> SettingsPage::create_video_quality_box() {
+    std::unique_ptr<List> SettingsPage::create_video_quality_box() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_theme().text_color));
+
         auto video_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        video_quality_box->add_item("Custom (Constant bitrate)", "custom");
         video_quality_box->add_item("Medium", "medium");
         video_quality_box->add_item("High (Recommended for live streaming)", "high");
         video_quality_box->add_item("Very high (Recommended)", "very_high");
         video_quality_box->add_item("Ultra", "ultra");
         video_quality_box->set_selected_item("very_high");
         video_quality_box_ptr = video_quality_box.get();
-        return video_quality_box;
+        list->add_widget(std::move(video_quality_box));
+
+        return list;
     }
 
-    std::unique_ptr<List> SettingsPage::create_video_quality() {
-        auto video_quality_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_quality_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_theme().text_color));
-        video_quality_list->add_widget(create_video_quality_box());
-        return video_quality_list;
+    std::unique_ptr<Entry> SettingsPage::create_video_bitrate_entry() {
+        auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "5000", (int)(get_theme().body_font.get_character_size() * 4.0f));
+        video_bitrate_entry->validate_handler = create_entry_validator_integer_in_range(1, 100000);
+        video_bitrate_entry_ptr = video_bitrate_entry.get();
+        return video_bitrate_entry;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_video_bitrate() {
+        auto video_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video bitrate (kbps):", get_theme().text_color));
+        video_bitrate_list->add_widget(create_video_bitrate_entry());
+        video_bitrate_list_ptr = video_bitrate_list.get();
+        return video_bitrate_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_color_range_box() {
@@ -226,7 +240,8 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_quality_section() {
         auto quality_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        quality_list->add_widget(create_video_quality());
+        quality_list->add_widget(create_video_quality_box());
+        quality_list->add_widget(create_video_bitrate());
         quality_list->add_widget(create_color_range());
         return quality_list;
     }
@@ -369,6 +384,13 @@ namespace gsr {
             area_size_list_ptr->set_visible(focused_selected);
             restore_portal_session_list_ptr->set_visible(portal_selected);
         };
+
+        video_quality_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
+            (void)text;
+            const bool custom_selected = id == "custom";
+            video_bitrate_list_ptr->set_visible(custom_selected);
+        };
+        video_quality_box_ptr->on_selection_changed("Very high", "very_high");
 
         if(!gsr_info.supported_capture_options.monitors.empty())
             record_area_box_ptr->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
@@ -690,9 +712,6 @@ namespace gsr {
 
     void SettingsPage::load_common(RecordOptions &record_options) {
         record_area_box_ptr->set_selected_item(record_options.record_area_option);
-        area_width_entry_ptr->set_text(std::to_string(record_options.record_area_width));
-        area_height_entry_ptr->set_text(std::to_string(record_options.record_area_height));
-        framerate_entry_ptr->set_text(std::to_string(record_options.fps));
         merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
 
         load_audio_tracks(record_options);
@@ -718,6 +737,10 @@ namespace gsr {
         if(record_options.fps < 1)
             record_options.fps = 1;
         framerate_entry_ptr->set_text(std::to_string(record_options.fps));
+
+        if(record_options.video_bitrate < 1)
+            record_options.video_bitrate = 1;
+        video_bitrate_entry_ptr->set_text(std::to_string(record_options.video_bitrate));
     }
 
     void SettingsPage::load_replay() {
@@ -767,6 +790,7 @@ namespace gsr {
         record_options.record_area_width = atoi(area_width_entry_ptr->get_text().c_str());
         record_options.record_area_height = atoi(area_height_entry_ptr->get_text().c_str());
         record_options.fps = atoi(framerate_entry_ptr->get_text().c_str());
+        record_options.video_bitrate = atoi(video_bitrate_entry_ptr->get_text().c_str());
         record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
         save_audio_tracks(record_options.audio_tracks, audio_devices_list_ptr);
         record_options.color_range = color_range_box_ptr->get_selected_id();
@@ -793,6 +817,11 @@ namespace gsr {
         if(record_options.fps < 1) {
             record_options.fps = 1;
             framerate_entry_ptr->set_text("1");
+        }
+
+        if(record_options.video_bitrate < 1) {
+            record_options.video_bitrate = 1;
+            video_bitrate_entry_ptr->set_text("1");
         }
     }
 

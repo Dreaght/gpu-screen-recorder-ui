@@ -49,8 +49,9 @@ namespace gsr {
         std::unique_ptr<List> create_audio_track_section();
         std::unique_ptr<CheckBox> create_merge_audio_tracks_checkbox();
         std::unique_ptr<Widget> create_audio_device_section();
-        std::unique_ptr<ComboBox> create_video_quality_box();
-        std::unique_ptr<List> create_video_quality();
+        std::unique_ptr<List> create_video_quality_box();
+        std::unique_ptr<Entry> create_video_bitrate_entry();
+        std::unique_ptr<List> create_video_bitrate();
         std::unique_ptr<ComboBox> create_color_range_box();
         std::unique_ptr<List> create_color_range();
         std::unique_ptr<List> create_video_quality_section();
@@ -115,6 +116,8 @@ namespace gsr {
         Entry *area_width_entry_ptr = nullptr;
         Entry *area_height_entry_ptr = nullptr;
         Entry *framerate_entry_ptr = nullptr;
+        Entry *video_bitrate_entry_ptr = nullptr;
+        List *video_bitrate_list_ptr = nullptr;
         List *audio_devices_list_ptr = nullptr;
         CheckBox *merge_audio_tracks_checkbox_ptr = nullptr;
         ComboBox *color_range_box_ptr = nullptr;
