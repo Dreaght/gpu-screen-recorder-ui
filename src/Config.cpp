@@ -13,7 +13,10 @@
 
 namespace gsr {
     Config::Config() {
+        const std::string default_save_directory = get_videos_dir();
         streaming_config.record_options.video_quality = "custom";
+        record_config.save_directory = default_save_directory;
+        replay_config.save_directory = default_save_directory;
     }
 
     static std::optional<KeyValue> parse_key_value(std::string_view line) {
