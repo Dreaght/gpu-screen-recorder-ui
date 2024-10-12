@@ -83,6 +83,8 @@ namespace gsr {
     };
 
     struct Config {
+        Config();
+
         MainConfig main_config;
         StreamingConfig streaming_config;
         RecordConfig record_config;

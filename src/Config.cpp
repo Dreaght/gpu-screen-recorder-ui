@@ -12,6 +12,10 @@
 #define CONFIG_FILE_VERSION 1
 
 namespace gsr {
+    Config::Config() {
+        streaming_config.record_options.video_quality = "custom";
+    }
+
     static std::optional<KeyValue> parse_key_value(std::string_view line) {
         const size_t space_index = line.find(' ');
         if(space_index == std::string_view::npos)

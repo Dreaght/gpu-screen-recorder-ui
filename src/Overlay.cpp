@@ -731,7 +731,6 @@ namespace gsr {
             "-cursor", config->record_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config->record_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
-            "-q", config->record_config.record_options.video_quality.c_str(),
             "-k", config->record_config.record_options.video_codec.c_str(),
             "-f", fps.c_str(),
             "-o", output_file.c_str()

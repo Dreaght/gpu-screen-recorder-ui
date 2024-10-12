@@ -10,10 +10,21 @@
 #include <stdlib.h>
 
 namespace gsr {
+    static void debug_print_args(const char **args) {
+        fprintf(stderr, "gsr-overlay info: running command:");
+        while(*args) {
+            fprintf(stderr, " %s", *args);
+            ++args;
+        }
+        fprintf(stderr, "\n");
+    }
+
     bool exec_program_daemonized(const char **args) {
         /* 1 argument */
         if(args[0] == nullptr)
             return false;
+
+        debug_print_args(args);
 
         pid_t pid = vfork();
         if(pid == -1) {
@@ -44,6 +55,8 @@ namespace gsr {
         /* 1 argument */
         if(args[0] == nullptr)
             return -1;
+
+        debug_print_args(args);
 
         pid_t pid = vfork();
         if(pid == -1) {
