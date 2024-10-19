@@ -46,3 +46,6 @@ Restart replay on system start if monitor resolution changes.
 Show warning when selecting hevc/av1 on amd because of amd driver/ffmpeg bug.
 
 Update gsr info and validate saved config when monitors update. The selected monitor/audio may no longer be available.
+
+Have different modes. Overlay, window and side menu. Overlay can be used on x11, window and side menu can be used on both x11 and wayland.
+    Window mode should look similar to overlay.

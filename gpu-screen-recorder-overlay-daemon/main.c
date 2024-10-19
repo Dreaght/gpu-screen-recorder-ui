@@ -40,6 +40,8 @@ static void sigterm_handler(int dummy) {
 }
 
 static const KeySym toggle_overlay_key = XK_Z;
+static unsigned int toggle_overlay_modifiers = Mod1Mask;
+
 static void grab_keys(Display *display) {
     unsigned int numlockmask = 0; 
     KeyCode numlock_keycode = XKeysymToKeycode(display, XK_Num_Lock);
@@ -57,7 +59,7 @@ static void grab_keys(Display *display) {
     Window root_window = DefaultRootWindow(display);
     unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
     for(int i = 0; i < 4; ++i) {
-        XGrabKey(display, XKeysymToKeycode(display, toggle_overlay_key), Mod1Mask|modifiers[i], root_window, False, GrabModeAsync, GrabModeAsync);
+        XGrabKey(display, XKeysymToKeycode(display, toggle_overlay_key), toggle_overlay_modifiers|modifiers[i], root_window, False, GrabModeAsync, GrabModeAsync);
     }    
     
     XSync(display, False);

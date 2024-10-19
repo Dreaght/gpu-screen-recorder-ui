@@ -199,6 +199,17 @@ namespace gsr {
         memset(&window_texture, 0, sizeof(window_texture));
         load_program_status();
         load_program_pid();
+
+        key_bindings[0].key_event.code = mgl::Keyboard::Z;
+        key_bindings[0].key_event.alt = true;
+        key_bindings[0].key_event.control = false;
+        key_bindings[0].key_event.shift = false;
+        key_bindings[0].key_event.system = false;
+        key_bindings[0].callback = [this]() {
+            while(!page_stack.empty()) {
+                page_stack.pop();
+            }
+        };
     }
 
     Overlay::~Overlay() {
@@ -214,6 +225,24 @@ namespace gsr {
         // }
     }
 
+    static uint32_t key_event_to_bitmask(mgl::Event::KeyEvent key_event) {
+        return ((uint32_t)key_event.alt     << (uint32_t)0)
+            |  ((uint32_t)key_event.control << (uint32_t)1)
+            |  ((uint32_t)key_event.shift   << (uint32_t)2)
+            |  ((uint32_t)key_event.system  << (uint32_t)3);
+    }
+
+    void Overlay::process_key_bindings(mgl::Event &event) {
+        if(event.type != mgl::Event::KeyReleased)
+            return;
+
+        const uint32_t event_key_bitmask = key_event_to_bitmask(event.key);
+        for(const KeyBinding &key_binding : key_bindings) {
+            if(event.key.code == key_binding.key_event.code && event_key_bitmask == key_event_to_bitmask(key_binding.key_event))
+                key_binding.callback();
+        }
+    }
+
     void Overlay::on_event(mgl::Event &event, mgl::Window &window) {
         if(!visible)
             return;
@@ -224,6 +253,7 @@ namespace gsr {
             if(event.key.code == mgl::Keyboard::Escape)
                 page_stack.pop();
         }
+        //process_key_bindings(event);
     }
 
     void Overlay::draw(mgl::Window &window) {
@@ -284,13 +314,14 @@ namespace gsr {
         top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
         //top_bar_text.set_color(get_theme().tint_color);
         top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
-        close_button_widget.set_position(mgl::vec2f(get_theme().window_width - close_button_widget.get_size().x - 50.0f, top_bar_background.get_size().y * 0.5f - close_button_widget.get_size().y * 0.5f).floor());
 
         logo_sprite.set_height((int)(top_bar_background.get_size().y * 0.65f));
         logo_sprite.set_position(mgl::vec2f(
             (top_bar_background.get_size().y - logo_sprite.get_size().y) * 0.5f,
             top_bar_background.get_size().y * 0.5f - logo_sprite.get_size().y * 0.5f
         ).floor());
+
+        close_button_widget.set_position(mgl::vec2f(get_theme().window_width - close_button_widget.get_size().x - logo_sprite.get_position().x, top_bar_background.get_size().y * 0.5f - close_button_widget.get_size().y * 0.5f).floor());
 
         while(!page_stack.empty()) {
             page_stack.pop();
@@ -391,7 +422,7 @@ namespace gsr {
             ButtonMotionMask,
             GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
         // TODO: This breaks global hotkeys
-        XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+        //XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
         XSetInputFocus(display, window.get_system_handle(), RevertToParent, CurrentTime);
         XFlush(display);

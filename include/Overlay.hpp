@@ -11,6 +11,7 @@
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Text.hpp>
+#include <mglpp/window/Event.hpp>
 
 namespace gsr {
     class DropdownButton;
@@ -37,6 +38,8 @@ namespace gsr {
         void toggle_show();
         bool is_open() const;
     private:
+        void process_key_bindings(mgl::Event &event);
+
         void update_gsr_process_status();
 
         void load_program_status();
@@ -53,6 +56,12 @@ namespace gsr {
         void on_press_start_stream(const std::string &id);
         bool update_compositor_texture(const mgl_monitor *monitor);
     private:
+        using KeyBindingCallback = std::function<void()>;
+        struct KeyBinding {
+            mgl::Event::KeyEvent key_event;
+            KeyBindingCallback callback;
+        };
+
         mgl::Window &window;
         std::string resources_path;
         GsrInfo gsr_info;
@@ -80,5 +89,7 @@ namespace gsr {
         DropdownButton *stream_dropdown_button_ptr = nullptr;
 
         RecordingStatus recording_status = RecordingStatus::NONE;
+
+        std::array<KeyBinding, 1> key_bindings;
     };
 }
