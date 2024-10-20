@@ -482,7 +482,7 @@ namespace gsr {
         }
 
         int exit_code = -1;
-        // The process is no longer a child process since gsr overlay has restarted
+        // The process is no longer a child process since gsr ui has restarted
         if(errno == ECHILD) {
             errno = 0;
             kill(gpu_screen_recorder_process, 0);

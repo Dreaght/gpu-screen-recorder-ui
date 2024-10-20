@@ -82,7 +82,7 @@ int main(void) {
 
     pid_t overlay_pid = -1;
 
-    fprintf(stderr, "gsr overlay is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+    fprintf(stderr, "gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the ui\n");
 
     XEvent xev;
     for(;;) {
@@ -105,9 +105,9 @@ int main(void) {
             }
 
             if(overlay_pid == -1) {
-                fprintf(stderr, "launch overlay\n");
+                fprintf(stderr, "launch ui\n");
                 // TODO: window_with_input_focus
-                const char *args[] = { "gsr-overlay", NULL };
+                const char *args[] = { "gsr-ui", NULL };
                 exec_program(args, &overlay_pid);
             }
         }

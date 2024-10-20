@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     window_create_params.render_api = MGL_RENDER_API_EGL;
 
     mgl::Window window;
-    if(!window.create("gsr overlay", window_create_params))
+    if(!window.create("gsr ui", window_create_params))
         startup_error("failed to create window");
 
     unsigned char data = 2; // Prefer being composed to allow transparency
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     //     overlay.toggle_show();
     // });
 
-    //fprintf(stderr, "info: gsr overlay is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+    //fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
     mgl::Event event;
     mgl::Clock frame_delta_clock;
