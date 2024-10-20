@@ -10,4 +10,4 @@ meson setup build
 meson configure --prefix=/usr --buildtype=release -Dstrip=true build
 ninja -C build install
 
-echo "Successfully installed gsr-overlay"
+echo "Successfully installed gsr-ui"

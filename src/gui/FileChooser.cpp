@@ -138,7 +138,7 @@ namespace gsr {
 
         DIR *d = opendir(directory);
         if(!d) {
-            fprintf(stderr, "gsr-overlay error: failed to open directory: %s, error: %s\n", directory, strerror(errno));
+            fprintf(stderr, "gsr-ui error: failed to open directory: %s, error: %s\n", directory, strerror(errno));
             return;
         }
 

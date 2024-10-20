@@ -72,10 +72,10 @@ int main(int argc, char **argv) {
     if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0) {
         resources_path = "./";
     } else {
-#ifdef GSR_OVERLAY_RESOURCES_PATH
-        resources_path = GSR_OVERLAY_RESOURCES_PATH "/";
+#ifdef GSR_UI_RESOURCES_PATH
+        resources_path = GSR_UI_RESOURCES_PATH "/";
 #else
-        resources_path = "/usr/share/gsr-overlay/";
+        resources_path = "/usr/share/gsr-ui/";
 #endif
     }
 

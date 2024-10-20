@@ -208,7 +208,7 @@ namespace gsr {
         if(stat(runtime_dir_path, &st) == -1 || !S_ISDIR(st.st_mode))
             snprintf(runtime_dir_path, sizeof(runtime_dir_path), "/tmp");
 
-        strcat(runtime_dir_path, "/gsr-overlay");
+        strcat(runtime_dir_path, "/gsr-ui");
         if(create_directory_recursive(runtime_dir_path) != 0)
             return result;
 

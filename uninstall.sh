@@ -7,5 +7,4 @@ cd "$script_dir"
 
 ninja -C build uninstall
 
-echo "Successfully uninstalled gsr-overlay"
-c
+echo "Successfully uninstalled gsr-ui"

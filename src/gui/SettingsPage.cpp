@@ -48,8 +48,9 @@ namespace gsr {
     std::unique_ptr<ComboBox> SettingsPage::create_record_area_box(const GsrInfo &gsr_info) {
         auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them
-        if(gsr_info.supported_capture_options.window)
-            record_area_box->add_item("Window", "window");
+        // TODO: Enable this
+        //if(gsr_info.supported_capture_options.window)
+        //    record_area_box->add_item("Window", "window");
         if(gsr_info.supported_capture_options.focused)
             record_area_box->add_item("Follow focused window", "focused");
         if(gsr_info.supported_capture_options.screen)

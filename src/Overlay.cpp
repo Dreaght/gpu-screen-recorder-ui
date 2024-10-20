@@ -553,7 +553,7 @@ namespace gsr {
 
         std::optional<std::string> status_filepath = get_gsr_runtime_dir();
         if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-overlay or /tmp/gsr-overlay");
+            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
 
         status_filepath.value() += "/status";
 
@@ -567,7 +567,7 @@ namespace gsr {
     void Overlay::save_program_status() {
         std::optional<std::string> status_filepath = get_gsr_runtime_dir();
         if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-overlay or /tmp/gsr-overlay");
+            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
 
         status_filepath.value() += "/status";
         if(!file_overwrite(status_filepath.value().c_str(), recording_status_to_string(recording_status)))
@@ -579,7 +579,7 @@ namespace gsr {
 
         std::optional<std::string> status_filepath = get_gsr_runtime_dir();
         if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-overlay or /tmp/gsr-overlay");
+            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
 
         status_filepath.value() += "/pid";
 
@@ -599,12 +599,12 @@ namespace gsr {
         char program_arg0[PATH_MAX];
         program_arg0[0] = '\0';
         if(!read_cmdline_arg0(cmdline_path, program_arg0)) {
-            fprintf(stderr, "Error: failed to parse arg0 from file %s. Was the gpu-screen-recorder process that was started by gsr-overlay closed by another program or the user?\n", cmdline_path);
+            fprintf(stderr, "Error: failed to parse arg0 from file %s. Was the gpu-screen-recorder process that was started by gsr-ui closed by another program or the user?\n", cmdline_path);
             return;
         }
 
         if(strcmp(program_arg0, "gpu-screen-recorder") != 0) {
-            fprintf(stderr, "Warning: process %d exists but doesn't belong to gpu-screen-recorder (is instead %s). Was the gpu-screen-recorder process that was started by gsr-overlay closed by another program or the user?\n", pid, program_arg0);
+            fprintf(stderr, "Warning: process %d exists but doesn't belong to gpu-screen-recorder (is instead %s). Was the gpu-screen-recorder process that was started by gsr-ui closed by another program or the user?\n", pid, program_arg0);
             return;
         }
 
@@ -614,7 +614,7 @@ namespace gsr {
     void Overlay::save_program_pid() {
         std::optional<std::string> status_filepath = get_gsr_runtime_dir();
         if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-overlay or /tmp/gsr-overlay");
+            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
 
         status_filepath.value() += "/pid";
 
@@ -627,7 +627,7 @@ namespace gsr {
     void Overlay::recording_stopped_remove_runtime_files() {
         std::optional<std::string> status_filepath = get_gsr_runtime_dir();
         if(!status_filepath) {
-            fprintf(stderr, "Error: Failed to find/create runtime directory /run/user/.../gsr-overlay or /tmp/gsr-overlay");
+            fprintf(stderr, "Error: Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
             return;
         }
 

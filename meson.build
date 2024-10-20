@@ -1,4 +1,4 @@
-project('gsr-overlay', ['c', 'cpp'], version : '1.0.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-ui', ['c', 'cpp'], version : '1.0.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 if get_option('buildtype') == 'debug'
     add_project_arguments('-g3', language : ['c', 'cpp'])
@@ -47,22 +47,22 @@ dep = [
 
 prefix = get_option('prefix')
 datadir = get_option('datadir')
-gsr_overlay_resources_path = join_paths(prefix, datadir, 'gsr-overlay')
+gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
 
 executable(
     meson.project_name(),
     src,
     install : true,
     dependencies : dep,
-    cpp_args : '-DGSR_OVERLAY_RESOURCES_PATH="' + gsr_overlay_resources_path + '"',
+    cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )
 
 executable(
-    'gsr-overlay-daemon',
-    ['gpu-screen-recorder-overlay-daemon/main.c'],
+    'gsr-ui-daemon',
+    ['gsr-ui-daemon/main.c'],
     install : true,
     dependencies : [dependency('x11')],
 )
 
-install_subdir('images', install_dir : gsr_overlay_resources_path)
-install_subdir('fonts', install_dir : gsr_overlay_resources_path)
+install_subdir('images', install_dir : gsr_ui_resources_path)
+install_subdir('fonts', install_dir : gsr_ui_resources_path)

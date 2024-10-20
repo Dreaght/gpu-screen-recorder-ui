@@ -28,8 +28,8 @@ For system startup dont allow default output/input audio, as that can change aft
 
 Make hotkeys configurable.
 
-Move hotkey to gsr-overlay-daemon which should execute gpu-screen-recorder --info on start, write that output to /tmp/blabla (or $XDG_RUNTIME_DIR) and gsr-overlay
-    should read that tmp file. gsr-overlay should remove show/hide functions for overlay and run show on startup.
+Move hotkey to gsr-ui-daemon which should execute gpu-screen-recorder --info on start, write that output to /tmp/blabla (or $XDG_RUNTIME_DIR) and gsr-ui
+    should read that tmp file. gsr-ui should remove show/hide functions for overlay and run show on startup.
 
 Combobox shouldn't show all items if its the combobox at the bottom and scrolling is needed to show them all.
 
@@ -49,3 +49,7 @@ Update gsr info and validate saved config when monitors update. The selected mon
 
 Have different modes. Overlay, window and side menu. Overlay can be used on x11, window and side menu can be used on both x11 and wayland.
     Window mode should look similar to overlay.
+
+Look at /home/dec05eba/git/global-hotkeys for hotkeys.
+
+Show navigation breadcrumbs for settings and deeper navigation (such as selecting a directory to save videos).

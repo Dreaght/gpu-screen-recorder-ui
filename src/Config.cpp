@@ -111,7 +111,7 @@ namespace gsr {
     std::optional<Config> read_config() {
         std::optional<Config> config;
 
-        const std::string config_path = get_config_dir() + "/overlay_config";
+        const std::string config_path = get_config_dir() + "/config_ui";
         std::string file_content;
         if(!file_get_content(config_path.c_str(), file_content)) {
             fprintf(stderr, "Warning: Failed to read config file: %s\n", config_path.c_str());
@@ -173,7 +173,7 @@ namespace gsr {
     void save_config(Config &config) {
         config.main_config.config_file_version = CONFIG_FILE_VERSION;
 
-        const std::string config_path = get_config_dir() + "/overlay_config";
+        const std::string config_path = get_config_dir() + "/config_ui";
 
         char dir_tmp[PATH_MAX];
         snprintf(dir_tmp, sizeof(dir_tmp), "%s", config_path.c_str());
