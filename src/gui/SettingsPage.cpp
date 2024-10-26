@@ -111,6 +111,36 @@ namespace gsr {
         return area_size_list;
     }
 
+    std::unique_ptr<Entry> SettingsPage::create_video_width_entry() {
+        auto video_width_entry = std::make_unique<Entry>(&get_theme().body_font, "1920", get_theme().body_font.get_character_size() * 3);
+        video_width_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        video_width_entry_ptr = video_width_entry.get();
+        return video_width_entry;
+    }
+
+    std::unique_ptr<Entry> SettingsPage::create_video_height_entry() {
+        auto video_height_entry = std::make_unique<Entry>(&get_theme().body_font, "1080", get_theme().body_font.get_character_size() * 3);
+        video_height_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        video_height_entry_ptr = video_height_entry.get();
+        return video_height_entry;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_video_resolution() {
+        auto area_size_params_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        area_size_params_list->add_widget(create_video_width_entry());
+        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_theme().text_color));
+        area_size_params_list->add_widget(create_video_height_entry());
+        return area_size_params_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_video_resolution_section() {
+        auto video_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video resolution:", get_theme().text_color));
+        video_resolution_list->add_widget(create_video_resolution());
+        video_resolution_list_ptr = video_resolution_list.get();
+        return video_resolution_list;
+    }
+
     std::unique_ptr<CheckBox> SettingsPage::create_restore_portal_session_checkbox() {
         auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Restore portal session");
         restore_portal_session_checkbox->set_checked(true);
@@ -126,14 +156,25 @@ namespace gsr {
         return restore_portal_session_list;
     }
 
+    std::unique_ptr<Widget> SettingsPage::create_change_video_resolution_section() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Change video resolution");
+        change_video_resolution_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
     std::unique_ptr<Widget> SettingsPage::create_capture_target(const GsrInfo &gsr_info) {
-        // TODO: List::Alignment::Center causes 1 frame glitch when switching record area but only the first time
+        auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
+
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         capture_target_list->add_widget(create_record_area(gsr_info));
         capture_target_list->add_widget(create_select_window());
         capture_target_list->add_widget(create_area_size_section());
+        capture_target_list->add_widget(create_video_resolution_section());
         capture_target_list->add_widget(create_restore_portal_session_section());
-        return std::make_unique<Subsection>("Record area", std::move(capture_target_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+
+        ll->add_widget(std::move(capture_target_list));
+        ll->add_widget(create_change_video_resolution_section());
+        return std::make_unique<Subsection>("Record area", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_audio_track_selection_checkbox() {
@@ -386,7 +427,14 @@ namespace gsr {
             const bool portal_selected = id == "portal";
             select_window_list_ptr->set_visible(window_selected);
             area_size_list_ptr->set_visible(focused_selected);
+            video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
+            change_video_resolution_checkbox_ptr->set_visible(!focused_selected);
             restore_portal_session_list_ptr->set_visible(portal_selected);
+        };
+
+        change_video_resolution_checkbox_ptr->on_changed = [this](bool checked) {
+            const bool focused_selected = record_area_box_ptr->get_selected_id() == "focused";
+            video_resolution_list_ptr->set_visible(!focused_selected && checked);
         };
 
         video_quality_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
@@ -717,6 +765,7 @@ namespace gsr {
     void SettingsPage::load_common(RecordOptions &record_options) {
         record_area_box_ptr->set_selected_item(record_options.record_area_option);
         merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
+        change_video_resolution_checkbox_ptr->set_checked(record_options.change_video_resolution);
 
         load_audio_tracks(record_options);
         color_range_box_ptr->set_selected_item(record_options.color_range);
@@ -730,6 +779,18 @@ namespace gsr {
         record_cursor_checkbox_ptr->set_checked(record_options.record_cursor);
         restore_portal_session_checkbox_ptr->set_checked(record_options.restore_portal_session);
 
+        if(record_options.record_area_width == 0)
+            record_options.record_area_width = 1920;
+
+        if(record_options.record_area_height == 0)
+            record_options.record_area_height = 1080;
+
+        if(record_options.video_width == 0)
+            record_options.video_width = 1920;
+
+        if(record_options.video_height == 0)
+            record_options.video_height = 1080;
+
         if(record_options.record_area_width < 32)
             record_options.record_area_width = 32;
         area_width_entry_ptr->set_text(std::to_string(record_options.record_area_width));
@@ -737,6 +798,14 @@ namespace gsr {
         if(record_options.record_area_height < 32)
             record_options.record_area_height = 32;
         area_height_entry_ptr->set_text(std::to_string(record_options.record_area_height));
+
+        if(record_options.video_width < 32)
+            record_options.video_width = 32;
+        video_width_entry_ptr->set_text(std::to_string(record_options.video_width));
+
+        if(record_options.video_height < 32)
+            record_options.video_height = 32;
+        video_height_entry_ptr->set_text(std::to_string(record_options.video_height));
 
         if(record_options.fps < 1)
             record_options.fps = 1;
@@ -793,9 +862,12 @@ namespace gsr {
         record_options.record_area_option = record_area_box_ptr->get_selected_id();
         record_options.record_area_width = atoi(area_width_entry_ptr->get_text().c_str());
         record_options.record_area_height = atoi(area_height_entry_ptr->get_text().c_str());
+        record_options.video_width = atoi(video_width_entry_ptr->get_text().c_str());
+        record_options.video_height = atoi(video_height_entry_ptr->get_text().c_str());
         record_options.fps = atoi(framerate_entry_ptr->get_text().c_str());
         record_options.video_bitrate = atoi(video_bitrate_entry_ptr->get_text().c_str());
         record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
+        record_options.change_video_resolution = change_video_resolution_checkbox_ptr->is_checked();
         save_audio_tracks(record_options.audio_tracks, audio_devices_list_ptr);
         record_options.color_range = color_range_box_ptr->get_selected_id();
         record_options.video_quality = video_quality_box_ptr->get_selected_id();
@@ -808,6 +880,18 @@ namespace gsr {
         record_options.record_cursor = record_cursor_checkbox_ptr->is_checked();
         record_options.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
 
+        if(record_options.record_area_width == 0)
+            record_options.record_area_width = 1920;
+
+        if(record_options.record_area_height == 0)
+            record_options.record_area_height = 1080;
+
+        if(record_options.video_width == 0)
+            record_options.video_width = 1920;
+
+        if(record_options.video_height == 0)
+            record_options.video_height = 1080;
+
         if(record_options.record_area_width < 32) {
             record_options.record_area_width = 32;
             area_width_entry_ptr->set_text("32");
@@ -816,6 +900,16 @@ namespace gsr {
         if(record_options.record_area_height < 32) {
             record_options.record_area_height = 32;
             area_height_entry_ptr->set_text("32");
+        }
+
+        if(record_options.video_width < 32) {
+            record_options.video_width = 32;
+            video_width_entry_ptr->set_text("32");
+        }
+
+        if(record_options.video_height < 32) {
+            record_options.video_height = 32;
+            video_height_entry_ptr->set_text("32");
         }
 
         if(record_options.fps < 1) {

@@ -42,8 +42,12 @@ namespace gsr {
 
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const bool clicked_inside = mgl::FloatRect(position + offset, get_size()).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
-            if(clicked_inside)
+            if(clicked_inside) {
                 checked = !checked;
+                if(on_changed)
+                    on_changed(checked);
+                return false;
+            }
         }
         return true;
     }
@@ -105,6 +109,8 @@ namespace gsr {
         this->checked = checked;
         if(!animated)
             toggle_animation_value = checked ? 1.0f : 0.0f;
+        if(on_changed)
+            on_changed(checked);
     }
 
     bool CheckBox::is_checked() const {

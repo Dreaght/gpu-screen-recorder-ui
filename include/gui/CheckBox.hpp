@@ -6,6 +6,8 @@
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 
+#include <functional>
+
 namespace gsr {
     class CheckBox : public Widget {
     public:
@@ -20,6 +22,8 @@ namespace gsr {
 
         void set_checked(bool checked, bool animated = false);
         bool is_checked() const;
+
+        std::function<void(bool checked)> on_changed;
     private:
         void apply_animation();
         mgl::vec2f get_checkbox_size();

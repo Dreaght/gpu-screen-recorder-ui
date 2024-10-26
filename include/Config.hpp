@@ -16,9 +16,12 @@ namespace gsr {
         std::string record_area_option = "screen";
         int32_t record_area_width = 0;
         int32_t record_area_height = 0;
+        int32_t video_width = 0;
+        int32_t video_height = 0;
         int32_t fps = 60;
         int32_t video_bitrate = 5000;
         bool merge_audio_tracks = true;
+        bool change_video_resolution = false;
         std::vector<std::string> audio_tracks;
         std::string color_range = "limited";
         std::string video_quality = "very_high";

@@ -704,8 +704,12 @@ namespace gsr {
         const std::string output_file = config->record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config->record_config.container.c_str());
         const std::string audio_tracks_merged = merge_audio_tracks(config->record_config.record_options.audio_tracks);
         const std::string framerate_mode = config->record_config.record_options.framerate_mode == "auto" ? "vfr" : config->record_config.record_options.framerate_mode;
+
         char region[64];
         snprintf(region, sizeof(region), "%dx%d", (int)config->record_config.record_options.record_area_width, (int)config->record_config.record_options.record_area_height);
+
+        if(config->record_config.record_options.record_area_option != "focused" && config->record_config.record_options.change_video_resolution)
+            snprintf(region, sizeof(region), "%dx%d", (int)config->record_config.record_options.video_width, (int)config->record_config.record_options.video_height);
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", config->record_config.record_options.record_area_option.c_str(),
@@ -729,7 +733,7 @@ namespace gsr {
             args.push_back(config->record_config.record_options.video_quality.c_str());
         }
 
-        if(config->record_config.record_options.record_area_option == "window" || config->record_config.record_options.record_area_option == "focused") {
+        if(config->record_config.record_options.record_area_option == "focused" || config->record_config.record_options.change_video_resolution) {
             args.push_back("-s");
             args.push_back(region);
         }

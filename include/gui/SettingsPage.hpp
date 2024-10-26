@@ -39,8 +39,13 @@ namespace gsr {
         std::unique_ptr<Entry> create_area_height_entry();
         std::unique_ptr<List> create_area_size();
         std::unique_ptr<List> create_area_size_section();
+        std::unique_ptr<Entry> create_video_width_entry();
+        std::unique_ptr<Entry> create_video_height_entry();
+        std::unique_ptr<List> create_video_resolution();
+        std::unique_ptr<List> create_video_resolution_section();
         std::unique_ptr<CheckBox> create_restore_portal_session_checkbox();
         std::unique_ptr<List> create_restore_portal_session_section();
+        std::unique_ptr<Widget> create_change_video_resolution_section();
         std::unique_ptr<Widget> create_capture_target(const GsrInfo &gsr_info);
         std::unique_ptr<ComboBox> create_audio_track_selection_checkbox();
         std::unique_ptr<Button> create_remove_audio_track_button(List *audio_device_list_ptr);
@@ -107,6 +112,7 @@ namespace gsr {
         List *settings_list_ptr = nullptr;
         List *select_window_list_ptr = nullptr;
         List *area_size_list_ptr = nullptr;
+        List *video_resolution_list_ptr = nullptr;
         List *restore_portal_session_list_ptr = nullptr;
         List *color_range_list_ptr = nullptr;
         Widget *video_codec_ptr = nullptr;
@@ -115,11 +121,14 @@ namespace gsr {
         ComboBox *record_area_box_ptr = nullptr;
         Entry *area_width_entry_ptr = nullptr;
         Entry *area_height_entry_ptr = nullptr;
+        Entry *video_width_entry_ptr = nullptr;
+        Entry *video_height_entry_ptr = nullptr;
         Entry *framerate_entry_ptr = nullptr;
         Entry *video_bitrate_entry_ptr = nullptr;
         List *video_bitrate_list_ptr = nullptr;
         List *audio_devices_list_ptr = nullptr;
         CheckBox *merge_audio_tracks_checkbox_ptr = nullptr;
+        CheckBox *change_video_resolution_checkbox_ptr = nullptr;
         ComboBox *color_range_box_ptr = nullptr;
         ComboBox *video_quality_box_ptr = nullptr;
         ComboBox *video_codec_box_ptr = nullptr;
