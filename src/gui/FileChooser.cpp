@@ -223,25 +223,9 @@ namespace gsr {
             current_directory_padding_top_scale * get_theme().window_height + current_directory_padding_bottom_scale * get_theme().window_height
         );
 
-        mgl::vec2f current_directory_background_size = mgl::vec2f(size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y).floor();
+        const float current_directory_background_height = (int)(current_directory_text.get_bounds().size.y + current_directory_padding.y);
 
-        up_arrow_sprite.set_height((int)(current_directory_background_size.y * 0.8f));
-        up_arrow_sprite.set_position((draw_pos + mgl::vec2f(size.x - up_arrow_sprite.get_size().x, current_directory_background_size.y * 0.5f - up_arrow_sprite.get_size().y * 0.5f)).floor());
-        const bool mouse_inside_up_arrow = mgl::FloatRect(up_arrow_sprite.get_position(), up_arrow_sprite.get_size()).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
-        up_arrow_sprite.set_color(mouse_inside_up_arrow ? get_theme().tint_color : mgl::Color(255, 255, 255));
-        window.draw(up_arrow_sprite);
-
-        current_directory_background_size.x -= (up_arrow_sprite.get_size().x + up_button_spacing_scale * get_theme().window_height);
-        mgl::Rectangle current_directory_background(current_directory_background_size.floor());
-        current_directory_background.set_color(mgl::Color(0, 0, 0, 120));
-        current_directory_background.set_position(draw_pos.floor());
-        window.draw(current_directory_background);
-
-        current_directory_text.set_color(get_theme().text_color);
-        current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background_size.y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());
-        window.draw(current_directory_text);
-
-        draw_pos += mgl::vec2f(0.0f, current_directory_background_size.y + spacing_between_current_directory_and_content * get_theme().window_height);
+        draw_pos += mgl::vec2f(0.0f, current_directory_background_height + spacing_between_current_directory_and_content * get_theme().window_height);
         const mgl::vec2f body_size = mgl::vec2f(size.x, size.y - (draw_pos.y - draw_pos_start.y)).floor();
         scrollable_page.set_size(body_size);
         file_chooser_body_ptr->set_size(scrollable_page.get_inner_size());
@@ -251,7 +235,32 @@ namespace gsr {
         content_background.set_color(mgl::Color(0, 0, 0, 120));
         window.draw(content_background);
 
+        draw_navigation(window, draw_pos_start);
+
         scrollable_page.draw(window, draw_pos.floor());
+    }
+
+    void FileChooser::draw_navigation(mgl::Window &window, mgl::vec2f draw_pos) {
+        const mgl::vec2f current_directory_padding(
+            current_directory_padding_left_scale * get_theme().window_height + current_directory_padding_right_scale * get_theme().window_height,
+            current_directory_padding_top_scale * get_theme().window_height + current_directory_padding_bottom_scale * get_theme().window_height
+        );
+        mgl::vec2f current_directory_background_size = mgl::vec2f(size.x, current_directory_text.get_bounds().size.y + current_directory_padding.y).floor();
+        up_arrow_sprite.set_height((int)(current_directory_background_size.y * 0.8f));
+        up_arrow_sprite.set_position((draw_pos + mgl::vec2f(file_chooser_body_ptr->get_size().x - up_arrow_sprite.get_size().x, current_directory_background_size.y * 0.5f - up_arrow_sprite.get_size().y * 0.5f)).floor());
+        const bool mouse_inside_up_arrow = mgl::FloatRect(up_arrow_sprite.get_position(), up_arrow_sprite.get_size()).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
+        up_arrow_sprite.set_color(mouse_inside_up_arrow ? get_theme().tint_color : mgl::Color(255, 255, 255));
+        window.draw(up_arrow_sprite);
+
+        current_directory_background_size.x = file_chooser_body_ptr->get_size().x - up_arrow_sprite.get_size().x - up_button_spacing_scale * get_theme().window_height;
+        mgl::Rectangle current_directory_background(current_directory_background_size.floor());
+        current_directory_background.set_color(mgl::Color(0, 0, 0, 120));
+        current_directory_background.set_position(draw_pos.floor());
+        window.draw(current_directory_background);
+
+        current_directory_text.set_color(get_theme().text_color);
+        current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background_size.y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());
+        window.draw(current_directory_text);
     }
 
     mgl::vec2f FileChooser::get_size() {

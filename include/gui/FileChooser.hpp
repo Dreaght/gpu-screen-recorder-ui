@@ -54,6 +54,7 @@ namespace gsr {
 
         bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
         void draw(mgl::Window &window, mgl::vec2f offset) override;
+        void draw_navigation(mgl::Window &window, mgl::vec2f draw_pos);
 
         mgl::vec2f get_size() override;
 

@@ -57,12 +57,5 @@ executable(
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )
 
-executable(
-    'gsr-ui-daemon',
-    ['gsr-ui-daemon/main.c'],
-    install : true,
-    dependencies : [dependency('x11')],
-)
-
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)

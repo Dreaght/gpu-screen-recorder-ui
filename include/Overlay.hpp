@@ -23,6 +23,13 @@ namespace gsr {
         STREAM
     };
 
+    enum class NotificationType {
+        NONE,
+        RECORD,
+        REPLAY,
+        STREAM
+    };
+
     class Overlay {
     public:
         Overlay(mgl::Window &window, std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color);
@@ -36,17 +43,17 @@ namespace gsr {
         void show();
         void hide();
         void toggle_show();
+        void toggle_record();
+        void toggle_pause();
+        void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
         bool is_open() const;
     private:
         void process_key_bindings(mgl::Event &event);
 
         void update_gsr_process_status();
 
-        void load_program_status();
-        void save_program_status();
-        void load_program_pid();
-        void save_program_pid();
-        void recording_stopped_remove_runtime_files();
+        void update_ui_recording_paused();
+        void update_ui_recording_unpaused();
 
         void update_ui_recording_started();
         void update_ui_recording_stopped();
@@ -89,6 +96,7 @@ namespace gsr {
         DropdownButton *stream_dropdown_button_ptr = nullptr;
 
         RecordingStatus recording_status = RecordingStatus::NONE;
+        bool paused = false;
 
         std::array<KeyBinding, 1> key_bindings;
     };

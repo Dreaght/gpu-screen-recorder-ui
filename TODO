@@ -53,3 +53,5 @@ Have different modes. Overlay, window and side menu. Overlay can be used on x11,
 Look at /home/dec05eba/git/global-hotkeys for hotkeys.
 
 Show navigation breadcrumbs for settings and deeper navigation (such as selecting a directory to save videos).
+
+If recording stops because of an error then the ui wont be running and we wont get a notification that recording failed.

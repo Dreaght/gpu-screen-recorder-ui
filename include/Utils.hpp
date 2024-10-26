@@ -32,6 +32,4 @@ namespace gsr {
     // Returns the path to the parent directory (ignoring trailing /)
     // of "." if there is no parent directory and the directory path is relative
     std::string get_parent_directory(std::string_view directory);
-
-    std::optional<std::string> get_gsr_runtime_dir();
 }

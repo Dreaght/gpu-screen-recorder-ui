@@ -94,6 +94,9 @@ namespace gsr {
         if(!theme->stop_texture.load_from_file((resources_path + "images/stop.png").c_str()))
             goto error;
 
+        if(!theme->pause_texture.load_from_file((resources_path + "images/pause.png").c_str()))
+            goto error;
+
         return true;
 
         error:

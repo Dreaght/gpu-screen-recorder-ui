@@ -197,32 +197,32 @@ namespace gsr {
         close_button_widget({0.0f, 0.0f})
     {
         memset(&window_texture, 0, sizeof(window_texture));
-        load_program_status();
-        load_program_pid();
 
-        key_bindings[0].key_event.code = mgl::Keyboard::Z;
-        key_bindings[0].key_event.alt = true;
+        key_bindings[0].key_event.code = mgl::Keyboard::Escape;
+        key_bindings[0].key_event.alt = false;
         key_bindings[0].key_event.control = false;
         key_bindings[0].key_event.shift = false;
         key_bindings[0].key_event.system = false;
         key_bindings[0].callback = [this]() {
-            while(!page_stack.empty()) {
-                page_stack.pop();
-            }
+            page_stack.pop();
         };
     }
 
     Overlay::~Overlay() {
         hide();
-        // if(gpu_screen_recorder_process > 0) {
-        //     kill(gpu_screen_recorder_process, SIGINT);
-        //     int status;
-        //     if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
-        //         perror("waitpid failed");
-        //         /* Ignore... */
-        //     }
-        //     gpu_screen_recorder_process = -1;
-        // }
+        if(gpu_screen_recorder_process > 0) {
+            kill(gpu_screen_recorder_process, SIGINT);
+            int status;
+            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+            gpu_screen_recorder_process = -1;
+
+            // TODO: Show this with a slight delay to make sure it doesn't show up in the video
+            if(config->record_config.show_video_saved_notifications)
+                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+        }
     }
 
     static uint32_t key_event_to_bitmask(mgl::Event::KeyEvent key_event) {
@@ -248,12 +248,10 @@ namespace gsr {
             return;
 
         close_button_widget.on_event(event, window, mgl::vec2f(0.0f, 0.0f));
-        page_stack.on_event(event, window, mgl::vec2f(0.0f, 0.0f));
-        if(event.type == mgl::Event::KeyReleased) {
-            if(event.key.code == mgl::Keyboard::Escape)
-                page_stack.pop();
-        }
-        //process_key_bindings(event);
+        if(!page_stack.on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
+            return;
+
+        process_key_bindings(event);
     }
 
     void Overlay::draw(mgl::Window &window) {
@@ -337,7 +335,7 @@ namespace gsr {
         auto main_buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         main_buttons_list->set_spacing(0.0f);
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "On", "Off", &get_theme().replay_button_texture,
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "Off", &get_theme().replay_button_texture,
                 mgl::vec2f(button_width, button_height));
             replay_dropdown_button_ptr = button.get();
             button->add_item("Turn on", "start", "Alt+Shift+F10");
@@ -347,18 +345,19 @@ namespace gsr {
             main_buttons_list->add_widget(std::move(button));
         }
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Record", "Recording", "Not recording", &get_theme().record_button_texture,
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Record", "Not recording", &get_theme().record_button_texture,
                 mgl::vec2f(button_width, button_height));
             record_dropdown_button_ptr = button.get();
             button->add_item("Start", "start", "Alt+F9");
             button->add_item("Pause", "pause", "Alt+F7");
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
+            button->set_item_icon("pause", &get_theme().pause_texture);
             button->on_click = std::bind(&Overlay::on_press_start_record, this, std::placeholders::_1);
             main_buttons_list->add_widget(std::move(button));
         }
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Livestream", "Streaming", "Not streaming", &get_theme().stream_button_texture,
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Livestream", "Not streaming", &get_theme().stream_button_texture,
                 mgl::vec2f(button_width, button_height));
             stream_dropdown_button_ptr = button.get();
             button->add_item("Start", "start", "Alt+F8");
@@ -439,6 +438,9 @@ namespace gsr {
 
         if(gpu_screen_recorder_process > 0 && recording_status == RecordingStatus::RECORD)
             update_ui_recording_started();
+
+        if(paused)
+            update_ui_recording_paused();
     }
 
     void Overlay::hide() {
@@ -464,6 +466,58 @@ namespace gsr {
             hide();
         else
             show();
+    }
+
+    void Overlay::toggle_record() {
+        on_press_start_record("start");
+    }
+
+    void Overlay::toggle_pause() {
+        if(recording_status != RecordingStatus::RECORD || gpu_screen_recorder_process <= 0)
+            return;
+
+        if(paused) {
+            update_ui_recording_unpaused();
+            show_notification("Recording has been unpaused", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+        } else {
+            update_ui_recording_paused();
+            show_notification("Recording has been paused", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+        }
+
+        kill(gpu_screen_recorder_process, SIGUSR2);
+        paused = !paused;
+    }
+
+    static const char* notification_type_to_string(NotificationType notification_type) {
+        switch(notification_type) {
+            case NotificationType::NONE:   return nullptr;
+            case NotificationType::RECORD: return "record";
+            case NotificationType::REPLAY: return "replay";
+            case NotificationType::STREAM: return "stream";
+        }
+        return nullptr;
+    }
+
+    void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type) {
+        char timeout_seconds_str[32];
+        snprintf(timeout_seconds_str, sizeof(timeout_seconds_str), "%f", timeout_seconds);
+
+        const std::string icon_color_str = color_to_hex_str(icon_color);
+        const std::string bg_color_str = color_to_hex_str(bg_color);
+        const char *notification_args[12] = {
+            "gsr-notify", "--text", str, "--timeout", timeout_seconds_str,
+            "--icon-color", icon_color_str.c_str(), "--bg-color", bg_color_str.c_str(),
+        };
+
+        const char *notification_type_str = notification_type_to_string(notification_type);
+        if(notification_type_str) {
+            notification_args[9] = "--icon";
+            notification_args[10] = "record",
+            notification_args[11] = nullptr;
+        } else {
+            notification_args[9] = nullptr;
+        }
+        exec_program_daemonized(notification_args);
     }
 
     bool Overlay::is_open() const {
@@ -499,153 +553,52 @@ namespace gsr {
 
         gpu_screen_recorder_process = -1;
         recording_status = RecordingStatus::NONE;
-        recording_stopped_remove_runtime_files();
         update_ui_recording_stopped();
 
         if(exit_code == 0) {
-            if(config->record_config.show_video_saved_notifications) {
-                const std::string tint_color_as_hex = color_to_hex_str(get_theme().tint_color);
-                const char *notification_args[] = {
-                    "gsr-notify", "--text", "Recording has been saved", "--timeout", "3.0",
-                    "--icon", "record",
-                    "--icon-color", "ffffff", "--bg-color", tint_color_as_hex.c_str(),
-                    nullptr
-                };
-                exec_program_daemonized(notification_args);
-            }
+            if(config->record_config.show_video_saved_notifications)
+                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-            const char *notification_args[] = {
-                "gsr-notify", "--text", "Failed to start/save recording", "--timeout", "3.0",
-                "--icon", "record",
-                "--icon-color", "ff0000", "--bg-color", "ff0000",
-                nullptr
-            };
-            exec_program_daemonized(notification_args);
+            show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
         }
     }
 
-    static RecordingStatus recording_status_from_string(const char *status) {
-        RecordingStatus recording_status = RecordingStatus::NONE;
-        if(strcmp(status, "none") == 0)
-            recording_status = RecordingStatus::NONE;
-        else if(strcmp(status, "replay") == 0)
-            recording_status = RecordingStatus::REPLAY;
-        else if(strcmp(status, "record") == 0)
-            recording_status = RecordingStatus::RECORD;
-        else if(strcmp(status, "stream") == 0)
-            recording_status = RecordingStatus::STREAM;
-        return recording_status;
-    }
-
-    static const char* recording_status_to_string(RecordingStatus status) {
-        switch(status) {
-            case RecordingStatus::NONE:   return "none";
-            case RecordingStatus::REPLAY: return "replay";
-            case RecordingStatus::RECORD: return "record";
-            case RecordingStatus::STREAM: return "stream";
-        }
-        return "none";
-    }
-
-    void Overlay::load_program_status() {
-        recording_status = RecordingStatus::NONE;
-
-        std::optional<std::string> status_filepath = get_gsr_runtime_dir();
-        if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
-
-        status_filepath.value() += "/status";
-
-        std::string file_content;
-        if(!file_get_content(status_filepath.value().c_str(), file_content))
+    void Overlay::update_ui_recording_paused() {
+        if(!visible || recording_status != RecordingStatus::RECORD)
             return;
 
-        recording_status = recording_status_from_string(file_content.c_str());
+        record_dropdown_button_ptr->set_description("Paused");
+        record_dropdown_button_ptr->set_item_label("pause", "Unpause");
+        record_dropdown_button_ptr->set_item_icon("pause", &get_theme().play_texture);
     }
 
-    void Overlay::save_program_status() {
-        std::optional<std::string> status_filepath = get_gsr_runtime_dir();
-        if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
-
-        status_filepath.value() += "/status";
-        if(!file_overwrite(status_filepath.value().c_str(), recording_status_to_string(recording_status)))
-            fprintf(stderr, "Error: failed to update status to file %s\n", status_filepath.value().c_str());
-    }
-
-    void Overlay::load_program_pid() {
-        gpu_screen_recorder_process = -1;
-
-        std::optional<std::string> status_filepath = get_gsr_runtime_dir();
-        if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
-
-        status_filepath.value() += "/pid";
-
-        std::string file_content;
-        if(!file_get_content(status_filepath.value().c_str(), file_content))
+    void Overlay::update_ui_recording_unpaused() {
+        if(!visible || recording_status != RecordingStatus::RECORD)
             return;
 
-        int pid = -1;
-        if(sscanf(file_content.c_str(), "%d", &pid) != 1) {
-            fprintf(stderr, "Error: failed to read pid from file %s, content: %s\n", status_filepath.value().c_str(), file_content.c_str());
-            return;
-        }
-
-        char cmdline_path[256];
-        snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
-
-        char program_arg0[PATH_MAX];
-        program_arg0[0] = '\0';
-        if(!read_cmdline_arg0(cmdline_path, program_arg0)) {
-            fprintf(stderr, "Error: failed to parse arg0 from file %s. Was the gpu-screen-recorder process that was started by gsr-ui closed by another program or the user?\n", cmdline_path);
-            return;
-        }
-
-        if(strcmp(program_arg0, "gpu-screen-recorder") != 0) {
-            fprintf(stderr, "Warning: process %d exists but doesn't belong to gpu-screen-recorder (is instead %s). Was the gpu-screen-recorder process that was started by gsr-ui closed by another program or the user?\n", pid, program_arg0);
-            return;
-        }
-
-        gpu_screen_recorder_process = pid;
-    }
-
-    void Overlay::save_program_pid() {
-        std::optional<std::string> status_filepath = get_gsr_runtime_dir();
-        if(!status_filepath)
-            throw std::runtime_error("Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
-
-        status_filepath.value() += "/pid";
-
-        char str[32];
-        snprintf(str, sizeof(str), "%d", (int)gpu_screen_recorder_process);
-        if(!file_overwrite(status_filepath.value().c_str(), str))
-            fprintf(stderr, "Error: failed to update pid to file %s\n", status_filepath.value().c_str());
-    }
-
-    void Overlay::recording_stopped_remove_runtime_files() {
-        std::optional<std::string> status_filepath = get_gsr_runtime_dir();
-        if(!status_filepath) {
-            fprintf(stderr, "Error: Failed to find/create runtime directory /run/user/.../gsr-ui or /tmp/gsr-ui");
-            return;
-        }
-
-        const std::string status_file = status_filepath.value() + "/status";
-        const std::string pid_file = status_filepath.value() + "/pid";
-        remove(status_file.c_str());
-        remove(pid_file.c_str());
+        record_dropdown_button_ptr->set_description("Recording");
+        record_dropdown_button_ptr->set_item_label("pause", "Pause");
+        record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
     }
 
     void Overlay::update_ui_recording_started() {
+        if(!visible)
+            return;
+
         record_dropdown_button_ptr->set_item_label("start", "Stop and save");
         record_dropdown_button_ptr->set_activated(true);
+        record_dropdown_button_ptr->set_description("Recording");
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
     }
 
     void Overlay::update_ui_recording_stopped() {
+        if(!visible)
+            return;
+
         record_dropdown_button_ptr->set_item_label("start", "Start");
         record_dropdown_button_ptr->set_activated(false);
+        record_dropdown_button_ptr->set_description("Not recording");
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
     }
 
@@ -700,9 +653,16 @@ namespace gsr {
     }
 
     void Overlay::on_press_start_record(const std::string &id) {
+        audio_devices = get_audio_devices();
+
         if(id == "settings") {
             auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, gsr_info, audio_devices, config, &page_stack);
             page_stack.push(std::move(record_settings_page));
+            return;
+        }
+
+        if(id == "pause") {
+            toggle_pause();
             return;
         }
 
@@ -712,10 +672,10 @@ namespace gsr {
         if(!config)
             config = Config();
 
+        paused = false;
+
         // window.close();
         // usleep(1000 * 50); // 50 milliseconds
-
-        const std::string tint_color_as_hex = color_to_hex_str(get_theme().tint_color);
 
         if(gpu_screen_recorder_process > 0) {
             kill(gpu_screen_recorder_process, SIGINT);
@@ -730,19 +690,11 @@ namespace gsr {
             //exit(0);
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
-            recording_stopped_remove_runtime_files();
             update_ui_recording_stopped();
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config->record_config.show_video_saved_notifications) {
-                const char *notification_args[] = {
-                    "gsr-notify", "--text", "Recording has been saved", "--timeout", "3.0",
-                    "--icon", "record",
-                    "--icon-color", "ffffff", "--bg-color", tint_color_as_hex.c_str(),
-                    nullptr
-                };
-                exec_program_daemonized(notification_args);
-            }
+            if(config->record_config.show_video_saved_notifications)
+                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
             return;
         }
 
@@ -799,8 +751,6 @@ namespace gsr {
             // TODO: Show notification failed to start
         } else {
             recording_status = RecordingStatus::RECORD;
-            save_program_status();
-            save_program_pid();
             update_ui_recording_started();
         }
 
@@ -813,15 +763,8 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(config->record_config.show_recording_started_notifications) {
-            const char *notification_args[] = {
-                "gsr-notify", "--text", "Recording has started", "--timeout", "3.0",
-                "--icon", "record",
-                "--icon-color", tint_color_as_hex.c_str(), "--bg-color", tint_color_as_hex.c_str(),
-                nullptr
-            };
-            exec_program_daemonized(notification_args);
-        }
+        if(config->record_config.show_recording_started_notifications)
+            show_notification("Recording has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::RECORD);
         //exit(0);
         // window.set_visible(false);
         // window.close();

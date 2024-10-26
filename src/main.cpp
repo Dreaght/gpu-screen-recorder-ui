@@ -10,8 +10,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#define XK_LATIN1
-#include <X11/keysymdef.h>
+#include <X11/keysym.h>
 #include <mglpp/mglpp.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -33,7 +32,7 @@ extern "C" {
 const mgl::Color bg_color(0, 0, 0, 100);
 
 static void usage() {
-    fprintf(stderr, "usage: window-overlay\n");
+    fprintf(stderr, "usage: gsr-ui [toggle-record|toggle-pause]\n");
     exit(1);
 }
 
@@ -49,9 +48,14 @@ static void sigint_handler(int signal) {
 }
 
 int main(int argc, char **argv) {
-    (void)argv;
-    if(argc != 1)
+    setlocale(LC_ALL, "C"); // Sigh... stupid C
+
+    if(argc > 3)
         usage();
+
+    const char *action = NULL;
+    if(argc > 1)
+        action = argv[1];
 
     signal(SIGINT, sigint_handler);
 
@@ -124,25 +128,44 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+
     gsr::Overlay overlay(window, resources_path, gsr_info, egl_funcs, bg_color);
-    overlay.show();
+    //overlay.show();
 
-    // gsr::GlobalHotkeysX11 global_hotkeys;
-    // global_hotkeys.bind_key_press({ XK_z, Mod1Mask }, "open/hide", [&](const std::string &id) {
-    //     fprintf(stderr, "pressed %s\n", id.c_str());
-    //     overlay.toggle_show();
-    // });
+    gsr::GlobalHotkeysX11 global_hotkeys;
+    const bool show_hotkey_registered = global_hotkeys.bind_key_press({ XK_z, Mod1Mask }, "open/hide", [&](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay.toggle_show();
+    });
 
-    //fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+    const bool record_hotkey_registered = global_hotkeys.bind_key_press({ XK_F9, Mod1Mask }, "record/save", [&](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay.toggle_record();
+    });
+
+    const bool pause_hotkey_registered = global_hotkeys.bind_key_press({ XK_F7, Mod1Mask }, "pause/unpause", [&](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay.toggle_pause();
+    });
+
+    if(!show_hotkey_registered)
+        fprintf(stderr, "error: failed to register hotkey alt+z for showing the overlay because the hotkey is registed by another program\n");
+
+    if(!record_hotkey_registered)
+        fprintf(stderr, "error: failed to register hotkey alt+f9 for recording because the hotkey is registed by another program\n");
+
+    if(!pause_hotkey_registered)
+        fprintf(stderr, "error: failed to register hotkey alt+f7 for pausing because the hotkey is registed by another program\n");
 
     mgl::Event event;
     mgl::Clock frame_delta_clock;
-    while(window.is_open() && overlay.is_open() && running) {
+    while(window.is_open() && running) {
         const double frame_delta_seconds = frame_delta_clock.get_elapsed_time_seconds();
         frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
-        //global_hotkeys.poll_events();        
+        global_hotkeys.poll_events();        
         while(window.poll_event(event)) {
             overlay.on_event(event, window);
         }
@@ -152,7 +175,7 @@ int main(int argc, char **argv) {
         window.display();
     }
 
-    fprintf(stderr, "shutting down!\n");
+    fprintf(stderr, "info: shutting down!\n");
     gsr::deinit_theme();
     window.close();
 

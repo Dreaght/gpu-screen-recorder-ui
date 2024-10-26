@@ -15,9 +15,8 @@ namespace gsr {
     static const float icon_spacing_scale = 0.008f;
     static const float border_scale = 0.003f;
 
-    DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size) :
-        title_font(title_font), description_font(description_font), size(size), title(title, *title_font), description(description_deactivated, *description_font),
-        description_activated(description_activated), description_deactivated(description_deactivated)
+    DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description, mgl::Texture *icon_texture, mgl::vec2f size) :
+        title_font(title_font), description_font(description_font), size(size), title(title, *title_font), description(description, *description_font)
     {
         if(icon_texture && icon_texture->is_valid()) {
             icon_sprite.set_texture(icon_texture);
@@ -202,6 +201,10 @@ namespace gsr {
         }
     }
 
+    void DropdownButton::set_description(std::string description_text) {
+        description.set_string(std::move(description_text));
+    }
+
     void DropdownButton::set_activated(bool activated) {
         if(this->activated == activated)
             return;
@@ -209,11 +212,9 @@ namespace gsr {
         this->activated = activated;
 
         if(activated) {
-            description = mgl::Text(description_activated, *description_font);
             description.set_color(get_theme().tint_color);
             icon_sprite.set_color(get_theme().tint_color);
         } else {
-            description = mgl::Text(description_deactivated, *description_font);
             description.set_color(mgl::Color(150, 150, 150));
             icon_sprite.set_color(mgl::Color(255, 255, 255));
         }

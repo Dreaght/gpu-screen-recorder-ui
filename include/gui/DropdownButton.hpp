@@ -10,7 +10,7 @@
 namespace gsr {
     class DropdownButton : public Widget {
     public:
-        DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description_activated, const char *description_deactivated, mgl::Texture *icon_texture, mgl::vec2f size);
+        DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description, mgl::Texture *icon_texture, mgl::vec2f size);
         DropdownButton(const DropdownButton&) = delete;
         DropdownButton& operator=(const DropdownButton&) = delete;
 
@@ -21,6 +21,7 @@ namespace gsr {
         void set_item_label(const std::string &id, const std::string &new_label);
         void set_item_icon(const std::string &id, mgl::Texture *texture);
 
+        void set_description(std::string description_text);
         void set_activated(bool activated);
 
         mgl::vec2f get_size() override;
@@ -50,8 +51,6 @@ namespace gsr {
         mgl::Text description;
         mgl::Sprite icon_sprite;
 
-        std::string description_activated;
-        std::string description_deactivated;
         bool activated = false;
     };
 }
