@@ -571,6 +571,10 @@ namespace gsr {
         XFlush(display);
 
         window_texture_deinit(&window_texture);
+        window_texture_sprite.set_texture(nullptr);
+        screenshot_texture.clear();
+        screenshot_sprite.set_texture(nullptr);
+
         visible = false;
         if(window) {
             window->set_visible(false);
