@@ -55,12 +55,12 @@ namespace gsr {
 
         mgl::Rectangle background(content_page_size);
         background.set_position(content_page_position);
-        background.set_color(get_theme().page_bg_color);
+        background.set_color(get_color_theme().page_bg_color);
         window.draw(background);
 
         mgl::Rectangle border(mgl::vec2f(content_page_size.x, get_border_size()).floor());
         border.set_position(content_page_position);
-        border.set_color(get_theme().tint_color);
+        border.set_color(get_color_theme().tint_color);
         window.draw(border);
 
         draw_page_label(window, content_page_position);

@@ -141,7 +141,7 @@ namespace gsr {
                 cursor_inside = mgl::FloatRect(items_draw_pos, item_size).contains(mouse_pos);
                 if(cursor_inside) {
                     mgl::Rectangle item_background(items_draw_pos.floor(), item_size.floor());
-                    item_background.set_color(get_theme().tint_color);
+                    item_background.set_color(get_color_theme().tint_color);
                     window.draw(item_background);
                 }
             }
@@ -184,7 +184,7 @@ namespace gsr {
 
     void ComboBox::draw_item_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
         const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
-        const mgl::Color border_color = get_theme().tint_color;
+        const mgl::Color border_color = get_color_theme().tint_color;
         draw_rectangle_outline(window, pos.floor(), size.floor(), border_color, border_size);
     }
 

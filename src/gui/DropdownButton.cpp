@@ -82,7 +82,7 @@ namespace gsr {
                 window.draw(rect);
             }
 
-            const mgl::Color border_color = get_theme().tint_color;
+            const mgl::Color border_color = get_color_theme().tint_color;
 
             // Green line at top
             {
@@ -100,7 +100,7 @@ namespace gsr {
                 window.draw(rect);
             }
 
-            const mgl::Color border_color = get_theme().tint_color;
+            const mgl::Color border_color = get_color_theme().tint_color;
             draw_rectangle_outline(window, draw_pos, size, border_color, border_size);
         } else {
             // Background
@@ -144,14 +144,14 @@ namespace gsr {
                 if(i > 0) {
                     const float separator_height = std::max(1.0f, item_size.y * 0.05f);
                     mgl::Rectangle separator((item_position - mgl::vec2f(0.0f, separator_height * 0.5f)).floor(), mgl::vec2f(item_size.x, separator_height).floor());
-                    separator.set_color(get_theme().page_bg_color);
+                    separator.set_color(get_color_theme().page_bg_color);
                     window.draw(separator);
                 }
 
                 if(mouse_inside_item == -1) {
                     const bool inside = mgl::FloatRect(item_position, item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
                     if(inside) {
-                        draw_rectangle_outline(window, item_position, item_size, get_theme().tint_color, border_size);
+                        draw_rectangle_outline(window, item_position, item_size, get_color_theme().tint_color, border_size);
                         mouse_inside_item = i;
                     }
                 }
@@ -212,8 +212,8 @@ namespace gsr {
         this->activated = activated;
 
         if(activated) {
-            description.set_color(get_theme().tint_color);
-            icon_sprite.set_color(get_theme().tint_color);
+            description.set_color(get_color_theme().tint_color);
+            icon_sprite.set_color(get_color_theme().tint_color);
         } else {
             description.set_color(mgl::Color(150, 150, 150));
             icon_sprite.set_color(mgl::Color(255, 255, 255));

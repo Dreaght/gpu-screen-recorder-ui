@@ -93,7 +93,7 @@ namespace gsr {
             if(i == selected_item) {
                 mgl::Rectangle selected_item_background(item_size.floor());
                 selected_item_background.set_position(item_pos.floor());
-                selected_item_background.set_color(get_theme().tint_color);
+                selected_item_background.set_color(get_color_theme().tint_color);
                 window.draw(selected_item_background);
             }
             if(!has_parent_with_selected_child_widget() && mouse_over_item == -1 && mgl::FloatRect(item_pos, item_size).contains(mouse_pos)) {
@@ -102,7 +102,7 @@ namespace gsr {
                 // selected_item_background.set_color(mgl::Color(20, 20, 20, 150));
                 // window.draw(selected_item_background);
                 const float border_scale = 0.0015f;
-                draw_rectangle_outline(window, item_pos.floor(), item_size.floor(), get_theme().tint_color, border_scale * get_theme().window_height);
+                draw_rectangle_outline(window, item_pos.floor(), item_size.floor(), get_color_theme().tint_color, border_scale * get_theme().window_height);
                 mouse_over_item = i;
             }
 
@@ -249,7 +249,7 @@ namespace gsr {
         up_arrow_sprite.set_height((int)(current_directory_background_size.y * 0.8f));
         up_arrow_sprite.set_position((draw_pos + mgl::vec2f(file_chooser_body_ptr->get_size().x - up_arrow_sprite.get_size().x, current_directory_background_size.y * 0.5f - up_arrow_sprite.get_size().y * 0.5f)).floor());
         const bool mouse_inside_up_arrow = mgl::FloatRect(up_arrow_sprite.get_position(), up_arrow_sprite.get_size()).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
-        up_arrow_sprite.set_color(mouse_inside_up_arrow ? get_theme().tint_color : mgl::Color(255, 255, 255));
+        up_arrow_sprite.set_color(mouse_inside_up_arrow ? get_color_theme().tint_color : mgl::Color(255, 255, 255));
         window.draw(up_arrow_sprite);
 
         current_directory_background_size.x = file_chooser_body_ptr->get_size().x - up_arrow_sprite.get_size().x - up_button_spacing_scale * get_theme().window_height;
@@ -258,7 +258,7 @@ namespace gsr {
         current_directory_background.set_position(draw_pos.floor());
         window.draw(current_directory_background);
 
-        current_directory_text.set_color(get_theme().text_color);
+        current_directory_text.set_color(get_color_theme().text_color);
         current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background_size.y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());
         window.draw(current_directory_text);
     }

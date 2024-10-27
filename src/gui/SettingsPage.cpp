@@ -23,7 +23,7 @@ namespace gsr {
         settings_title_text("Settings", get_theme().title_font)
     {
         auto content_page = std::make_unique<GsrPage>();
-        content_page->add_button("Back", "back", get_theme().page_bg_color);
+        content_page->add_button("Back", "back", get_color_theme().page_bg_color);
         content_page->on_click = [page_stack](const std::string &id) {
             if(id == "back")
                 page_stack->pop();
@@ -68,14 +68,14 @@ namespace gsr {
 
     std::unique_ptr<Widget> SettingsPage::create_record_area(const GsrInfo &gsr_info) {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_theme().text_color));
+        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box(gsr_info));
         return record_area_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_select_window() {
         auto select_window_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        select_window_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Select window:", get_theme().text_color));
+        select_window_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Select window:", get_color_theme().text_color));
         select_window_list->add_widget(std::make_unique<Button>(&get_theme().body_font, "Click here to select a window...", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120)));
         select_window_list_ptr = select_window_list.get();
         return select_window_list;
@@ -98,14 +98,14 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_area_size() {
         auto area_size_params_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         area_size_params_list->add_widget(create_area_width_entry());
-        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_theme().text_color));
+        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_color_theme().text_color));
         area_size_params_list->add_widget(create_area_height_entry());
         return area_size_params_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_area_size_section() {
         auto area_size_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        area_size_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Area size:", get_theme().text_color));
+        area_size_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Area size:", get_color_theme().text_color));
         area_size_list->add_widget(create_area_size());
         area_size_list_ptr = area_size_list.get();
         return area_size_list;
@@ -128,14 +128,14 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_video_resolution() {
         auto area_size_params_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         area_size_params_list->add_widget(create_video_width_entry());
-        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_theme().text_color));
+        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_color_theme().text_color));
         area_size_params_list->add_widget(create_video_height_entry());
         return area_size_params_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_video_resolution_section() {
         auto video_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video resolution:", get_theme().text_color));
+        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video resolution:", get_color_theme().text_color));
         video_resolution_list->add_widget(create_video_resolution());
         video_resolution_list_ptr = video_resolution_list.get();
         return video_resolution_list;
@@ -150,7 +150,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_restore_portal_session_section() {
         auto restore_portal_session_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        restore_portal_session_list->add_widget(std::make_unique<Label>(&get_theme().body_font, " ", get_theme().text_color));
+        restore_portal_session_list->add_widget(std::make_unique<Label>(&get_theme().body_font, " ", get_color_theme().text_color));
         restore_portal_session_list->add_widget(create_restore_portal_session_checkbox());
         restore_portal_session_list_ptr = restore_portal_session_list.get();
         return restore_portal_session_list;
@@ -234,7 +234,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_quality_box() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_color_theme().text_color));
 
         auto video_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
         video_quality_box->add_item("Custom (Constant bitrate, recommended for live streaming)", "custom");
@@ -261,7 +261,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate() {
         auto video_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video bitrate (kbps):", get_theme().text_color));
+        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video bitrate (kbps):", get_color_theme().text_color));
         video_bitrate_list->add_widget(create_video_bitrate_entry());
         video_bitrate_list_ptr = video_bitrate_list.get();
         return video_bitrate_list;
@@ -277,7 +277,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_color_range() {
         auto color_range_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        color_range_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Color range:", get_theme().text_color));
+        color_range_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Color range:", get_color_theme().text_color));
         color_range_list->add_widget(create_color_range_box());
         color_range_list_ptr = color_range_list.get();
         return color_range_list;
@@ -323,7 +323,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_codec(const GsrInfo &gsr_info) {
         auto video_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video codec:", get_theme().text_color));
+        video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video codec:", get_color_theme().text_color));
         video_codec_list->add_widget(create_video_codec_box(gsr_info));
         video_codec_ptr = video_codec_list.get();
         return video_codec_list;
@@ -339,7 +339,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_audio_codec() {
         auto audio_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Audio codec:", get_theme().text_color));
+        audio_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Audio codec:", get_color_theme().text_color));
         audio_codec_list->add_widget(create_audio_codec_box());
         audio_codec_ptr = audio_codec_list.get();
         return audio_codec_list;
@@ -354,7 +354,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_framerate() {
         auto framerate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        framerate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate:", get_theme().text_color));
+        framerate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate:", get_color_theme().text_color));
         framerate_list->add_widget(create_framerate_entry());
         return framerate_list;
     }
@@ -370,7 +370,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_framerate_mode() {
         auto framerate_mode_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        framerate_mode_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate mode:", get_theme().text_color));
+        framerate_mode_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate mode:", get_color_theme().text_color));
         framerate_mode_list->add_widget(create_framerate_mode_box());
         framerate_mode_list_ptr = framerate_mode_list.get();
         return framerate_mode_list;
@@ -470,13 +470,13 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_save_directory(const char *label) {
         auto save_directory_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_theme().text_color));
+        save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_color_theme().text_color));
         auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
             auto select_directory_page = std::make_unique<GsrPage>();
-            select_directory_page->add_button("Save", "save", get_theme().tint_color);
-            select_directory_page->add_button("Cancel", "cancel", get_theme().page_bg_color);
+            select_directory_page->add_button("Save", "save", get_color_theme().tint_color);
+            select_directory_page->add_button("Cancel", "cancel", get_color_theme().page_bg_color);
             
             auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text().c_str(), select_directory_page->get_inner_size());
             FileChooser *file_chooser_ptr = file_chooser.get();
@@ -506,7 +506,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_container_section() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_theme().text_color));
+        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_color_theme().text_color));
         container_list->add_widget(create_container_box());
         return container_list;
     }
@@ -520,7 +520,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_replay_time() {
         auto replay_time_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Replay time in seconds:", get_theme().text_color));
+        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Replay time in seconds:", get_color_theme().text_color));
         replay_time_list->add_widget(create_replay_time_entry());
         return replay_time_list;
     }
@@ -612,14 +612,14 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_streaming_service_section() {
         auto streaming_service_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        streaming_service_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream service:", get_theme().text_color));
+        streaming_service_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream service:", get_color_theme().text_color));
         streaming_service_list->add_widget(create_streaming_service_box());
         return streaming_service_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_stream_key_section() {
         auto stream_key_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_theme().text_color));
+        stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
 
         auto twitch_stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         twitch_stream_key_entry_ptr = twitch_stream_key_entry.get();
@@ -635,7 +635,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_stream_url_section() {
         auto stream_url_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "URL:", get_theme().text_color));
+        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "URL:", get_color_theme().text_color));
 
         auto stream_url_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         stream_url_entry_ptr = stream_url_entry.get();
@@ -657,7 +657,7 @@ namespace gsr {
     
     std::unique_ptr<List> SettingsPage::create_stream_container_section() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_theme().text_color));
+        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_color_theme().text_color));
         container_list->add_widget(create_stream_container_box());
         container_list_ptr = container_list.get();
         return container_list;

@@ -49,7 +49,7 @@ namespace gsr {
 
         const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
         if(mouse_inside) {
-            const mgl::Color outline_color = (bg_color == get_theme().tint_color) ? mgl::Color(255, 255, 255) : get_theme().tint_color;
+            const mgl::Color outline_color = (bg_color == get_color_theme().tint_color) ? mgl::Color(255, 255, 255) : get_color_theme().tint_color;
             draw_rectangle_outline(window, draw_pos, item_size, outline_color, std::max(1.0f, border_scale * get_theme().window_height));
         }
     }

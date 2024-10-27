@@ -5,6 +5,7 @@
 
 namespace gsr {
     static Theme *theme = nullptr;
+    static ColorTheme *color_theme = nullptr;
 
     bool Theme::set_window_size(mgl::vec2i window_size) {
         if(std::abs(window_size.x - window_width) < 0.1f && std::abs(window_size.y - window_height) < 0.1f)
@@ -25,29 +26,11 @@ namespace gsr {
         return true;
     }
 
-    bool init_theme(const GsrInfo &gsr_info, const std::string &resources_path) {
+    bool init_theme(const std::string &resources_path) {
         if(theme)
             return true;
 
         theme = new Theme();
-
-        switch(gsr_info.gpu_info.vendor) {
-            case GpuVendor::UNKNOWN: {
-                break;
-            }
-            case GpuVendor::AMD: {
-                theme->tint_color = mgl::Color(221, 0, 49);
-                break;
-            }
-            case GpuVendor::INTEL: {
-                theme->tint_color = mgl::Color(8, 109, 183);
-                break;
-            }
-            case GpuVendor::NVIDIA: {
-                theme->tint_color = mgl::Color(118, 185, 0);
-                break;
-            }
-        }
 
         if(!theme->body_font_file.load((resources_path + "fonts/NotoSans-Regular.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
             goto error;
@@ -117,5 +100,44 @@ namespace gsr {
     Theme& get_theme() {
         assert(theme);
         return *theme;
+    }
+
+    bool init_color_theme(const GsrInfo &gsr_info) {
+        if(color_theme)
+            return true;
+
+        color_theme = new ColorTheme();
+
+        switch(gsr_info.gpu_info.vendor) {
+            case GpuVendor::UNKNOWN: {
+                break;
+            }
+            case GpuVendor::AMD: {
+                color_theme->tint_color = mgl::Color(221, 0, 49);
+                break;
+            }
+            case GpuVendor::INTEL: {
+                color_theme->tint_color = mgl::Color(8, 109, 183);
+                break;
+            }
+            case GpuVendor::NVIDIA: {
+                color_theme->tint_color = mgl::Color(118, 185, 0);
+                break;
+            }
+        }
+
+        return true;
+    }
+
+    void deinit_color_theme() {
+        if(color_theme) {
+            delete color_theme;
+            color_theme = nullptr;
+        }
+    }
+
+    ColorTheme& get_color_theme() {
+        assert(color_theme);
+        return *color_theme;
     }
 }

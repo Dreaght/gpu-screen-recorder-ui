@@ -18,10 +18,6 @@ namespace gsr {
         float window_width = 0.0f;
         float window_height = 0.0f;
 
-        mgl::Color tint_color = mgl::Color(118, 185, 0);
-        mgl::Color page_bg_color = mgl::Color(38, 43, 47);
-        mgl::Color text_color = mgl::Color(255, 255, 255);
-
         mgl::MemoryMappedFile body_font_file;
         mgl::MemoryMappedFile title_font_file;
         mgl::Font body_font;
@@ -50,8 +46,17 @@ namespace gsr {
         bool set_window_size(mgl::vec2i window_size);
     };
 
-    bool init_theme(const GsrInfo &gsr_info, const std::string &resources_path);
+    bool init_theme(const std::string &resources_path);
     void deinit_theme();
-
     Theme& get_theme();
+
+    struct ColorTheme {
+        mgl::Color tint_color = mgl::Color(118, 185, 0);
+        mgl::Color page_bg_color = mgl::Color(38, 43, 47);
+        mgl::Color text_color = mgl::Color(255, 255, 255);
+    };
+
+    bool init_color_theme(const GsrInfo &gsr_info);
+    void deinit_color_theme();
+    ColorTheme& get_color_theme();
 }

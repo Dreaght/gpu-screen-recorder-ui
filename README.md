@@ -1,5 +1,5 @@
 # GPU Screen Recorder UI
-A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/), in the style of ShadowPlay.
+A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.
 
 # Dependencies
 GPU Screen Recorder UI uses meson build system so you need to install `meson` to build GPU Screen Recorder UI.

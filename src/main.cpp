@@ -8,12 +8,8 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
 #include <X11/keysym.h>
 #include <mglpp/mglpp.hpp>
-#include <mglpp/window/Window.hpp>
-#include <mglpp/window/Event.hpp>
 #include <mglpp/system/Clock.hpp>
 
 // TODO: Make keyboard controllable for steam deck (and other controllers).
@@ -30,11 +26,6 @@ extern "C" {
 }
 
 const mgl::Color bg_color(0, 0, 0, 100);
-
-static void startup_error(const char *msg) {
-    fprintf(stderr, "Error: %s\n", msg);
-    exit(1);
-}
 
 static sig_atomic_t running = 1;
 static void sigint_handler(int signal) {
@@ -75,7 +66,6 @@ int main(int argc, char **argv) {
 
     mgl::Init init;
     mgl_context *context = mgl_get_context();
-    Display *display = (Display*)context->connection;
 
     egl_functions egl_funcs;
     egl_funcs.eglGetError = (decltype(egl_funcs.eglGetError))context->gl.eglGetProcAddress("eglGetError");
@@ -88,39 +78,9 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    mgl::vec2i window_size = { 1280, 720 };
-    mgl::vec2i window_pos = { 0, 0 };
-
-    mgl::Window::CreateParams window_create_params;
-    window_create_params.size = window_size;
-    window_create_params.min_size = window_size;
-    window_create_params.max_size = window_size;
-    window_create_params.position = window_pos;
-    window_create_params.hidden = true;
-    window_create_params.override_redirect = true;
-    window_create_params.background_color = bg_color;
-    window_create_params.support_alpha = true;
-    window_create_params.window_type = MGL_WINDOW_TYPE_NOTIFICATION;
-    window_create_params.render_api = MGL_RENDER_API_EGL;
-
-    mgl::Window window;
-    if(!window.create("gsr ui", window_create_params))
-        startup_error("failed to create window");
-
-    unsigned char data = 2; // Prefer being composed to allow transparency
-    XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
-
-    data = 1;
-    XChangeProperty(display, window.get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
-
-    if(!gsr::init_theme(gsr_info, resources_path)) {
-        fprintf(stderr, "Error: failed to load theme\n");
-        exit(1);
-    }
-
     fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
-    auto overlay = std::make_unique<gsr::Overlay>(window, resources_path, gsr_info, egl_funcs, bg_color);
+    auto overlay = std::make_unique<gsr::Overlay>(resources_path, gsr_info, egl_funcs, bg_color);
     //overlay.show();
 
     gsr::GlobalHotkeysX11 global_hotkeys;
@@ -172,28 +132,21 @@ int main(int argc, char **argv) {
     if(!replay_save_hotkey_registered)
         fprintf(stderr, "error: failed to register hotkey alt+f10 for saving replay because the hotkey is registered by another program\n");
 
-    mgl::Event event;
     mgl::Clock frame_delta_clock;
-    while(window.is_open() && running) {
+    while(running) {
         const double frame_delta_seconds = frame_delta_clock.get_elapsed_time_seconds();
         frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
-        global_hotkeys.poll_events();        
-        while(window.poll_event(event)) {
-            overlay->on_event(event, window);
-        }
-
-        window.clear(bg_color);
-        overlay->draw(window);
-        window.display();
+        global_hotkeys.poll_events();
+        overlay->handle_events();
+        overlay->draw();
     }
 
-    overlay.reset();
-
     fprintf(stderr, "info: shutting down!\n");
+    overlay.reset();
     gsr::deinit_theme();
-    window.close();
+    gsr::deinit_color_theme();
 
     return 0;
 }

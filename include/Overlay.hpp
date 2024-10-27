@@ -32,13 +32,14 @@ namespace gsr {
 
     class Overlay {
     public:
-        Overlay(mgl::Window &window, std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color);
+        Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color);
         Overlay(const Overlay&) = delete;
         Overlay& operator=(const Overlay&) = delete;
         ~Overlay();
 
-        void on_event(mgl::Event &event, mgl::Window &window);
-        void draw(mgl::Window &window);
+        void handle_events();
+        void on_event(mgl::Event &event);
+        void draw();
 
         void show();
         void hide();
@@ -80,7 +81,8 @@ namespace gsr {
             KeyBindingCallback callback;
         };
 
-        mgl::Window &window;
+        std::unique_ptr<mgl::Window> window;
+        mgl::Event event;
         std::string resources_path;
         GsrInfo gsr_info;
         egl_functions egl_funcs;

@@ -18,6 +18,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
@@ -184,16 +185,13 @@ namespace gsr {
         return XGetSelectionOwner(dpy, prop_atom) != None;
     }
 
-    Overlay::Overlay(mgl::Window &window, std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color) :
-        window(window),
+    Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color) :
         resources_path(std::move(resources_path)),
         gsr_info(gsr_info),
         egl_funcs(egl_funcs),
         bg_color(bg_color),
         bg_screenshot_overlay({0.0f, 0.0f}),
         top_bar_background({0.0f, 0.0f}),
-        top_bar_text("GPU Screen Recorder", get_theme().top_bar_font),
-        logo_sprite(&get_theme().logo_texture),
         close_button_widget({0.0f, 0.0f}),
         config(gsr_info)
     {
@@ -211,6 +209,8 @@ namespace gsr {
         std::optional<Config> new_config = read_config(gsr_info);
         if(new_config)
             config = std::move(new_config.value());
+
+        gsr::init_color_theme(gsr_info);
     }
 
     Overlay::~Overlay() {
@@ -237,7 +237,7 @@ namespace gsr {
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(recording_status == RecordingStatus::RECORD && config.record_config.show_video_saved_notifications)
-                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
     }
 
@@ -259,18 +259,27 @@ namespace gsr {
         }
     }
 
-    void Overlay::on_event(mgl::Event &event, mgl::Window &window) {
-        if(!visible)
+    void Overlay::handle_events() {
+        if(!visible || !window)
             return;
 
-        close_button_widget.on_event(event, window, mgl::vec2f(0.0f, 0.0f));
-        if(!page_stack.on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
+        while(window->poll_event(event)) {
+            on_event(event);
+        }
+    }
+
+    void Overlay::on_event(mgl::Event &event) {
+        if(!visible || !window)
+            return;
+
+        close_button_widget.on_event(event, *window, mgl::vec2f(0.0f, 0.0f));
+        if(!page_stack.on_event(event, *window, mgl::vec2f(0.0f, 0.0f)))
             return;
 
         process_key_bindings(event);
     }
 
-    void Overlay::draw(mgl::Window &window) {
+    void Overlay::draw() {
         update_notification_process_status();
         update_gsr_process_status();
 
@@ -282,41 +291,87 @@ namespace gsr {
             return;
         }
 
+        if(!window)
+            return;
+
+        window->clear();
+
         if(window_texture_sprite.get_texture() && window_texture.texture_id) {
-            window.draw(window_texture_sprite);
-            window.draw(bg_screenshot_overlay);
+            window->draw(window_texture_sprite);
+            window->draw(bg_screenshot_overlay);
         } else if(screenshot_texture.is_valid()) {
-            window.draw(screenshot_sprite);
-            window.draw(bg_screenshot_overlay);
+            window->draw(screenshot_sprite);
+            window->draw(bg_screenshot_overlay);
         }
 
-        window.draw(top_bar_background);
-        window.draw(top_bar_text);
-        window.draw(logo_sprite);
+        window->draw(top_bar_background);
+        window->draw(top_bar_text);
+        window->draw(logo_sprite);
 
-        close_button_widget.draw(window, mgl::vec2f(0.0f, 0.0f));
-        page_stack.draw(window, mgl::vec2f(0.0f, 0.0f));
+        close_button_widget.draw(*window, mgl::vec2f(0.0f, 0.0f));
+        page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
+
+        window->display();
     }
 
     void Overlay::show() {
-        mgl_window *win = window.internal_window();
+        window.reset();
+        window = std::make_unique<mgl::Window>();
+        gsr::deinit_theme();
+
+        mgl::vec2i window_size = { 1280, 720 };
+        mgl::vec2i window_pos = { 0, 0 };
+
+        mgl::Window::CreateParams window_create_params;
+        window_create_params.size = window_size;
+        window_create_params.min_size = window_size;
+        window_create_params.max_size = window_size;
+        window_create_params.position = window_pos;
+        window_create_params.hidden = true;
+        window_create_params.override_redirect = true;
+        window_create_params.background_color = bg_color;
+        window_create_params.support_alpha = true;
+        window_create_params.window_type = MGL_WINDOW_TYPE_NOTIFICATION;
+        window_create_params.render_api = MGL_RENDER_API_EGL;
+
+        if(!window->create("gsr ui", window_create_params))
+            fprintf(stderr, "error: failed to create window\n");
+
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+
+        unsigned char data = 2; // Prefer being composed to allow transparency
+        XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+
+        data = 1;
+        XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+
+        if(!gsr::init_theme(resources_path)) {
+            fprintf(stderr, "Error: failed to load theme\n");
+            exit(1);
+        }
+
+        mgl_window *win = window->internal_window();
         if(win->num_monitors == 0) {
             fprintf(stderr, "gsr warning: no monitors found, not showing overlay\n");
             return;
         }
 
-        const mgl_monitor *focused_monitor = find_monitor_by_cursor_position(window);
-        const mgl::vec2i window_pos(focused_monitor->pos.x, focused_monitor->pos.y);
-        const mgl::vec2i window_size(focused_monitor->size.x, focused_monitor->size.y);
+        const mgl_monitor *focused_monitor = find_monitor_by_cursor_position(*window);
+        window_pos = {focused_monitor->pos.x, focused_monitor->pos.y};
+        window_size = {focused_monitor->size.x, focused_monitor->size.y};
         get_theme().set_window_size(window_size);
 
-        window.set_size(window_size);
-        window.set_size_limits(window_size, window_size);
-        window.set_position(window_pos);
+        window->set_size(window_size);
+        window->set_size_limits(window_size, window_size);
+        window->set_position(window_pos);
 
         update_compositor_texture(focused_monitor);
 
         audio_devices = get_audio_devices();
+
+        top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
+        logo_sprite = mgl::Sprite(&get_theme().logo_texture);
 
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
@@ -326,7 +381,7 @@ namespace gsr {
 
         bg_screenshot_overlay.set_color(bg_color);
         top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
-        //top_bar_text.set_color(get_theme().tint_color);
+        //top_bar_text.set_color(get_color_theme().tint_color);
         top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
 
         logo_sprite.set_height((int)(top_bar_background.get_size().y * 0.65f));
@@ -419,7 +474,7 @@ namespace gsr {
             const float padding_size = std::max(1.0f, 0.003f * get_theme().window_height);
             const mgl::vec2f padding(padding_size, padding_size);
             if(mgl::FloatRect(pos, size).contains(window.get_mouse_position().to_vec2f()))
-                draw_rectangle_outline(window, pos.floor(), size.floor(), get_theme().tint_color, border_size);
+                draw_rectangle_outline(window, pos.floor(), size.floor(), get_color_theme().tint_color, border_size);
 
             mgl::Sprite close_sprite(&get_theme().close_texture);
             close_sprite.set_position(pos + padding);
@@ -441,12 +496,9 @@ namespace gsr {
             return true;
         };
 
-        mgl_context *context = mgl_get_context();
-        Display *display = (Display*)context->connection;
-
-        window.set_fullscreen(true);
-        window.set_visible(true);
-        make_window_sticky(display, window.get_system_handle());
+        window->set_fullscreen(true);
+        window->set_visible(true);
+        make_window_sticky(display, window->get_system_handle());
 
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
@@ -458,26 +510,26 @@ namespace gsr {
         // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
         // Remove these grabs when debugging with a debugger, or your X11 session will appear frozen
 
-        // XGrabPointer(display, window.get_system_handle(), True,
+        // XGrabPointer(display, window->get_system_handle(), True,
         //     ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
         //     Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
         //     ButtonMotionMask,
         //     GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
         // TODO: This breaks global hotkeys
-        //XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+        //XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
-        XSetInputFocus(display, window.get_system_handle(), RevertToParent, CurrentTime);
+        XSetInputFocus(display, window->get_system_handle(), RevertToParent, CurrentTime);
         XFlush(display);
 
-        //window.set_fullscreen(true);
+        //window->set_fullscreen(true);
 
         visible = true;
 
         mgl::Event event;
         event.type = mgl::Event::MouseMoved;
-        event.mouse_move.x = window.get_mouse_position().x;
-        event.mouse_move.y = window.get_mouse_position().y;
-        on_event(event, window);
+        event.mouse_move.x = window->get_mouse_position().x;
+        event.mouse_move.y = window->get_mouse_position().y;
+        on_event(event);
 
         if(gpu_screen_recorder_process > 0) {
             switch(recording_status) {
@@ -514,7 +566,12 @@ namespace gsr {
 
         window_texture_deinit(&window_texture);
         visible = false;
-        window.set_visible(false);
+        if(window) {
+            window->set_visible(false);
+            window.reset();
+        }
+
+        gsr::deinit_theme();
     }
 
     void Overlay::toggle_show() {
@@ -534,10 +591,10 @@ namespace gsr {
 
         if(paused) {
             update_ui_recording_unpaused();
-            show_notification("Recording has been unpaused", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+            show_notification("Recording has been unpaused", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         } else {
             update_ui_recording_paused();
-            show_notification("Recording has been paused", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+            show_notification("Recording has been paused", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
 
         kill(gpu_screen_recorder_process, SIGUSR2);
@@ -646,7 +703,7 @@ namespace gsr {
                 update_ui_replay_stopped();
                 if(exit_code == 0) {
                     if(config.replay_config.show_replay_stopped_notifications)
-                        show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                        show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 } else {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
                     show_notification("Replay stopped because of an error", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
@@ -657,7 +714,7 @@ namespace gsr {
                 update_ui_recording_stopped();
                 if(exit_code == 0) {
                     if(config.record_config.show_video_saved_notifications)
-                        show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                        show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
                 } else {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
                     show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
@@ -668,7 +725,7 @@ namespace gsr {
                 update_ui_streaming_stopped();
                 if(exit_code == 0) {
                     if(config.streaming_config.show_streaming_stopped_notifications)
-                        show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                        show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 } else {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
                     show_notification("Streaming stopped because of an error", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
@@ -794,7 +851,7 @@ namespace gsr {
 
         kill(gpu_screen_recorder_process, SIGUSR1);
         if(config.replay_config.show_replay_saved_notifications)
-            show_notification("Replay saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+            show_notification("Replay saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
     }
 
     void Overlay::on_press_start_replay() {
@@ -803,16 +860,16 @@ namespace gsr {
             case RecordingStatus::REPLAY:
                 break;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start replay when recording.\nStop recording before starting replay", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                show_notification("Unable to start replay when recording.\nStop recording before starting replay.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
                 return;
             case RecordingStatus::STREAM:
-                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 return;
         }
 
         paused = false;
 
-        // window.close();
+        // window->close();
         // usleep(1000 * 50); // 50 milliseconds
 
         if(gpu_screen_recorder_process > 0) {
@@ -829,7 +886,7 @@ namespace gsr {
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(config.replay_config.show_replay_stopped_notifications)
-                show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
             return;
         }
 
@@ -905,7 +962,7 @@ namespace gsr {
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
         if(config.replay_config.show_replay_started_notifications)
-            show_notification("Replay has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::REPLAY);
+            show_notification("Replay has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY);
     }
 
     void Overlay::on_press_start_record() {
@@ -914,16 +971,16 @@ namespace gsr {
             case RecordingStatus::RECORD:
                 break;
             case RecordingStatus::REPLAY:
-                show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 return;
             case RecordingStatus::STREAM:
-                show_notification("Unable to start recording when streaming.\nStop streaming before starting recording", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 return;
         }
 
         paused = false;
 
-        // window.close();
+        // window->close();
         // usleep(1000 * 50); // 50 milliseconds
 
         if(gpu_screen_recorder_process > 0) {
@@ -933,8 +990,8 @@ namespace gsr {
                 perror("waitpid failed");
                 /* Ignore... */
             }
-            // window.set_visible(false);
-            // window.close();
+            // window->set_visible(false);
+            // window->close();
             // return;
             //exit(0);
             gpu_screen_recorder_process = -1;
@@ -943,7 +1000,7 @@ namespace gsr {
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(config.record_config.show_video_saved_notifications)
-                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
             return;
         }
 
@@ -1019,10 +1076,10 @@ namespace gsr {
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
         if(config.record_config.show_recording_started_notifications)
-            show_notification("Recording has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::RECORD);
+            show_notification("Recording has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
         //exit(0);
-        // window.set_visible(false);
-        // window.close();
+        // window->set_visible(false);
+        // window->close();
 
         // TODO: Show notification with args:
         // "Recording has started" 3.0 ./images/record.png 76b900
@@ -1066,16 +1123,16 @@ namespace gsr {
             case RecordingStatus::STREAM:
                 break;
             case RecordingStatus::REPLAY:
-                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 return;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
                 return;
         }
 
         paused = false;
 
-        // window.close();
+        // window->close();
         // usleep(1000 * 50); // 50 milliseconds
 
         if(gpu_screen_recorder_process > 0) {
@@ -1092,7 +1149,7 @@ namespace gsr {
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(config.streaming_config.show_streaming_stopped_notifications)
-                show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
             return;
         }
 
@@ -1173,7 +1230,7 @@ namespace gsr {
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
         if(config.streaming_config.show_streaming_started_notifications)
-            show_notification("Streaming has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::STREAM);
+            show_notification("Streaming has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
     }
 
     bool Overlay::update_compositor_texture(const mgl_monitor *monitor) {
@@ -1191,7 +1248,7 @@ namespace gsr {
         bool window_texture_loaded = false;
         const Window window_at_cursor_position = get_window_at_cursor_position(display);
         if(is_window_fullscreen_on_monitor(display, window_at_cursor_position, monitor) && window_at_cursor_position)
-            window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window.internal_window()), window_at_cursor_position, egl_funcs) == 0;
+            window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window->internal_window()), window_at_cursor_position, egl_funcs) == 0;
 
         if(window_texture_loaded && window_texture.texture_id) {
             window_texture_texture = mgl::Texture(window_texture.texture_id, MGL_TEXTURE_FORMAT_RGB);

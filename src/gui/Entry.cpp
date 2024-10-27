@@ -17,7 +17,7 @@ namespace gsr {
     static const float caret_width_scale = 0.001f;
 
     Entry::Entry(mgl::Font *font, const char *text, float max_width) : text("", *font), max_width(max_width) {
-        this->text.set_color(get_theme().text_color);
+        this->text.set_color(get_color_theme().text_color);
         set_text(text);
     }
 
@@ -63,7 +63,7 @@ namespace gsr {
 
         if(selected) {
             const int border_size = std::max(1.0f, border_scale * get_theme().window_height);
-            draw_rectangle_outline(window, draw_pos.floor(), get_size().floor(), get_theme().tint_color, border_size);
+            draw_rectangle_outline(window, draw_pos.floor(), get_size().floor(), get_color_theme().tint_color, border_size);
 
             const int caret_width = std::max(1.0f, caret_width_scale * get_theme().window_height);
             mgl::Rectangle caret({(float)caret_width, text.get_bounds().size.y});
