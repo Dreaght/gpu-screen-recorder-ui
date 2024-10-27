@@ -279,20 +279,20 @@ namespace gsr {
         process_key_bindings(event);
     }
 
-    void Overlay::draw() {
+    bool Overlay::draw() {
         update_notification_process_status();
         update_gsr_process_status();
 
         if(!visible)
-            return;
+            return false;
 
         if(page_stack.empty()) {
             hide();
-            return;
+            return false;
         }
 
         if(!window)
-            return;
+            return false;
 
         window->clear();
 
@@ -312,6 +312,8 @@ namespace gsr {
         page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
 
         window->display();
+
+        return true;
     }
 
     void Overlay::show() {

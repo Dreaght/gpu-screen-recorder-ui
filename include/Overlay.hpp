@@ -39,7 +39,8 @@ namespace gsr {
 
         void handle_events();
         void on_event(mgl::Event &event);
-        void draw();
+        // Returns false if not visible
+        bool draw();
 
         void show();
         void hide();
