@@ -45,6 +45,9 @@ namespace gsr {
         void toggle_show();
         void toggle_record();
         void toggle_pause();
+        void toggle_stream();
+        void toggle_replay();
+        void save_replay();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
         bool is_open() const;
     private:
@@ -59,9 +62,16 @@ namespace gsr {
         void update_ui_recording_started();
         void update_ui_recording_stopped();
 
-        void on_press_start_replay(const std::string &id);
-        void on_press_start_record(const std::string &id);
-        void on_press_start_stream(const std::string &id);
+        void update_ui_streaming_started();
+        void update_ui_streaming_stopped();
+
+        void update_ui_replay_started();
+        void update_ui_replay_stopped();
+
+        void on_press_save_replay();
+        void on_press_start_replay();
+        void on_press_start_record();
+        void on_press_start_stream();
         bool update_compositor_texture(const mgl_monitor *monitor);
     private:
         using KeyBindingCallback = std::function<void()>;
@@ -92,7 +102,7 @@ namespace gsr {
         uint64_t default_cursor = 0;
         pid_t gpu_screen_recorder_process = -1;
         pid_t notification_process = -1;
-        std::optional<Config> config;
+        Config config;
         DropdownButton *replay_dropdown_button_ptr = nullptr;
         DropdownButton *record_dropdown_button_ptr = nullptr;
         DropdownButton *stream_dropdown_button_ptr = nullptr;

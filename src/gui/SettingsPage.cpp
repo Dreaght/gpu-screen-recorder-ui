@@ -14,7 +14,7 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
-    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, std::vector<AudioDevice> audio_devices, std::optional<Config> &config, PageStack *page_stack) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, std::vector<AudioDevice> audio_devices, Config &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
@@ -718,9 +718,6 @@ namespace gsr {
     }
 
     void SettingsPage::load() {
-        if(!config)
-            return;
-
         switch(type) {
             case Type::REPLAY:
                 load_replay();
@@ -735,9 +732,6 @@ namespace gsr {
     }
 
     void SettingsPage::save() {
-        if(!config)
-            config = Config();
-
         switch(type) {
             case Type::REPLAY:
                 save_replay();
@@ -749,7 +743,7 @@ namespace gsr {
                 save_stream();
                 break;
         }
-        save_config(config.value());
+        save_config(config);
     }
 
     void SettingsPage::load_audio_tracks(RecordOptions &record_options) {
@@ -817,35 +811,35 @@ namespace gsr {
     }
 
     void SettingsPage::load_replay() {
-        load_common(config->replay_config.record_options);
-        show_replay_started_notification_checkbox_ptr->set_checked(config->replay_config.show_replay_started_notifications);
-        show_replay_stopped_notification_checkbox_ptr->set_checked(config->replay_config.show_replay_stopped_notifications);
-        show_replay_saved_notification_checkbox_ptr->set_checked(config->replay_config.show_replay_saved_notifications);
-        save_directory_button_ptr->set_text(config->replay_config.save_directory);
-        container_box_ptr->set_selected_item(config->replay_config.container);
+        load_common(config.replay_config.record_options);
+        show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
+        show_replay_stopped_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_stopped_notifications);
+        show_replay_saved_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_saved_notifications);
+        save_directory_button_ptr->set_text(config.replay_config.save_directory);
+        container_box_ptr->set_selected_item(config.replay_config.container);
 
-        if(config->replay_config.replay_time < 5)
-            config->replay_config.replay_time = 5;
-        replay_time_entry_ptr->set_text(std::to_string(config->replay_config.replay_time));
+        if(config.replay_config.replay_time < 5)
+            config.replay_config.replay_time = 5;
+        replay_time_entry_ptr->set_text(std::to_string(config.replay_config.replay_time));
     }
 
     void SettingsPage::load_record() {
-        load_common(config->record_config.record_options);
-        show_recording_started_notification_checkbox_ptr->set_checked(config->record_config.show_recording_started_notifications);
-        show_video_saved_notification_checkbox_ptr->set_checked(config->record_config.show_video_saved_notifications);
-        save_directory_button_ptr->set_text(config->record_config.save_directory);
-        container_box_ptr->set_selected_item(config->record_config.container);
+        load_common(config.record_config.record_options);
+        show_recording_started_notification_checkbox_ptr->set_checked(config.record_config.show_recording_started_notifications);
+        show_video_saved_notification_checkbox_ptr->set_checked(config.record_config.show_video_saved_notifications);
+        save_directory_button_ptr->set_text(config.record_config.save_directory);
+        container_box_ptr->set_selected_item(config.record_config.container);
     }
 
     void SettingsPage::load_stream() {
-        load_common(config->streaming_config.record_options);
-        show_streaming_started_notification_checkbox_ptr->set_checked(config->streaming_config.show_streaming_started_notifications);
-        show_streaming_stopped_notification_checkbox_ptr->set_checked(config->streaming_config.show_streaming_stopped_notifications);
-        streaming_service_box_ptr->set_selected_item(config->streaming_config.streaming_service);
-        youtube_stream_key_entry_ptr->set_text(config->streaming_config.youtube.stream_key);
-        twitch_stream_key_entry_ptr->set_text(config->streaming_config.twitch.stream_key);
-        stream_url_entry_ptr->set_text(config->streaming_config.custom.url);
-        container_box_ptr->set_selected_item(config->streaming_config.custom.container);
+        load_common(config.streaming_config.record_options);
+        show_streaming_started_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_started_notifications);
+        show_streaming_stopped_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_stopped_notifications);
+        streaming_service_box_ptr->set_selected_item(config.streaming_config.streaming_service);
+        youtube_stream_key_entry_ptr->set_text(config.streaming_config.youtube.stream_key);
+        twitch_stream_key_entry_ptr->set_text(config.streaming_config.twitch.stream_key);
+        stream_url_entry_ptr->set_text(config.streaming_config.custom.url);
+        container_box_ptr->set_selected_item(config.streaming_config.custom.container);
     }
 
     static void save_audio_tracks(std::vector<std::string> &audio_tracks, List *audio_devices_list_ptr) {
@@ -924,36 +918,36 @@ namespace gsr {
     }
 
     void SettingsPage::save_replay() {
-        save_common(config->replay_config.record_options);
-        config->replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
-        config->replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
-        config->replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();
-        config->replay_config.save_directory = save_directory_button_ptr->get_text();
-        config->replay_config.container = container_box_ptr->get_selected_id();
-        config->replay_config.replay_time = atoi(replay_time_entry_ptr->get_text().c_str());
+        save_common(config.replay_config.record_options);
+        config.replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
+        config.replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
+        config.replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();
+        config.replay_config.save_directory = save_directory_button_ptr->get_text();
+        config.replay_config.container = container_box_ptr->get_selected_id();
+        config.replay_config.replay_time = atoi(replay_time_entry_ptr->get_text().c_str());
 
-        if(config->replay_config.replay_time < 5) {
-            config->replay_config.replay_time = 5;
+        if(config.replay_config.replay_time < 5) {
+            config.replay_config.replay_time = 5;
             replay_time_entry_ptr->set_text("5");
         }
     }
 
     void SettingsPage::save_record() {
-        save_common(config->record_config.record_options);
-        config->record_config.show_recording_started_notifications = show_recording_started_notification_checkbox_ptr->is_checked();
-        config->record_config.show_video_saved_notifications = show_video_saved_notification_checkbox_ptr->is_checked();
-        config->record_config.save_directory = save_directory_button_ptr->get_text();
-        config->record_config.container = container_box_ptr->get_selected_id();
+        save_common(config.record_config.record_options);
+        config.record_config.show_recording_started_notifications = show_recording_started_notification_checkbox_ptr->is_checked();
+        config.record_config.show_video_saved_notifications = show_video_saved_notification_checkbox_ptr->is_checked();
+        config.record_config.save_directory = save_directory_button_ptr->get_text();
+        config.record_config.container = container_box_ptr->get_selected_id();
     }
 
     void SettingsPage::save_stream() {
-        save_common(config->streaming_config.record_options);
-        config->streaming_config.show_streaming_started_notifications = show_streaming_started_notification_checkbox_ptr->is_checked();
-        config->streaming_config.show_streaming_stopped_notifications = show_streaming_stopped_notification_checkbox_ptr->is_checked();
-        config->streaming_config.streaming_service = streaming_service_box_ptr->get_selected_id();
-        config->streaming_config.youtube.stream_key = youtube_stream_key_entry_ptr->get_text();
-        config->streaming_config.twitch.stream_key = twitch_stream_key_entry_ptr->get_text();
-        config->streaming_config.custom.url = stream_url_entry_ptr->get_text();
-        config->streaming_config.custom.container = container_box_ptr->get_selected_id();
+        save_common(config.streaming_config.record_options);
+        config.streaming_config.show_streaming_started_notifications = show_streaming_started_notification_checkbox_ptr->is_checked();
+        config.streaming_config.show_streaming_stopped_notifications = show_streaming_stopped_notification_checkbox_ptr->is_checked();
+        config.streaming_config.streaming_service = streaming_service_box_ptr->get_selected_id();
+        config.streaming_config.youtube.stream_key = youtube_stream_key_entry_ptr->get_text();
+        config.streaming_config.twitch.stream_key = twitch_stream_key_entry_ptr->get_text();
+        config.streaming_config.custom.url = stream_url_entry_ptr->get_text();
+        config.streaming_config.custom.container = container_box_ptr->get_selected_id();
     }
 }

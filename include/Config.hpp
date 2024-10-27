@@ -7,6 +7,8 @@
 #include <optional>
 
 namespace gsr {
+    struct GsrInfo;
+
     struct ConfigHotkey {
         int64_t keysym = 0;
         uint32_t modifiers = 0;
@@ -86,7 +88,7 @@ namespace gsr {
     };
 
     struct Config {
-        Config();
+        Config(const GsrInfo &gsr_info);
 
         MainConfig main_config;
         StreamingConfig streaming_config;
@@ -94,6 +96,6 @@ namespace gsr {
         ReplayConfig replay_config;
     };
 
-    std::optional<Config> read_config();
+    std::optional<Config> read_config(const GsrInfo &gsr_info);
     void save_config(Config &config);
 }

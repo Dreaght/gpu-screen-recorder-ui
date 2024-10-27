@@ -187,14 +187,15 @@ namespace gsr {
     Overlay::Overlay(mgl::Window &window, std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color) :
         window(window),
         resources_path(std::move(resources_path)),
-        gsr_info(std::move(gsr_info)),
+        gsr_info(gsr_info),
         egl_funcs(egl_funcs),
         bg_color(bg_color),
         bg_screenshot_overlay({0.0f, 0.0f}),
         top_bar_background({0.0f, 0.0f}),
         top_bar_text("GPU Screen Recorder", get_theme().top_bar_font),
         logo_sprite(&get_theme().logo_texture),
-        close_button_widget({0.0f, 0.0f})
+        close_button_widget({0.0f, 0.0f}),
+        config(gsr_info)
     {
         memset(&window_texture, 0, sizeof(window_texture));
 
@@ -206,6 +207,10 @@ namespace gsr {
         key_bindings[0].callback = [this]() {
             page_stack.pop();
         };
+
+        std::optional<Config> new_config = read_config(gsr_info);
+        if(new_config)
+            config = std::move(new_config.value());
     }
 
     Overlay::~Overlay() {
@@ -231,7 +236,7 @@ namespace gsr {
             gpu_screen_recorder_process = -1;
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config->record_config.show_video_saved_notifications)
+            if(recording_status == RecordingStatus::RECORD && config.record_config.show_video_saved_notifications)
                 show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
         }
     }
@@ -312,7 +317,6 @@ namespace gsr {
         update_compositor_texture(focused_monitor);
 
         audio_devices = get_audio_devices();
-        config = read_config();
 
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
@@ -351,9 +355,20 @@ namespace gsr {
                 mgl::vec2f(button_width, button_height));
             replay_dropdown_button_ptr = button.get();
             button->add_item("Turn on", "start", "Alt+Shift+F10");
+            button->add_item("Save", "save", "Alt+F10");
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
-            button->on_click = std::bind(&Overlay::on_press_start_replay, this, std::placeholders::_1);
+            button->set_item_icon("save", &get_theme().save_texture);
+            button->on_click = [this](const std::string &id) {
+                if(id == "settings") {
+                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, gsr_info, audio_devices, config, &page_stack);
+                    page_stack.push(std::move(replay_settings_page));
+                } else if(id == "save") {
+                    on_press_save_replay();
+                } else if(id == "start") {
+                    on_press_start_replay();
+                }
+            };
             main_buttons_list->add_widget(std::move(button));
         }
         {
@@ -365,7 +380,16 @@ namespace gsr {
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("pause", &get_theme().pause_texture);
-            button->on_click = std::bind(&Overlay::on_press_start_record, this, std::placeholders::_1);
+            button->on_click = [this](const std::string &id) {
+                if(id == "settings") {
+                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, gsr_info, audio_devices, config, &page_stack);
+                    page_stack.push(std::move(record_settings_page));
+                } else if(id == "pause") {
+                    toggle_pause();
+                } else if(id == "start") {
+                    on_press_start_record();
+                }
+            };
             main_buttons_list->add_widget(std::move(button));
         }
         {
@@ -375,7 +399,14 @@ namespace gsr {
             button->add_item("Start", "start", "Alt+F8");
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
-            button->on_click = std::bind(&Overlay::on_press_start_stream, this, std::placeholders::_1);
+            button->on_click = [this](const std::string &id) {
+                if(id == "settings") {
+                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, gsr_info, audio_devices, config, &page_stack);
+                    page_stack.push(std::move(stream_settings_page));
+                } else if(id == "start") {
+                    on_press_start_stream();
+                }
+            };
             main_buttons_list->add_widget(std::move(button));
         }
 
@@ -427,11 +458,11 @@ namespace gsr {
         // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
         // Remove these grabs when debugging with a debugger, or your X11 session will appear frozen
 
-        XGrabPointer(display, window.get_system_handle(), True,
-            ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
-            Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
-            ButtonMotionMask,
-            GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
+        // XGrabPointer(display, window.get_system_handle(), True,
+        //     ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
+        //     Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
+        //     ButtonMotionMask,
+        //     GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
         // TODO: This breaks global hotkeys
         //XGrabKeyboard(display, window.get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
@@ -448,8 +479,21 @@ namespace gsr {
         event.mouse_move.y = window.get_mouse_position().y;
         on_event(event, window);
 
-        if(gpu_screen_recorder_process > 0 && recording_status == RecordingStatus::RECORD)
-            update_ui_recording_started();
+        if(gpu_screen_recorder_process > 0) {
+            switch(recording_status) {
+                case RecordingStatus::NONE:
+                    break;
+                case RecordingStatus::REPLAY:
+                    update_ui_replay_started();
+                    break;
+                case RecordingStatus::RECORD:
+                    update_ui_recording_started();
+                    break;
+                case RecordingStatus::STREAM:
+                    update_ui_streaming_started();
+                    break;
+            }
+        }
 
         if(paused)
             update_ui_recording_paused();
@@ -481,7 +525,7 @@ namespace gsr {
     }
 
     void Overlay::toggle_record() {
-        on_press_start_record("start");
+        on_press_start_record();
     }
 
     void Overlay::toggle_pause() {
@@ -498,6 +542,18 @@ namespace gsr {
 
         kill(gpu_screen_recorder_process, SIGUSR2);
         paused = !paused;
+    }
+
+    void Overlay::toggle_stream() {
+        on_press_start_stream();
+    }
+
+    void Overlay::toggle_replay() {
+        on_press_start_replay();
+    }
+
+    void Overlay::save_replay() {
+        on_press_save_replay();
     }
 
     static const char* notification_type_to_string(NotificationType notification_type) {
@@ -533,7 +589,7 @@ namespace gsr {
         if(notification_process > 0) {
             kill(notification_process, SIGKILL);
             int status = 0;
-            waitpid(gpu_screen_recorder_process, &status, 0);
+            waitpid(notification_process, &status, 0);
         }
 
         notification_process = exec_program(notification_args);
@@ -548,7 +604,7 @@ namespace gsr {
             return;
 
         int status;
-        if(waitpid(gpu_screen_recorder_process, &status, WNOHANG) == 0) {
+        if(waitpid(notification_process, &status, WNOHANG) == 0) {
             // Still running
             return;
         }
@@ -583,17 +639,46 @@ namespace gsr {
                 exit_code = WEXITSTATUS(status);
         }
 
+        switch(recording_status) {
+            case RecordingStatus::NONE:
+                break;
+            case RecordingStatus::REPLAY: {
+                update_ui_replay_stopped();
+                if(exit_code == 0) {
+                    if(config.replay_config.show_replay_stopped_notifications)
+                        show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                } else {
+                    fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+                    show_notification("Replay stopped because of an error", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
+                }
+                break;
+            }
+            case RecordingStatus::RECORD: {
+                update_ui_recording_stopped();
+                if(exit_code == 0) {
+                    if(config.record_config.show_video_saved_notifications)
+                        show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                } else {
+                    fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+                    show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+                }
+                break;
+            }
+            case RecordingStatus::STREAM: {
+                update_ui_streaming_stopped();
+                if(exit_code == 0) {
+                    if(config.streaming_config.show_streaming_stopped_notifications)
+                        show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                } else {
+                    fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+                    show_notification("Streaming stopped because of an error", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
+                }
+                break;
+            }
+        }
+
         gpu_screen_recorder_process = -1;
         recording_status = RecordingStatus::NONE;
-        update_ui_recording_stopped();
-
-        if(exit_code == 0) {
-            if(config->record_config.show_video_saved_notifications)
-                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
-        } else {
-            fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-            show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
-        }
     }
 
     void Overlay::update_ui_recording_paused() {
@@ -634,25 +719,44 @@ namespace gsr {
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
     }
 
-    void Overlay::on_press_start_replay(const std::string &id) {
-        if(id == "settings") {
-            auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, gsr_info, audio_devices, config, &page_stack);
-            page_stack.push(std::move(replay_settings_page));
+    void Overlay::update_ui_streaming_started() {
+        if(!visible)
             return;
-        }
-        /*
-        char window_to_record_str[32];
-        snprintf(window_to_record_str, sizeof(window_to_record_str), "%ld", target_window);
 
-        const char *args[] = {
-            "gpu-screen-recorder", "-w", window_to_record_str,
-            "-c", "mp4",
-            "-f", "60",
-            "-o", "/home/dec05eba/Videos/gpu-screen-recorder.mp4",
-            nullptr
-        };
-        exec_program_daemonized(args);
-        */
+        stream_dropdown_button_ptr->set_item_label("start", "Stop");
+        stream_dropdown_button_ptr->set_activated(true);
+        stream_dropdown_button_ptr->set_description("Streaming");
+        stream_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
+    }
+
+    void Overlay::update_ui_streaming_stopped() {
+        if(!visible)
+            return;
+
+        stream_dropdown_button_ptr->set_item_label("start", "Start");
+        stream_dropdown_button_ptr->set_activated(false);
+        stream_dropdown_button_ptr->set_description("Not streaming");
+        stream_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
+    }
+
+    void Overlay::update_ui_replay_started() {
+        if(!visible)
+            return;
+
+        replay_dropdown_button_ptr->set_item_label("start", "Turn off");
+        replay_dropdown_button_ptr->set_activated(true);
+        replay_dropdown_button_ptr->set_description("On");
+        replay_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
+    }
+
+    void Overlay::update_ui_replay_stopped() {
+        if(!visible)
+            return;
+
+        replay_dropdown_button_ptr->set_item_label("start", "Turn on");
+        replay_dropdown_button_ptr->set_activated(false);
+        replay_dropdown_button_ptr->set_description("Off");
+        replay_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
     }
 
     static std::string get_date_str() {
@@ -684,25 +788,138 @@ namespace gsr {
         return result;
     }
 
-    void Overlay::on_press_start_record(const std::string &id) {
+    void Overlay::on_press_save_replay() {
+        if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
+            return;
+
+        kill(gpu_screen_recorder_process, SIGUSR1);
+        if(config.replay_config.show_replay_saved_notifications)
+            show_notification("Replay saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+    }
+
+    void Overlay::on_press_start_replay() {
+        switch(recording_status) {
+            case RecordingStatus::NONE:
+            case RecordingStatus::REPLAY:
+                break;
+            case RecordingStatus::RECORD:
+                show_notification("Unable to start replay when recording.\nStop recording before starting replay", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                return;
+            case RecordingStatus::STREAM:
+                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                return;
+        }
+
+        paused = false;
+
+        // window.close();
+        // usleep(1000 * 50); // 50 milliseconds
+
+        if(gpu_screen_recorder_process > 0) {
+            kill(gpu_screen_recorder_process, SIGINT);
+            int status;
+            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+
+            gpu_screen_recorder_process = -1;
+            recording_status = RecordingStatus::NONE;
+            update_ui_replay_stopped();
+
+            // TODO: Show this with a slight delay to make sure it doesn't show up in the video
+            if(config.replay_config.show_replay_stopped_notifications)
+                show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+            return;
+        }
+
         audio_devices = get_audio_devices();
 
-        if(id == "settings") {
-            auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, gsr_info, audio_devices, config, &page_stack);
-            page_stack.push(std::move(record_settings_page));
-            return;
+        // TODO: Validate input, fallback to valid values
+        const std::string fps = std::to_string(config.replay_config.record_options.fps);
+        const std::string video_bitrate = std::to_string(config.replay_config.record_options.video_bitrate);
+        const std::string output_file = config.replay_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.replay_config.container.c_str());
+        const std::string audio_tracks_merged = merge_audio_tracks(config.replay_config.record_options.audio_tracks);
+        const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
+
+        char region[64];
+        snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.record_area_width, (int)config.replay_config.record_options.record_area_height);
+
+        if(config.replay_config.record_options.record_area_option != "focused" && config.replay_config.record_options.change_video_resolution)
+            snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
+
+        std::vector<const char*> args = {
+            "gpu-screen-recorder", "-w", config.replay_config.record_options.record_area_option.c_str(),
+            "-c", config.replay_config.container.c_str(),
+            "-ac", config.replay_config.record_options.audio_codec.c_str(),
+            "-cursor", config.replay_config.record_options.record_cursor ? "yes" : "no",
+            "-cr", config.replay_config.record_options.color_range.c_str(),
+            "-fm", framerate_mode.c_str(),
+            "-k", config.replay_config.record_options.video_codec.c_str(),
+            "-f", fps.c_str(),
+            "-o", output_file.c_str()
+        };
+
+        if(config.replay_config.record_options.video_quality == "custom") {
+            args.push_back("-bm");
+            args.push_back("cbr");
+            args.push_back("-q");
+            args.push_back(video_bitrate.c_str());
+        } else {
+            args.push_back("-q");
+            args.push_back(config.replay_config.record_options.video_quality.c_str());
         }
 
-        if(id == "pause") {
-            toggle_pause();
-            return;
+        if(config.replay_config.record_options.record_area_option == "focused" || config.replay_config.record_options.change_video_resolution) {
+            args.push_back("-s");
+            args.push_back(region);
         }
 
-        if(id != "start")
-            return;
+        if(config.replay_config.record_options.merge_audio_tracks) {
+            args.push_back("-a");
+            args.push_back(audio_tracks_merged.c_str());
+        } else {
+            for(const std::string &audio_track : config.replay_config.record_options.audio_tracks) {
+                args.push_back("-a");
+                args.push_back(audio_track.c_str());
+            }
+        }
 
-        if(!config)
-            config = Config();
+        args.push_back(nullptr);
+
+        gpu_screen_recorder_process = exec_program(args.data());
+        if(gpu_screen_recorder_process == -1) {
+            // TODO: Show notification failed to start
+        } else {
+            recording_status = RecordingStatus::REPLAY;
+            update_ui_replay_started();
+        }
+
+        // TODO: Start recording after this notification has disappeared to make sure it doesn't show up in the video.
+        // Make clear to the user that the recording starts after the notification is gone.
+        // Maybe have the option in notification to show timer until its getting hidden, then the notification can say:
+        // Starting recording in 3...
+        // 2...
+        // 1...
+        // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
+        // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
+        // to see when the program has exit.
+        if(config.replay_config.show_replay_started_notifications)
+            show_notification("Replay has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::REPLAY);
+    }
+
+    void Overlay::on_press_start_record() {
+        switch(recording_status) {
+            case RecordingStatus::NONE:
+            case RecordingStatus::RECORD:
+                break;
+            case RecordingStatus::REPLAY:
+                show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                return;
+            case RecordingStatus::STREAM:
+                show_notification("Unable to start recording when streaming.\nStop streaming before starting recording", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
+                return;
+        }
 
         paused = false;
 
@@ -725,56 +942,58 @@ namespace gsr {
             update_ui_recording_stopped();
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config->record_config.show_video_saved_notifications)
+            if(config.record_config.show_video_saved_notifications)
                 show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
             return;
         }
 
+        audio_devices = get_audio_devices();
+
         // TODO: Validate input, fallback to valid values
-        const std::string fps = std::to_string(config->record_config.record_options.fps);
-        const std::string video_bitrate = std::to_string(config->record_config.record_options.video_bitrate);
-        const std::string output_file = config->record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config->record_config.container.c_str());
-        const std::string audio_tracks_merged = merge_audio_tracks(config->record_config.record_options.audio_tracks);
-        const std::string framerate_mode = config->record_config.record_options.framerate_mode == "auto" ? "vfr" : config->record_config.record_options.framerate_mode;
+        const std::string fps = std::to_string(config.record_config.record_options.fps);
+        const std::string video_bitrate = std::to_string(config.record_config.record_options.video_bitrate);
+        const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
+        const std::string audio_tracks_merged = merge_audio_tracks(config.record_config.record_options.audio_tracks);
+        const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
 
         char region[64];
-        snprintf(region, sizeof(region), "%dx%d", (int)config->record_config.record_options.record_area_width, (int)config->record_config.record_options.record_area_height);
+        snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
 
-        if(config->record_config.record_options.record_area_option != "focused" && config->record_config.record_options.change_video_resolution)
-            snprintf(region, sizeof(region), "%dx%d", (int)config->record_config.record_options.video_width, (int)config->record_config.record_options.video_height);
+        if(config.record_config.record_options.record_area_option != "focused" && config.record_config.record_options.change_video_resolution)
+            snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", config->record_config.record_options.record_area_option.c_str(),
-            "-c", config->record_config.container.c_str(),
-            "-ac", config->record_config.record_options.audio_codec.c_str(),
-            "-cursor", config->record_config.record_options.record_cursor ? "yes" : "no",
-            "-cr", config->record_config.record_options.color_range.c_str(),
+            "gpu-screen-recorder", "-w", config.record_config.record_options.record_area_option.c_str(),
+            "-c", config.record_config.container.c_str(),
+            "-ac", config.record_config.record_options.audio_codec.c_str(),
+            "-cursor", config.record_config.record_options.record_cursor ? "yes" : "no",
+            "-cr", config.record_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
-            "-k", config->record_config.record_options.video_codec.c_str(),
+            "-k", config.record_config.record_options.video_codec.c_str(),
             "-f", fps.c_str(),
             "-o", output_file.c_str()
         };
 
-        if(config->record_config.record_options.video_quality == "custom") {
+        if(config.record_config.record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
             args.push_back("-q");
             args.push_back(video_bitrate.c_str());
         } else {
             args.push_back("-q");
-            args.push_back(config->record_config.record_options.video_quality.c_str());
+            args.push_back(config.record_config.record_options.video_quality.c_str());
         }
 
-        if(config->record_config.record_options.record_area_option == "focused" || config->record_config.record_options.change_video_resolution) {
+        if(config.record_config.record_options.record_area_option == "focused" || config.record_config.record_options.change_video_resolution) {
             args.push_back("-s");
             args.push_back(region);
         }
 
-        if(config->record_config.record_options.merge_audio_tracks) {
+        if(config.record_config.record_options.merge_audio_tracks) {
             args.push_back("-a");
             args.push_back(audio_tracks_merged.c_str());
         } else {
-            for(const std::string &audio_track : config->record_config.record_options.audio_tracks) {
+            for(const std::string &audio_track : config.record_config.record_options.audio_tracks) {
                 args.push_back("-a");
                 args.push_back(audio_track.c_str());
             }
@@ -799,7 +1018,7 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(config->record_config.show_recording_started_notifications)
+        if(config.record_config.show_recording_started_notifications)
             show_notification("Recording has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::RECORD);
         //exit(0);
         // window.set_visible(false);
@@ -809,12 +1028,152 @@ namespace gsr {
         // "Recording has started" 3.0 ./images/record.png 76b900
     }
 
-    void Overlay::on_press_start_stream(const std::string &id) {
-        if(id == "settings") {
-            auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, gsr_info, audio_devices, config, &page_stack);
-            page_stack.push(std::move(stream_settings_page));
+    static std::string streaming_get_url(const Config &config) {
+        std::string url;
+        if(config.streaming_config.streaming_service == "twitch") {
+            url += "rtmp://live.twitch.tv/app/";
+            url += config.streaming_config.twitch.stream_key;
+        } else if(config.streaming_config.streaming_service == "youtube") {
+            url += "rtmp://a.rtmp.youtube.com/live2/";
+            url += config.streaming_config.youtube.stream_key;
+        } else if(config.streaming_config.streaming_service == "custom") {
+            url = config.streaming_config.custom.url;
+            if(url.size() >= 7 && strncmp(url.c_str(), "rtmp://", 7) == 0)
+            {}
+            else if(url.size() >= 8 && strncmp(url.c_str(), "rtmps://", 8) == 0)
+            {}
+            else if(url.size() >= 7 && strncmp(url.c_str(), "rtsp://", 7) == 0)
+            {}
+            else if(url.size() >= 6 && strncmp(url.c_str(), "srt://", 6) == 0)
+            {}
+            else if(url.size() >= 7 && strncmp(url.c_str(), "http://", 7) == 0)
+            {}
+            else if(url.size() >= 8 && strncmp(url.c_str(), "https://", 8) == 0)
+            {}
+            else if(url.size() >= 6 && strncmp(url.c_str(), "tcp://", 6) == 0)
+            {}
+            else if(url.size() >= 6 && strncmp(url.c_str(), "udp://", 6) == 0)
+            {}
+            else
+                url = "rtmp://" + url;
+        }
+        return url;
+    }
+
+    void Overlay::on_press_start_stream() {
+        switch(recording_status) {
+            case RecordingStatus::NONE:
+            case RecordingStatus::STREAM:
+                break;
+            case RecordingStatus::REPLAY:
+                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::REPLAY);
+                return;
+            case RecordingStatus::RECORD:
+                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::RECORD);
+                return;
+        }
+
+        paused = false;
+
+        // window.close();
+        // usleep(1000 * 50); // 50 milliseconds
+
+        if(gpu_screen_recorder_process > 0) {
+            kill(gpu_screen_recorder_process, SIGINT);
+            int status;
+            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+
+            gpu_screen_recorder_process = -1;
+            recording_status = RecordingStatus::NONE;
+            update_ui_streaming_stopped();
+
+            // TODO: Show this with a slight delay to make sure it doesn't show up in the video
+            if(config.streaming_config.show_streaming_stopped_notifications)
+                show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_theme().tint_color, NotificationType::STREAM);
             return;
         }
+
+        audio_devices = get_audio_devices();
+
+        // TODO: Validate input, fallback to valid values
+        const std::string fps = std::to_string(config.streaming_config.record_options.fps);
+        const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
+        const std::string audio_tracks_merged = merge_audio_tracks(config.streaming_config.record_options.audio_tracks);
+        const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
+
+        std::string container = "flv";
+        if(config.streaming_config.streaming_service == "custom")
+            container = config.streaming_config.custom.container;
+
+        const std::string url = streaming_get_url(config);
+
+        char region[64];
+        snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.record_area_width, (int)config.streaming_config.record_options.record_area_height);
+
+        if(config.record_config.record_options.record_area_option != "focused" && config.streaming_config.record_options.change_video_resolution)
+            snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
+
+        std::vector<const char*> args = {
+            "gpu-screen-recorder", "-w", config.streaming_config.record_options.record_area_option.c_str(),
+            "-c", container.c_str(),
+            "-ac", config.streaming_config.record_options.audio_codec.c_str(),
+            "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
+            "-cr", config.streaming_config.record_options.color_range.c_str(),
+            "-fm", framerate_mode.c_str(),
+            "-k", config.streaming_config.record_options.video_codec.c_str(),
+            "-f", fps.c_str(),
+            "-o", url.c_str()
+        };
+
+        if(config.streaming_config.record_options.video_quality == "custom") {
+            args.push_back("-bm");
+            args.push_back("cbr");
+            args.push_back("-q");
+            args.push_back(video_bitrate.c_str());
+        } else {
+            args.push_back("-q");
+            args.push_back(config.streaming_config.record_options.video_quality.c_str());
+        }
+
+        if(config.streaming_config.record_options.record_area_option == "focused" || config.streaming_config.record_options.change_video_resolution) {
+            args.push_back("-s");
+            args.push_back(region);
+        }
+
+        if(config.streaming_config.record_options.merge_audio_tracks) {
+            args.push_back("-a");
+            args.push_back(audio_tracks_merged.c_str());
+        } else {
+            for(const std::string &audio_track : config.streaming_config.record_options.audio_tracks) {
+                args.push_back("-a");
+                args.push_back(audio_track.c_str());
+            }
+        }
+
+        args.push_back(nullptr);
+
+        gpu_screen_recorder_process = exec_program(args.data());
+        if(gpu_screen_recorder_process == -1) {
+            // TODO: Show notification failed to start
+        } else {
+            recording_status = RecordingStatus::STREAM;
+            update_ui_streaming_started();
+        }
+
+        // TODO: Start recording after this notification has disappeared to make sure it doesn't show up in the video.
+        // Make clear to the user that the recording starts after the notification is gone.
+        // Maybe have the option in notification to show timer until its getting hidden, then the notification can say:
+        // Starting recording in 3...
+        // 2...
+        // 1...
+        // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
+        // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
+        // to see when the program has exit.
+        if(config.streaming_config.show_streaming_started_notifications)
+            show_notification("Streaming has started", 3.0, get_theme().tint_color, get_theme().tint_color, NotificationType::STREAM);
     }
 
     bool Overlay::update_compositor_texture(const mgl_monitor *monitor) {

@@ -1,5 +1,6 @@
 #include "../include/Config.hpp"
 #include "../include/Utils.hpp"
+#include "../include/GsrInfo.hpp"
 #include <variant>
 #include <limits.h>
 #include <inttypes.h>
@@ -12,11 +13,23 @@
 #define CONFIG_FILE_VERSION 1
 
 namespace gsr {
-    Config::Config() {
+    Config::Config(const GsrInfo &gsr_info) {
         const std::string default_save_directory = get_videos_dir();
+
         streaming_config.record_options.video_quality = "custom";
+        streaming_config.record_options.audio_tracks.push_back("default_output");
+
         record_config.save_directory = default_save_directory;
+        record_config.record_options.audio_tracks.push_back("default_output");
+
         replay_config.save_directory = default_save_directory;
+        replay_config.record_options.audio_tracks.push_back("default_output");
+
+        if(!gsr_info.supported_capture_options.monitors.empty()) {
+            streaming_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
+            record_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
+            replay_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
+        }
     }
 
     static std::optional<KeyValue> parse_key_value(std::string_view line) {
@@ -117,7 +130,7 @@ namespace gsr {
         };
     }
 
-    std::optional<Config> read_config() {
+    std::optional<Config> read_config(const GsrInfo &gsr_info) {
         std::optional<Config> config;
 
         const std::string config_path = get_config_dir() + "/config_ui";
@@ -127,7 +140,11 @@ namespace gsr {
             return config;
         }
 
-        config = Config();
+        config = Config(gsr_info);
+        config->streaming_config.record_options.audio_tracks.clear();
+        config->record_config.record_options.audio_tracks.clear();
+        config->replay_config.record_options.audio_tracks.clear();
+
         auto config_options = get_config_options(config.value());
 
         string_split_char(file_content, '\n', [&](std::string_view line) {

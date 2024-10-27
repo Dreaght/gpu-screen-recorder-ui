@@ -23,7 +23,7 @@ namespace gsr {
             STREAM
         };
 
-        SettingsPage(Type type, const GsrInfo &gsr_info, std::vector<AudioDevice> audio_devices, std::optional<Config> &config, PageStack *page_stack);
+        SettingsPage(Type type, const GsrInfo &gsr_info, std::vector<AudioDevice> audio_devices, Config &config, PageStack *page_stack);
         SettingsPage(const SettingsPage&) = delete;
         SettingsPage& operator=(const SettingsPage&) = delete;
 
@@ -104,7 +104,7 @@ namespace gsr {
         void save_stream();
     private:
         Type type;
-        std::optional<Config> &config;
+        Config &config;
         std::vector<AudioDevice> audio_devices;
 
         GsrPage *content_page_ptr = nullptr;

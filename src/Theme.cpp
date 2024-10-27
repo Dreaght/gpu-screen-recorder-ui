@@ -97,6 +97,9 @@ namespace gsr {
         if(!theme->pause_texture.load_from_file((resources_path + "images/pause.png").c_str()))
             goto error;
 
+        if(!theme->save_texture.load_from_file((resources_path + "images/save.png").c_str()))
+            goto error;
+
         return true;
 
         error:

@@ -31,11 +31,6 @@ extern "C" {
 
 const mgl::Color bg_color(0, 0, 0, 100);
 
-static void usage() {
-    fprintf(stderr, "usage: gsr-ui [toggle-record|toggle-pause]\n");
-    exit(1);
-}
-
 static void startup_error(const char *msg) {
     fprintf(stderr, "Error: %s\n", msg);
     exit(1);
@@ -48,14 +43,9 @@ static void sigint_handler(int signal) {
 }
 
 int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     setlocale(LC_ALL, "C"); // Sigh... stupid C
-
-    if(argc > 3)
-        usage();
-
-    const char *action = NULL;
-    if(argc > 1)
-        action = argv[1];
 
     signal(SIGINT, sigint_handler);
 
@@ -73,7 +63,7 @@ int main(int argc, char **argv) {
     }
 
     std::string resources_path;
-    if(access("images/gpu_screen_recorder_logo.png", F_OK) == 0) {
+    if(access("sibs-build", F_OK) == 0) {
         resources_path = "./";
     } else {
 #ifdef GSR_UI_RESOURCES_PATH
@@ -130,33 +120,57 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
-    gsr::Overlay overlay(window, resources_path, gsr_info, egl_funcs, bg_color);
+    auto overlay = std::make_unique<gsr::Overlay>(window, resources_path, gsr_info, egl_funcs, bg_color);
     //overlay.show();
 
     gsr::GlobalHotkeysX11 global_hotkeys;
-    const bool show_hotkey_registered = global_hotkeys.bind_key_press({ XK_z, Mod1Mask }, "open/hide", [&](const std::string &id) {
+    const bool show_hotkey_registered = global_hotkeys.bind_key_press({ XK_z, Mod1Mask }, "show/hide", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay.toggle_show();
+        overlay->toggle_show();
     });
 
-    const bool record_hotkey_registered = global_hotkeys.bind_key_press({ XK_F9, Mod1Mask }, "record/save", [&](const std::string &id) {
+    const bool record_hotkey_registered = global_hotkeys.bind_key_press({ XK_F9, Mod1Mask }, "record", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay.toggle_record();
+        overlay->toggle_record();
     });
 
-    const bool pause_hotkey_registered = global_hotkeys.bind_key_press({ XK_F7, Mod1Mask }, "pause/unpause", [&](const std::string &id) {
+    const bool pause_hotkey_registered = global_hotkeys.bind_key_press({ XK_F7, Mod1Mask }, "pause", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay.toggle_pause();
+        overlay->toggle_pause();
+    });
+
+    const bool stream_hotkey_registered = global_hotkeys.bind_key_press({ XK_F8, Mod1Mask }, "stream", [&](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay->toggle_stream();
+    });
+
+    const bool replay_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, ShiftMask | Mod1Mask }, "replay start", [&](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay->toggle_replay();
+    });
+
+    const bool replay_save_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, Mod1Mask }, "replay save", [&](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay->save_replay();
     });
 
     if(!show_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+z for showing the overlay because the hotkey is registed by another program\n");
+        fprintf(stderr, "error: failed to register hotkey alt+z for showing the overlay because the hotkey is registered by another program\n");
 
     if(!record_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+f9 for recording because the hotkey is registed by another program\n");
+        fprintf(stderr, "error: failed to register hotkey alt+f9 for recording because the hotkey is registered by another program\n");
 
     if(!pause_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+f7 for pausing because the hotkey is registed by another program\n");
+        fprintf(stderr, "error: failed to register hotkey alt+f7 for pausing because the hotkey is registered by another program\n");
+
+    if(!stream_hotkey_registered)
+        fprintf(stderr, "error: failed to register hotkey alt+f8 for streaming because the hotkey is registered by another program\n");
+
+    if(!replay_hotkey_registered)
+        fprintf(stderr, "error: failed to register hotkey alt+shift+f10 for starting replay because the hotkey is registered by another program\n");
+
+    if(!replay_save_hotkey_registered)
+        fprintf(stderr, "error: failed to register hotkey alt+f10 for saving replay because the hotkey is registered by another program\n");
 
     mgl::Event event;
     mgl::Clock frame_delta_clock;
@@ -167,13 +181,15 @@ int main(int argc, char **argv) {
 
         global_hotkeys.poll_events();        
         while(window.poll_event(event)) {
-            overlay.on_event(event, window);
+            overlay->on_event(event, window);
         }
 
         window.clear(bg_color);
-        overlay.draw(window);
+        overlay->draw(window);
         window.display();
     }
+
+    overlay.reset();
 
     fprintf(stderr, "info: shutting down!\n");
     gsr::deinit_theme();

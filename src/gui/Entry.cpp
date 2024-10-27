@@ -21,7 +21,7 @@ namespace gsr {
         set_text(text);
     }
 
-    bool Entry::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
+    bool Entry::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) {
         if(!visible)
             return true;
 
@@ -32,6 +32,11 @@ namespace gsr {
                 std::string str = text.get_string();
                 const size_t prev_index = mgl::utf8_get_start_of_codepoint((const unsigned char*)str.c_str(), str.size(), str.size());
                 str.erase(prev_index, std::string::npos);
+                set_text(std::move(str));
+            } else if(event.key.code == mgl::Keyboard::V && event.key.control) {
+                std::string clipboard_text = window.get_clipboard_string();
+                std::string str = text.get_string();
+                str += clipboard_text;
                 set_text(std::move(str));
             }
         } else if(event.type == mgl::Event::TextEntered && selected && event.text.codepoint >= 32) {

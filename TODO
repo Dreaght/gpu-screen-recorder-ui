@@ -55,3 +55,5 @@ Look at /home/dec05eba/git/global-hotkeys for hotkeys.
 Show navigation breadcrumbs for settings and deeper navigation (such as selecting a directory to save videos).
 
 If recording stops because of an error then the ui wont be running and we wont get a notification that recording failed.
+
+Add option to hide stream key like a password input.

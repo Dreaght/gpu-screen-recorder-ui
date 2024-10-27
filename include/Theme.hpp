@@ -42,6 +42,7 @@ namespace gsr {
         mgl::Texture play_texture;
         mgl::Texture stop_texture;
         mgl::Texture pause_texture;
+        mgl::Texture save_texture;
 
         double double_click_timeout_seconds = 0.4;
 
