@@ -33,10 +33,30 @@ static void sigint_handler(int signal) {
     running = 0;
 }
 
+static void disable_prime_run() {
+    unsetenv("__NV_PRIME_RENDER_OFFLOAD");
+    unsetenv("__NV_PRIME_RENDER_OFFLOAD_PROVIDER");
+    unsetenv("__GLX_VENDOR_LIBRARY_NAME");
+    unsetenv("__VK_LAYER_NV_optimus");
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     setlocale(LC_ALL, "C"); // Sigh... stupid C
+
+    // Cant get window texture when prime-run is used
+    disable_prime_run();
+
+    // Stop nvidia driver from buffering frames
+    setenv("__GL_MaxFramesAllowed", "1", true);
+    // If this is set to 1 then cuGraphicsGLRegisterImage will fail for egl context with error: invalid OpenGL or DirectX context,
+    // so we overwrite it
+    setenv("__GL_THREADED_OPTIMIZATIONS", "0", true);
+    // Some people set this to force all applications to vsync on nvidia, but this makes eglSwapBuffers never return.
+    unsetenv("__GL_SYNC_TO_VBLANK");
+    // Same as above, but for amd/intel
+    unsetenv("vblank_mode");
 
     signal(SIGINT, sigint_handler);
 
