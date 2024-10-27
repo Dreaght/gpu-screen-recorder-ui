@@ -1,3 +1,5 @@
+![](https://dec05eba.com/images/gpu_screen_recorder_logo_small.png)
+
 # GPU Screen Recorder UI
 A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.
 
