@@ -59,3 +59,7 @@ executable(
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
+
+if get_option('systemd') == true
+    install_data(files('extra/gpu-screen-recorder-ui.service'), install_dir : 'lib/systemd/user')
+endif

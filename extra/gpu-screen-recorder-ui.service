@@ -1,0 +1,11 @@
+[Unit]
+Description=GPU Screen Recorder UI Service
+
+[Service]
+ExecStart=gsr-ui
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target

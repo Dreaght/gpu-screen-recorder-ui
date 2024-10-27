@@ -1,6 +1,9 @@
 # GPU Screen Recorder UI
 A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.
 
+# Usage
+Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
+
 # Dependencies
 GPU Screen Recorder UI uses meson build system so you need to install `meson` to build GPU Screen Recorder UI.
 

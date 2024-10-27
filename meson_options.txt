@@ -1,0 +1,1 @@
+option('systemd', type : 'boolean', value : true, description : 'Install systemd service file')
