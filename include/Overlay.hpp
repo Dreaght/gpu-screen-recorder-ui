@@ -50,6 +50,7 @@ namespace gsr {
     private:
         void process_key_bindings(mgl::Event &event);
 
+        void update_notification_process_status();
         void update_gsr_process_status();
 
         void update_ui_recording_paused();
@@ -90,6 +91,7 @@ namespace gsr {
         bool visible = false;
         uint64_t default_cursor = 0;
         pid_t gpu_screen_recorder_process = -1;
+        pid_t notification_process = -1;
         std::optional<Config> config;
         DropdownButton *replay_dropdown_button_ptr = nullptr;
         DropdownButton *record_dropdown_button_ptr = nullptr;

@@ -210,6 +210,17 @@ namespace gsr {
 
     Overlay::~Overlay() {
         hide();
+
+        if(notification_process > 0) {
+            kill(notification_process, SIGKILL);
+            int status;
+            if(waitpid(notification_process, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+            notification_process = -1;
+        }
+
         if(gpu_screen_recorder_process > 0) {
             kill(gpu_screen_recorder_process, SIGINT);
             int status;
@@ -255,6 +266,7 @@ namespace gsr {
     }
 
     void Overlay::draw(mgl::Window &window) {
+        update_notification_process_status();
         update_gsr_process_status();
 
         if(!visible)
@@ -517,11 +529,31 @@ namespace gsr {
         } else {
             notification_args[9] = nullptr;
         }
-        exec_program_daemonized(notification_args);
+
+        if(notification_process > 0) {
+            kill(notification_process, SIGKILL);
+            int status = 0;
+            waitpid(gpu_screen_recorder_process, &status, 0);
+        }
+
+        notification_process = exec_program(notification_args);
     }
 
     bool Overlay::is_open() const {
         return visible;
+    }
+
+    void Overlay::update_notification_process_status() {
+        if(notification_process <= 0)
+            return;
+
+        int status;
+        if(waitpid(gpu_screen_recorder_process, &status, WNOHANG) == 0) {
+            // Still running
+            return;
+        }
+
+        notification_process = -1;
     }
 
     void Overlay::update_gsr_process_status() {
