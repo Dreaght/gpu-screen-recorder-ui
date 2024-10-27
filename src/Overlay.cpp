@@ -557,6 +557,10 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
+        while(!page_stack.empty()) {
+            page_stack.pop();
+        }
+
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
             default_cursor = 0;
