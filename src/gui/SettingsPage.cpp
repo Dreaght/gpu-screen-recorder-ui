@@ -135,7 +135,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_resolution_section() {
         auto video_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video resolution:", get_color_theme().text_color));
+        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video resolution limit:", get_color_theme().text_color));
         video_resolution_list->add_widget(create_video_resolution());
         video_resolution_list_ptr = video_resolution_list.get();
         return video_resolution_list;

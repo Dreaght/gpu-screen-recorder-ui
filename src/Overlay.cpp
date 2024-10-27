@@ -774,6 +774,10 @@ namespace gsr {
         record_dropdown_button_ptr->set_activated(false);
         record_dropdown_button_ptr->set_description("Not recording");
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
+
+        record_dropdown_button_ptr->set_item_label("pause", "Pause");
+        record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
+        paused = false;
     }
 
     void Overlay::update_ui_streaming_started() {
