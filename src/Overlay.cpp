@@ -294,7 +294,7 @@ namespace gsr {
         if(!window)
             return false;
 
-        window->clear();
+        window->clear(bg_color);
 
         if(window_texture_sprite.get_texture() && window_texture.texture_id) {
             window->draw(window_texture_sprite);
