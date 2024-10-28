@@ -26,6 +26,9 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 # License
 This software is licensed under GPL3.0-only. Files under `fonts/` directory are licensed under `SIL Open Font License`.
 
+# Demo
+[![Click here to watch a demo video on youtube](https://img.youtube.com/vi/SOqXusCTXXA/0.jpg)](https://www.youtube.com/watch?v=SOqXusCTXXA)
+
 # Screenshots
 ![](https://dec05eba.com/images/gsr-overlay-screenshot-front.webp)
 ![](https://dec05eba.com/images/gsr-overlay-screenshot-settings.webp)
