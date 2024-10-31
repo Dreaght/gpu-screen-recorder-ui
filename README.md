@@ -1,7 +1,9 @@
 ![](https://dec05eba.com/images/gpu_screen_recorder_logo_small.png)
 
 # GPU Screen Recorder UI
-A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.
+A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.\
+Note: This software is still in early alpha. Expect bugs, and please report any if you experience them. Some are already known, but it doesn't hurt to report them anyways.\
+You can report an issue by emailing the issue to dec05eba@protonmail.com.
 
 # Usage
 Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
