@@ -77,6 +77,7 @@ namespace gsr {
 
     struct ReplayConfig {
         RecordOptions record_options;
+        bool start_replay_automatically = false;
         bool show_replay_started_notifications = true;
         bool show_replay_stopped_notifications = true;
         bool show_replay_saved_notifications = true;

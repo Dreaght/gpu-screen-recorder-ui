@@ -41,9 +41,7 @@ static void disable_prime_run() {
     unsetenv("__VK_LAYER_NV_optimus");
 }
 
-int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+int main(void) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
 
     // Cant get window texture when prime-run is used

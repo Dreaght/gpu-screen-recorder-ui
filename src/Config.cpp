@@ -119,6 +119,7 @@ namespace gsr {
             {"replay.record_options.overclock", &config.replay_config.record_options.overclock},
             {"replay.record_options.record_cursor", &config.replay_config.record_options.record_cursor},
             {"replay.record_options.restore_portal_session", &config.replay_config.record_options.restore_portal_session},
+            {"replay.start_replay_automatically", &config.replay_config.start_replay_automatically},
             {"replay.show_replay_started_notifications", &config.replay_config.show_replay_started_notifications},
             {"replay.show_replay_stopped_notifications", &config.replay_config.show_replay_stopped_notifications},
             {"replay.show_replay_saved_notifications", &config.replay_config.show_replay_saved_notifications},

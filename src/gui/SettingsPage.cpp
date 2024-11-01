@@ -525,12 +525,22 @@ namespace gsr {
         return replay_time_list;
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_start_replay_on_startup() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Start replay automatically");
+        start_replay_automatically_ptr = checkbox.get();
+        return checkbox;
+    }
+
     void SettingsPage::add_replay_widgets() {
-        auto replay_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        replay_data_list->add_widget(create_save_directory("Directory to save replays:"));
-        replay_data_list->add_widget(create_container_section());
-        replay_data_list->add_widget(create_replay_time());
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(replay_data_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        auto file_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        file_info_list->add_widget(create_save_directory("Directory to save replays:"));
+        file_info_list->add_widget(create_container_section());
+        file_info_list->add_widget(create_replay_time());
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+
+        auto general_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        general_list->add_widget(create_start_replay_on_startup());
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
 
@@ -812,6 +822,7 @@ namespace gsr {
 
     void SettingsPage::load_replay() {
         load_common(config.replay_config.record_options);
+        start_replay_automatically_ptr->set_checked(config.replay_config.start_replay_automatically);
         show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
         show_replay_stopped_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_stopped_notifications);
         show_replay_saved_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_saved_notifications);
@@ -919,6 +930,7 @@ namespace gsr {
 
     void SettingsPage::save_replay() {
         save_common(config.replay_config.record_options);
+        config.replay_config.start_replay_automatically = start_replay_automatically_ptr->is_checked();
         config.replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();

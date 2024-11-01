@@ -211,6 +211,9 @@ namespace gsr {
             config = std::move(new_config.value());
 
         gsr::init_color_theme(gsr_info);
+
+        if(config.replay_config.start_replay_automatically)
+            on_press_start_replay(true);
     }
 
     Overlay::~Overlay() {
@@ -423,7 +426,7 @@ namespace gsr {
                 } else if(id == "save") {
                     on_press_save_replay();
                 } else if(id == "start") {
-                    on_press_start_replay();
+                    on_press_start_replay(false);
                 }
             };
             main_buttons_list->add_widget(std::move(button));
@@ -616,7 +619,7 @@ namespace gsr {
     }
 
     void Overlay::toggle_replay() {
-        on_press_start_replay();
+        on_press_start_replay(false);
     }
 
     void Overlay::save_replay() {
@@ -868,16 +871,16 @@ namespace gsr {
             show_notification("Replay saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
     }
 
-    void Overlay::on_press_start_replay() {
+    void Overlay::on_press_start_replay(bool disable_notification) {
         switch(recording_status) {
             case RecordingStatus::NONE:
             case RecordingStatus::REPLAY:
                 break;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start replay when recording.\nStop recording before starting replay.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                show_notification("Unable to start replay when recording.\nStop recording before starting replay.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
                 return;
             case RecordingStatus::STREAM:
-                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 return;
         }
 
@@ -978,7 +981,7 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(config.replay_config.show_replay_started_notifications)
+        if(!disable_notification && config.replay_config.show_replay_started_notifications)
             show_notification("Replay has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY);
     }
 
@@ -988,10 +991,10 @@ namespace gsr {
             case RecordingStatus::RECORD:
                 break;
             case RecordingStatus::REPLAY:
-                show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 return;
             case RecordingStatus::STREAM:
-                show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 return;
         }
 
@@ -1141,10 +1144,10 @@ namespace gsr {
             case RecordingStatus::STREAM:
                 break;
             case RecordingStatus::REPLAY:
-                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 return;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming.", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
                 return;
         }
 

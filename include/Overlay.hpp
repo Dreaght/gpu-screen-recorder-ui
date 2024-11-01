@@ -71,7 +71,7 @@ namespace gsr {
         void update_ui_replay_stopped();
 
         void on_press_save_replay();
-        void on_press_start_replay();
+        void on_press_start_replay(bool disable_notification);
         void on_press_start_record();
         void on_press_start_stream();
         bool update_compositor_texture(const mgl_monitor *monitor);

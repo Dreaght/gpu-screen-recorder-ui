@@ -81,6 +81,7 @@ namespace gsr {
         std::unique_ptr<List> create_container_section();
         std::unique_ptr<Entry> create_replay_time_entry();
         std::unique_ptr<List> create_replay_time();
+        std::unique_ptr<CheckBox> create_start_replay_on_startup();
         void add_replay_widgets();
         void add_record_widgets();
 
@@ -142,6 +143,7 @@ namespace gsr {
         List *stream_key_list_ptr = nullptr;
         List *stream_url_list_ptr = nullptr;
         List *container_list_ptr = nullptr;
+        CheckBox *start_replay_automatically_ptr = nullptr;
         CheckBox *show_replay_started_notification_checkbox_ptr = nullptr;
         CheckBox *show_replay_stopped_notification_checkbox_ptr = nullptr;
         CheckBox *show_replay_saved_notification_checkbox_ptr = nullptr;
