@@ -299,7 +299,7 @@ namespace gsr {
         if(!window)
             return false;
 
-        force_window_on_top();
+        //force_window_on_top();
 
         window->clear(bg_color);
 
