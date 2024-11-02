@@ -527,7 +527,7 @@ namespace gsr {
         // TODO: This breaks global hotkeys
         //XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
-        XSetInputFocus(display, window->get_system_handle(), RevertToParent, CurrentTime);
+        XSetInputFocus(display, window->get_system_handle(), RevertToPointerRoot, CurrentTime);
         XFlush(display);
 
         //window->set_fullscreen(true);
