@@ -28,6 +28,9 @@ extern "C" {
 }
 
 namespace gsr {
+    static const mgl::Color bg_color(0, 0, 0, 100);
+    static const double force_window_on_top_timeout_seconds = 1.0;
+
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
         // TODO:
@@ -185,11 +188,10 @@ namespace gsr {
         return XGetSelectionOwner(dpy, prop_atom) != None;
     }
 
-    Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color) :
+    Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
         gsr_info(gsr_info),
         egl_funcs(egl_funcs),
-        bg_color(bg_color),
         bg_screenshot_overlay({0.0f, 0.0f}),
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f}),
@@ -296,6 +298,8 @@ namespace gsr {
 
         if(!window)
             return false;
+
+        force_window_on_top();
 
         window->clear(bg_color);
 
@@ -1290,5 +1294,16 @@ namespace gsr {
         }
 
         return true;
+    }
+
+    void Overlay::force_window_on_top() {
+        if(force_window_on_top_clock.get_elapsed_time_seconds() >= force_window_on_top_timeout_seconds) {
+            force_window_on_top_clock.restart();
+
+            mgl_context *context = mgl_get_context();
+            Display *display = (Display*)context->connection;
+            XRaiseWindow(display, window->get_system_handle());
+            XFlush(display);
+        }
     }
 }

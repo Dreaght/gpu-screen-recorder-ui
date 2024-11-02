@@ -7,11 +7,12 @@
 #include "window_texture.h"
 
 #include <mglpp/window/Window.hpp>
+#include <mglpp/window/Event.hpp>
 #include <mglpp/graphics/Texture.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Text.hpp>
-#include <mglpp/window/Event.hpp>
+#include <mglpp/system/Clock.hpp>
 
 namespace gsr {
     class DropdownButton;
@@ -32,7 +33,7 @@ namespace gsr {
 
     class Overlay {
     public:
-        Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs, mgl::Color bg_color);
+        Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs);
         Overlay(const Overlay&) = delete;
         Overlay& operator=(const Overlay&) = delete;
         ~Overlay();
@@ -75,6 +76,8 @@ namespace gsr {
         void on_press_start_record();
         void on_press_start_stream();
         bool update_compositor_texture(const mgl_monitor *monitor);
+
+        void force_window_on_top();
     private:
         using KeyBindingCallback = std::function<void()>;
         struct KeyBinding {
@@ -87,7 +90,6 @@ namespace gsr {
         std::string resources_path;
         GsrInfo gsr_info;
         egl_functions egl_funcs;
-        mgl::Color bg_color;
         std::vector<gsr::AudioDevice> audio_devices;
         mgl::Texture window_texture_texture;
         mgl::Sprite window_texture_sprite;
@@ -109,6 +111,7 @@ namespace gsr {
         DropdownButton *replay_dropdown_button_ptr = nullptr;
         DropdownButton *record_dropdown_button_ptr = nullptr;
         DropdownButton *stream_dropdown_button_ptr = nullptr;
+        mgl::Clock force_window_on_top_clock;
 
         RecordingStatus recording_status = RecordingStatus::NONE;
         bool paused = false;

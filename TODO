@@ -54,10 +54,10 @@ Look at /home/dec05eba/git/global-hotkeys for hotkeys.
 
 Show navigation breadcrumbs for settings and deeper navigation (such as selecting a directory to save videos).
 
-If recording stops because of an error then the ui wont be running and we wont get a notification that recording failed.
-
 Add option to hide stream key like a password input.
 
 Add global setting. In that setting there should be an option to enable/disable gsr-ui from system startup (the systemd service).
 
 Add profiles and hotkey to switch between profiles (show notification when switching profile).
+
+Fix first frame being black.

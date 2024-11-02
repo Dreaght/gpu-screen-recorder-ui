@@ -15,18 +15,12 @@
 
 // TODO: Make keyboard controllable for steam deck (and other controllers).
 // TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
-// TODO: Remove gpu-screen-recorder-overlay-daemon and handle that alt+z global hotkey here instead, to show/hide the window
-// without restaring the program. Or make the daemon handle gpu screen recorder program state and pass that to the overlay.
 // TODO: Add systray by using org.kde.StatusNotifierWatcher/etc dbus directly.
-// TODO: Dont allow replay and record/stream at the same time. If we want to allow that then do that in gpu screen recorder instead
-// to make it more efficient by doing record/replay/stream with the same encoded packets.
 // TODO: Make sure the overlay always stays on top. Test with starting the overlay and then opening youtube in fullscreen.
 
 extern "C" {
 #include <mgl/mgl.h>
 }
-
-const mgl::Color bg_color(0, 0, 0, 100);
 
 static sig_atomic_t running = 1;
 static void sigint_handler(int signal) {
@@ -99,7 +93,7 @@ int main(void) {
 
     fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
-    auto overlay = std::make_unique<gsr::Overlay>(resources_path, gsr_info, egl_funcs, bg_color);
+    auto overlay = std::make_unique<gsr::Overlay>(resources_path, gsr_info, egl_funcs);
     //overlay.show();
 
     gsr::GlobalHotkeysX11 global_hotkeys;

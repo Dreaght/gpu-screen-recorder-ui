@@ -526,7 +526,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_start_replay_on_startup() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Start replay automatically");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Turn on replay automatically");
         start_replay_automatically_ptr = checkbox.get();
         return checkbox;
     }
