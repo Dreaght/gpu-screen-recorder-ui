@@ -920,6 +920,12 @@ namespace gsr {
         const std::string audio_tracks_merged = merge_audio_tracks(config.replay_config.record_options.audio_tracks);
         const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
         const std::string replay_time = std::to_string(config.replay_config.replay_time);
+        const char *video_codec = config.replay_config.record_options.video_codec.c_str();
+        const char *encoder = "gpu";
+        if(strcmp(video_codec, "h264_software") == 0) {
+            video_codec = "h264";
+            encoder = "cpu";
+        }
 
         char region[64];
         snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.record_area_width, (int)config.replay_config.record_options.record_area_height);
@@ -934,7 +940,8 @@ namespace gsr {
             "-cursor", config.replay_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.replay_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
-            "-k", config.replay_config.record_options.video_codec.c_str(),
+            "-k", video_codec,
+            "-encoder", encoder,
             "-f", fps.c_str(),
             "-r", replay_time.c_str(),
             "-v", "no",
@@ -1036,6 +1043,12 @@ namespace gsr {
         const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
         const std::string audio_tracks_merged = merge_audio_tracks(config.record_config.record_options.audio_tracks);
         const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
+        const char *video_codec = config.record_config.record_options.video_codec.c_str();
+        const char *encoder = "gpu";
+        if(strcmp(video_codec, "h264_software") == 0) {
+            video_codec = "h264";
+            encoder = "cpu";
+        }
 
         char region[64];
         snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
@@ -1050,7 +1063,8 @@ namespace gsr {
             "-cursor", config.record_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.record_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
-            "-k", config.record_config.record_options.video_codec.c_str(),
+            "-k", video_codec,
+            "-encoder", encoder,
             "-f", fps.c_str(),
             "-v", "no",
             "-o", output_file.c_str()
@@ -1185,6 +1199,12 @@ namespace gsr {
         const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
         const std::string audio_tracks_merged = merge_audio_tracks(config.streaming_config.record_options.audio_tracks);
         const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
+        const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
+        const char *encoder = "gpu";
+        if(strcmp(video_codec, "h264_software") == 0) {
+            video_codec = "h264";
+            encoder = "cpu";
+        }
 
         std::string container = "flv";
         if(config.streaming_config.streaming_service == "custom")
@@ -1205,7 +1225,8 @@ namespace gsr {
             "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.streaming_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
-            "-k", config.streaming_config.record_options.video_codec.c_str(),
+            "-encoder", encoder,
+            "-f", fps.c_str(),
             "-f", fps.c_str(),
             "-v", "no",
             "-o", url.c_str()
