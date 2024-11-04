@@ -237,15 +237,23 @@ namespace gsr {
         list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_color_theme().text_color));
 
         auto video_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
-        video_quality_box->add_item("Custom (Constant bitrate, recommended for live streaming)", "custom");
+        if(type == Type::REPLAY || type == Type::STREAM)
+            video_quality_box->add_item("Constant bitrate (Recommended)", "custom");
+        else
+            video_quality_box->add_item("Constant bitrate", "custom");
         video_quality_box->add_item("Medium", "medium");
         video_quality_box->add_item("High", "high");
-        video_quality_box->add_item("Very high (Recommended)", "very_high");
+        if(type == Type::REPLAY || type == Type::STREAM)
+            video_quality_box->add_item("Very high", "very_high");
+        else
+            video_quality_box->add_item("Very high (Recommended)", "very_high");
         video_quality_box->add_item("Ultra", "ultra");
-        if(type == Type::STREAM)
+
+        if(type == Type::REPLAY || type == Type::STREAM)
             video_quality_box->set_selected_item("custom");
         else
             video_quality_box->set_selected_item("very_high");
+
         video_quality_box_ptr = video_quality_box.get();
         list->add_widget(std::move(video_quality_box));
 
