@@ -26,6 +26,8 @@ namespace gsr {
         // Return false to specify that the string should not be accepted. This reverts the string back to its previous value.
         // The input can be changed by changing the input parameter and returning true.
         EntryValidateHandler validate_handler;
+
+        std::function<void(const std::string &text)> on_changed;
     private:
         mgl::Text text;
         float max_width;

@@ -17,6 +17,8 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
+
+        void set_text(std::string str);
     private:
         mgl::Text text;
     };

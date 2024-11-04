@@ -18,6 +18,10 @@ namespace gsr {
         window.draw(text);
     }
 
+    void Label::set_text(std::string str) {
+        text.set_string(std::move(str));
+    }
+
     mgl::vec2f Label::get_size() {
         if(!visible)
             return {0.0f, 0.0f};

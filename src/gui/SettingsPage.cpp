@@ -449,8 +449,11 @@ namespace gsr {
             (void)text;
             const bool custom_selected = id == "custom";
             video_bitrate_list_ptr->set_visible(custom_selected);
+
+            if(estimated_file_size_ptr)
+                estimated_file_size_ptr->set_visible(custom_selected);
         };
-        video_quality_box_ptr->on_selection_changed("Very high", "very_high");
+        video_quality_box_ptr->on_selection_changed("", video_quality_box_ptr->get_selected_id());
 
         if(!gsr_info.supported_capture_options.monitors.empty())
             record_area_box_ptr->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
@@ -545,11 +548,30 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<Label> SettingsPage::create_estimated_file_size() {
+        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 5.23MB", get_color_theme().text_color);
+        estimated_file_size_ptr = label.get();
+        return label;
+    }
+
+    void SettingsPage::update_estimated_file_size() {
+        const int64_t replay_time_seconds = atoi(replay_time_entry_ptr->get_text().c_str());
+        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL;
+        const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1024.0 / 1024.0 / 3.3333; // Why 3.3333?
+
+        char buffer[512];
+        snprintf(buffer, sizeof(buffer), "Estimated video max file size in RAM: %.2fMB", video_filesize_mb);
+        estimated_file_size_ptr->set_text(buffer);
+    }
+
     void SettingsPage::add_replay_widgets() {
-        auto file_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_info_list->add_widget(create_save_directory("Directory to save replays:"));
-        file_info_list->add_widget(create_container_section());
-        file_info_list->add_widget(create_replay_time());
+        auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        file_info_data_list->add_widget(create_save_directory("Directory to save replays:"));
+        file_info_data_list->add_widget(create_container_section());
+        file_info_data_list->add_widget(create_replay_time());
+        file_info_list->add_widget(std::move(file_info_data_list));
+        file_info_list->add_widget(create_estimated_file_size());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -589,6 +611,14 @@ namespace gsr {
             settings_scrollable_page_ptr->reset_scroll();
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
+
+        replay_time_entry_ptr->on_changed = [this](const std::string&) {
+            update_estimated_file_size();
+        };
+
+        video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
+            update_estimated_file_size();
+        };
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {

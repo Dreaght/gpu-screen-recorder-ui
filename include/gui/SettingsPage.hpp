@@ -14,6 +14,7 @@ namespace gsr {
     class GsrPage;
     class PageStack;
     class ScrollablePage;
+    class Label;
 
     class SettingsPage : public StaticPage {
     public:
@@ -83,6 +84,8 @@ namespace gsr {
         std::unique_ptr<List> create_replay_time();
         std::unique_ptr<CheckBox> create_start_replay_on_startup();
         std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
+        std::unique_ptr<Label> create_estimated_file_size();
+        void update_estimated_file_size();
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
         void add_replay_widgets();
         void add_record_widgets();
@@ -147,6 +150,7 @@ namespace gsr {
         List *container_list_ptr = nullptr;
         CheckBox *start_replay_automatically_ptr = nullptr;
         CheckBox *save_replay_in_game_folder_ptr = nullptr;
+        Label *estimated_file_size_ptr = nullptr;
         CheckBox *show_replay_started_notification_checkbox_ptr = nullptr;
         CheckBox *show_replay_stopped_notification_checkbox_ptr = nullptr;
         CheckBox *show_replay_saved_notification_checkbox_ptr = nullptr;
