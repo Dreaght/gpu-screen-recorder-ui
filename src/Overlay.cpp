@@ -134,12 +134,8 @@ namespace gsr {
     #define _NET_WM_STATE_ADD     1
     #define _NET_WM_STATE_TOGGLE  2
 
-    static Bool set_window_wm_state(Display *display, Window window, Atom atom) {
-        Atom net_wm_state_atom = XInternAtom(display, "_NET_WM_STATE", False);
-        if(!net_wm_state_atom) {
-            fprintf(stderr, "Error: failed to find atom _NET_WM_STATE\n");
-            return False;
-        }
+    static Bool set_window_wm_state(Display *dpy, Window window, Atom atom) {
+        const Atom net_wm_state_atom = XInternAtom(dpy, "_NET_WM_STATE", False);
 
         XClientMessageEvent xclient;
         memset(&xclient, 0, sizeof(xclient));
@@ -154,19 +150,17 @@ namespace gsr {
         xclient.data.l[3] = 0;
         xclient.data.l[4] = 0;
 
-        XSendEvent(display, DefaultRootWindow(display), False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&xclient);
-        XFlush(display);
+        XSendEvent(dpy, DefaultRootWindow(dpy), False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&xclient);
+        XFlush(dpy);
         return True;
     }
 
-    static Bool make_window_sticky(Display* display, Window window) {
-        Atom net_wm_state_sticky_atom = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
-        if(!net_wm_state_sticky_atom) {
-            fprintf(stderr, "Error: failed to find atom _NET_WM_STATE_STICKY\n");
-            return False;
-        }
-        
-        return set_window_wm_state(display, window, net_wm_state_sticky_atom);
+    static Bool make_window_sticky(Display *dpy, Window window) {
+        return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_STICKY", False));
+    }
+
+    static Bool hide_window_from_taskbar(Display *dpy, Window window) {
+        return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_SKIP_TASKBAR", False));
     }
 
     // Returns the first monitor if not found. Assumes there is at least one monitor connected.
@@ -212,7 +206,10 @@ namespace gsr {
         if(new_config)
             config = std::move(new_config.value());
 
-        gsr::init_color_theme(gsr_info);
+        init_color_theme(gsr_info);
+        // These environment variable are used by files in scripts/ folder
+        const std::string notify_bg_color_str = color_to_hex_str(get_color_theme().tint_color);
+        setenv("GSR_NOTIFY_BG_COLOR", notify_bg_color_str.c_str(), true);
 
         if(config.replay_config.start_replay_automatically)
             on_press_start_replay(true);
@@ -241,7 +238,7 @@ namespace gsr {
             gpu_screen_recorder_process = -1;
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(recording_status == RecordingStatus::RECORD && config.record_config.show_video_saved_notifications)
+            if(recording_status == RecordingStatus::RECORD && config.record_config.show_video_saved_notifications && !config.record_config.save_video_in_game_folder)
                 show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
     }
@@ -326,7 +323,7 @@ namespace gsr {
     void Overlay::show() {
         window.reset();
         window = std::make_unique<mgl::Window>();
-        gsr::deinit_theme();
+        deinit_theme();
 
         mgl::vec2i window_size = { 1280, 720 };
         mgl::vec2i window_pos = { 0, 0 };
@@ -355,7 +352,7 @@ namespace gsr {
         data = 1;
         XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
-        if(!gsr::init_theme(resources_path)) {
+        if(!init_theme(resources_path)) {
             fprintf(stderr, "Error: failed to load theme\n");
             exit(1);
         }
@@ -508,6 +505,7 @@ namespace gsr {
         window->set_fullscreen(true);
         window->set_visible(true);
         make_window_sticky(display, window->get_system_handle());
+        hide_window_from_taskbar(display, window->get_system_handle());
 
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
@@ -588,7 +586,7 @@ namespace gsr {
             window.reset();
         }
 
-        gsr::deinit_theme();
+        deinit_theme();
     }
 
     void Overlay::toggle_show() {
@@ -730,7 +728,7 @@ namespace gsr {
             case RecordingStatus::RECORD: {
                 update_ui_recording_stopped();
                 if(exit_code == 0) {
-                    if(config.record_config.show_video_saved_notifications)
+                    if(config.record_config.show_video_saved_notifications && !config.record_config.save_video_in_game_folder)
                         show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
                 } else {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
@@ -871,7 +869,7 @@ namespace gsr {
             return;
 
         kill(gpu_screen_recorder_process, SIGUSR1);
-        if(config.replay_config.show_replay_saved_notifications)
+        if(config.replay_config.show_replay_saved_notifications && !config.replay_config.save_video_in_game_folder)
             show_notification("Replay saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
     }
 
@@ -973,6 +971,13 @@ namespace gsr {
             }
         }
 
+        setenv("GSR_SHOW_SAVED_NOTIFICATION", config.replay_config.show_replay_saved_notifications ? "1" : "0", true);
+        const std::string save_video_in_game_folder = resources_path + "scripts/save-video-in-game-folder.sh";
+        if(config.replay_config.save_video_in_game_folder) {
+            args.push_back("-sc");
+            args.push_back(save_video_in_game_folder.c_str());
+        }
+
         args.push_back(nullptr);
 
         gpu_screen_recorder_process = exec_program(args.data());
@@ -1030,7 +1035,7 @@ namespace gsr {
             update_ui_recording_stopped();
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config.record_config.show_video_saved_notifications)
+            if(config.record_config.show_video_saved_notifications && !config.record_config.save_video_in_game_folder)
                 show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
             return;
         }
@@ -1093,6 +1098,13 @@ namespace gsr {
                 args.push_back("-a");
                 args.push_back(audio_track.c_str());
             }
+        }
+
+        setenv("GSR_SHOW_SAVED_NOTIFICATION", config.record_config.show_video_saved_notifications ? "1" : "0", true);
+        const std::string save_video_in_game_folder = resources_path + "scripts/save-video-in-game-folder.sh";
+        if(config.record_config.save_video_in_game_folder) {
+            args.push_back("-sc");
+            args.push_back(save_video_in_game_folder.c_str());
         }
 
         args.push_back(nullptr);

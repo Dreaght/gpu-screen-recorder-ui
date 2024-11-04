@@ -93,6 +93,7 @@ namespace gsr {
         for(size_t i = 0; i < widgets.size(); ++i) {
             auto &widget = widgets[i];
             if(widget.get() != selected_widget) {
+                // TODO: Do not draw if scrolled out of view
                 widget->draw(window, offset);
 
                 // TODO: Create a widget function to get the render area instead, which each widget should set (position + offset as start, and position + offset + size as end), this has to be done in the widgets to ensure that recursive rendering has correct position.

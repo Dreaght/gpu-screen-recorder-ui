@@ -531,6 +531,12 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save video in a folder with the name of the game");
+        save_replay_in_game_folder_ptr = checkbox.get();
+        return checkbox;
+    }
+
     void SettingsPage::add_replay_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_info_list->add_widget(create_save_directory("Directory to save replays:"));
@@ -538,8 +544,9 @@ namespace gsr {
         file_info_list->add_widget(create_replay_time());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        auto general_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_start_replay_on_startup());
+        general_list->add_widget(create_save_replay_in_game_folder());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -576,11 +583,21 @@ namespace gsr {
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save video in a folder with the name of the game");
+        save_recording_in_game_folder_ptr = checkbox.get();
+        return checkbox;
+    }
+
     void SettingsPage::add_record_widgets() {
         auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_list->add_widget(create_save_directory("Directory to save the video:"));
         file_list->add_widget(create_container_section());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+
+        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        general_list->add_widget(create_save_recording_in_game_folder());
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
 
@@ -823,6 +840,7 @@ namespace gsr {
     void SettingsPage::load_replay() {
         load_common(config.replay_config.record_options);
         start_replay_automatically_ptr->set_checked(config.replay_config.start_replay_automatically);
+        save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
         show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
         show_replay_stopped_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_stopped_notifications);
         show_replay_saved_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_saved_notifications);
@@ -836,6 +854,7 @@ namespace gsr {
 
     void SettingsPage::load_record() {
         load_common(config.record_config.record_options);
+        save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
         show_recording_started_notification_checkbox_ptr->set_checked(config.record_config.show_recording_started_notifications);
         show_video_saved_notification_checkbox_ptr->set_checked(config.record_config.show_video_saved_notifications);
         save_directory_button_ptr->set_text(config.record_config.save_directory);
@@ -931,6 +950,7 @@ namespace gsr {
     void SettingsPage::save_replay() {
         save_common(config.replay_config.record_options);
         config.replay_config.start_replay_automatically = start_replay_automatically_ptr->is_checked();
+        config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
         config.replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();
@@ -946,6 +966,7 @@ namespace gsr {
 
     void SettingsPage::save_record() {
         save_common(config.record_config.record_options);
+        config.record_config.save_video_in_game_folder = save_recording_in_game_folder_ptr->is_checked();
         config.record_config.show_recording_started_notifications = show_recording_started_notification_checkbox_ptr->is_checked();
         config.record_config.show_video_saved_notifications = show_video_saved_notification_checkbox_ptr->is_checked();
         config.record_config.save_directory = save_directory_button_ptr->get_text();

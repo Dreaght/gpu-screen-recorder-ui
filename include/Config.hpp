@@ -67,6 +67,7 @@ namespace gsr {
 
     struct RecordConfig {
         RecordOptions record_options;
+        bool save_video_in_game_folder = false;
         bool show_recording_started_notifications = true;
         bool show_video_saved_notifications = true;
         std::string save_directory;
@@ -78,6 +79,7 @@ namespace gsr {
     struct ReplayConfig {
         RecordOptions record_options;
         bool start_replay_automatically = false;
+        bool save_video_in_game_folder = false;
         bool show_replay_started_notifications = true;
         bool show_replay_stopped_notifications = true;
         bool show_replay_saved_notifications = true;
