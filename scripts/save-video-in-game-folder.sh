@@ -17,9 +17,9 @@ mv "$filepath" "$new_filepath"
 
 case "$type" in
     "regular")
-        gsr-notify --text "Saved recording to a folder called '$game_name'" --timeout 3.0 --icon record --bg-color "$GSR_NOTIFY_BG_COLOR"
+        gsr-notify --text "Saved recording to '$game_name/$file_name'" --timeout 3.0 --icon record --bg-color "$GSR_NOTIFY_BG_COLOR"
         ;;
     "replay")
-        gsr-notify --text "Saved replay to a folder called '$game_name'" --timeout 3.0 --icon replay --bg-color "$GSR_NOTIFY_BG_COLOR"
+        gsr-notify --text "Saved replay to '$game_name/$file_name'" --timeout 3.0 --icon replay --bg-color "$GSR_NOTIFY_BG_COLOR"
         ;;
 esac

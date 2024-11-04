@@ -236,10 +236,6 @@ namespace gsr {
                 /* Ignore... */
             }
             gpu_screen_recorder_process = -1;
-
-            // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(recording_status == RecordingStatus::RECORD && config.record_config.show_video_saved_notifications && !config.record_config.save_video_in_game_folder)
-                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
     }
 
@@ -727,10 +723,7 @@ namespace gsr {
             }
             case RecordingStatus::RECORD: {
                 update_ui_recording_stopped();
-                if(exit_code == 0) {
-                    if(config.record_config.show_video_saved_notifications && !config.record_config.save_video_in_game_folder)
-                        show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
-                } else {
+                if(exit_code != 0) {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
                     show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
                 }
@@ -869,8 +862,6 @@ namespace gsr {
             return;
 
         kill(gpu_screen_recorder_process, SIGUSR1);
-        if(config.replay_config.show_replay_saved_notifications && !config.replay_config.save_video_in_game_folder)
-            show_notification("Replay saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
     }
 
     void Overlay::on_press_start_replay(bool disable_notification) {
@@ -972,11 +963,9 @@ namespace gsr {
         }
 
         setenv("GSR_SHOW_SAVED_NOTIFICATION", config.replay_config.show_replay_saved_notifications ? "1" : "0", true);
-        const std::string save_video_in_game_folder = resources_path + "scripts/save-video-in-game-folder.sh";
-        if(config.replay_config.save_video_in_game_folder) {
-            args.push_back("-sc");
-            args.push_back(save_video_in_game_folder.c_str());
-        }
+        const std::string script_to_run_on_save = resources_path + (config.replay_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
+        args.push_back("-sc");
+        args.push_back(script_to_run_on_save.c_str());
 
         args.push_back(nullptr);
 
@@ -1033,10 +1022,6 @@ namespace gsr {
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
             update_ui_recording_stopped();
-
-            // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config.record_config.show_video_saved_notifications && !config.record_config.save_video_in_game_folder)
-                show_notification("Recording has been saved", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
             return;
         }
 
@@ -1101,11 +1086,9 @@ namespace gsr {
         }
 
         setenv("GSR_SHOW_SAVED_NOTIFICATION", config.record_config.show_video_saved_notifications ? "1" : "0", true);
-        const std::string save_video_in_game_folder = resources_path + "scripts/save-video-in-game-folder.sh";
-        if(config.record_config.save_video_in_game_folder) {
-            args.push_back("-sc");
-            args.push_back(save_video_in_game_folder.c_str());
-        }
+        const std::string script_to_run_on_save = resources_path + (config.record_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
+        args.push_back("-sc");
+        args.push_back(script_to_run_on_save.c_str());
 
         args.push_back(nullptr);
 
