@@ -48,15 +48,17 @@ static Window get_focused_window(Display *dpy, capture_type cap_type) {
     Window focused_window = None;
 
     if(cap_type == CAPTURE_TYPE_FOCUSED) {
-        Atom type = None;
-        int format = 0;
-        unsigned long num_items = 0;
-        unsigned long bytes_left = 0;
-        unsigned char *data = NULL;
-        XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
+        // Atom type = None;
+        // int format = 0;
+        // unsigned long num_items = 0;
+        // unsigned long bytes_left = 0;
+        // unsigned char *data = NULL;
+        // XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
 
-        if(type == XA_WINDOW && num_items == 1 && data)
-            return *(Window*)data;
+        // fprintf(stderr, "focused window: %p\n", (void*)data);
+
+        // if(type == XA_WINDOW && num_items == 1 && data)
+        //     return *(Window*)data;
 
         int revert_to = 0;
         XGetInputFocus(dpy, &focused_window, &revert_to);
@@ -97,10 +99,6 @@ static char* get_window_title(Display *dpy, Window window) {
         return (char*)data;
 
     return NULL;
-}
-
-static bool is_steam_game(Display *dpy, Window window) {
-    return window_has_atom(dpy, window, XInternAtom(dpy, "STEAM_GAME", False));
 }
 
 static const char* strip(const char *str, int *len) {
@@ -171,18 +169,17 @@ int main(int argc, char **argv) {
     if(focused_window == None)
         exit(2);
 
-    if(!is_steam_game(dpy, focused_window)) {
-        XClassHint class_hint = {0};
-        XGetClassHint(dpy, focused_window, &class_hint);
-        if(class_hint.res_class) {
-            print_str_strip(class_hint.res_class);
-            exit(0);
-        }
-    }
-
+    // Window title is not always ideal (for example for a browser), but for games its pretty much required
     char *window_title = get_window_title(dpy, focused_window);
     if(window_title) {
         print_str_strip(window_title);
+        exit(0);
+    }
+
+    XClassHint class_hint = {0};
+    XGetClassHint(dpy, focused_window, &class_hint);
+    if(class_hint.res_class) {
+        print_str_strip(class_hint.res_class);
         exit(0);
     }
 

@@ -17,6 +17,8 @@
 // TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
 // TODO: Add systray by using org.kde.StatusNotifierWatcher/etc dbus directly.
 // TODO: Make sure the overlay always stays on top. Test with starting the overlay and then opening youtube in fullscreen.
+//       This is done in Overlay::force_window_on_top, but it's not called right now. It cant be used because the overlay will be on top of
+//       notifications.
 
 extern "C" {
 #include <mgl/mgl.h>

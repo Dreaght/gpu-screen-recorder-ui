@@ -1106,17 +1106,8 @@ namespace gsr {
         // Starting recording in 3...
         // 2...
         // 1...
-        // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
-        // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
-        // to see when the program has exit.
         if(config.record_config.show_recording_started_notifications)
             show_notification("Recording has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
-        //exit(0);
-        // window->set_visible(false);
-        // window->close();
-
-        // TODO: Show notification with args:
-        // "Recording has started" 3.0 ./images/record.png 76b900
     }
 
     static std::string streaming_get_url(const Config &config) {

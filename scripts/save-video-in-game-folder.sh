@@ -7,6 +7,7 @@ file_name="$(basename "$filepath")"
 file_dir="$(dirname "$filepath")"
 
 game_name=$(gsr-window-name focused || echo "Game")
+game_name="$(echo "$game_name" | tr '/\\' '_')"
 target_dir="$file_dir/$game_name"
 new_filepath="$target_dir/$file_name"
 
