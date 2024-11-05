@@ -556,7 +556,7 @@ namespace gsr {
 
     void SettingsPage::update_estimated_file_size() {
         const int64_t replay_time_seconds = atoi(replay_time_entry_ptr->get_text().c_str());
-        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1024LL;
+        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL;
         const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1024.0 / 1024.0;
 
         char buffer[512];
