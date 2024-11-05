@@ -18,6 +18,7 @@ namespace gsr {
 
         streaming_config.record_options.video_quality = "custom";
         streaming_config.record_options.audio_tracks.push_back("default_output");
+        streaming_config.record_options.video_bitrate = 15000;
 
         record_config.save_directory = default_save_directory;
         record_config.record_options.audio_tracks.push_back("default_output");
@@ -25,6 +26,7 @@ namespace gsr {
         replay_config.record_options.video_quality = "custom";
         replay_config.save_directory = default_save_directory;
         replay_config.record_options.audio_tracks.push_back("default_output");
+        replay_config.record_options.video_bitrate = 50000;
 
         if(!gsr_info.supported_capture_options.monitors.empty()) {
             streaming_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
