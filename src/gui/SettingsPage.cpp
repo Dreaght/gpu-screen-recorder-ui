@@ -261,8 +261,8 @@ namespace gsr {
     }
 
     std::unique_ptr<Entry> SettingsPage::create_video_bitrate_entry() {
-        auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "5000", (int)(get_theme().body_font.get_character_size() * 4.0f));
-        video_bitrate_entry->validate_handler = create_entry_validator_integer_in_range(1, 100000);
+        auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "15000", (int)(get_theme().body_font.get_character_size() * 4.0f));
+        video_bitrate_entry->validate_handler = create_entry_validator_integer_in_range(1, 500000);
         video_bitrate_entry_ptr = video_bitrate_entry.get();
         return video_bitrate_entry;
     }
@@ -556,7 +556,7 @@ namespace gsr {
 
     void SettingsPage::update_estimated_file_size() {
         const int64_t replay_time_seconds = atoi(replay_time_entry_ptr->get_text().c_str());
-        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL;
+        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
         const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1024.0 / 1024.0;
 
         char buffer[512];
