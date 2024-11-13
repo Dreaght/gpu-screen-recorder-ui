@@ -132,7 +132,7 @@ namespace gsr {
             {"replay.record_options.overclock", &config.replay_config.record_options.overclock},
             {"replay.record_options.record_cursor", &config.replay_config.record_options.record_cursor},
             {"replay.record_options.restore_portal_session", &config.replay_config.record_options.restore_portal_session},
-            {"replay.start_replay_automatically", &config.replay_config.start_replay_automatically},
+            {"replay.turn_on_replay_automatically_mode", &config.replay_config.turn_on_replay_automatically_mode},
             {"replay.save_video_in_game_folder", &config.replay_config.save_video_in_game_folder},
             {"replay.show_replay_started_notifications", &config.replay_config.show_replay_started_notifications},
             {"replay.show_replay_stopped_notifications", &config.replay_config.show_replay_stopped_notifications},

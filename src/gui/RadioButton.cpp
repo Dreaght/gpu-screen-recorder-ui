@@ -14,7 +14,7 @@ namespace gsr {
     static const float spacing_scale = 0.007f;
     static const float border_scale = 0.0015f;
 
-    RadioButton::RadioButton(mgl::Font *font) : font(font) {
+    RadioButton::RadioButton(mgl::Font *font, Orientation orientation) : font(font), orientation(orientation) {
 
     }
 
@@ -44,7 +44,14 @@ namespace gsr {
                     return false;
                 }
 
-                draw_pos.x += item_size.x + spacing_scale * get_theme().window_height;
+                switch(orientation) {
+                    case Orientation::VERTICAL:
+                        draw_pos.y += item_size.y + spacing_scale * get_theme().window_height;
+                        break;
+                    case Orientation::HORIZONTAL:
+                        draw_pos.x += item_size.x + spacing_scale * get_theme().window_height;
+                        break;
+                }
             }
         }
         return true;
@@ -85,7 +92,14 @@ namespace gsr {
             item.text.set_position((draw_pos + item_size * 0.5f - item.text.get_bounds().size * 0.5f).floor());
             window.draw(item.text);
 
-            draw_pos.x += item_size.x + spacing_scale * get_theme().window_height;
+            switch(orientation) {
+                case Orientation::VERTICAL:
+                    draw_pos.y += item_size.y + spacing_scale * get_theme().window_height;
+                    break;
+                case Orientation::HORIZONTAL:
+                    draw_pos.x += item_size.x + spacing_scale * get_theme().window_height;
+                    break;
+            }
         }
     }
 
@@ -98,13 +112,32 @@ namespace gsr {
         const int padding_left = padding_left_scale * get_theme().window_height;
         const int padding_right = padding_right_scale * get_theme().window_height;
 
-        size = { 0.0f, font->get_character_size() + (float)padding_top + (float)padding_bottom };
+        size = { 0.0f, 0.0f };
         for(Item &item : items) {
             const mgl::vec2f bounds = item.text.get_bounds().size;
-            size.x += bounds.x + padding_left + padding_right;
+            switch(orientation) {
+                case Orientation::VERTICAL:
+                    size.x = std::max(size.x, bounds.x + padding_left + padding_right);
+                    size.y += bounds.y + padding_top + padding_bottom;
+                    break;
+                case Orientation::HORIZONTAL:
+                    size.x += bounds.x + padding_left + padding_right;
+                    size.y = font->get_character_size() + (float)padding_top + (float)padding_bottom;
+                    break;
+            }
         }
-        if(items.size() > 1)
-            size.x += (items.size() - 1) * spacing_scale * get_theme().window_height;
+
+        if(items.size() > 1) {
+            switch(orientation) {
+                case Orientation::VERTICAL:
+                    size.y += (items.size() - 1) * spacing_scale * get_theme().window_height;
+                    break;
+                case Orientation::HORIZONTAL:
+                    size.x += (items.size() - 1) * spacing_scale * get_theme().window_height;
+                    break;
+            }
+        }
+
         dirty = false;
     }
 

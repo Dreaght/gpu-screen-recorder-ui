@@ -156,7 +156,7 @@ int main(void) {
         global_hotkeys.poll_events();
         overlay->handle_events();
         if(!overlay->draw())
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     fprintf(stderr, "info: shutting down!\n");

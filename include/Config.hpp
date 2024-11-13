@@ -81,7 +81,7 @@ namespace gsr {
 
     struct ReplayConfig {
         RecordOptions record_options;
-        bool start_replay_automatically = false;
+        std::string turn_on_replay_automatically_mode = "dont_turn_on_automatically";
         bool save_video_in_game_folder = false;
         bool show_replay_started_notifications = true;
         bool show_replay_stopped_notifications = true;

@@ -42,7 +42,7 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
-        auto view_radio_button = std::make_unique<RadioButton>(&get_theme().body_font);
+        auto view_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
         view_radio_button->add_item("Simple view", "simple");
         view_radio_button->add_item("Advanced view", "advanced");
         view_radio_button->set_horizontal_alignment(Widget::Alignment::CENTER);
@@ -228,7 +228,7 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_audio_type_button() {
-        auto audio_type_radio_button = std::make_unique<RadioButton>(&get_theme().body_font);
+        auto audio_type_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
         audio_type_radio_button->add_item("Audio devices", "audio_devices");
         audio_type_radio_button->add_item("Application audio", "app_audio");
         audio_type_radio_button_ptr = audio_type_radio_button.get();
@@ -321,10 +321,10 @@ namespace gsr {
         auto audio_section = std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
 
         audio_device_section_list_ptr->add_widget(create_audio_type_button());
-        audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Type::HORIZONTAL, audio_section->get_inner_size().x));
+        audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x));
         audio_device_section_list_ptr->add_widget(create_audio_device_section());
         audio_device_section_list_ptr->add_widget(create_application_audio_section());
-        //audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Type::HORIZONTAL, audio_section->get_inner_size().x));
+        //audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x));
         audio_device_section_list_ptr->add_widget(create_merge_audio_tracks_checkbox());
         audio_device_section_list_ptr->add_widget(create_audio_codec());
         return audio_section;
@@ -646,10 +646,13 @@ namespace gsr {
         return replay_time_list;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_start_replay_on_startup() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Turn on replay automatically");
-        start_replay_automatically_ptr = checkbox.get();
-        return checkbox;
+    std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
+        auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
+        radiobutton->add_item("Don't turn on replay automatically", "dont_turn_on_automatically");
+        radiobutton->add_item("Turn on replay at system startup", "turn_on_at_system_startup");
+        radiobutton->add_item("Turn on replay when starting a fullscreen application", "turn_on_at_fullscreen");
+        turn_on_replay_automatically_mode_ptr = radiobutton.get();
+        return radiobutton;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
@@ -685,7 +688,7 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_start_replay_on_startup());
+        general_list->add_widget(create_start_replay_automatically());
         general_list->add_widget(create_save_replay_in_game_folder());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
@@ -1015,7 +1018,7 @@ namespace gsr {
 
     void SettingsPage::load_replay() {
         load_common(config.replay_config.record_options);
-        start_replay_automatically_ptr->set_checked(config.replay_config.start_replay_automatically);
+        turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
         show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
         show_replay_stopped_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_stopped_notifications);
@@ -1142,7 +1145,7 @@ namespace gsr {
 
     void SettingsPage::save_replay() {
         save_common(config.replay_config.record_options);
-        config.replay_config.start_replay_automatically = start_replay_automatically_ptr->is_checked();
+        config.replay_config.turn_on_replay_automatically_mode = turn_on_replay_automatically_mode_ptr->get_selected_id();
         config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
         config.replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();

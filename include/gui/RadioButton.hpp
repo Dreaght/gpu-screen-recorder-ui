@@ -9,7 +9,12 @@
 namespace gsr {
     class RadioButton : public Widget {
     public:
-        RadioButton(mgl::Font *font);
+        enum class Orientation {
+            VERTICAL,
+            HORIZONTAL
+        };
+
+        RadioButton(mgl::Font *font, Orientation orientation);
         RadioButton(const RadioButton&) = delete;
         RadioButton& operator=(const RadioButton&) = delete;
 
@@ -32,6 +37,7 @@ namespace gsr {
         };
 
         mgl::Font *font;
+        Orientation orientation;
         std::vector<Item> items;
         size_t selected_item = 0;
         bool dirty = true;

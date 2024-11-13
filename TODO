@@ -79,3 +79,9 @@ Add profile option. Convert view to profile, add an option at the bottom that sa
 Verify monitor/audio when starting recording. Give an error if the options are no longer valid.
 
 Add option to record focused monitor. This is less error prone when plugging in monitors, etc.
+
+Get focused window when opening gsr-ui and pass that to the save replay script, to ignore gsr-ui when getting game name.
+
+gsr ui window has _NET_WM_STATE _NET_WM_STATE_ABOVE, not _NET_WM_STATE_FULLSCREEN
+
+For replay on fullscreen detect focused fullscreen window by checking if the window size is the same as the monitor size instead of _NET_WM_STATE_FULLSCREEN.

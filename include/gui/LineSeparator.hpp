@@ -5,11 +5,11 @@
 namespace gsr {
     class LineSeparator : public Widget {
     public:
-        enum class Type {
+        enum class Orientation {
             HORIZONTAL
         };
 
-        LineSeparator(Type type, float width);
+        LineSeparator(Orientation orientation, float width);
         LineSeparator(const LineSeparator&) = delete;
         LineSeparator& operator=(const LineSeparator&) = delete;
 
@@ -18,7 +18,7 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
     private:
-        Type type;
+        Orientation orientation;
         float width;
     };
 }

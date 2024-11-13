@@ -30,6 +30,66 @@ extern "C" {
 namespace gsr {
     static const mgl::Color bg_color(0, 0, 0, 100);
     static const double force_window_on_top_timeout_seconds = 1.0;
+    static const double focused_window_fullscreen_check_timeout_seconds = 1.0;
+
+    static bool window_has_atom(Display *dpy, Window window, Atom atom) {
+        Atom type;
+        unsigned long len, bytes_left;
+        int format;
+        unsigned char *properties = NULL;
+        if(XGetWindowProperty(dpy, window, atom, 0, 1024, False, AnyPropertyType, &type, &format, &len, &bytes_left, &properties) < Success)
+            return false;
+
+        if(properties)
+            XFree(properties);
+
+        return type != None;
+    }
+
+    static bool window_is_user_program(Display *dpy, Window window) {
+        const Atom net_wm_state_atom = XInternAtom(dpy, "_NET_WM_STATE", False);
+        const Atom wm_state_atom = XInternAtom(dpy, "WM_STATE", False);
+        return window_has_atom(dpy, window, net_wm_state_atom) || window_has_atom(dpy, window, wm_state_atom);
+    }
+
+    static Window get_window_at_cursor_position(Display *dpy) {
+        Window root_window = None;
+        Window window = None;
+        int dummy_i;
+        unsigned int dummy_u;
+        int cursor_pos_x = 0;
+        int cursor_pos_y = 0;
+        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &cursor_pos_x, &cursor_pos_y, &dummy_u);
+        return window;
+    }
+
+    static Window get_focused_window(Display *dpy) {
+        const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+        Window focused_window = None;
+
+        // Atom type = None;
+        // int format = 0;
+        // unsigned long num_items = 0;
+        // unsigned long bytes_left = 0;
+        // unsigned char *data = NULL;
+        // XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
+
+        // fprintf(stderr, "focused window: %p\n", (void*)data);
+
+        // if(type == XA_WINDOW && num_items == 1 && data)
+        //     return *(Window*)data;
+
+        int revert_to = 0;
+        XGetInputFocus(dpy, &focused_window, &revert_to);
+        if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
+            return focused_window;
+
+        focused_window = get_window_at_cursor_position(dpy);
+        if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
+            return focused_window;
+
+        return None;
+    }
 
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
@@ -82,17 +142,6 @@ namespace gsr {
         return result;
     }
 
-    static Window get_window_at_cursor_position(Display *display) {
-        Window root_window = None;
-        Window window = None;
-        int dummy_i;
-        unsigned int dummy_u;
-        int cursor_pos_x = 0;
-        int cursor_pos_y = 0;
-        XQueryPointer(display, DefaultRootWindow(display), &root_window, &window, &dummy_i, &dummy_i, &cursor_pos_x, &cursor_pos_y, &dummy_u);
-        return window;
-    }
-
     struct DrawableGeometry {
         int x, y, width, height;
     };
@@ -128,6 +177,57 @@ namespace gsr {
         const int margin = 2;
         return diff_int(geometry.x, monitor->pos.x, margin) && diff_int(geometry.y, monitor->pos.y, margin)
             && diff_int(geometry.width, monitor->size.x, margin) && diff_int(geometry.height, monitor->size.y, margin);
+    }
+
+    /*static bool is_window_fullscreen_on_monitor(Display *display, Window window, const mgl_monitor *monitors, int num_monitors) {
+        if(!window)
+            return false;
+
+        DrawableGeometry geometry;
+        if(!get_drawable_geometry(display, window, &geometry))
+            return false;
+
+        const int margin = 2;
+        for(int i = 0; i < num_monitors; ++i) {
+            const mgl_monitor *mon = &monitors[i];
+            if(diff_int(geometry.x, mon->pos.x, margin) && diff_int(geometry.y, mon->pos.y, margin)
+                && diff_int(geometry.width, mon->size.x, margin) && diff_int(geometry.height, mon->size.y, margin))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }*/
+
+    static bool window_is_fullscreen(Display *display, Window window) {
+        const Atom wm_state_atom = XInternAtom(display, "_NET_WM_STATE", False);
+        const Atom wm_state_fullscreen_atom = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
+
+        Atom type = None;
+        int format = 0;
+        unsigned long num_items = 0;
+        unsigned long bytes_after = 0;
+        unsigned char *properties = nullptr;
+        if(XGetWindowProperty(display, window, wm_state_atom, 0, 1024, False, XA_ATOM, &type, &format, &num_items, &bytes_after, &properties) < Success) {
+            fprintf(stderr, "Failed to get window wm state property\n");
+            return false;
+        }
+
+        if(!properties)
+            return false;
+
+        bool is_fullscreen = false;
+        Atom *atoms = (Atom*)properties;
+        for(unsigned long i = 0; i < num_items; ++i) {
+            if(atoms[i] == wm_state_fullscreen_atom) {
+                is_fullscreen = true;
+                break;
+            }
+        }
+
+        XFree(properties);
+        return is_fullscreen;
     }
 
     static void set_focused_window(Display *dpy, Window window) {
@@ -220,7 +320,7 @@ namespace gsr {
         const std::string notify_bg_color_str = color_to_hex_str(get_color_theme().tint_color);
         setenv("GSR_NOTIFY_BG_COLOR", notify_bg_color_str.c_str(), true);
 
-        if(config.replay_config.start_replay_automatically)
+        if(config.replay_config.turn_on_replay_automatically_mode == "turn_on_at_system_startup")
             on_press_start_replay(true);
     }
 
@@ -289,6 +389,7 @@ namespace gsr {
     bool Overlay::draw() {
         update_notification_process_status();
         update_gsr_process_status();
+        update_focused_fullscreen_status();
 
         if(!visible)
             return false;
@@ -751,6 +852,30 @@ namespace gsr {
 
         gpu_screen_recorder_process = -1;
         recording_status = RecordingStatus::NONE;
+    }
+
+    void Overlay::update_focused_fullscreen_status() {
+        if(focused_fullscreen_clock.get_elapsed_time_seconds() < focused_window_fullscreen_check_timeout_seconds)
+            return;
+
+        focused_fullscreen_clock.restart();
+        if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_fullscreen")
+            return;
+
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+
+        const Window focused_window = get_focused_window(display);
+        if(window && focused_window == window->get_system_handle())
+            return;
+
+        if(recording_status == RecordingStatus::NONE) {
+            if(focused_window != 0 && window_is_fullscreen(display, focused_window))
+                on_press_start_replay(false);
+        } else if(recording_status == RecordingStatus::REPLAY) {
+            if(focused_window == 0 || !window_is_fullscreen(display, focused_window))
+                on_press_start_replay(false);
+        }
     }
 
     void Overlay::update_ui_recording_paused() {

@@ -16,7 +16,7 @@ namespace gsr {
         };
     }
 
-    LineSeparator::LineSeparator(Type type, float width) : type(type), width(width) {
+    LineSeparator::LineSeparator(Orientation orientation, float width) : orientation(orientation), width(width) {
         
     }
 

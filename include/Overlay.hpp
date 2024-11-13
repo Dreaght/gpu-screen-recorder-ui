@@ -59,6 +59,8 @@ namespace gsr {
         void update_notification_process_status();
         void update_gsr_process_status();
 
+        void update_focused_fullscreen_status();
+
         void update_ui_recording_paused();
         void update_ui_recording_unpaused();
 
@@ -114,6 +116,8 @@ namespace gsr {
 
         RecordingStatus recording_status = RecordingStatus::NONE;
         bool paused = false;
+
+        mgl::Clock focused_fullscreen_clock;
 
         std::array<KeyBinding, 1> key_bindings;
     };
