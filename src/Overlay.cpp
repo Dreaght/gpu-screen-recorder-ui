@@ -130,6 +130,15 @@ namespace gsr {
             && diff_int(geometry.width, monitor->size.x, margin) && diff_int(geometry.height, monitor->size.y, margin);
     }
 
+    static void set_focused_window(Display *dpy, Window window) {
+        XSetInputFocus(dpy, window, RevertToParent, CurrentTime);
+
+        const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+        XChangeProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, XA_WINDOW, 32, PropModeReplace, (const unsigned char*)&window, 1);
+
+        XFlush(dpy);
+    }
+
     #define _NET_WM_STATE_REMOVE  0
     #define _NET_WM_STATE_ADD     1
     #define _NET_WM_STATE_TOGGLE  2
@@ -370,8 +379,6 @@ namespace gsr {
 
         update_compositor_texture(focused_monitor);
 
-        audio_devices = get_audio_devices();
-
         top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
         logo_sprite = mgl::Sprite(&get_theme().logo_texture);
 
@@ -418,7 +425,7 @@ namespace gsr {
             button->set_item_icon("save", &get_theme().save_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, gsr_info, audio_devices, config, &page_stack);
+                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, gsr_info, config, &page_stack);
                     page_stack.push(std::move(replay_settings_page));
                 } else if(id == "save") {
                     on_press_save_replay();
@@ -439,7 +446,7 @@ namespace gsr {
             button->set_item_icon("pause", &get_theme().pause_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, gsr_info, audio_devices, config, &page_stack);
+                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, gsr_info, config, &page_stack);
                     page_stack.push(std::move(record_settings_page));
                 } else if(id == "pause") {
                     toggle_pause();
@@ -458,7 +465,7 @@ namespace gsr {
             button->set_item_icon("start", &get_theme().play_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, gsr_info, audio_devices, config, &page_stack);
+                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, gsr_info, config, &page_stack);
                     page_stack.push(std::move(stream_settings_page));
                 } else if(id == "start") {
                     on_press_start_stream();
@@ -521,7 +528,7 @@ namespace gsr {
         // TODO: This breaks global hotkeys
         //XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
-        XSetInputFocus(display, window->get_system_handle(), RevertToPointerRoot, CurrentTime);
+        set_focused_window(display, window->get_system_handle());
         XFlush(display);
 
         //window->set_fullscreen(true);
@@ -864,6 +871,46 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGUSR1);
     }
 
+    static void add_common_gpu_screen_recorder_args(RecordOptions &record_options, std::vector<const char*> &args, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, const std::string &application_audio_merged) {
+        if(record_options.video_quality == "custom") {
+            args.push_back("-bm");
+            args.push_back("cbr");
+            args.push_back("-q");
+            args.push_back(video_bitrate.c_str());
+        } else {
+            args.push_back("-q");
+            args.push_back(record_options.video_quality.c_str());
+        }
+
+        if(record_options.record_area_option == "focused" || record_options.change_video_resolution) {
+            args.push_back("-s");
+            args.push_back(region);
+        }
+
+        if(record_options.audio_type_view == "audio_devices") {
+            if(record_options.merge_audio_tracks) {
+                args.push_back("-a");
+                args.push_back(audio_devices_merged.c_str());
+            } else {
+                for(const std::string &audio_track : record_options.audio_tracks) {
+                    args.push_back("-a");
+                    args.push_back(audio_track.c_str());
+                }
+            }
+        } else if(record_options.audio_type_view == "app_audio") {
+            const char *app_audio_option = record_options.application_audio_invert ? "-aai" : "-aa";
+            if(record_options.merge_audio_tracks) {
+                args.push_back(app_audio_option);
+                args.push_back(application_audio_merged.c_str());
+            } else {
+                for(const std::string &app_audio : record_options.application_audio) {
+                    args.push_back(app_audio_option);
+                    args.push_back(app_audio.c_str());
+                }
+            }
+        }
+    }
+
     void Overlay::on_press_start_replay(bool disable_notification) {
         switch(recording_status) {
             case RecordingStatus::NONE:
@@ -900,13 +947,12 @@ namespace gsr {
             return;
         }
 
-        audio_devices = get_audio_devices();
-
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.replay_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.replay_config.record_options.video_bitrate);
         const std::string output_directory = config.replay_config.save_directory;
-        const std::string audio_tracks_merged = merge_audio_tracks(config.replay_config.record_options.audio_tracks);
+        const std::string audio_devices_merged = merge_audio_tracks(config.replay_config.record_options.audio_tracks);
+        const std::string application_audio_merged = merge_audio_tracks(config.replay_config.record_options.application_audio);
         const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
         const std::string replay_time = std::to_string(config.replay_config.replay_time);
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
@@ -937,30 +983,7 @@ namespace gsr {
             "-o", output_directory.c_str()
         };
 
-        if(config.replay_config.record_options.video_quality == "custom") {
-            args.push_back("-bm");
-            args.push_back("cbr");
-            args.push_back("-q");
-            args.push_back(video_bitrate.c_str());
-        } else {
-            args.push_back("-q");
-            args.push_back(config.replay_config.record_options.video_quality.c_str());
-        }
-
-        if(config.replay_config.record_options.record_area_option == "focused" || config.replay_config.record_options.change_video_resolution) {
-            args.push_back("-s");
-            args.push_back(region);
-        }
-
-        if(config.replay_config.record_options.merge_audio_tracks) {
-            args.push_back("-a");
-            args.push_back(audio_tracks_merged.c_str());
-        } else {
-            for(const std::string &audio_track : config.replay_config.record_options.audio_tracks) {
-                args.push_back("-a");
-                args.push_back(audio_track.c_str());
-            }
-        }
+        add_common_gpu_screen_recorder_args(config.replay_config.record_options, args, video_bitrate, region, audio_devices_merged, application_audio_merged);
 
         setenv("GSR_SHOW_SAVED_NOTIFICATION", config.replay_config.show_replay_saved_notifications ? "1" : "0", true);
         const std::string script_to_run_on_save = resources_path + (config.replay_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
@@ -1025,13 +1048,12 @@ namespace gsr {
             return;
         }
 
-        audio_devices = get_audio_devices();
-
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.record_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.record_config.record_options.video_bitrate);
         const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
-        const std::string audio_tracks_merged = merge_audio_tracks(config.record_config.record_options.audio_tracks);
+        const std::string audio_devices_merged = merge_audio_tracks(config.record_config.record_options.audio_tracks);
+        const std::string application_audio_merged = merge_audio_tracks(config.record_config.record_options.application_audio);
         const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -1060,30 +1082,7 @@ namespace gsr {
             "-o", output_file.c_str()
         };
 
-        if(config.record_config.record_options.video_quality == "custom") {
-            args.push_back("-bm");
-            args.push_back("cbr");
-            args.push_back("-q");
-            args.push_back(video_bitrate.c_str());
-        } else {
-            args.push_back("-q");
-            args.push_back(config.record_config.record_options.video_quality.c_str());
-        }
-
-        if(config.record_config.record_options.record_area_option == "focused" || config.record_config.record_options.change_video_resolution) {
-            args.push_back("-s");
-            args.push_back(region);
-        }
-
-        if(config.record_config.record_options.merge_audio_tracks) {
-            args.push_back("-a");
-            args.push_back(audio_tracks_merged.c_str());
-        } else {
-            for(const std::string &audio_track : config.record_config.record_options.audio_tracks) {
-                args.push_back("-a");
-                args.push_back(audio_track.c_str());
-            }
-        }
+        add_common_gpu_screen_recorder_args(config.record_config.record_options, args, video_bitrate, region, audio_devices_merged, application_audio_merged);
 
         setenv("GSR_SHOW_SAVED_NOTIFICATION", config.record_config.show_video_saved_notifications ? "1" : "0", true);
         const std::string script_to_run_on_save = resources_path + (config.record_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
@@ -1178,12 +1177,11 @@ namespace gsr {
             return;
         }
 
-        audio_devices = get_audio_devices();
-
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.streaming_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
-        const std::string audio_tracks_merged = merge_audio_tracks(config.streaming_config.record_options.audio_tracks);
+        const std::string audio_devices_merged = merge_audio_tracks(config.streaming_config.record_options.audio_tracks);
+        const std::string application_audio_merged = merge_audio_tracks(config.streaming_config.record_options.application_audio);
         const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -1218,30 +1216,7 @@ namespace gsr {
             "-o", url.c_str()
         };
 
-        if(config.streaming_config.record_options.video_quality == "custom") {
-            args.push_back("-bm");
-            args.push_back("cbr");
-            args.push_back("-q");
-            args.push_back(video_bitrate.c_str());
-        } else {
-            args.push_back("-q");
-            args.push_back(config.streaming_config.record_options.video_quality.c_str());
-        }
-
-        if(config.streaming_config.record_options.record_area_option == "focused" || config.streaming_config.record_options.change_video_resolution) {
-            args.push_back("-s");
-            args.push_back(region);
-        }
-
-        if(config.streaming_config.record_options.merge_audio_tracks) {
-            args.push_back("-a");
-            args.push_back(audio_tracks_merged.c_str());
-        } else {
-            for(const std::string &audio_track : config.streaming_config.record_options.audio_tracks) {
-                args.push_back("-a");
-                args.push_back(audio_track.c_str());
-            }
-        }
+        add_common_gpu_screen_recorder_args(config.streaming_config.record_options, args, video_bitrate, region, audio_devices_merged, application_audio_merged);
 
         args.push_back(nullptr);
 

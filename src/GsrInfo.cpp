@@ -218,4 +218,30 @@ namespace gsr {
 
         return audio_devices;
     }
+
+    std::vector<std::string> get_application_audio() {
+        std::vector<std::string> application_audio;
+
+        FILE *f = popen("gpu-screen-recorder --list-application-audio", "r");
+        if(!f) {
+            fprintf(stderr, "error: 'gpu-screen-recorder --list-application-audio' failed\n");
+            return application_audio;
+        }
+
+        char output[16384];
+        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
+        if(bytes_read < 0 || ferror(f)) {
+            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-application-audio' output\n");
+            pclose(f);
+            return application_audio;
+        }
+        output[bytes_read] = '\0';
+
+        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+            application_audio.emplace_back(line);
+            return true;
+        });
+
+        return application_audio;
+    }
 }

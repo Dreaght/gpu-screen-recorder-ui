@@ -6,7 +6,6 @@ filepath="$1"
 type="$2"
 
 file_name="$(basename "$filepath")"
-file_dir="$(dirname "$filepath")"
 
 case "$type" in
     "regular")

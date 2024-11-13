@@ -23,6 +23,7 @@ src = [
     'src/gui/Utils.cpp',
     'src/gui/DropdownButton.cpp',
     'src/gui/Label.cpp',
+    'src/gui/LineSeparator.cpp',
     'src/gui/CustomRendererWidget.cpp',
     'src/gui/FileChooser.cpp',
     'src/gui/SettingsPage.cpp',

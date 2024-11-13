@@ -90,14 +90,13 @@ namespace gsr {
         std::string resources_path;
         GsrInfo gsr_info;
         egl_functions egl_funcs;
-        std::vector<gsr::AudioDevice> audio_devices;
         mgl::Texture window_texture_texture;
         mgl::Sprite window_texture_sprite;
         mgl::Texture screenshot_texture;
         mgl::Sprite screenshot_sprite;
         mgl::Rectangle bg_screenshot_overlay;
         WindowTexture window_texture;
-        gsr::PageStack page_stack;
+        PageStack page_stack;
         mgl::Rectangle top_bar_background;
         mgl::Text top_bar_text;
         mgl::Sprite logo_sprite;

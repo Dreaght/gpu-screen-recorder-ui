@@ -22,6 +22,10 @@ namespace gsr {
         text.set_string(std::move(str));
     }
 
+    const std::string& Label::get_text() const {
+        return text.get_string();
+    }
+
     mgl::vec2f Label::get_size() {
         if(!visible)
             return {0.0f, 0.0f};

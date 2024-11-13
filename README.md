@@ -34,3 +34,8 @@ This software is licensed under GPL3.0-only. Files under `fonts/` directory are 
 # Screenshots
 ![](https://dec05eba.com/images/gsr-overlay-screenshot-front.webp)
 ![](https://dec05eba.com/images/gsr-overlay-screenshot-settings.webp)
+
+# Donations
+If you want to donate you can donate via bitcoin or monero.
+* Bitcoin: bc1qqvuqnwrdyppf707ge27fqz2n9y9gu7lf5ypyuf
+* Monero: 4An9kp2qW1C9Gah7ewv4JzcNFQ5TAX7ineGCqXWK6vQnhsGGcRpNgcn8r9EC3tMcgY7vqCKs3nSRXhejMHBaGvFdN2egYet

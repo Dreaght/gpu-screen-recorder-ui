@@ -76,4 +76,5 @@ namespace gsr {
     GsrInfoExitStatus get_gpu_screen_recorder_info(GsrInfo *gsr_info);
 
     std::vector<AudioDevice> get_audio_devices();
+    std::vector<std::string> get_application_audio();
 }

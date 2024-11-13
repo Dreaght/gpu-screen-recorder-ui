@@ -24,7 +24,7 @@ namespace gsr {
             STREAM
         };
 
-        SettingsPage(Type type, const GsrInfo &gsr_info, std::vector<AudioDevice> audio_devices, Config &config, PageStack *page_stack);
+        SettingsPage(Type type, const GsrInfo &gsr_info, Config &config, PageStack *page_stack);
         SettingsPage(const SettingsPage&) = delete;
         SettingsPage& operator=(const SettingsPage&) = delete;
 
@@ -48,13 +48,23 @@ namespace gsr {
         std::unique_ptr<List> create_restore_portal_session_section();
         std::unique_ptr<Widget> create_change_video_resolution_section();
         std::unique_ptr<Widget> create_capture_target(const GsrInfo &gsr_info);
-        std::unique_ptr<ComboBox> create_audio_track_selection_checkbox();
-        std::unique_ptr<Button> create_remove_audio_track_button(List *audio_device_list_ptr);
-        std::unique_ptr<List> create_audio_track();
-        std::unique_ptr<Button> create_add_audio_track_button();
-        std::unique_ptr<List> create_audio_track_section();
+        std::unique_ptr<ComboBox> create_audio_device_selection_combobox();
+        std::unique_ptr<Button> create_remove_audio_device_button(List *audio_device_list_ptr);
+        std::unique_ptr<List> create_audio_device();
+        std::unique_ptr<Button> create_add_audio_device_button();
+        std::unique_ptr<List> create_audio_device_track_section();
         std::unique_ptr<CheckBox> create_merge_audio_tracks_checkbox();
+        std::unique_ptr<RadioButton> create_audio_type_button();
         std::unique_ptr<Widget> create_audio_device_section();
+        std::unique_ptr<List> create_application_audio_track_section();
+        std::unique_ptr<CheckBox> create_application_audio_invert_checkbox();
+        std::unique_ptr<List> create_application_audio_section();
+        std::unique_ptr<ComboBox> create_application_audio_selection_combobox();
+        std::unique_ptr<Button> create_remove_application_audio_button(List *app_audio_item);
+        std::unique_ptr<List> create_application_audio();
+        std::unique_ptr<List> create_custom_application_audio();
+        std::unique_ptr<List> create_add_application_audio_buttons();
+        std::unique_ptr<Widget> create_audio_section();
         std::unique_ptr<List> create_video_quality_box();
         std::unique_ptr<Entry> create_video_bitrate_entry();
         std::unique_ptr<List> create_video_bitrate();
@@ -98,7 +108,8 @@ namespace gsr {
         std::unique_ptr<List> create_stream_container_section();
         void add_stream_widgets();
 
-        void load_audio_tracks(RecordOptions &record_options);
+        void load_audio_device_tracks(RecordOptions &record_options);
+        void load_application_audio_tracks(RecordOptions &record_options);
         void load_common(RecordOptions &record_options);
         void load_replay();
         void load_record();
@@ -112,6 +123,7 @@ namespace gsr {
         Type type;
         Config &config;
         std::vector<AudioDevice> audio_devices;
+        std::vector<std::string> application_audio;
 
         GsrPage *content_page_ptr = nullptr;
         ScrollablePage *settings_scrollable_page_ptr = nullptr;
@@ -133,7 +145,12 @@ namespace gsr {
         Entry *video_bitrate_entry_ptr = nullptr;
         List *video_bitrate_list_ptr = nullptr;
         List *audio_devices_list_ptr = nullptr;
+        List *audio_devices_section_list_ptr = nullptr;
+        List *application_audio_section_list_ptr = nullptr;
         CheckBox *merge_audio_tracks_checkbox_ptr = nullptr;
+        RadioButton *audio_type_radio_button_ptr = nullptr;
+        List *application_audio_list_ptr = nullptr;
+        CheckBox *application_audio_invert_checkbox_ptr = nullptr;
         CheckBox *change_video_resolution_checkbox_ptr = nullptr;
         ComboBox *color_range_box_ptr = nullptr;
         ComboBox *video_quality_box_ptr = nullptr;

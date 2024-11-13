@@ -36,8 +36,11 @@ namespace gsr {
         window.draw(background);
 
         draw_pos += mgl::vec2f(margin_left_scale, margin_top_scale) * mgl::vec2f(get_theme().window_height, get_theme().window_height);
-        label.draw(window, draw_pos);
-        draw_pos.y += label.get_size().y + title_spacing_scale * get_theme().window_height;
+        
+        if(!label.get_text().empty()) {
+            label.draw(window, draw_pos);
+            draw_pos.y += label.get_size().y + title_spacing_scale * get_theme().window_height;
+        }
 
         inner_widget->set_position(draw_pos);
         inner_widget->draw(window, mgl::vec2f(0.0f, 0.0f));
@@ -48,7 +51,8 @@ namespace gsr {
             return {0.0f, 0.0f};
 
         const mgl::vec2f margin_size = mgl::vec2f(margin_left_scale + margin_right_scale, margin_top_scale + margin_bottom_scale) * mgl::vec2f(get_theme().window_height, get_theme().window_height);
-        mgl::vec2f widgets_size = mgl::vec2f(0.0f, label.get_size().y + title_spacing_scale * get_theme().window_height) + inner_widget->get_size() + margin_size;
+        const float title_height = !label.get_text().empty() ? (label.get_size().y + title_spacing_scale * get_theme().window_height) : 0.0f;
+        mgl::vec2f widgets_size = mgl::vec2f(0.0f, title_height) + inner_widget->get_size() + margin_size;
 
         if(std::abs(size.x) > 0.001f)
             widgets_size.x = size.x;
@@ -56,5 +60,13 @@ namespace gsr {
             widgets_size.y = size.y;
 
         return widgets_size;
+    }
+
+    mgl::vec2f Subsection::get_inner_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        const mgl::vec2f margin_size = mgl::vec2f(margin_left_scale + margin_right_scale, margin_top_scale + margin_bottom_scale) * mgl::vec2f(get_theme().window_height, get_theme().window_height);
+        return get_size() - margin_size;
     }
 }

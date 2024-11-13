@@ -10,7 +10,7 @@ namespace gsr {
     static const float spacing_scale = 0.005f;
     static const float check_animation_speed = 10.0f;
 
-    static mgl::Color color_multiply(mgl::Color color, float multiply) {
+    static mgl::Color color_multiply_ignore_alpha(mgl::Color color, float multiply) {
         return mgl::Color(color.r * multiply, color.g * multiply, color.b * multiply, color.a);
     }
 
@@ -18,12 +18,12 @@ namespace gsr {
         return source + (destination - source) * interpolation;
     }
 
-    static mgl::Color interpolate_color(mgl::Color source, mgl::Color destination, float interpolation) {
+    static mgl::Color interpolate_color_ignore_alpha(mgl::Color source, mgl::Color destination, float interpolation) {
         mgl::Color color;
         color.r = linear_interpolation(source.r, destination.r, interpolation);
         color.g = linear_interpolation(source.g, destination.g, interpolation);
         color.b = linear_interpolation(source.b, destination.b, interpolation);
-        color.a = linear_interpolation(source.a, destination.a, interpolation);
+        color.a = source.a;
         return color;
     }
 
@@ -61,9 +61,9 @@ namespace gsr {
 
         apply_animation();
 
-        const mgl::Color background_color_unchecked(0, 0, 0, 120);
-        const mgl::Color background_color_checked = color_multiply(get_color_theme().tint_color, 0.6f);
-        background_sprite.set_color(interpolate_color(background_color_unchecked, background_color_checked, toggle_animation_value));
+        const mgl::Color background_color_unchecked = color_multiply_ignore_alpha(mgl::Color(25, 30, 34), 0.6f);
+        const mgl::Color background_color_checked = color_multiply_ignore_alpha(get_color_theme().tint_color, 0.6f);
+        background_sprite.set_color(interpolate_color_ignore_alpha(background_color_unchecked, background_color_checked, toggle_animation_value));
         background_sprite.set_position(draw_pos.floor());
         window.draw(background_sprite);
 

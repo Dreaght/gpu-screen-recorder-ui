@@ -19,6 +19,7 @@ namespace gsr {
         mgl::vec2f get_size() override;
 
         void set_text(std::string str);
+        const std::string& get_text() const;
     private:
         mgl::Text text;
     };
