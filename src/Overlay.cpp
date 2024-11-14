@@ -874,7 +874,7 @@ namespace gsr {
                 on_press_start_replay(false);
         } else if(recording_status == RecordingStatus::REPLAY) {
             if(focused_window == 0 || !window_is_fullscreen(display, focused_window))
-                on_press_start_replay(false);
+                on_press_start_replay(true);
         }
     }
 
@@ -1067,7 +1067,7 @@ namespace gsr {
             update_ui_replay_stopped();
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config.replay_config.show_replay_stopped_notifications)
+            if(!disable_notification && config.replay_config.show_replay_stopped_notifications)
                 show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
             return;
         }
