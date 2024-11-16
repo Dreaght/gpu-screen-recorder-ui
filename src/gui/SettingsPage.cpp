@@ -299,7 +299,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_application_audio_invert_checkbox() {
-        auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record all applications except the selected ones");
+        auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record audio from all applications except the selected ones");
         application_audio_invert_checkbox->set_checked(false);
         application_audio_invert_checkbox_ptr = application_audio_invert_checkbox.get();
         return application_audio_invert_checkbox;
