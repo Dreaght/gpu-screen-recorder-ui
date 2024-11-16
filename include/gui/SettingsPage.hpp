@@ -15,6 +15,7 @@ namespace gsr {
     class PageStack;
     class ScrollablePage;
     class Label;
+    class LineSeparator;
 
     class SettingsPage : public StaticPage {
     public:
@@ -146,7 +147,9 @@ namespace gsr {
         List *video_bitrate_list_ptr = nullptr;
         List *audio_devices_list_ptr = nullptr;
         List *audio_devices_section_list_ptr = nullptr;
+        Label *audio_devices_label_ptr = nullptr;
         List *application_audio_section_list_ptr = nullptr;
+        LineSeparator *audio_type_line_sep_ptr = nullptr;
         CheckBox *merge_audio_tracks_checkbox_ptr = nullptr;
         RadioButton *audio_type_radio_button_ptr = nullptr;
         List *application_audio_list_ptr = nullptr;

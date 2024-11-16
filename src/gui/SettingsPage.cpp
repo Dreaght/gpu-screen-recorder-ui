@@ -238,7 +238,9 @@ namespace gsr {
     std::unique_ptr<Widget> SettingsPage::create_audio_device_section() {
         auto audio_devices_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_devices_section_list_ptr = audio_devices_section_list.get();
-        audio_devices_section_list->add_widget(std::make_unique<Label>(&get_theme().title_font, "Audio devices", get_color_theme().text_color));
+        auto audio_devices_label = std::make_unique<Label>(&get_theme().title_font, "Audio devices", get_color_theme().text_color);
+        audio_devices_label_ptr = audio_devices_label.get();
+        audio_devices_section_list->add_widget(std::move(audio_devices_label));
         audio_devices_section_list->add_widget(create_add_audio_device_button());
         audio_devices_section_list->add_widget(create_audio_device_track_section());
         return audio_devices_section_list;
@@ -321,7 +323,9 @@ namespace gsr {
         auto audio_section = std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
 
         audio_device_section_list_ptr->add_widget(create_audio_type_button());
-        audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x));
+        auto audio_type_line_sep = std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x);
+        audio_type_line_sep_ptr = audio_type_line_sep.get();
+        audio_device_section_list_ptr->add_widget(std::move(audio_type_line_sep));
         audio_device_section_list_ptr->add_widget(create_audio_device_section());
         audio_device_section_list_ptr->add_widget(create_application_audio_section());
         //audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x));
@@ -572,6 +576,13 @@ namespace gsr {
             }
         };
         audio_type_radio_button_ptr->on_selection_changed("", "audio_devices");
+
+        if(!gsr_info.system_info.supports_app_audio) {
+            audio_type_radio_button_ptr->set_visible(false);
+            audio_type_line_sep_ptr->set_visible(false);
+            audio_devices_label_ptr->set_visible(false);
+            application_audio_section_list_ptr->set_visible(false);
+        }
     }
 
     void SettingsPage::add_page_specific_widgets() {

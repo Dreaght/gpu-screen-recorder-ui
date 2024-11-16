@@ -40,6 +40,7 @@ namespace gsr {
 
     struct SystemInfo {
         DisplayServer display_server = DisplayServer::UNKNOWN;
+        bool supports_app_audio = false;
     };
 
     enum class GpuVendor {

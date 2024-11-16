@@ -9,7 +9,7 @@ namespace gsr {
     static const float margin_bottom_scale = 0.012f;
     static const float margin_left_scale = 0.015f;
     static const float margin_right_scale = 0.015f;
-    static const float title_spacing_scale = 0.015f;
+    static const float title_spacing_scale = 0.010f;
 
     Subsection::Subsection(const char *title, std::unique_ptr<Widget> inner_widget, mgl::vec2f size) :
         label(&get_theme().title_font, title, get_color_theme().text_color),

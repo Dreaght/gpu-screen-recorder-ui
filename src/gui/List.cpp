@@ -45,6 +45,7 @@ namespace gsr {
         const mgl::vec2f parent_inner_size = parent_widget ? parent_widget->get_inner_size() : mgl::vec2f(0.0f, 0.0f);
 
         const float spacing = floor(spacing_scale * get_theme().window_height);
+        bool first_visible_widget = true;
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(size_t i = 0; i < widgets.size(); ++i) {
@@ -52,8 +53,9 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
-                    if(i > 0)
+                    if(!first_visible_widget)
                         draw_pos.y += spacing;
+                    first_visible_widget = false;
 
                     const auto widget_size = widget->get_size();
                     // TODO: Do this parent widget alignment for horizontal alignment and for other types of widget alignment
@@ -79,8 +81,9 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
-                    if(i > 0)
+                    if(!first_visible_widget)
                         draw_pos.x += spacing;
+                    first_visible_widget = false;
 
                     const auto widget_size = widget->get_size();
                     if(content_alignment == Alignment::CENTER)
@@ -145,6 +148,7 @@ namespace gsr {
 
         mgl::vec2f size;
         const float spacing = floor(spacing_scale * get_theme().window_height);
+        bool first_visible_widget = true;
         switch(orientation) {
             case Orientation::VERTICAL: {
                 for(size_t i = 0; i < widgets.size(); ++i) {
@@ -152,8 +156,9 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
-                    if(i > 0)
+                    if(!first_visible_widget)
                         size.y += spacing;
+                    first_visible_widget = false;
 
                     const auto widget_size = widget->get_size();
                     size.x = std::max(size.x, widget_size.x);
@@ -167,8 +172,9 @@ namespace gsr {
                     if(!widget->visible)
                         continue;
 
-                    if(i > 0)
+                    if(!first_visible_widget)
                         size.x += spacing;
+                    first_visible_widget = false;
 
                     const auto widget_size = widget->get_size();
                     size.x += widget_size.x;

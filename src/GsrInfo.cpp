@@ -21,6 +21,8 @@ namespace gsr {
                 gsr_info->system_info.display_server = DisplayServer::X11;
             else if(key_value->value == "wayland")
                 gsr_info->system_info.display_server = DisplayServer::WAYLAND;
+        } else if(key_value->key == "supports_app_audio") {
+            gsr_info->system_info.supports_app_audio = key_value->value == "yes";
         }
     }
 
