@@ -208,6 +208,7 @@ namespace gsr {
     std::unique_ptr<Button> SettingsPage::create_add_audio_device_button() {
         auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add audio device", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         add_audio_track_button->on_click = [this]() {
+            audio_devices = get_audio_devices();
             audio_devices_list_ptr->add_widget(create_audio_device());
         };
         return add_audio_track_button;
@@ -281,6 +282,7 @@ namespace gsr {
 
         auto add_application_audio_button = std::make_unique<Button>(&get_theme().body_font, "Add application audio", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         add_application_audio_button->on_click = [this]() {
+            application_audio = get_application_audio();
             application_audio_list_ptr->add_widget(create_application_audio());
         };
         list->add_widget(std::move(add_application_audio_button));
