@@ -664,6 +664,7 @@ namespace gsr {
         radiobutton->add_item("Don't turn on replay automatically", "dont_turn_on_automatically");
         radiobutton->add_item("Turn on replay at system startup", "turn_on_at_system_startup");
         radiobutton->add_item("Turn on replay when starting a fullscreen application", "turn_on_at_fullscreen");
+        radiobutton->add_item("Turn on replay when power supply is connected", "turn_on_at_power_supply_connected");
         turn_on_replay_automatically_mode_ptr = radiobutton.get();
         return radiobutton;
     }

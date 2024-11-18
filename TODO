@@ -87,3 +87,5 @@ gsr ui window has _NET_WM_STATE _NET_WM_STATE_ABOVE, not _NET_WM_STATE_FULLSCREE
 For replay on fullscreen detect focused fullscreen window by checking if the window size is the same as the monitor size instead of _NET_WM_STATE_FULLSCREEN.
 
 Add audio devices/app refresh button.
+
+Play camera shutter sound when saving recording. When another sound when starting recording.

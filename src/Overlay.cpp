@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <sys/wait.h>
 #include <limits.h>
+#include <fcntl.h>
 #include <stdexcept>
 
 #include <X11/Xlib.h>
@@ -30,7 +31,7 @@ extern "C" {
 namespace gsr {
     static const mgl::Color bg_color(0, 0, 0, 100);
     static const double force_window_on_top_timeout_seconds = 1.0;
-    static const double focused_window_fullscreen_check_timeout_seconds = 1.0;
+    static const double replay_status_update_check_timeout_seconds = 1.0;
 
     static bool window_has_atom(Display *dpy, Window window, Atom atom) {
         Atom type;
@@ -291,6 +292,28 @@ namespace gsr {
         return XGetSelectionOwner(dpy, prop_atom) != None;
     }
 
+    static std::string get_power_supply_online_filepath() {
+        std::string result;
+        if(access("/sys/class/power_supply/ADP1/online", F_OK) == 0)
+            result = "/sys/class/power_supply/ADP1/online";
+        else if(access("/sys/class/power_supply/AC/online", F_OK) == 0)
+            result = "/sys/class/power_supply/AC/online";
+        else if(access("/sys/class/power_supply/ACAD/online", F_OK) == 0)
+            result = "/sys/class/power_supply/ACAD/online";
+        return result;
+    }
+
+    static bool power_supply_is_connected(const char *power_supply_online_filepath) {
+        int fd = open(power_supply_online_filepath, O_RDONLY);
+        if(fd == -1)
+            return false;
+
+        char buf[1];
+        const bool is_connected = read(fd, buf, 1) == 1 && buf[0] == '1';
+        close(fd);
+        return is_connected;
+    }
+
     Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
         gsr_info(gsr_info),
@@ -319,6 +342,8 @@ namespace gsr {
         // These environment variable are used by files in scripts/ folder
         const std::string notify_bg_color_str = color_to_hex_str(get_color_theme().tint_color);
         setenv("GSR_NOTIFY_BG_COLOR", notify_bg_color_str.c_str(), true);
+
+        power_supply_online_filepath = get_power_supply_online_filepath();
 
         if(config.replay_config.turn_on_replay_automatically_mode == "turn_on_at_system_startup")
             on_press_start_replay(true);
@@ -389,7 +414,7 @@ namespace gsr {
     bool Overlay::draw() {
         update_notification_process_status();
         update_gsr_process_status();
-        update_focused_fullscreen_status();
+        replay_status_update_status();
 
         if(!visible)
             return false;
@@ -854,11 +879,16 @@ namespace gsr {
         recording_status = RecordingStatus::NONE;
     }
 
-    void Overlay::update_focused_fullscreen_status() {
-        if(focused_fullscreen_clock.get_elapsed_time_seconds() < focused_window_fullscreen_check_timeout_seconds)
+    void Overlay::replay_status_update_status() {
+        if(replay_status_update_clock.get_elapsed_time_seconds() < replay_status_update_check_timeout_seconds)
             return;
 
-        focused_fullscreen_clock.restart();
+        replay_status_update_clock.restart();
+        update_focused_fullscreen_status();
+        update_power_supply_status();
+    }
+
+    void Overlay::update_focused_fullscreen_status() {
         if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_fullscreen")
             return;
 
@@ -874,6 +904,19 @@ namespace gsr {
                 on_press_start_replay(false);
         } else if(recording_status == RecordingStatus::REPLAY) {
             if(focused_window == 0 || !window_is_fullscreen(display, focused_window))
+                on_press_start_replay(true);
+        }
+    }
+
+    void Overlay::update_power_supply_status() {
+        if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_power_supply_connected")
+            return;
+
+        if(recording_status == RecordingStatus::NONE) {
+            if(power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str()))
+                on_press_start_replay(true);
+        } else if(recording_status == RecordingStatus::REPLAY) {
+            if(!power_supply_online_filepath.empty() && !power_supply_is_connected(power_supply_online_filepath.c_str()))
                 on_press_start_replay(true);
         }
     }
