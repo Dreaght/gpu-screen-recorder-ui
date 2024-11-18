@@ -899,11 +899,12 @@ namespace gsr {
         if(window && focused_window == window->get_system_handle())
             return;
 
-        if(recording_status == RecordingStatus::NONE) {
-            if(focused_window != 0 && window_is_fullscreen(display, focused_window))
+        const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
+        focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
+        if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
+            if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen)
                 on_press_start_replay(false);
-        } else if(recording_status == RecordingStatus::REPLAY) {
-            if(focused_window == 0 || !window_is_fullscreen(display, focused_window))
+            else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen)
                 on_press_start_replay(true);
         }
     }
@@ -912,12 +913,13 @@ namespace gsr {
         if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_power_supply_connected")
             return;
 
-        if(recording_status == RecordingStatus::NONE) {
-            if(power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str()))
-                on_press_start_replay(true);
-        } else if(recording_status == RecordingStatus::REPLAY) {
-            if(!power_supply_online_filepath.empty() && !power_supply_is_connected(power_supply_online_filepath.c_str()))
-                on_press_start_replay(true);
+        const bool prev_power_supply_status = power_supply_connected;
+        power_supply_connected = power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str());
+        if(power_supply_connected != prev_power_supply_status) {
+            if(recording_status == RecordingStatus::NONE && power_supply_connected)
+                on_press_start_replay(false);
+            else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected)
+                on_press_start_replay(false);
         }
     }
 

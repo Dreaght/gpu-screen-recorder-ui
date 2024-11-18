@@ -121,6 +121,8 @@ namespace gsr {
 
         mgl::Clock replay_status_update_clock;
         std::string power_supply_online_filepath;
+        bool power_supply_connected = false;
+        bool focused_window_is_fullscreen = false;
 
         std::array<KeyBinding, 1> key_bindings;
     };
