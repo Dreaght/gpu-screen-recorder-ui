@@ -294,12 +294,18 @@ namespace gsr {
 
     static std::string get_power_supply_online_filepath() {
         std::string result;
-        if(access("/sys/class/power_supply/ADP1/online", F_OK) == 0)
-            result = "/sys/class/power_supply/ADP1/online";
-        else if(access("/sys/class/power_supply/AC/online", F_OK) == 0)
-            result = "/sys/class/power_supply/AC/online";
-        else if(access("/sys/class/power_supply/ACAD/online", F_OK) == 0)
-            result = "/sys/class/power_supply/ACAD/online";
+        const char *paths[] = {
+            "/sys/class/power_supply/ADP0/online",
+            "/sys/class/power_supply/ADP1/online",
+            "/sys/class/power_supply/AC/online",
+            "/sys/class/power_supply/ACAD/online"
+        };
+        for(const char *power_supply_online_filepath : paths) {
+            if(access(power_supply_online_filepath, F_OK) == 0) {
+                result = power_supply_online_filepath;
+                break;
+            }
+        }
         return result;
     }
 
