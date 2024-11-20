@@ -89,3 +89,5 @@ For replay on fullscreen detect focused fullscreen window by checking if the win
 Add audio devices/app refresh button.
 
 Play camera shutter sound when saving recording. When another sound when starting recording.
+
+Some games such as "The Finals" crashes/freezes when they lose focus. Try to reproduce this and if it happens try grab cursor and keyboard instead of setting gsr ui focus and make gsr ui click through like gsr notify. This might fix the issue.
