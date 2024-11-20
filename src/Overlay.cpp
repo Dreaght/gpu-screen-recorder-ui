@@ -1030,12 +1030,26 @@ namespace gsr {
             return container;
     }
 
-    static std::string merge_audio_tracks(const std::vector<std::string> &audio_tracks) {
+    static bool starts_with(std::string_view str, const char *substr) {
+        size_t len = strlen(substr);
+        return str.size() >= len && memcmp(str.data(), substr, len) == 0;
+    }
+
+    static std::string merge_audio_tracks(const std::vector<std::string> &audio_tracks, bool application_audio_invert, const GsrInfo &gsr_info) {
         std::string result;
         for(size_t i = 0; i < audio_tracks.size(); ++i) {
             if(i > 0)
                 result += "|";
-            result += audio_tracks[i];
+
+            std::string audio_track_name = audio_tracks[i];
+            const bool is_app_audio = starts_with(audio_track_name, "app:");
+            if(is_app_audio && !gsr_info.system_info.supports_app_audio)
+                continue;
+
+            if(is_app_audio && application_audio_invert)
+                audio_track_name.replace(0, 4, "app-inverse:");
+
+            result += audio_track_name;
         }
         return result;
     }
@@ -1047,7 +1061,7 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGUSR1);
     }
 
-    static void add_common_gpu_screen_recorder_args(RecordOptions &record_options, std::vector<const char*> &args, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, const std::string &application_audio_merged) {
+    static void add_common_gpu_screen_recorder_args(RecordOptions &record_options, std::vector<const char*> &args, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -1063,26 +1077,13 @@ namespace gsr {
             args.push_back(region);
         }
 
-        if(record_options.audio_type_view == "audio_devices") {
-            if(record_options.merge_audio_tracks) {
+        if(record_options.merge_audio_tracks) {
+            args.push_back("-a");
+            args.push_back(audio_devices_merged.c_str());
+        } else {
+            for(const std::string &audio_track : record_options.audio_tracks) {
                 args.push_back("-a");
-                args.push_back(audio_devices_merged.c_str());
-            } else {
-                for(const std::string &audio_track : record_options.audio_tracks) {
-                    args.push_back("-a");
-                    args.push_back(audio_track.c_str());
-                }
-            }
-        } else if(record_options.audio_type_view == "app_audio") {
-            const char *app_audio_option = record_options.application_audio_invert ? "-aai" : "-aa";
-            if(record_options.merge_audio_tracks) {
-                args.push_back(app_audio_option);
-                args.push_back(application_audio_merged.c_str());
-            } else {
-                for(const std::string &app_audio : record_options.application_audio) {
-                    args.push_back(app_audio_option);
-                    args.push_back(app_audio.c_str());
-                }
+                args.push_back(audio_track.c_str());
             }
         }
     }
@@ -1127,8 +1128,7 @@ namespace gsr {
         const std::string fps = std::to_string(config.replay_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.replay_config.record_options.video_bitrate);
         const std::string output_directory = config.replay_config.save_directory;
-        const std::string audio_devices_merged = merge_audio_tracks(config.replay_config.record_options.audio_tracks);
-        const std::string application_audio_merged = merge_audio_tracks(config.replay_config.record_options.application_audio);
+        const std::string audio_tracks_merged = merge_audio_tracks(config.replay_config.record_options.audio_tracks, config.replay_config.record_options.application_audio_invert, gsr_info);
         const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
         const std::string replay_time = std::to_string(config.replay_config.replay_time);
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
@@ -1159,7 +1159,7 @@ namespace gsr {
             "-o", output_directory.c_str()
         };
 
-        add_common_gpu_screen_recorder_args(config.replay_config.record_options, args, video_bitrate, region, audio_devices_merged, application_audio_merged);
+        add_common_gpu_screen_recorder_args(config.replay_config.record_options, args, video_bitrate, region, audio_tracks_merged);
 
         setenv("GSR_SHOW_SAVED_NOTIFICATION", config.replay_config.show_replay_saved_notifications ? "1" : "0", true);
         const std::string script_to_run_on_save = resources_path + (config.replay_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
@@ -1228,8 +1228,7 @@ namespace gsr {
         const std::string fps = std::to_string(config.record_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.record_config.record_options.video_bitrate);
         const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
-        const std::string audio_devices_merged = merge_audio_tracks(config.record_config.record_options.audio_tracks);
-        const std::string application_audio_merged = merge_audio_tracks(config.record_config.record_options.application_audio);
+        const std::string audio_tracks_merged = merge_audio_tracks(config.record_config.record_options.audio_tracks, config.record_config.record_options.application_audio_invert, gsr_info);
         const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -1258,7 +1257,7 @@ namespace gsr {
             "-o", output_file.c_str()
         };
 
-        add_common_gpu_screen_recorder_args(config.record_config.record_options, args, video_bitrate, region, audio_devices_merged, application_audio_merged);
+        add_common_gpu_screen_recorder_args(config.record_config.record_options, args, video_bitrate, region, audio_tracks_merged);
 
         setenv("GSR_SHOW_SAVED_NOTIFICATION", config.record_config.show_video_saved_notifications ? "1" : "0", true);
         const std::string script_to_run_on_save = resources_path + (config.record_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
@@ -1356,8 +1355,7 @@ namespace gsr {
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.streaming_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
-        const std::string audio_devices_merged = merge_audio_tracks(config.streaming_config.record_options.audio_tracks);
-        const std::string application_audio_merged = merge_audio_tracks(config.streaming_config.record_options.application_audio);
+        const std::string audio_tracks_merged = merge_audio_tracks(config.streaming_config.record_options.audio_tracks, config.streaming_config.record_options.application_audio_invert, gsr_info);
         const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -1392,7 +1390,7 @@ namespace gsr {
             "-o", url.c_str()
         };
 
-        add_common_gpu_screen_recorder_args(config.streaming_config.record_options, args, video_bitrate, region, audio_devices_merged, application_audio_merged);
+        add_common_gpu_screen_recorder_args(config.streaming_config.record_options, args, video_bitrate, region, audio_tracks_merged);
 
         args.push_back(nullptr);
 

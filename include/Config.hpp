@@ -25,9 +25,7 @@ namespace gsr {
         bool merge_audio_tracks = true;
         bool application_audio_invert = false;
         bool change_video_resolution = false;
-        std::string audio_type_view = "audio_devices";
         std::vector<std::string> audio_tracks;
-        std::vector<std::string> application_audio;
         std::string color_range = "limited";
         std::string video_quality = "very_high";
         std::string video_codec = "auto";

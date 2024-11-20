@@ -1,7 +1,6 @@
 #include "../../include/gui/SettingsPage.hpp"
 #include "../../include/gui/GsrPage.hpp"
 #include "../../include/gui/Label.hpp"
-#include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/PageStack.hpp"
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/Subsection.hpp"
@@ -17,6 +16,12 @@
 #include <string.h>
 
 namespace gsr {
+    enum class AudioTrackType {
+        DEVICE,
+        APPLICATION,
+        APPLICATION_CUSTOM
+    };
+
     SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, Config &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
@@ -38,7 +43,7 @@ namespace gsr {
 
         add_widgets(gsr_info);
         add_page_specific_widgets();
-        load();
+        load(gsr_info);
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
@@ -193,13 +198,15 @@ namespace gsr {
     std::unique_ptr<Button> SettingsPage::create_remove_audio_device_button(List *audio_device_list_ptr) {
         auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Remove", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         remove_audio_track_button->on_click = [this, audio_device_list_ptr]() {
-            audio_devices_list_ptr->remove_widget(audio_device_list_ptr);
+            audio_track_list_ptr->remove_widget(audio_device_list_ptr);
         };
         return remove_audio_track_button;
     }
 
     std::unique_ptr<List> SettingsPage::create_audio_device() {
         auto audio_device_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        audio_device_list->userdata = (void*)(uintptr_t)AudioTrackType::DEVICE;
+        audio_device_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Device:", get_color_theme().text_color));
         audio_device_list->add_widget(create_audio_device_selection_combobox());
         audio_device_list->add_widget(create_remove_audio_device_button(audio_device_list.get()));
         return audio_device_list;
@@ -209,42 +216,9 @@ namespace gsr {
         auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add audio device", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         add_audio_track_button->on_click = [this]() {
             audio_devices = get_audio_devices();
-            audio_devices_list_ptr->add_widget(create_audio_device());
+            audio_track_list_ptr->add_widget(create_audio_device());
         };
         return add_audio_track_button;
-    }
-
-    std::unique_ptr<List> SettingsPage::create_audio_device_track_section() {
-        auto audio_devices_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_devices_list_ptr = audio_devices_list.get();
-        audio_devices_list_ptr->add_widget(create_audio_device());
-        return audio_devices_list;
-    }
-
-    std::unique_ptr<CheckBox> SettingsPage::create_merge_audio_tracks_checkbox() {
-        auto merge_audio_tracks_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Merge audio tracks");
-        merge_audio_tracks_checkbox->set_checked(true);
-        merge_audio_tracks_checkbox_ptr = merge_audio_tracks_checkbox.get();
-        return merge_audio_tracks_checkbox;
-    }
-
-    std::unique_ptr<RadioButton> SettingsPage::create_audio_type_button() {
-        auto audio_type_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
-        audio_type_radio_button->add_item("Audio devices", "audio_devices");
-        audio_type_radio_button->add_item("Application audio", "app_audio");
-        audio_type_radio_button_ptr = audio_type_radio_button.get();
-        return audio_type_radio_button;
-    }
-
-    std::unique_ptr<Widget> SettingsPage::create_audio_device_section() {
-        auto audio_devices_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_devices_section_list_ptr = audio_devices_section_list.get();
-        auto audio_devices_label = std::make_unique<Label>(&get_theme().title_font, "Audio devices", get_color_theme().text_color);
-        audio_devices_label_ptr = audio_devices_label.get();
-        audio_devices_section_list->add_widget(std::move(audio_devices_label));
-        audio_devices_section_list->add_widget(create_add_audio_device_button());
-        audio_devices_section_list->add_widget(create_audio_device_track_section());
-        return audio_devices_section_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_application_audio_selection_combobox() {
@@ -255,51 +229,63 @@ namespace gsr {
         return audio_device_box;
     }
 
-    std::unique_ptr<Button> SettingsPage::create_remove_application_audio_button(List *app_audio_item) {
-        auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Remove", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
-        remove_audio_track_button->on_click = [this, app_audio_item]() {
-            application_audio_list_ptr->remove_widget(app_audio_item);
-        };
-        return remove_audio_track_button;
-    }
-
     std::unique_ptr<List> SettingsPage::create_application_audio() {
         auto application_audio_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        application_audio_list->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION;
+        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "App:     ", get_color_theme().text_color));
         application_audio_list->add_widget(create_application_audio_selection_combobox());
-        application_audio_list->add_widget(create_remove_application_audio_button(application_audio_list.get()));
+        application_audio_list->add_widget(create_remove_audio_device_button(application_audio_list.get()));
         return application_audio_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_custom_application_audio() {
         auto application_audio_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        application_audio_list->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION_CUSTOM;
+        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "App:     ", get_color_theme().text_color));
         application_audio_list->add_widget(std::make_unique<Entry>(&get_theme().body_font, "", (int)(get_theme().body_font.get_character_size() * 10.0f)));
-        application_audio_list->add_widget(create_remove_application_audio_button(application_audio_list.get()));
+        application_audio_list->add_widget(create_remove_audio_device_button(application_audio_list.get()));
         return application_audio_list;
     }
 
-    std::unique_ptr<List> SettingsPage::create_add_application_audio_buttons() {
-        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-
-        auto add_application_audio_button = std::make_unique<Button>(&get_theme().body_font, "Add application audio", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
-        add_application_audio_button->on_click = [this]() {
+    std::unique_ptr<Button> SettingsPage::create_add_application_audio_button() {
+        auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add application audio", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        add_application_audio_button_ptr = add_audio_track_button.get();
+        add_audio_track_button->on_click = [this]() {
             application_audio = get_application_audio();
-            application_audio_list_ptr->add_widget(create_application_audio());
+            audio_track_list_ptr->add_widget(create_application_audio());
         };
-        list->add_widget(std::move(add_application_audio_button));
+        return add_audio_track_button;
+    }
 
-        auto add_custom_application_audio_button = std::make_unique<Button>(&get_theme().body_font, "Add custom application audio", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
-        add_custom_application_audio_button->on_click = [this]() {
-            application_audio_list_ptr->add_widget(create_custom_application_audio());
+    std::unique_ptr<Button> SettingsPage::create_add_custom_application_audio_button() {
+        auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add custom application audio", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        add_custom_application_audio_button_ptr = add_audio_track_button.get();
+        add_audio_track_button->on_click = [this]() {
+            audio_track_list_ptr->add_widget(create_custom_application_audio());
         };
-        list->add_widget(std::move(add_custom_application_audio_button));
+        return add_audio_track_button;
+    }
 
+    std::unique_ptr<List> SettingsPage::create_add_audio_buttons() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        list->add_widget(create_add_audio_device_button());
+        list->add_widget(create_add_application_audio_button());
+        list->add_widget(create_add_custom_application_audio_button());
         return list;
     }
 
-    std::unique_ptr<List> SettingsPage::create_application_audio_track_section() {
-        auto application_audio_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        application_audio_list_ptr = application_audio_list.get();
-        return application_audio_list;
+    std::unique_ptr<List> SettingsPage::create_audio_track_track_section() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        audio_track_list_ptr = list.get();
+        audio_track_list_ptr->add_widget(create_audio_device()); // Add default_output by default
+        return list;
+    }
+
+    std::unique_ptr<CheckBox> SettingsPage::create_merge_audio_tracks_checkbox() {
+        auto merge_audio_tracks_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Merge audio tracks");
+        merge_audio_tracks_checkbox->set_checked(true);
+        merge_audio_tracks_checkbox_ptr = merge_audio_tracks_checkbox.get();
+        return merge_audio_tracks_checkbox;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_application_audio_invert_checkbox() {
@@ -309,31 +295,20 @@ namespace gsr {
         return application_audio_invert_checkbox;
     }
 
-    std::unique_ptr<List> SettingsPage::create_application_audio_section() {
-        auto application_audio_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        application_audio_section_list_ptr = application_audio_section_list.get();
-        application_audio_section_list->add_widget(std::make_unique<Label>(&get_theme().title_font, "Application audio", get_color_theme().text_color));
-        application_audio_section_list->add_widget(create_add_application_audio_buttons());
-        application_audio_section_list->add_widget(create_application_audio_track_section());
-        application_audio_section_list->add_widget(create_application_audio_invert_checkbox());
-        return application_audio_section_list;
+    std::unique_ptr<Widget> SettingsPage::create_audio_track_section() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(create_add_audio_buttons());
+        list->add_widget(create_audio_track_track_section());
+        return list;
     }
 
     std::unique_ptr<Widget> SettingsPage::create_audio_section() {
         auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        List *audio_device_section_list_ptr = audio_device_section_list.get();
-        auto audio_section = std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
-
-        audio_device_section_list_ptr->add_widget(create_audio_type_button());
-        auto audio_type_line_sep = std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x);
-        audio_type_line_sep_ptr = audio_type_line_sep.get();
-        audio_device_section_list_ptr->add_widget(std::move(audio_type_line_sep));
-        audio_device_section_list_ptr->add_widget(create_audio_device_section());
-        audio_device_section_list_ptr->add_widget(create_application_audio_section());
-        //audio_device_section_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, audio_section->get_inner_size().x));
-        audio_device_section_list_ptr->add_widget(create_merge_audio_tracks_checkbox());
-        audio_device_section_list_ptr->add_widget(create_audio_codec());
-        return audio_section;
+        audio_device_section_list->add_widget(create_audio_track_section());
+        audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
+        audio_device_section_list->add_widget(create_application_audio_invert_checkbox());
+        audio_device_section_list->add_widget(create_audio_codec());
+        return std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<List> SettingsPage::create_video_quality_box() {
@@ -568,22 +543,10 @@ namespace gsr {
         else
             record_area_box_ptr->on_selection_changed("", "");
 
-        audio_type_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
-            if(id == "audio_devices") {
-                audio_devices_section_list_ptr->set_visible(true);
-                application_audio_section_list_ptr->set_visible(false);
-            } else if(id == "app_audio") {
-                audio_devices_section_list_ptr->set_visible(false);
-                application_audio_section_list_ptr->set_visible(true);
-            }
-        };
-        audio_type_radio_button_ptr->on_selection_changed("", "audio_devices");
-
         if(!gsr_info.system_info.supports_app_audio) {
-            audio_type_radio_button_ptr->set_visible(false);
-            audio_type_line_sep_ptr->set_visible(false);
-            audio_devices_label_ptr->set_visible(false);
-            application_audio_section_list_ptr->set_visible(false);
+            add_application_audio_button_ptr->set_visible(false);
+            add_custom_application_audio_button_ptr->set_visible(false);
+            application_audio_invert_checkbox_ptr->set_visible(false);
         }
     }
 
@@ -909,16 +872,16 @@ namespace gsr {
         save();
     }
 
-    void SettingsPage::load() {
+    void SettingsPage::load(const GsrInfo &gsr_info) {
         switch(type) {
             case Type::REPLAY:
-                load_replay();
+                load_replay(gsr_info);
                 break;
             case Type::RECORD:
-                load_record();
+                load_record(gsr_info);
                 break;
             case Type::STREAM:
-                load_stream();
+                load_stream(gsr_info);
                 break;
         }
     }
@@ -946,42 +909,51 @@ namespace gsr {
         return nullptr;
     }
 
-    void SettingsPage::load_audio_device_tracks(RecordOptions &record_options) {
-        audio_devices_list_ptr->clear();
-        for(const std::string &audio_track : record_options.audio_tracks) {
-            std::unique_ptr<List> audio_track_widget = create_audio_device();
-            ComboBox *audio_device_box = static_cast<ComboBox*>(audio_track_widget->get_child_widget_by_index(0));
-            audio_device_box->set_selected_item(audio_track);
-            audio_devices_list_ptr->add_widget(std::move(audio_track_widget));
-        }
+    static bool starts_with(std::string_view str, const char *substr) {
+        size_t len = strlen(substr);
+        return str.size() >= len && memcmp(str.data(), substr, len) == 0;
     }
 
-    void SettingsPage::load_application_audio_tracks(RecordOptions &record_options) {
-        application_audio_list_ptr->clear();
-        for(const std::string &audio_track : record_options.application_audio) {
-            const std::string *app_audio = get_application_audio_by_name_case_insensitive(application_audio, audio_track);
-            if(app_audio) {
-                std::unique_ptr<List> application_audio_widget = create_application_audio();
-                ComboBox *application_audio_box = static_cast<ComboBox*>(application_audio_widget->get_child_widget_by_index(0));
-                application_audio_box->set_selected_item(*app_audio);
-                application_audio_list_ptr->add_widget(std::move(application_audio_widget));
+    void SettingsPage::load_audio_tracks(const RecordOptions &record_options, const GsrInfo &gsr_info) {
+        audio_track_list_ptr->clear();
+        for(const std::string &audio_track : record_options.audio_tracks) {
+            if(starts_with(audio_track, "app:")) {
+                if(!gsr_info.system_info.supports_app_audio)
+                    continue;
+
+                std::string audio_track_name = audio_track.substr(4);
+                const std::string *app_audio = get_application_audio_by_name_case_insensitive(application_audio, audio_track_name);
+                if(app_audio) {
+                    std::unique_ptr<List> application_audio_widget = create_application_audio();
+                    ComboBox *application_audio_box = static_cast<ComboBox*>(application_audio_widget->get_child_widget_by_index(1));
+                    application_audio_box->set_selected_item(*app_audio);
+                    audio_track_list_ptr->add_widget(std::move(application_audio_widget));
+                } else {
+                    std::unique_ptr<List> application_audio_widget = create_custom_application_audio();
+                    Entry *application_audio_entry = static_cast<Entry*>(application_audio_widget->get_child_widget_by_index(1));
+                    application_audio_entry->set_text(std::move(audio_track_name));
+                    audio_track_list_ptr->add_widget(std::move(application_audio_widget));
+                }
+            } else if(starts_with(audio_track, "device:")) {
+                std::unique_ptr<List> audio_track_widget = create_audio_device();
+                ComboBox *audio_device_box = static_cast<ComboBox*>(audio_track_widget->get_child_widget_by_index(1));
+                audio_device_box->set_selected_item(audio_track.substr(7));
+                audio_track_list_ptr->add_widget(std::move(audio_track_widget));
             } else {
-                std::unique_ptr<List> application_audio_widget = create_custom_application_audio();
-                Entry *application_audio_entry = static_cast<Entry*>(application_audio_widget->get_child_widget_by_index(0));
-                application_audio_entry->set_text(audio_track);
-                application_audio_list_ptr->add_widget(std::move(application_audio_widget));
+                std::unique_ptr<List> audio_track_widget = create_audio_device();
+                ComboBox *audio_device_box = static_cast<ComboBox*>(audio_track_widget->get_child_widget_by_index(1));
+                audio_device_box->set_selected_item(audio_track);
+                audio_track_list_ptr->add_widget(std::move(audio_track_widget));
             }
         }
     }
 
-    void SettingsPage::load_common(RecordOptions &record_options) {
+    void SettingsPage::load_common(RecordOptions &record_options, const GsrInfo &gsr_info) {
         record_area_box_ptr->set_selected_item(record_options.record_area_option);
         merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
         application_audio_invert_checkbox_ptr->set_checked(record_options.application_audio_invert);
         change_video_resolution_checkbox_ptr->set_checked(record_options.change_video_resolution);
-        audio_type_radio_button_ptr->set_selected_item(record_options.audio_type_view);
-        load_audio_device_tracks(record_options);
-        load_application_audio_tracks(record_options);
+        load_audio_tracks(record_options, gsr_info);
         color_range_box_ptr->set_selected_item(record_options.color_range);
         video_quality_box_ptr->set_selected_item(record_options.video_quality);
         video_codec_box_ptr->set_selected_item(record_options.video_codec);
@@ -1030,8 +1002,8 @@ namespace gsr {
         video_bitrate_entry_ptr->set_text(std::to_string(record_options.video_bitrate));
     }
 
-    void SettingsPage::load_replay() {
-        load_common(config.replay_config.record_options);
+    void SettingsPage::load_replay(const GsrInfo &gsr_info) {
+        load_common(config.replay_config.record_options, gsr_info);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
         show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
@@ -1045,8 +1017,8 @@ namespace gsr {
         replay_time_entry_ptr->set_text(std::to_string(config.replay_config.replay_time));
     }
 
-    void SettingsPage::load_record() {
-        load_common(config.record_config.record_options);
+    void SettingsPage::load_record(const GsrInfo &gsr_info) {
+        load_common(config.record_config.record_options, gsr_info);
         save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
         show_recording_started_notification_checkbox_ptr->set_checked(config.record_config.show_recording_started_notifications);
         show_video_saved_notification_checkbox_ptr->set_checked(config.record_config.show_video_saved_notifications);
@@ -1054,8 +1026,8 @@ namespace gsr {
         container_box_ptr->set_selected_item(config.record_config.container);
     }
 
-    void SettingsPage::load_stream() {
-        load_common(config.streaming_config.record_options);
+    void SettingsPage::load_stream(const GsrInfo &gsr_info) {
+        load_common(config.streaming_config.record_options, gsr_info);
         show_streaming_started_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_started_notifications);
         show_streaming_stopped_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_stopped_notifications);
         streaming_service_box_ptr->set_selected_item(config.streaming_config.streaming_service);
@@ -1065,26 +1037,28 @@ namespace gsr {
         container_box_ptr->set_selected_item(config.streaming_config.custom.container);
     }
 
-    static void save_audio_device_tracks(std::vector<std::string> &audio_devices, List *audio_devices_list_ptr) {
+    static void save_audio_tracks(std::vector<std::string> &audio_devices, List *audio_devices_list_ptr) {
         audio_devices.clear();
         audio_devices_list_ptr->for_each_child_widget([&audio_devices](std::unique_ptr<Widget> &child_widget) {
-            List *audio_device_line = static_cast<List*>(child_widget.get());
-            ComboBox *audio_device_box = static_cast<ComboBox*>(audio_device_line->get_child_widget_by_index(0));
-            audio_devices.push_back(audio_device_box->get_selected_id());
-            return true;
-        });
-    }
-
-    static void save_application_audio_tracks(std::vector<std::string> &application_audio, List *application_audio_list_ptr) {
-        application_audio.clear();
-        application_audio_list_ptr->for_each_child_widget([&application_audio](std::unique_ptr<Widget> &child_widget) {
-            List *application_audio_line = static_cast<List*>(child_widget.get());
-            ComboBox *application_audio_box = dynamic_cast<ComboBox*>(application_audio_line->get_child_widget_by_index(0));
-            Entry *application_audio_entry = dynamic_cast<Entry*>(application_audio_line->get_child_widget_by_index(0));
-            if(application_audio_box)
-                application_audio.push_back(application_audio_box->get_selected_id());
-            else if(application_audio_entry)
-                application_audio.push_back(application_audio_entry->get_text());
+            List *audio_track_line = static_cast<List*>(child_widget.get());
+            const AudioTrackType audio_track_type = (AudioTrackType)(uintptr_t)audio_track_line->userdata;
+            switch(audio_track_type) {
+                case AudioTrackType::DEVICE: {
+                    ComboBox *audio_device_box = static_cast<ComboBox*>(audio_track_line->get_child_widget_by_index(1));
+                    audio_devices.push_back("device:" + audio_device_box->get_selected_id());
+                    break;
+                }
+                case AudioTrackType::APPLICATION: {
+                    ComboBox *application_audio_box = static_cast<ComboBox*>(audio_track_line->get_child_widget_by_index(1));
+                    audio_devices.push_back("app:" + application_audio_box->get_selected_id());
+                    break;
+                }
+                case AudioTrackType::APPLICATION_CUSTOM: {
+                    Entry *application_audio_entry = static_cast<Entry*>(audio_track_line->get_child_widget_by_index(1));
+                    audio_devices.push_back("app:" + application_audio_entry->get_text());
+                    break;
+                }
+            }
             return true;
         });
     }
@@ -1100,9 +1074,7 @@ namespace gsr {
         record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
         record_options.application_audio_invert = application_audio_invert_checkbox_ptr->is_checked();
         record_options.change_video_resolution = change_video_resolution_checkbox_ptr->is_checked();
-        record_options.audio_type_view = audio_type_radio_button_ptr->get_selected_id();
-        save_audio_device_tracks(record_options.audio_tracks, audio_devices_list_ptr);
-        save_application_audio_tracks(record_options.application_audio, application_audio_list_ptr);
+        save_audio_tracks(record_options.audio_tracks, audio_track_list_ptr);
         record_options.color_range = color_range_box_ptr->get_selected_id();
         record_options.video_quality = video_quality_box_ptr->get_selected_id();
         record_options.video_codec = video_codec_box_ptr->get_selected_id();

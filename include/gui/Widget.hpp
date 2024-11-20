@@ -45,6 +45,8 @@ namespace gsr {
         Alignment get_vertical_alignment() const;
 
         void set_visible(bool visible);
+
+        void *userdata = nullptr;
     protected:
         void set_widget_as_selected_in_parent();
         void remove_widget_as_selected_in_parent();
