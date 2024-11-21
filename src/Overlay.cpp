@@ -232,7 +232,7 @@ namespace gsr {
     }
 
     static void set_focused_window(Display *dpy, Window window) {
-        XSetInputFocus(dpy, window, RevertToParent, CurrentTime);
+        XSetInputFocus(dpy, window, RevertToPointerRoot, CurrentTime);
 
         const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
         XChangeProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, XA_WINDOW, 32, PropModeReplace, (const unsigned char*)&window, 1);
@@ -1078,8 +1078,10 @@ namespace gsr {
         }
 
         if(record_options.merge_audio_tracks) {
-            args.push_back("-a");
-            args.push_back(audio_devices_merged.c_str());
+            if(!audio_devices_merged.empty()) {
+                args.push_back("-a");
+                args.push_back(audio_devices_merged.c_str());
+            }
         } else {
             for(const std::string &audio_track : audio_tracks) {
                 args.push_back("-a");
