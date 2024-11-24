@@ -60,7 +60,7 @@ executable(
 
 executable(
     'gsr-window-name',
-    ['gsr-window-name/main.c'],
+    ['tools/gsr-window-name/main.c'],
     install : true,
     dependencies : [dependency('x11')],
 )

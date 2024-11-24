@@ -90,4 +90,9 @@ Add audio devices/app refresh button.
 
 Play camera shutter sound when saving recording. When another sound when starting recording.
 
-Some games such as "The Finals" crashes/freezes when they lose focus. Try to reproduce this and if it happens try grab cursor and keyboard instead of setting gsr ui focus and make gsr ui click through like gsr notify. This might fix the issue.
+Some games such as "The Finals" crashes/freezes when they lose focus when running them on x11 on a laptop with prime setup and the monitor runs on the iGPU while the game runs on the dGPU.
+Try to reproduce this and if it happens try grab cursor and keyboard instead of setting gsr ui focus and make gsr ui click through like gsr notify. This might fix the issue.
+
+Run `systemctl status --user gpu-screen-recorder` when starting recording and give a notification warning if it returns 0 (running). Or run pidof gpu-screen-recorder.
+
+Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
