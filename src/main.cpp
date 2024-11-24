@@ -49,6 +49,11 @@ static bool is_socket_disconnected(int socket) {
 int main(void) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
 
+    if(geteuid() == 0) {
+        fprintf(stderr, "Error: don't run gsr-ui as the root user\n");
+        return 1;
+    }
+
     // Cant get window texture when prime-run is used
     disable_prime_run();
 
@@ -92,6 +97,7 @@ int main(void) {
     }
 
     mgl_context *context = mgl_get_context();
+    const int x11_socket = XConnectionNumber((Display*)context->connection);
 
     egl_functions egl_funcs;
     egl_funcs.eglGetError = (decltype(egl_funcs.eglGetError))context->gl.eglGetProcAddress("eglGetError");
@@ -192,8 +198,6 @@ int main(void) {
     if(!replay_save_hotkey_registered)
         fprintf(stderr, "error: failed to register hotkey alt+f10 for saving replay because the hotkey is registered by another program\n");
 
-    const int x11_socket = XConnectionNumber((Display*)context->connection);
-
     mgl::Clock frame_delta_clock;
     while(running) {
         if(is_socket_disconnected(x11_socket)) {
@@ -201,8 +205,7 @@ int main(void) {
             break;
         }
 
-        const double frame_delta_seconds = frame_delta_clock.get_elapsed_time_seconds();
-        frame_delta_clock.restart();
+        const double frame_delta_seconds = frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
         global_hotkeys.poll_events();

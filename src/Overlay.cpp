@@ -1436,7 +1436,7 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
-        if(is_compositor_running(display, 0))
+        if(gsr_info.system_info.display_server != DisplayServer::X11 || is_compositor_running(display, 0))
             return false;
 
         bool window_texture_loaded = false;
