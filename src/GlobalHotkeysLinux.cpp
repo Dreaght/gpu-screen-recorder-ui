@@ -89,20 +89,22 @@ namespace gsr {
         }
 
         char buffer[256];
-        char *line = fgets(buffer, sizeof(buffer), read_file);
-        if(!line)
-            return;
+        while(true) {
+            char *line = fgets(buffer, sizeof(buffer), read_file);
+            if(!line)
+                break;
 
-        const int line_len = strlen(line);
-        if(line_len == 0)
-            return;
+            const int line_len = strlen(line);
+            if(line_len == 0)
+                continue;
 
-        if(line[line_len - 1] == '\n')
-            line[line_len - 1] = '\0';
+            if(line[line_len - 1] == '\n')
+                line[line_len - 1] = '\0';
 
-        const std::string action = line;
-        auto it = bound_actions_by_id.find(action);
-        if(it != bound_actions_by_id.end())
-            it->second(action);
+            const std::string action = line;
+            auto it = bound_actions_by_id.find(action);
+            if(it != bound_actions_by_id.end())
+                it->second(action);
+        }
     }
 }
