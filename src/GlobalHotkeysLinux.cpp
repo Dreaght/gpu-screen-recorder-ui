@@ -15,6 +15,12 @@ namespace gsr {
     }
 
     GlobalHotkeysLinux::~GlobalHotkeysLinux() {
+        if(process_id > 0) {
+            kill(process_id, SIGKILL);
+            int status;
+            waitpid(process_id, &status, 0);
+        }
+
         for(int i = 0; i < 2; ++i) {
             if(pipes[i] > 0)
                 close(pipes[i]);
@@ -22,12 +28,6 @@ namespace gsr {
 
         if(read_file)
             fclose(read_file);
-
-        if(process_id > 0) {
-            kill(process_id, SIGKILL);
-            int status;
-            waitpid(process_id, &status, 0);
-        }
     }
 
     bool GlobalHotkeysLinux::start() {
