@@ -42,7 +42,7 @@ namespace gsr {
         add_widget(std::move(content_page));
 
         add_widgets(gsr_info);
-        add_page_specific_widgets();
+        add_page_specific_widgets(gsr_info);
         load(gsr_info);
     }
 
@@ -550,16 +550,16 @@ namespace gsr {
         }
     }
 
-    void SettingsPage::add_page_specific_widgets() {
+    void SettingsPage::add_page_specific_widgets(const GsrInfo &gsr_info) {
         switch(type) {
             case Type::REPLAY:
-                add_replay_widgets();
+                add_replay_widgets(gsr_info);
                 break;
             case Type::RECORD:
-                add_record_widgets();
+                add_record_widgets(gsr_info);
                 break;
             case Type::STREAM:
-                add_stream_widgets();
+                add_stream_widgets(gsr_info);
                 break;
         }
     }
@@ -622,18 +622,23 @@ namespace gsr {
         return replay_time_list;
     }
 
-    std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
+    std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically(const GsrInfo &gsr_info) {
+        char fullscreen_text[256];
+        snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info.system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+
         auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         radiobutton->add_item("Don't turn on replay automatically", "dont_turn_on_automatically");
         radiobutton->add_item("Turn on replay at system startup", "turn_on_at_system_startup");
-        radiobutton->add_item("Turn on replay when starting a fullscreen application", "turn_on_at_fullscreen");
+        radiobutton->add_item(fullscreen_text, "turn_on_at_fullscreen");
         radiobutton->add_item("Turn on replay when power supply is connected", "turn_on_at_power_supply_connected");
         turn_on_replay_automatically_mode_ptr = radiobutton.get();
         return radiobutton;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save video in a folder with the name of the game");
+    std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder(const GsrInfo &gsr_info) {
+        char text[256];
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info.system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
@@ -654,7 +659,7 @@ namespace gsr {
         estimated_file_size_ptr->set_text(buffer);
     }
 
-    void SettingsPage::add_replay_widgets() {
+    void SettingsPage::add_replay_widgets(const GsrInfo &gsr_info) {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_info_data_list->add_widget(create_save_directory("Directory to save replays:"));
@@ -665,8 +670,8 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_start_replay_automatically());
-        general_list->add_widget(create_save_replay_in_game_folder());
+        general_list->add_widget(create_start_replay_automatically(gsr_info));
+        general_list->add_widget(create_save_replay_in_game_folder(gsr_info));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -711,20 +716,22 @@ namespace gsr {
         };
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save video in a folder with the name of the game");
+    std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder(const GsrInfo &gsr_info) {
+        char text[256];
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info.system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
-    void SettingsPage::add_record_widgets() {
+    void SettingsPage::add_record_widgets(const GsrInfo &gsr_info) {
         auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_list->add_widget(create_save_directory("Directory to save the video:"));
         file_list->add_widget(create_container_section());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_save_recording_in_game_folder());
+        general_list->add_widget(create_save_recording_in_game_folder(gsr_info));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -818,7 +825,7 @@ namespace gsr {
         return container_list;
     }
 
-    void SettingsPage::add_stream_widgets() {
+    void SettingsPage::add_stream_widgets(const GsrInfo&) {
         auto streaming_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());

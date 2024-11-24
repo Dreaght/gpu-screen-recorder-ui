@@ -84,20 +84,20 @@ namespace gsr {
         std::unique_ptr<Widget> create_settings(const GsrInfo &gsr_info);
         void add_widgets(const GsrInfo &gsr_info);
 
-        void add_page_specific_widgets();
+        void add_page_specific_widgets(const GsrInfo &gsr_info);
 
         std::unique_ptr<List> create_save_directory(const char *label);
         std::unique_ptr<ComboBox> create_container_box();
         std::unique_ptr<List> create_container_section();
         std::unique_ptr<Entry> create_replay_time_entry();
         std::unique_ptr<List> create_replay_time();
-        std::unique_ptr<RadioButton> create_start_replay_automatically();
-        std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
+        std::unique_ptr<RadioButton> create_start_replay_automatically(const GsrInfo &gsr_info);
+        std::unique_ptr<CheckBox> create_save_replay_in_game_folder(const GsrInfo &gsr_info);
         std::unique_ptr<Label> create_estimated_file_size();
         void update_estimated_file_size();
-        std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
-        void add_replay_widgets();
-        void add_record_widgets();
+        std::unique_ptr<CheckBox> create_save_recording_in_game_folder(const GsrInfo &gsr_info);
+        void add_replay_widgets(const GsrInfo &gsr_info);
+        void add_record_widgets(const GsrInfo &gsr_info);
 
         std::unique_ptr<ComboBox> create_streaming_service_box();
         std::unique_ptr<List> create_streaming_service_section();
@@ -105,7 +105,7 @@ namespace gsr {
         std::unique_ptr<List> create_stream_url_section();
         std::unique_ptr<ComboBox> create_stream_container_box();
         std::unique_ptr<List> create_stream_container_section();
-        void add_stream_widgets();
+        void add_stream_widgets(const GsrInfo &gsr_info);
 
         void load_audio_tracks(const RecordOptions &record_options, const GsrInfo &gsr_info);
         void load_common(RecordOptions &record_options, const GsrInfo &gsr_info);

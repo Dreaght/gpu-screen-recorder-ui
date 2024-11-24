@@ -56,6 +56,11 @@ int main(void) {
 
     signal(SIGINT, sigint_handler);
 
+    if(mgl_init() != 0) {
+        fprintf(stderr, "error: failed to initialize mgl. Either failed to connec to the X11 server or failed to setup opengl\n");
+        exit(1);
+    }
+
     gsr::GsrInfo gsr_info;
     // TODO: Show the error in ui
     gsr::GsrInfoExitStatus gsr_info_exit_status = gsr::get_gpu_screen_recorder_info(&gsr_info);
@@ -64,10 +69,8 @@ int main(void) {
         exit(1);
     }
 
-    if(gsr_info.system_info.display_server == gsr::DisplayServer::WAYLAND) {
-        fprintf(stderr, "error: Wayland is currently not supported\n");
-        exit(1);
-    }
+   if(gsr_info.system_info.display_server == gsr::DisplayServer::WAYLAND)
+       fprintf(stderr, "warning: Wayland support is experimental and requires XWayland. Things may not work as expected.\n");
 
     std::string resources_path;
     if(access("sibs-build", F_OK) == 0) {
@@ -80,7 +83,6 @@ int main(void) {
 #endif
     }
 
-    mgl::Init init;
     mgl_context *context = mgl_get_context();
 
     egl_functions egl_funcs;
@@ -198,6 +200,7 @@ int main(void) {
     overlay.reset();
     gsr::deinit_theme();
     gsr::deinit_color_theme();
+    mgl_deinit();
 
     return 0;
 }

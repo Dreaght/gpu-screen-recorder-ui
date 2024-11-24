@@ -2,6 +2,7 @@
 
 # GPU Screen Recorder UI
 A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.\
+The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.\
 Note: This software is still in early alpha. Expect bugs, and please report any if you experience them. Some are already known, but it doesn't hurt to report them anyways.\
 You can report an issue by emailing the issue to dec05eba@protonmail.com.
 
