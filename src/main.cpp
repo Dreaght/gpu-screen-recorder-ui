@@ -8,6 +8,7 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <sys/socket.h>
 #include <thread>
 
 #include <X11/keysym.h>
@@ -36,6 +37,13 @@ static void disable_prime_run() {
     unsetenv("__NV_PRIME_RENDER_OFFLOAD_PROVIDER");
     unsetenv("__GLX_VENDOR_LIBRARY_NAME");
     unsetenv("__VK_LAYER_NV_optimus");
+}
+
+static bool is_socket_disconnected(int socket) {
+    char buf = '\0';
+    errno = 0;
+    const ssize_t bytes_read = recv(socket, &buf, 1, MSG_PEEK | MSG_DONTWAIT);
+    return bytes_read == 0 || (bytes_read == -1 && (errno == EBADF || errno == ENOTCONN));
 }
 
 int main(void) {
@@ -122,12 +130,12 @@ int main(void) {
     //     overlay->toggle_stream();
     // });
 
-    // const bool replay_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, ShiftMask | Mod1Mask }, "replay start", [&](const std::string &id) {
+    // const bool replay_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, ShiftMask | Mod1Mask }, "replay_start", [&](const std::string &id) {
     //     fprintf(stderr, "pressed %s\n", id.c_str());
     //     overlay->toggle_replay();
     // });
 
-    // const bool replay_save_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, Mod1Mask }, "replay save", [&](const std::string &id) {
+    // const bool replay_save_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, Mod1Mask }, "replay_save", [&](const std::string &id) {
     //     fprintf(stderr, "pressed %s\n", id.c_str());
     //     overlay->save_replay();
     // });
@@ -184,8 +192,15 @@ int main(void) {
     if(!replay_save_hotkey_registered)
         fprintf(stderr, "error: failed to register hotkey alt+f10 for saving replay because the hotkey is registered by another program\n");
 
+    const int x11_socket = XConnectionNumber((Display*)context->connection);
+
     mgl::Clock frame_delta_clock;
     while(running) {
+        if(is_socket_disconnected(x11_socket)) {
+            fprintf(stderr, "info: the X11 server has shutdown\n");
+            break;
+        }
+
         const double frame_delta_seconds = frame_delta_clock.get_elapsed_time_seconds();
         frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
