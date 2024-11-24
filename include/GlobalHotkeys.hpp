@@ -19,9 +19,10 @@ namespace gsr {
         GlobalHotkeys& operator=(const GlobalHotkeys&) = delete;
         virtual ~GlobalHotkeys() = default;
 
-        virtual bool bind_key_press(Hotkey hotkey, const std::string &id, GlobalHotkeyCallback callback) = 0;
-        virtual void unbind_key_press(const std::string &id) = 0;
-        virtual void unbind_all_keys() = 0;
+        virtual bool bind_key_press(Hotkey hotkey, const std::string &id, GlobalHotkeyCallback callback) { (void)hotkey; (void)id; (void)callback; return false; }
+        virtual void unbind_key_press(const std::string &id) { (void)id; }
+        virtual void unbind_all_keys() {}
+        virtual bool bind_action(const std::string &id, GlobalHotkeyCallback callback) { (void)id; (void)callback; return false; };
         virtual void poll_events() = 0;
     };
 }

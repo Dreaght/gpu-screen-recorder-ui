@@ -3,6 +3,7 @@
 #include "../include/window_texture.h"
 #include "../include/Overlay.hpp"
 #include "../include/GlobalHotkeysX11.hpp"
+#include "../include/GlobalHotkeysLinux.hpp"
 #include "../include/gui/Utils.hpp"
 
 #include <unistd.h>
@@ -98,33 +99,67 @@ int main(void) {
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, gsr_info, egl_funcs);
     //overlay.show();
 
-    gsr::GlobalHotkeysX11 global_hotkeys;
-    const bool show_hotkey_registered = global_hotkeys.bind_key_press({ XK_z, Mod1Mask }, "show/hide", [&](const std::string &id) {
+    // gsr::GlobalHotkeysX11 global_hotkeys;
+    // const bool show_hotkey_registered = global_hotkeys.bind_key_press({ XK_z, Mod1Mask }, "show_hide", [&](const std::string &id) {
+    //     fprintf(stderr, "pressed %s\n", id.c_str());
+    //     overlay->toggle_show();
+    // });
+
+    // const bool record_hotkey_registered = global_hotkeys.bind_key_press({ XK_F9, Mod1Mask }, "record", [&](const std::string &id) {
+    //     fprintf(stderr, "pressed %s\n", id.c_str());
+    //     overlay->toggle_record();
+    // });
+
+    // const bool pause_hotkey_registered = global_hotkeys.bind_key_press({ XK_F7, Mod1Mask }, "pause", [&](const std::string &id) {
+    //     fprintf(stderr, "pressed %s\n", id.c_str());
+    //     overlay->toggle_pause();
+    // });
+
+    // const bool stream_hotkey_registered = global_hotkeys.bind_key_press({ XK_F8, Mod1Mask }, "stream", [&](const std::string &id) {
+    //     fprintf(stderr, "pressed %s\n", id.c_str());
+    //     overlay->toggle_stream();
+    // });
+
+    // const bool replay_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, ShiftMask | Mod1Mask }, "replay start", [&](const std::string &id) {
+    //     fprintf(stderr, "pressed %s\n", id.c_str());
+    //     overlay->toggle_replay();
+    // });
+
+    // const bool replay_save_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, Mod1Mask }, "replay save", [&](const std::string &id) {
+    //     fprintf(stderr, "pressed %s\n", id.c_str());
+    //     overlay->save_replay();
+    // });
+
+    gsr::GlobalHotkeysLinux global_hotkeys;
+    if(!global_hotkeys.start())
+        fprintf(stderr, "error: failed to start global hotkeys\n");
+
+    const bool show_hotkey_registered = global_hotkeys.bind_action("show_hide", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
         overlay->toggle_show();
     });
 
-    const bool record_hotkey_registered = global_hotkeys.bind_key_press({ XK_F9, Mod1Mask }, "record", [&](const std::string &id) {
+    const bool record_hotkey_registered = global_hotkeys.bind_action("record", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
         overlay->toggle_record();
     });
 
-    const bool pause_hotkey_registered = global_hotkeys.bind_key_press({ XK_F7, Mod1Mask }, "pause", [&](const std::string &id) {
+    const bool pause_hotkey_registered = global_hotkeys.bind_action("pause", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
         overlay->toggle_pause();
     });
 
-    const bool stream_hotkey_registered = global_hotkeys.bind_key_press({ XK_F8, Mod1Mask }, "stream", [&](const std::string &id) {
+    const bool stream_hotkey_registered = global_hotkeys.bind_action("stream", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
         overlay->toggle_stream();
     });
 
-    const bool replay_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, ShiftMask | Mod1Mask }, "replay start", [&](const std::string &id) {
+    const bool replay_hotkey_registered = global_hotkeys.bind_action("replay_start", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
         overlay->toggle_replay();
     });
 
-    const bool replay_save_hotkey_registered = global_hotkeys.bind_key_press({ XK_F10, Mod1Mask }, "replay save", [&](const std::string &id) {
+    const bool replay_save_hotkey_registered = global_hotkeys.bind_action("replay_save", [&](const std::string &id) {
         fprintf(stderr, "pressed %s\n", id.c_str());
         overlay->save_replay();
     });

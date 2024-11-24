@@ -20,6 +20,10 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 
 * x11 (libx11, libxrandr, libxrender, libxfixes, libxcomposite)
 * libglvnd (which provides libgl, libglx and libegl)
+* libevdev
+* libudev (systemd-libs)
+* libinput
+* libxkbcommon
 
 ## Runtime dependencies
 * [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/)

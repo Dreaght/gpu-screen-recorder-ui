@@ -35,6 +35,7 @@ src = [
     'src/Process.cpp',
     'src/Overlay.cpp',
     'src/GlobalHotkeysX11.cpp',
+    'src/GlobalHotkeysLinux.cpp',
     'src/main.cpp',
 ]
 
@@ -65,10 +66,26 @@ executable(
     dependencies : [dependency('x11')],
 )
 
+executable(
+    'gsr-global-hotkeys',
+    ['tools/gsr-global-hotkeys/main.c'],
+    install : true,
+    dependencies : [
+        dependency('libevdev'),
+        dependency('libudev'),
+        dependency('libinput'),
+        dependency('xkbcommon')
+    ],
+)
+
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
 install_subdir('scripts', install_dir : gsr_ui_resources_path, install_mode : 'rwxr-xr-x')
 
 if get_option('systemd') == true
     install_data(files('extra/gpu-screen-recorder-ui.service'), install_dir : 'lib/systemd/user')
+endif
+
+if get_option('capabilities') == true
+    meson.add_install_script('meson_post_install.sh')
 endif

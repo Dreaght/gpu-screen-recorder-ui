@@ -39,8 +39,6 @@ Update gsr info and validate saved config when monitors update. The selected mon
 Have different modes. Overlay, window and side menu. Overlay can be used on x11, window and side menu can be used on both x11 and wayland.
     Window mode should look similar to overlay.
 
-Look at /home/dec05eba/git/global-hotkeys for hotkeys.
-
 Show navigation breadcrumbs for settings and deeper navigation (such as selecting a directory to save videos).
 
 Add option to hide stream key like a password input.
@@ -96,3 +94,7 @@ Try to reproduce this and if it happens try grab cursor and keyboard instead of 
 Run `systemctl status --user gpu-screen-recorder` when starting recording and give a notification warning if it returns 0 (running). Or run pidof gpu-screen-recorder.
 
 Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
+
+Remove all dependencies from tools/gsr-global-hotkeys and roll our own keyboard events code.
+
+Test global hotkeys with azerty instead of qwerty.
