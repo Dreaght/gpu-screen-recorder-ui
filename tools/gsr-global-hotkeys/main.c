@@ -44,7 +44,7 @@ static int open_restricted(const char *path, int flags, void *user_data) {
     (void)user_data;
     int fd = open(path, flags);
     if(fd < 0)
-        fprintf(stderr, "Failed to open %s, error: %s\n", path, strerror(errno));
+        fprintf(stderr, "error: failed to open %s, error: %s\n", path, strerror(errno));
     return fd < 0 ? -errno : fd;
 }
 
@@ -178,7 +178,7 @@ static bool mapper_refresh_keymap(key_mapper *mapper) {
     };
     mapper->xkb_keymap = xkb_keymap_new_from_names(mapper->xkb_context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
     if(mapper->xkb_keymap == NULL) {
-        fprintf(stderr, "Failed to create XKB keymap.\n");
+        fprintf(stderr, "error: failed to create XKB keymap.\n");
         return false;
     }
 
@@ -189,7 +189,7 @@ static bool mapper_refresh_keymap(key_mapper *mapper) {
 
     mapper->xkb_state = xkb_state_new(mapper->xkb_keymap);
     if(mapper->xkb_state == NULL) {
-        fprintf(stderr, "Failed to create XKB state.\n");
+        fprintf(stderr, "error: failed to create XKB state.\n");
         return false;
     }
 
@@ -197,6 +197,13 @@ static bool mapper_refresh_keymap(key_mapper *mapper) {
 }
 
 int main(void) {
+    if(geteuid() != 0) {
+        if(setuid(0) == -1) {
+            fprintf(stderr, "error: failed to change user to root\n");
+            return 1;
+        }
+    }
+
     struct udev *udev = udev_new();
     if(!udev) {
         fprintf(stderr, "error: udev_new failed\n");
