@@ -471,10 +471,10 @@ namespace gsr {
         window_create_params.max_size = window_size;
         window_create_params.position = window_pos;
         window_create_params.hidden = true;
-        window_create_params.override_redirect = true;
+        window_create_params.override_redirect = false;
         window_create_params.background_color = bg_color;
         window_create_params.support_alpha = true;
-        window_create_params.window_type = MGL_WINDOW_TYPE_NOTIFICATION;
+        window_create_params.window_type = MGL_WINDOW_TYPE_NORMAL;
         window_create_params.render_api = MGL_RENDER_API_EGL;
 
         if(!window->create("gsr ui", window_create_params))
@@ -663,7 +663,7 @@ namespace gsr {
         set_focused_window(display, window->get_system_handle());
         XFlush(display);
 
-        //window->set_fullscreen(true);
+        window->set_fullscreen(true);
 
         visible = true;
 
