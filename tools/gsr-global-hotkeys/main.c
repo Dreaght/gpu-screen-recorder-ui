@@ -146,18 +146,29 @@ static int handle_events(struct libinput *libinput, key_mapper *mapper) {
 }
 
 static int run_mainloop(struct libinput *libinput, key_mapper *mapper) {
-    struct pollfd fd;
-    fd.fd = libinput_get_fd(libinput);
-    fd.events = POLLIN;
-    fd.revents = 0;
+    struct pollfd fds[2] = {
+        {
+            .fd = libinput_get_fd(libinput),
+            .events = POLLIN,
+            .revents = 0
+        },
+        {
+            .fd = STDOUT_FILENO,
+            .events = 0,
+            .revents = 0
+        }
+    };
 
     if(handle_events(libinput, mapper) != 0) {
         fprintf(stderr, "error: didn't receive device added events. Is this program not running as root?\n");
         return -1;
     }
 
-    while(poll(&fd, 1, -1) >= 0) {
-        handle_events(libinput, mapper);
+    while(poll(fds, 2, -1) >= 0) {
+        if(fds[0].revents & POLLIN)
+            handle_events(libinput, mapper);
+        if(fds[1].revents & (POLLHUP|POLLERR))
+            break;
     }
 
     return 0;
@@ -197,6 +208,10 @@ static bool mapper_refresh_keymap(key_mapper *mapper) {
 }
 
 int main(void) {
+    int result = 0;
+    struct udev *udev = NULL;
+    struct libinput *libinput = NULL;
+
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
@@ -205,43 +220,53 @@ int main(void) {
         }
     }
 
-    struct udev *udev = udev_new();
+    udev = udev_new();
     if(!udev) {
         fprintf(stderr, "error: udev_new failed\n");
-        return 1;
+        result = 1;
+        goto done;
     }
 
-    struct libinput *libinput = libinput_udev_create_context(&interface, NULL, udev);
+    libinput = libinput_udev_create_context(&interface, NULL, udev);
     if(!libinput) {
         fprintf(stderr, "error: libinput_udev_create_context failed\n");
-        return 1;
+        result = 1;
+        goto done;
     }
 
     if(libinput_udev_assign_seat(libinput, "seat0") != 0) {
         fprintf(stderr, "error: libinput_udev_assign_seat with seat0 failed\n");
-        return 1;
+        result = 1;
+        goto done;
     }
 
     key_mapper mapper;
     mapper.xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if(!mapper.xkb_context) {
         fprintf(stderr, "error: xkb_context_new failed\n");
-        return 1;
+        result = 1;
+        goto done;
     }
 
     if(!mapper_refresh_keymap(&mapper)) {
         fprintf(stderr, "error: key mapper failed\n");
-        return 1;
+        result = 1;
+        goto done;
     }
-
-    setuid(user_id);
 
     if(run_mainloop(libinput, &mapper) < 0) {
         fprintf(stderr, "error: failed to start main loop\n");
-        return 1;
+        result = 1;
+        goto done;
     }
 
-    libinput_unref(libinput);
-    udev_unref(udev);
-    return 0;
+    done:
+    if(libinput)
+        libinput_unref(libinput);
+
+    if(udev)
+        udev_unref(udev);
+
+    setuid(user_id);
+    return result;
 }
