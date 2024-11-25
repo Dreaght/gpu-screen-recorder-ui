@@ -197,6 +197,7 @@ static bool mapper_refresh_keymap(key_mapper *mapper) {
 }
 
 int main(void) {
+    const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
             fprintf(stderr, "error: failed to change user to root\n");
@@ -232,6 +233,8 @@ int main(void) {
         fprintf(stderr, "error: key mapper failed\n");
         return 1;
     }
+
+    setuid(user_id);
 
     if(run_mainloop(libinput, &mapper) < 0) {
         fprintf(stderr, "error: failed to start main loop\n");
