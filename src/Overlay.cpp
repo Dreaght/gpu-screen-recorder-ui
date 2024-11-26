@@ -642,11 +642,11 @@ namespace gsr {
         make_window_sticky(display, window->get_system_handle());
         hide_window_from_taskbar(display, window->get_system_handle());
 
-        if(default_cursor) {
-            XFreeCursor(display, default_cursor);
-            default_cursor = 0;
-        }
-        default_cursor = XCreateFontCursor(display, XC_arrow);
+        // if(default_cursor) {
+        //     XFreeCursor(display, default_cursor);
+        //     default_cursor = 0;
+        // }
+        // default_cursor = XCreateFontCursor(display, XC_arrow);
 
         // TODO: Retry if these fail.
         // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
@@ -701,14 +701,14 @@ namespace gsr {
             page_stack.pop();
         }
 
-        if(default_cursor) {
-            XFreeCursor(display, default_cursor);
-            default_cursor = 0;
-        }
+        // if(default_cursor) {
+        //     XFreeCursor(display, default_cursor);
+        //     default_cursor = 0;
+        // }
 
-        XUngrabKeyboard(display, CurrentTime);
-        XUngrabPointer(display, CurrentTime);
-        XFlush(display);
+        // XUngrabKeyboard(display, CurrentTime);
+        // XUngrabPointer(display, CurrentTime);
+        // XFlush(display);
 
         window_texture_deinit(&window_texture);
         window_texture_sprite.set_texture(nullptr);

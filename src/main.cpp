@@ -8,7 +8,6 @@
 
 #include <unistd.h>
 #include <signal.h>
-#include <sys/socket.h>
 #include <thread>
 
 #include <X11/keysym.h>
@@ -39,13 +38,6 @@ static void disable_prime_run() {
     unsetenv("__VK_LAYER_NV_optimus");
 }
 
-static bool is_socket_disconnected(int socket) {
-    char buf = '\0';
-    errno = 0;
-    const ssize_t bytes_read = recv(socket, &buf, 1, MSG_PEEK | MSG_DONTWAIT);
-    return bytes_read == 0 || (bytes_read == -1 && (errno == EBADF || errno == ENOTCONN));
-}
-
 int main(void) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
 
@@ -70,7 +62,7 @@ int main(void) {
     signal(SIGINT, sigint_handler);
 
     if(mgl_init() != 0) {
-        fprintf(stderr, "error: failed to initialize mgl. Either failed to connec to the X11 server or failed to setup opengl\n");
+        fprintf(stderr, "error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
         exit(1);
     }
 
@@ -199,19 +191,16 @@ int main(void) {
         fprintf(stderr, "error: failed to register hotkey alt+f10 for saving replay because the hotkey is registered by another program\n");
 
     mgl::Clock frame_delta_clock;
-    while(running) {
-        if(is_socket_disconnected(x11_socket)) {
-            fprintf(stderr, "info: the X11 server has shutdown\n");
-            break;
-        }
-
+    while(running && mgl_is_connected_to_display_server()) {
         const double frame_delta_seconds = frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
         global_hotkeys.poll_events();
         overlay->handle_events();
-        if(!overlay->draw())
+        if(!overlay->draw()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            mgl_ping_display_server();
+        }
     }
 
     fprintf(stderr, "info: shutting down!\n");
