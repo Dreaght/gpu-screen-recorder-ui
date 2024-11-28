@@ -42,11 +42,6 @@ src = [
 mglpp_proj = subproject('mglpp')
 mglpp_dep = mglpp_proj.get_variable('mglpp_dep')
 
-dep = [
-    mglpp_dep,
-    dependency('xcomposite'),
-]
-
 prefix = get_option('prefix')
 datadir = get_option('datadir')
 gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
@@ -55,7 +50,12 @@ executable(
     meson.project_name(),
     src,
     install : true,
-    dependencies : dep,
+    dependencies : [
+        mglpp_dep,
+        dependency('xcomposite'),
+        dependency('xfixes'),
+        dependency('xi'),
+    ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )
 

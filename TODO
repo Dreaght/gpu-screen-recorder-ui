@@ -98,3 +98,5 @@ Add option to select which gpu to record with, or list all monitors and automati
 Remove all dependencies from tools/gsr-global-hotkeys and roll our own keyboard events code.
 
 Test global hotkeys with azerty instead of qwerty.
+
+Fix cursor grab not working in owlboy, need to use xigrab.

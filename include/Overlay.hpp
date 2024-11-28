@@ -54,6 +54,12 @@ namespace gsr {
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
         bool is_open() const;
     private:
+        void xi_setup();
+        void handle_xi_events();
+        void xi_setup_fake_cursor();
+        void xi_grab_all_devices();
+        void xi_warp_pointer(mgl::vec2i position);
+
         void process_key_bindings(mgl::Event &event);
 
         void update_notification_process_status();
@@ -99,6 +105,10 @@ namespace gsr {
         mgl::Texture screenshot_texture;
         mgl::Sprite screenshot_sprite;
         mgl::Rectangle bg_screenshot_overlay;
+        mgl::Texture cursor_texture;
+        mgl::Sprite cursor_sprite;
+        mgl::vec2i cursor_hotspot;
+        bool cursor_drawn = false;
         WindowTexture window_texture;
         PageStack page_stack;
         mgl::Rectangle top_bar_background;
@@ -125,5 +135,10 @@ namespace gsr {
         bool focused_window_is_fullscreen = false;
 
         std::array<KeyBinding, 1> key_bindings;
+
+        Display *xi_display = nullptr;
+        int xi_opcode = 0;
+        XEvent *xi_input_xev = nullptr;
+        XEvent *xi_output_xev = nullptr;
     };
 }

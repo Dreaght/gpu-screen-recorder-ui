@@ -21,6 +21,9 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
+#include <X11/extensions/Xfixes.h>
+#include <X11/extensions/XInput2.h>
+#include <X11/extensions/shape.h>
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
 
@@ -115,6 +118,59 @@ namespace gsr {
         texture.load_from_memory(texture_data, img->width, img->height, MGL_IMAGE_FORMAT_RGB);
         free(texture_data);
         return texture;
+    }
+
+    static bool texture_from_x11_cursor(XFixesCursorImage *x11_cursor_image, bool *visible, mgl::vec2i *hotspot, mgl::Texture &texture) {
+        uint8_t *cursor_data = NULL;
+        uint8_t *out = NULL;
+        const unsigned long *pixels = NULL;
+        *visible = false;
+
+        if(!x11_cursor_image)
+            goto err;
+
+        if(!x11_cursor_image->pixels)
+            goto err;
+
+        hotspot->x = x11_cursor_image->xhot;
+        hotspot->y = x11_cursor_image->yhot;
+
+        pixels = x11_cursor_image->pixels;
+        cursor_data = (uint8_t*)malloc((int)x11_cursor_image->width * (int)x11_cursor_image->height * 4);
+        if(!cursor_data)
+            goto err;
+
+        out = cursor_data;
+        /* Un-premultiply alpha */
+        for(int y = 0; y < x11_cursor_image->height; ++y) {
+            for(int x = 0; x < x11_cursor_image->width; ++x) {
+                uint32_t pixel = *pixels++;
+                uint8_t *in = (uint8_t*)&pixel;
+                uint8_t alpha = in[3];
+                if(alpha == 0) {
+                    alpha = 1;
+                } else {
+                    *visible = true;
+                }
+
+                out[0] = (float)in[2] * 255.0/(float)alpha;
+                out[1] = (float)in[1] * 255.0/(float)alpha;
+                out[2] = (float)in[0] * 255.0/(float)alpha;
+                out[3] = in[3];
+                out += 4;
+                in += 4;
+            }
+        }
+
+        texture.load_from_memory(cursor_data, x11_cursor_image->width, x11_cursor_image->height, MGL_IMAGE_FORMAT_RGBA);
+        free(cursor_data);
+        XFree(x11_cursor_image);
+        return true;
+
+        err:
+        if(x11_cursor_image)
+            XFree(x11_cursor_image);
+        return false;
     }
 
     static char hex_value_to_str(uint8_t v) {
@@ -265,6 +321,14 @@ namespace gsr {
         return True;
     }
 
+    static void make_window_click_through(Display *display, Window window) {
+        XRectangle rect;
+        memset(&rect, 0, sizeof(rect));
+        XserverRegion region = XFixesCreateRegion(display, &rect, 1);
+        XFixesSetWindowShapeRegion(display, window, ShapeInput, 0, 0, region);
+        XFixesDestroyRegion(display, region);
+    }
+
     static Bool make_window_sticky(Display *dpy, Window window) {
         return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_STICKY", False));
     }
@@ -320,6 +384,26 @@ namespace gsr {
         return is_connected;
     }
 
+    static bool xinput_is_supported(Display *dpy, int *xi_opcode) {
+        *xi_opcode = 0;
+        int query_event = 0;
+        int query_error = 0;
+        if(!XQueryExtension(dpy, "XInputExtension", xi_opcode, &query_event, &query_error)) {
+            fprintf(stderr, "gsr-ui error: X Input extension not available\n");
+            return false;
+        }
+
+        int major = 2;
+        int minor = 1;
+        int retval = XIQueryVersion(dpy, &major, &minor);
+        if (retval != Success) {
+            fprintf(stderr, "gsr-ui error: XInput 2.1 is not supported\n");
+            return false;
+        }
+
+        return true;
+    }
+
     Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
         gsr_info(gsr_info),
@@ -329,6 +413,9 @@ namespace gsr {
         close_button_widget({0.0f, 0.0f}),
         config(gsr_info)
     {
+        // TODO:
+        //xi_setup();
+
         memset(&window_texture, 0, sizeof(window_texture));
 
         key_bindings[0].key_event.code = mgl::Keyboard::Escape;
@@ -377,6 +464,60 @@ namespace gsr {
             }
             gpu_screen_recorder_process = -1;
         }
+
+        free(xi_input_xev);
+        free(xi_output_xev);
+        if(xi_display)
+            XCloseDisplay(xi_display);
+    }
+
+    void Overlay::xi_setup() {
+        xi_display = XOpenDisplay(nullptr);
+        if(!xi_display) {
+            fprintf(stderr, "gsr-ui error: failed to setup XI connection\n");
+            return;
+        }
+
+        if(!xinput_is_supported(xi_display, &xi_opcode))
+            goto error;
+
+        xi_input_xev = (XEvent*)calloc(1, sizeof(XEvent));
+        if(!xi_input_xev)
+            throw std::runtime_error("gsr-ui error: failed to allocate XEvent data");
+
+        xi_output_xev = (XEvent*)calloc(1, sizeof(XEvent));
+        if(!xi_output_xev)
+            throw std::runtime_error("gsr-ui error: failed to allocate XEvent data");
+
+        unsigned char mask[XIMaskLen(XI_LASTEVENT)];
+        memset(mask, 0, sizeof(mask));
+        XISetMask(mask, XI_Motion);
+        XISetMask(mask, XI_ButtonPress);
+        XISetMask(mask, XI_ButtonRelease);
+        XISetMask(mask, XI_KeyPress);
+        XISetMask(mask, XI_KeyRelease);
+
+        XIEventMask xi_masks;
+        xi_masks.deviceid = XIAllMasterDevices;
+        xi_masks.mask_len = sizeof(mask);
+        xi_masks.mask = mask;
+        if(XISelectEvents(xi_display, DefaultRootWindow(xi_display), &xi_masks, 1) != Success) {
+            fprintf(stderr, "gsr-ui error: XISelectEvents failed\n");
+            goto error;
+        }
+
+        XFlush(xi_display);
+        return;
+
+        error:
+        free(xi_input_xev);
+        xi_input_xev = nullptr;
+        free(xi_output_xev);
+        xi_output_xev = nullptr;
+        if(xi_display) {
+            XCloseDisplay(xi_display);
+            xi_display = nullptr;
+        }
     }
 
     static uint32_t key_event_to_bitmask(mgl::Event::KeyEvent key_event) {
@@ -397,9 +538,71 @@ namespace gsr {
         }
     }
 
+    void Overlay::handle_xi_events() {
+        if(!xi_display)
+            return;
+
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+
+        while(XPending(xi_display)) {
+            XNextEvent(xi_display, xi_input_xev);
+            XGenericEventCookie *cookie = &xi_input_xev->xcookie;
+            if(cookie->type == GenericEvent && cookie->extension == xi_opcode && XGetEventData(xi_display, cookie)) {
+                const XIDeviceEvent *de = (XIDeviceEvent*)cookie->data;
+                if(cookie->evtype == XI_Motion) {
+                    memset(xi_output_xev, 0, sizeof(*xi_output_xev));
+                    xi_output_xev->type = MotionNotify;
+                    xi_output_xev->xmotion.display = display;
+                    xi_output_xev->xmotion.window = window->get_system_handle();
+                    xi_output_xev->xmotion.subwindow = window->get_system_handle();
+                    xi_output_xev->xmotion.x = de->event_x;
+                    xi_output_xev->xmotion.y = de->event_y;
+                    xi_output_xev->xmotion.x_root = de->root_x;
+                    xi_output_xev->xmotion.y_root = de->root_y;
+                    //xi_output_xev->xmotion.state = // modifiers // TODO:
+                    if(window->inject_x11_event(xi_output_xev, event))
+                        on_event(event);
+                } else if(cookie->evtype == XI_ButtonPress || cookie->evtype == XI_ButtonRelease) {
+                    memset(xi_output_xev, 0, sizeof(*xi_output_xev));
+                    xi_output_xev->type = cookie->evtype == XI_ButtonPress ? ButtonPress : ButtonRelease;
+                    xi_output_xev->xbutton.display = display;
+                    xi_output_xev->xbutton.window = window->get_system_handle();
+                    xi_output_xev->xbutton.subwindow = window->get_system_handle();
+                    xi_output_xev->xbutton.x = de->event_x;
+                    xi_output_xev->xbutton.y = de->event_y;
+                    xi_output_xev->xbutton.x_root = de->root_x;
+                    xi_output_xev->xbutton.y_root = de->root_y;
+                    //xi_output_xev->xbutton.state = // modifiers // TODO:
+                    xi_output_xev->xbutton.button = de->detail;
+                    if(window->inject_x11_event(xi_output_xev, event))
+                        on_event(event);
+                } else if(cookie->evtype == XI_KeyPress || cookie->evtype == XI_KeyRelease) {
+                    memset(xi_output_xev, 0, sizeof(*xi_output_xev));
+                    xi_output_xev->type = cookie->evtype == XI_KeyPress ? KeyPress : KeyRelease;
+                    xi_output_xev->xkey.display = display;
+                    xi_output_xev->xkey.window = window->get_system_handle();
+                    xi_output_xev->xkey.subwindow = window->get_system_handle();
+                    xi_output_xev->xkey.x = de->event_x;
+                    xi_output_xev->xkey.y = de->event_y;
+                    xi_output_xev->xkey.x_root = de->root_x;
+                    xi_output_xev->xkey.y_root = de->root_y;
+                    xi_output_xev->xkey.state = de->mods.effective;
+                    xi_output_xev->xkey.keycode = de->detail;
+                    if(window->inject_x11_event(xi_output_xev, event))
+                        on_event(event);
+                }
+                //fprintf(stderr, "got xi event: %d\n", cookie->evtype);
+                XFreeEventData(xi_display, cookie);
+            }
+        }
+    }
+
     void Overlay::handle_events() {
         if(!visible || !window)
             return;
+
+        handle_xi_events();
 
         while(window->poll_event(event)) {
             on_event(event);
@@ -452,12 +655,86 @@ namespace gsr {
         close_button_widget.draw(*window, mgl::vec2f(0.0f, 0.0f));
         page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
 
+        if(cursor_texture.is_valid()) {
+            if(!cursor_drawn) {
+                cursor_drawn = true;
+                XFixesHideCursor(xi_display, DefaultRootWindow(xi_display));
+                XFlush(xi_display);
+            }
+
+            cursor_sprite.set_position((window->get_mouse_position() - cursor_hotspot).to_vec2f());
+            window->draw(cursor_sprite);
+        }
+
         window->display();
 
         return true;
     }
 
+    void Overlay::xi_setup_fake_cursor() {
+        if(!xi_display)
+            return;
+
+        XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
+        XFlush(xi_display);
+
+        bool cursor_visible = false;
+        texture_from_x11_cursor(XFixesGetCursorImage(xi_display), &cursor_visible, &cursor_hotspot, cursor_texture);
+        if(cursor_texture.is_valid())
+            cursor_sprite.set_texture(&cursor_texture);
+    }
+
+    void Overlay::xi_grab_all_devices() {
+        if(!xi_display)
+            return;
+
+        int num_devices = 0;
+        XIDeviceInfo *info = XIQueryDevice(xi_display, XIAllDevices, &num_devices);
+        if(!info)
+            return;
+
+        for (int i = 0; i < num_devices; ++i) {
+            const XIDeviceInfo *dev = &info[i];
+            XIEventMask masks[1];
+            unsigned char mask0[XIMaskLen(XI_LASTEVENT)];
+            memset(mask0, 0, sizeof(mask0));
+            XISetMask(mask0, XI_Motion);
+            XISetMask(mask0, XI_ButtonPress);
+            XISetMask(mask0, XI_ButtonRelease);
+            XISetMask(mask0, XI_KeyPress);
+            XISetMask(mask0, XI_KeyRelease);
+            masks[0].deviceid = dev->deviceid;
+            masks[0].mask_len = sizeof(mask0);
+            masks[0].mask = mask0;
+            XIGrabDevice(xi_display, dev->deviceid, window->get_system_handle(), CurrentTime, None, XIGrabModeAsync, XIGrabModeAsync, XIOwnerEvents, masks);
+        }
+
+        XFlush(xi_display);
+        XIFreeDeviceInfo(info);
+    }
+
+    void Overlay::xi_warp_pointer(mgl::vec2i position) {
+        if(!xi_display)
+            return;
+
+        int num_devices = 0;
+        XIDeviceInfo *info = XIQueryDevice(xi_display, XIAllDevices, &num_devices);
+        if(!info)
+            return;
+
+        for (int i = 0; i < num_devices; ++i) {
+            const XIDeviceInfo *dev = &info[i];
+            XIWarpPointer(xi_display, dev->deviceid, DefaultRootWindow(xi_display), DefaultRootWindow(xi_display), 0, 0, 0, 0, position.x, position.y);
+        }
+
+        XFlush(xi_display);
+        XIFreeDeviceInfo(info);
+    }
+
     void Overlay::show() {
+        if(visible)
+            return;
+
         window.reset();
         window = std::make_unique<mgl::Window>();
         deinit_theme();
@@ -471,7 +748,7 @@ namespace gsr {
         window_create_params.max_size = window_size;
         window_create_params.position = window_pos;
         window_create_params.hidden = true;
-        window_create_params.override_redirect = false;
+        window_create_params.override_redirect = true;
         window_create_params.background_color = bg_color;
         window_create_params.support_alpha = true;
         window_create_params.window_type = MGL_WINDOW_TYPE_NORMAL;
@@ -637,33 +914,47 @@ namespace gsr {
             return true;
         };
 
-        window->set_fullscreen(true);
+        //window->set_fullscreen(true);
+        if(gsr_info.system_info.display_server == DisplayServer::X11)
+            make_window_click_through(display, window->get_system_handle());
+
         window->set_visible(true);
+
         make_window_sticky(display, window->get_system_handle());
         hide_window_from_taskbar(display, window->get_system_handle());
 
-        // if(default_cursor) {
-        //     XFreeCursor(display, default_cursor);
-        //     default_cursor = 0;
-        // }
-        // default_cursor = XCreateFontCursor(display, XC_arrow);
+        if(default_cursor) {
+            XFreeCursor(display, default_cursor);
+            default_cursor = 0;
+        }
+        default_cursor = XCreateFontCursor(display, XC_arrow);
 
-        // TODO: Retry if these fail.
-        // TODO: Hmm, these dont work in owlboy. Maybe owlboy uses xi2 and that breaks this (does it?).
-        // Remove these grabs when debugging with a debugger, or your X11 session will appear frozen
+        // TODO: Remove these grabs when debugging with a debugger, or your X11 session will appear frozen.
+        // There should be a debug mode to not use these
 
-        // XGrabPointer(display, window->get_system_handle(), True,
-        //     ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
-        //     Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
-        //     ButtonMotionMask,
-        //     GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
-        // TODO: This breaks global hotkeys
-        //XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+        XGrabPointer(display, window->get_system_handle(), True,
+            ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
+            Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
+            ButtonMotionMask,
+            GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
+        // TODO: This breaks global hotkeys (when using x11 global hotkeys)
+        XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
-        set_focused_window(display, window->get_system_handle());
         XFlush(display);
 
-        window->set_fullscreen(true);
+        // The real cursor doesn't move when all devices are grabbed, so we create our own cursor and diplay that while grabbed
+        xi_setup_fake_cursor();
+
+        // We want to grab all devices to prevent any other application below from receiving events.
+        // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
+        xi_grab_all_devices();
+
+        // if(gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
+        //     set_focused_window(display, window->get_system_handle());
+        //     XFlush(display);
+        // }
+
+        //window->set_fullscreen(true);
 
         visible = true;
 
@@ -694,6 +985,9 @@ namespace gsr {
     }
 
     void Overlay::hide() {
+        if(!visible)
+            return;
+
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
@@ -701,14 +995,23 @@ namespace gsr {
             page_stack.pop();
         }
 
-        // if(default_cursor) {
-        //     XFreeCursor(display, default_cursor);
-        //     default_cursor = 0;
-        // }
+        if(default_cursor) {
+            XFreeCursor(display, default_cursor);
+            default_cursor = 0;
+        }
 
-        // XUngrabKeyboard(display, CurrentTime);
-        // XUngrabPointer(display, CurrentTime);
-        // XFlush(display);
+        XUngrabKeyboard(display, CurrentTime);
+        XUngrabPointer(display, CurrentTime);
+        XFlush(display);
+
+        if(xi_display) {
+            // TODO: Only show cursor if it wasn't hidden before the ui was shown
+            cursor_drawn = false;
+            //XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
+            //XFlush(xi_display);
+            cursor_texture.clear();
+            cursor_sprite.set_texture(nullptr);
+        }
 
         window_texture_deinit(&window_texture);
         window_texture_sprite.set_texture(nullptr);
@@ -717,8 +1020,19 @@ namespace gsr {
 
         visible = false;
         if(window) {
+            const mgl::vec2i new_cursor_position = mgl::vec2i(window->internal_window()->pos.x, window->internal_window()->pos.y) + window->get_mouse_position();
             window->set_visible(false);
             window.reset();
+
+            if(xi_display) {
+                XFlush(display);
+                XWarpPointer(display, DefaultRootWindow(display), DefaultRootWindow(display), 0, 0, 0, 0, new_cursor_position.x, new_cursor_position.y);
+                XFlush(display);
+                //xi_warp_pointer(new_cursor_position);
+
+                XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
+                XFlush(xi_display);
+            }
         }
 
         deinit_theme();
@@ -831,20 +1145,8 @@ namespace gsr {
         }
 
         int exit_code = -1;
-        // The process is no longer a child process since gsr ui has restarted
-        if(errno == ECHILD) {
-            errno = 0;
-            kill(gpu_screen_recorder_process, 0);
-            if(errno != ESRCH) {
-                // Still running
-                return;
-            }
-            // We cant know the exit status, so we assume it succeeded
-            exit_code = 0;
-        } else {
-            if(WIFEXITED(status))
-                exit_code = WEXITSTATUS(status);
-        }
+        if(WIFEXITED(status))
+            exit_code = WEXITSTATUS(status);
 
         switch(recording_status) {
             case RecordingStatus::NONE:

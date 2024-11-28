@@ -19,7 +19,7 @@ GPU Screen Recorder UI uses meson build system so you need to install `meson` to
 ## Build dependencies
 These are the dependencies needed to build GPU Screen Recorder UI:
 
-* x11 (libx11, libxrandr, libxrender, libxfixes, libxcomposite)
+* x11 (libx11, libxrandr, libxrender, libxcomposite, libxfixes, libxi)
 * libglvnd (which provides libgl, libglx and libegl)
 * libevdev
 * libudev (systemd-libs)
