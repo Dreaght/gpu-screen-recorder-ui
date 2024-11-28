@@ -9,6 +9,7 @@
 #include "../include/gui/SettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/gui/PageStack.hpp"
+#include "../include/WindowUtils.hpp"
 
 #include <string.h>
 #include <assert.h>
@@ -418,23 +419,11 @@ namespace gsr {
 
         memset(&window_texture, 0, sizeof(window_texture));
 
-        key_bindings[0].key_event.code = mgl::Keyboard::Escape;
-        key_bindings[0].key_event.alt = false;
-        key_bindings[0].key_event.control = false;
-        key_bindings[0].key_event.shift = false;
-        key_bindings[0].key_event.system = false;
-        key_bindings[0].callback = [this]() {
-            page_stack.pop();
-        };
-
         std::optional<Config> new_config = read_config(gsr_info);
         if(new_config)
             config = std::move(new_config.value());
 
         init_color_theme(gsr_info);
-        // These environment variable are used by files in scripts/ folder
-        const std::string notify_bg_color_str = color_to_hex_str(get_color_theme().tint_color);
-        setenv("GSR_NOTIFY_BG_COLOR", notify_bg_color_str.c_str(), true);
 
         power_supply_online_filepath = get_power_supply_online_filepath();
 
@@ -454,6 +443,8 @@ namespace gsr {
             }
             notification_process = -1;
         }
+
+        close_gpu_screen_recorder_output();
 
         if(gpu_screen_recorder_process > 0) {
             kill(gpu_screen_recorder_process, SIGINT);
@@ -520,21 +511,15 @@ namespace gsr {
         }
     }
 
-    static uint32_t key_event_to_bitmask(mgl::Event::KeyEvent key_event) {
-        return ((uint32_t)key_event.alt     << (uint32_t)0)
-            |  ((uint32_t)key_event.control << (uint32_t)1)
-            |  ((uint32_t)key_event.shift   << (uint32_t)2)
-            |  ((uint32_t)key_event.system  << (uint32_t)3);
-    }
+    void Overlay::close_gpu_screen_recorder_output() {
+        if(gpu_screen_recorder_process_output_file) {
+            fclose(gpu_screen_recorder_process_output_file);
+            gpu_screen_recorder_process_output_file = nullptr;
+        }
 
-    void Overlay::process_key_bindings(mgl::Event &event) {
-        if(event.type != mgl::Event::KeyReleased)
-            return;
-
-        const uint32_t event_key_bitmask = key_event_to_bitmask(event.key);
-        for(const KeyBinding &key_binding : key_bindings) {
-            if(event.key.code == key_binding.key_event.code && event_key_bitmask == key_event_to_bitmask(key_binding.key_event))
-                key_binding.callback();
+        if(gpu_screen_recorder_process_output_fd > 0) {
+            close(gpu_screen_recorder_process_output_fd);
+            gpu_screen_recorder_process_output_fd = -1;
         }
     }
 
@@ -613,15 +598,16 @@ namespace gsr {
         if(!visible || !window)
             return;
 
-        close_button_widget.on_event(event, *window, mgl::vec2f(0.0f, 0.0f));
-        if(!page_stack.on_event(event, *window, mgl::vec2f(0.0f, 0.0f)))
+        if(!close_button_widget.on_event(event, *window, mgl::vec2f(0.0f, 0.0f)))
             return;
 
-        process_key_bindings(event);
+        if(!page_stack.on_event(event, *window, mgl::vec2f(0.0f, 0.0f)))
+            return;
     }
 
     bool Overlay::draw() {
         update_notification_process_status();
+        update_gsr_replay_save();
         update_gsr_process_status();
         replay_status_update_status();
 
@@ -1113,7 +1099,7 @@ namespace gsr {
             waitpid(notification_process, &status, 0);
         }
 
-        notification_process = exec_program(notification_args);
+        notification_process = exec_program(notification_args, NULL);
     }
 
     bool Overlay::is_open() const {
@@ -1133,16 +1119,99 @@ namespace gsr {
         notification_process = -1;
     }
 
+    static void string_replace_characters(char *str, const char *characters_to_replace, char new_character) {
+        for(; *str != '\0'; ++str) {
+            for(const char *p = characters_to_replace; *p != '\0'; ++p) {
+                if(*str == *p)
+                    *str = new_character;
+            }
+        }
+    }
+
+    static std::string filepath_get_directory(const char *filepath) {
+        std::string result = filepath;
+        const size_t last_slash_index = result.rfind('/');
+        if(last_slash_index == std::string::npos)
+            result = ".";
+        else
+            result.erase(last_slash_index);
+        return result;
+    }
+
+    static std::string filepath_get_filename(const char *filepath) {
+        std::string result = filepath;
+        const size_t last_slash_index = result.rfind('/');
+        if(last_slash_index != std::string::npos)
+            result.erase(0, last_slash_index + 1);
+        return result;
+    }
+
+    void Overlay::save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type) {
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+        const std::string video_filename = filepath_get_filename(video_filepath);
+
+        std::string focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED);
+        if(focused_window_name.empty())
+            focused_window_name = "Game";
+
+        string_replace_characters(focused_window_name.data(), "/\\", '_');
+
+        std::string video_directory = filepath_get_directory(video_filepath) + "/" + focused_window_name;
+        create_directory_recursive(video_directory.data());
+
+        const std::string new_video_filepath = video_directory + "/" + video_filename;
+        rename(video_filepath, new_video_filepath.c_str());
+
+        std::string text;
+        switch(notification_type) {
+            case NotificationType::RECORD:
+                text = "Saved recording to '" + focused_window_name + "/" + video_filename + "'";
+                break;
+            case NotificationType::REPLAY:
+                text = "Saved replay to '" + focused_window_name + "/" + video_filename + "'";
+                break;
+            case NotificationType::NONE:
+            case NotificationType::STREAM:
+                break;
+        }
+        show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type);
+    }
+
+    void Overlay::update_gsr_replay_save() {
+        if(gpu_screen_recorder_process_output_file) {
+            char buffer[1024];
+            char *replay_saved_filepath = fgets(buffer, sizeof(buffer), gpu_screen_recorder_process_output_file);
+            if(!replay_saved_filepath || replay_saved_filepath[0] == '\0')
+                return;
+
+            const int line_len = strlen(replay_saved_filepath);
+            if(replay_saved_filepath[line_len - 1] == '\n')
+                replay_saved_filepath[line_len - 1] = '\0';
+
+            if(config.replay_config.save_video_in_game_folder) {
+                save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
+            } else {
+                const std::string text = "Saved replay to '" + filepath_get_filename(replay_saved_filepath) + "'";
+                show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+            }
+        } else if(gpu_screen_recorder_process_output_fd > 0) {
+            char buffer[1024];
+            read(gpu_screen_recorder_process_output_fd, buffer, sizeof(buffer));
+        }
+    }
+
     void Overlay::update_gsr_process_status() {
         if(gpu_screen_recorder_process <= 0)
             return;
 
-        errno = 0;
         int status;
         if(waitpid(gpu_screen_recorder_process, &status, WNOHANG) == 0) {
             // Still running
             return;
         }
+
+        close_gpu_screen_recorder_output();
 
         int exit_code = -1;
         if(WIFEXITED(status))
@@ -1164,10 +1233,7 @@ namespace gsr {
             }
             case RecordingStatus::RECORD: {
                 update_ui_recording_stopped();
-                if(exit_code != 0) {
-                    fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-                    show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
-                }
+                on_stop_recording(exit_code);
                 break;
             }
             case RecordingStatus::STREAM: {
@@ -1228,6 +1294,20 @@ namespace gsr {
                 on_press_start_replay(false);
             else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected)
                 on_press_start_replay(false);
+        }
+    }
+
+    void Overlay::on_stop_recording(int exit_code) {
+        if(exit_code == 0) {
+            if(config.record_config.save_video_in_game_folder) {
+                save_video_in_current_game_directory(record_filepath.c_str(), NotificationType::RECORD);
+            } else {
+                const std::string text = "Saved recording to '" + filepath_get_filename(record_filepath.c_str()) + "'";
+                show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+            }
+        } else {
+            fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+            show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
         }
     }
 
@@ -1390,6 +1470,11 @@ namespace gsr {
                 args.push_back(audio_track.c_str());
             }
         }
+
+        if(record_options.restore_portal_session) {
+            args.push_back("-restore-portal-session");
+            args.push_back("yes");
+        }
     }
 
     void Overlay::on_press_save_replay() {
@@ -1416,6 +1501,8 @@ namespace gsr {
 
         // window->close();
         // usleep(1000 * 50); // 50 milliseconds
+
+        close_gpu_screen_recorder_output();
 
         if(gpu_screen_recorder_process > 0) {
             kill(gpu_screen_recorder_process, SIGINT);
@@ -1451,7 +1538,9 @@ namespace gsr {
         }
 
         char region[64];
-        snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.record_area_width, (int)config.replay_config.record_options.record_area_height);
+        region[0] = '\0';
+        if(config.replay_config.record_options.record_area_option == "focused")
+            snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.record_area_width, (int)config.replay_config.record_options.record_area_height);
 
         if(config.replay_config.record_options.record_area_option != "focused" && config.replay_config.record_options.change_video_resolution)
             snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
@@ -1473,20 +1562,19 @@ namespace gsr {
 
         add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
 
-        setenv("GSR_SHOW_SAVED_NOTIFICATION", config.replay_config.show_replay_saved_notifications ? "1" : "0", true);
-        const std::string script_to_run_on_save = resources_path + (config.replay_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
-        args.push_back("-sc");
-        args.push_back(script_to_run_on_save.c_str());
-
         args.push_back(nullptr);
 
-        gpu_screen_recorder_process = exec_program(args.data());
+        gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
             // TODO: Show notification failed to start
         } else {
             recording_status = RecordingStatus::REPLAY;
             update_ui_replay_started();
         }
+
+        const int fdl = fcntl(gpu_screen_recorder_process_output_fd, F_GETFL);
+        fcntl(gpu_screen_recorder_process_output_fd, F_SETFL, fdl | O_NONBLOCK);
+        gpu_screen_recorder_process_output_file = fdopen(gpu_screen_recorder_process_output_fd, "r");
 
         // TODO: Start recording after this notification has disappeared to make sure it doesn't show up in the video.
         // Make clear to the user that the recording starts after the notification is gone.
@@ -1525,16 +1613,21 @@ namespace gsr {
             if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
                 perror("waitpid failed");
                 /* Ignore... */
+            } else {
+                int exit_code = -1;
+                if(WIFEXITED(status))
+                    exit_code = WEXITSTATUS(status);
+                on_stop_recording(exit_code);
             }
-            // window->set_visible(false);
-            // window->close();
-            // return;
-            //exit(0);
+
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
             update_ui_recording_stopped();
+            record_filepath.clear();
             return;
         }
+
+        record_filepath.clear();
 
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.record_config.record_options.fps);
@@ -1551,7 +1644,9 @@ namespace gsr {
         }
 
         char region[64];
-        snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
+        region[0] = '\0';
+        if(config.record_config.record_options.record_area_option == "focused")
+            snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
 
         if(config.record_config.record_options.record_area_option != "focused" && config.record_config.record_options.change_video_resolution)
             snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
@@ -1572,14 +1667,10 @@ namespace gsr {
 
         add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
 
-        setenv("GSR_SHOW_SAVED_NOTIFICATION", config.record_config.show_video_saved_notifications ? "1" : "0", true);
-        const std::string script_to_run_on_save = resources_path + (config.record_config.save_video_in_game_folder ? "scripts/save-video-in-game-folder.sh" : "scripts/notify-saved-name.sh");
-        args.push_back("-sc");
-        args.push_back(script_to_run_on_save.c_str());
-
         args.push_back(nullptr);
 
-        gpu_screen_recorder_process = exec_program(args.data());
+        record_filepath = output_file;
+        gpu_screen_recorder_process = exec_program(args.data(), nullptr);
         if(gpu_screen_recorder_process == -1) {
             // TODO: Show notification failed to start
         } else {
@@ -1685,7 +1776,9 @@ namespace gsr {
         const std::string url = streaming_get_url(config);
 
         char region[64];
-        snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.record_area_width, (int)config.streaming_config.record_options.record_area_height);
+        region[0] = '\0';
+        if(config.record_config.record_options.record_area_option == "focused")
+            snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.record_area_width, (int)config.streaming_config.record_options.record_area_height);
 
         if(config.record_config.record_options.record_area_option != "focused" && config.streaming_config.record_options.change_video_resolution)
             snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
@@ -1708,7 +1801,7 @@ namespace gsr {
 
         args.push_back(nullptr);
 
-        gpu_screen_recorder_process = exec_program(args.data());
+        gpu_screen_recorder_process = exec_program(args.data(), nullptr);
         if(gpu_screen_recorder_process == -1) {
             // TODO: Show notification failed to start
         } else {

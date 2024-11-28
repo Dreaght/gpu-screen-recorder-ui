@@ -60,14 +60,18 @@ namespace gsr {
         void xi_grab_all_devices();
         void xi_warp_pointer(mgl::vec2i position);
 
-        void process_key_bindings(mgl::Event &event);
+        void close_gpu_screen_recorder_output();
 
         void update_notification_process_status();
+        void save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type);
+        void update_gsr_replay_save();
         void update_gsr_process_status();
 
         void replay_status_update_status();
         void update_focused_fullscreen_status();
         void update_power_supply_status();
+
+        void on_stop_recording(int exit_code);
 
         void update_ui_recording_paused();
         void update_ui_recording_unpaused();
@@ -89,26 +93,26 @@ namespace gsr {
 
         void force_window_on_top();
     private:
-        using KeyBindingCallback = std::function<void()>;
-        struct KeyBinding {
-            mgl::Event::KeyEvent key_event;
-            KeyBindingCallback callback;
-        };
-
         std::unique_ptr<mgl::Window> window;
         mgl::Event event;
         std::string resources_path;
         GsrInfo gsr_info;
         egl_functions egl_funcs;
+        Config config;
+
+        bool visible = false;
+
         mgl::Texture window_texture_texture;
         mgl::Sprite window_texture_sprite;
         mgl::Texture screenshot_texture;
         mgl::Sprite screenshot_sprite;
         mgl::Rectangle bg_screenshot_overlay;
+
         mgl::Texture cursor_texture;
         mgl::Sprite cursor_sprite;
         mgl::vec2i cursor_hotspot;
         bool cursor_drawn = false;
+
         WindowTexture window_texture;
         PageStack page_stack;
         mgl::Rectangle top_bar_background;
@@ -116,14 +120,17 @@ namespace gsr {
         mgl::Sprite logo_sprite;
         CustomRendererWidget close_button_widget;
         bool close_button_pressed_inside = false;
-        bool visible = false;
         uint64_t default_cursor = 0;
+
         pid_t gpu_screen_recorder_process = -1;
         pid_t notification_process = -1;
-        Config config;
+        int gpu_screen_recorder_process_output_fd = -1;
+        FILE *gpu_screen_recorder_process_output_file = nullptr;
+
         DropdownButton *replay_dropdown_button_ptr = nullptr;
         DropdownButton *record_dropdown_button_ptr = nullptr;
         DropdownButton *stream_dropdown_button_ptr = nullptr;
+
         mgl::Clock force_window_on_top_clock;
 
         RecordingStatus recording_status = RecordingStatus::NONE;
@@ -134,7 +141,7 @@ namespace gsr {
         bool power_supply_connected = false;
         bool focused_window_is_fullscreen = false;
 
-        std::array<KeyBinding, 1> key_bindings;
+        std::string record_filepath;
 
         Display *xi_display = nullptr;
         int xi_opcode = 0;

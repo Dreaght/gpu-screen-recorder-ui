@@ -30,6 +30,7 @@ src = [
     'src/gui/GsrPage.cpp',
     'src/gui/Subsection.cpp',
     'src/Utils.cpp',
+    'src/WindowUtils.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
     'src/Process.cpp',
@@ -80,7 +81,6 @@ executable(
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
-install_subdir('scripts', install_dir : gsr_ui_resources_path, install_mode : 'rwxr-xr-x')
 
 if get_option('systemd') == true
     install_data(files('extra/gpu-screen-recorder-ui.service'), install_dir : 'lib/systemd/user')

@@ -9,6 +9,9 @@
 #include <dirent.h>
 #include <stdlib.h>
 
+#define PIPE_READ 0
+#define PIPE_WRITE 1
+
 namespace gsr {
     static void debug_print_args(const char **args) {
         fprintf(stderr, "gsr-ui info: running command:");
@@ -51,22 +54,40 @@ namespace gsr {
         return true;
     }
 
-    pid_t exec_program(const char **args) {
+    pid_t exec_program(const char **args, int *read_fd) {
+        if(read_fd)
+            *read_fd = -1;
+
         /* 1 argument */
         if(args[0] == nullptr)
+            return -1;
+
+        int fds[2] = {-1, -1};
+        if(pipe(fds) == -1)
             return -1;
 
         debug_print_args(args);
 
         pid_t pid = vfork();
         if(pid == -1) {
+            close(fds[PIPE_READ]);
+            close(fds[PIPE_WRITE]);
             perror("Failed to vfork");
             return -1;
         } else if(pid == 0) { /* child */
+            dup2(fds[PIPE_WRITE], STDOUT_FILENO);
+            close(fds[PIPE_READ]);
+            close(fds[PIPE_WRITE]);
+
             execvp(args[0], (char* const*)args);
             perror("execvp");
             _exit(127);
         } else { /* parent */
+            close(fds[PIPE_WRITE]);
+            if(read_fd)
+                *read_fd = fds[PIPE_READ];
+            else
+                close(fds[PIPE_READ]);
             return pid;
         }
     }
