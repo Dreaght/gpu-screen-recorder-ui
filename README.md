@@ -44,3 +44,8 @@ This software is licensed under GPL3.0-only. Files under `fonts/` directory are 
 If you want to donate you can donate via bitcoin or monero.
 * Bitcoin: bc1qqvuqnwrdyppf707ge27fqz2n9y9gu7lf5ypyuf
 * Monero: 4An9kp2qW1C9Gah7ewv4JzcNFQ5TAX7ineGCqXWK6vQnhsGGcRpNgcn8r9EC3tMcgY7vqCKs3nSRXhejMHBaGvFdN2egYet
+
+# Known issues
+* The UI always opens on the same (incorrect) monitor when using multiple monitors on Wayland
+* Some games receive mouse input while the UI is open
+* Global hotkeys can clash with other hotkeys. This is primarly because Wayland compositors are missing support for global hotkey so this software uses a global hotkey system that works on X11 and Wayland by bypassing X11 and Wayland.
