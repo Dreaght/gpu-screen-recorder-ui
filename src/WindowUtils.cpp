@@ -40,7 +40,7 @@ namespace gsr {
         return window;
     }
 
-    static Window get_focused_window(Display *dpy, WindowCaptureType cap_type) {
+    Window get_focused_window(Display *dpy, WindowCaptureType cap_type) {
         const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
         Window focused_window = None;
 

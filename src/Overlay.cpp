@@ -37,67 +37,8 @@ namespace gsr {
     static const double force_window_on_top_timeout_seconds = 1.0;
     static const double replay_status_update_check_timeout_seconds = 1.0;
 
-    static bool window_has_atom(Display *dpy, Window window, Atom atom) {
-        Atom type;
-        unsigned long len, bytes_left;
-        int format;
-        unsigned char *properties = NULL;
-        if(XGetWindowProperty(dpy, window, atom, 0, 1024, False, AnyPropertyType, &type, &format, &len, &bytes_left, &properties) < Success)
-            return false;
-
-        if(properties)
-            XFree(properties);
-
-        return type != None;
-    }
-
-    static bool window_is_user_program(Display *dpy, Window window) {
-        const Atom net_wm_state_atom = XInternAtom(dpy, "_NET_WM_STATE", False);
-        const Atom wm_state_atom = XInternAtom(dpy, "WM_STATE", False);
-        return window_has_atom(dpy, window, net_wm_state_atom) || window_has_atom(dpy, window, wm_state_atom);
-    }
-
-    static Window get_window_at_cursor_position(Display *dpy) {
-        Window root_window = None;
-        Window window = None;
-        int dummy_i;
-        unsigned int dummy_u;
-        int cursor_pos_x = 0;
-        int cursor_pos_y = 0;
-        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &cursor_pos_x, &cursor_pos_y, &dummy_u);
-        return window;
-    }
-
-    static Window get_focused_window(Display *dpy) {
-        const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-        Window focused_window = None;
-
-        // Atom type = None;
-        // int format = 0;
-        // unsigned long num_items = 0;
-        // unsigned long bytes_left = 0;
-        // unsigned char *data = NULL;
-        // XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
-
-        // fprintf(stderr, "focused window: %p\n", (void*)data);
-
-        // if(type == XA_WINDOW && num_items == 1 && data)
-        //     return *(Window*)data;
-
-        int revert_to = 0;
-        XGetInputFocus(dpy, &focused_window, &revert_to);
-        if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
-            return focused_window;
-
-        focused_window = get_window_at_cursor_position(dpy);
-        if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
-            return focused_window;
-
-        return None;
-    }
-
     static bool is_focused_application_wayland(Display *dpy) {
-        return get_focused_window(dpy) == 0;
+        return get_focused_window(dpy, WindowCaptureType::FOCUSED) == 0;
     }
 
     static mgl::Texture texture_from_ximage(XImage *img) {
@@ -413,10 +354,10 @@ namespace gsr {
         resources_path(std::move(resources_path)),
         gsr_info(gsr_info),
         egl_funcs(egl_funcs),
+        config(gsr_info),
         bg_screenshot_overlay({0.0f, 0.0f}),
         top_bar_background({0.0f, 0.0f}),
-        close_button_widget({0.0f, 0.0f}),
-        config(gsr_info)
+        close_button_widget({0.0f, 0.0f})
     {
         // TODO:
         //xi_setup();
@@ -1279,7 +1220,7 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
-        const Window focused_window = get_focused_window(display);
+        const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED);
         if(window && focused_window == window->get_system_handle())
             return;
 
@@ -1845,9 +1786,9 @@ namespace gsr {
             return false;
 
         bool window_texture_loaded = false;
-        const Window window_at_cursor_position = get_window_at_cursor_position(display);
-        if(is_window_fullscreen_on_monitor(display, window_at_cursor_position, monitor) && window_at_cursor_position)
-            window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window->internal_window()), window_at_cursor_position, egl_funcs) == 0;
+        const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED);
+        if(is_window_fullscreen_on_monitor(display, focused_window, monitor) && focused_window)
+            window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window->internal_window()), focused_window, egl_funcs) == 0;
 
         if(window_texture_loaded && window_texture.texture_id) {
             window_texture_texture = mgl::Texture(window_texture.texture_id, MGL_TEXTURE_FORMAT_RGB);
