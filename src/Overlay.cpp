@@ -96,6 +96,10 @@ namespace gsr {
         return None;
     }
 
+    static bool is_focused_application_wayland(Display *dpy) {
+        return get_focused_window(dpy) == 0;
+    }
+
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
         // TODO:
@@ -725,6 +729,14 @@ namespace gsr {
         window = std::make_unique<mgl::Window>();
         deinit_theme();
 
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+
+        // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
+        // If the focused window is a wayland application then don't use override redirect and instead create
+        // a fullscreen window for the ui.
+        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || !is_focused_application_wayland(display);
+
         mgl::vec2i window_size = { 1280, 720 };
         mgl::vec2i window_pos = { 0, 0 };
 
@@ -734,7 +746,7 @@ namespace gsr {
         window_create_params.max_size = window_size;
         window_create_params.position = window_pos;
         window_create_params.hidden = true;
-        window_create_params.override_redirect = true;
+        window_create_params.override_redirect = prevent_game_minimizing;
         window_create_params.background_color = bg_color;
         window_create_params.support_alpha = true;
         window_create_params.window_type = MGL_WINDOW_TYPE_NORMAL;
@@ -742,9 +754,6 @@ namespace gsr {
 
         if(!window->create("gsr ui", window_create_params))
             fprintf(stderr, "error: failed to create window\n");
-
-        mgl_context *context = mgl_get_context();
-        Display *display = (Display*)context->connection;
 
         unsigned char data = 2; // Prefer being composed to allow transparency
         XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
@@ -940,7 +949,8 @@ namespace gsr {
         //     XFlush(display);
         // }
 
-        //window->set_fullscreen(true);
+        if(!prevent_game_minimizing)
+            window->set_fullscreen(true);
 
         visible = true;
 
