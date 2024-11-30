@@ -60,6 +60,7 @@ namespace gsr {
         void xi_setup();
         void handle_xi_events();
         void process_key_bindings(mgl::Event &event);
+        void grab_mouse_and_keyboard();
         void xi_setup_fake_cursor();
         void xi_grab_all_devices();
         void xi_warp_pointer(mgl::vec2i position);

@@ -601,6 +601,8 @@ namespace gsr {
         if(!window)
             return false;
 
+        grab_mouse_and_keyboard();
+
         //force_window_on_top();
 
         window->clear(bg_color);
@@ -634,6 +636,21 @@ namespace gsr {
         window->display();
 
         return true;
+    }
+
+    void Overlay::grab_mouse_and_keyboard() {
+        // TODO: Remove these grabs when debugging with a debugger, or your X11 session will appear frozen.
+        // There should be a debug mode to not use these
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+        XGrabPointer(display, window->get_system_handle(), True,
+            ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
+            Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
+            ButtonMotionMask,
+            GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
+        // TODO: This breaks global hotkeys (when using x11 global hotkeys)
+        XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+        XFlush(display);
     }
 
     void Overlay::xi_setup_fake_cursor() {
@@ -898,19 +915,9 @@ namespace gsr {
             default_cursor = 0;
         }
         default_cursor = XCreateFontCursor(display, XC_arrow);
-
-        // TODO: Remove these grabs when debugging with a debugger, or your X11 session will appear frozen.
-        // There should be a debug mode to not use these
-
-        XGrabPointer(display, window->get_system_handle(), True,
-            ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
-            Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
-            ButtonMotionMask,
-            GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
-        // TODO: This breaks global hotkeys (when using x11 global hotkeys)
-        XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
-
         XFlush(display);
+
+        grab_mouse_and_keyboard();
 
         // The real cursor doesn't move when all devices are grabbed, so we create our own cursor and diplay that while grabbed
         xi_setup_fake_cursor();
