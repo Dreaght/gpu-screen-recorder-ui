@@ -48,4 +48,4 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * The UI always opens on the same (incorrect) monitor when using multiple monitors on Wayland
 * Some games receive mouse input while the UI is open
-* Global hotkeys can clash with other hotkeys. This is primarly because Wayland compositors are missing support for global hotkey so this software uses a global hotkey system that works on X11 and Wayland by bypassing X11 and Wayland.
+* Global hotkeys on Wayland can clash with keys used by other applications. This is primarly because Wayland compositors are missing support for global hotkey so this software uses a global hotkey system that works on all Wayland compositors.

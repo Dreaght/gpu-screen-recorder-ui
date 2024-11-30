@@ -10,6 +10,7 @@
 #include "../include/gui/Utils.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
+#include "../include/GlobalHotkeys.hpp"
 
 #include <string.h>
 #include <assert.h>
@@ -555,13 +556,17 @@ namespace gsr {
         }
     }
 
-    void Overlay::handle_events() {
+    void Overlay::handle_events(gsr::GlobalHotkeys *global_hotkeys) {
         if(!visible || !window)
             return;
 
         handle_xi_events();
 
         while(window->poll_event(event)) {
+            if(global_hotkeys) {
+                if(!global_hotkeys->on_event(event))
+                    continue;
+            }
             on_event(event);
         }
     }
@@ -910,7 +915,7 @@ namespace gsr {
         // The real cursor doesn't move when all devices are grabbed, so we create our own cursor and diplay that while grabbed
         xi_setup_fake_cursor();
 
-        // We want to grab all devices to prevent any other application below from receiving events.
+        // We want to grab all devices to prevent any other application below the UI from receiving events.
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
         xi_grab_all_devices();
 
@@ -1005,10 +1010,16 @@ namespace gsr {
     }
 
     void Overlay::toggle_show() {
-        if(visible)
-            hide();
-        else
+        if(visible) {
+            //hide();
+            // We dont want to hide immediately because hide is called in event callback, in which it destroys the window.
+            // Instead remove all pages and wait until next iteration to close the UI (which happens when there are no pages to render).
+            while(!page_stack.empty()) {
+                page_stack.pop();
+            }
+        } else {
             show();
+        }
     }
 
     void Overlay::toggle_record() {
@@ -1555,6 +1566,8 @@ namespace gsr {
         const int fdl = fcntl(gpu_screen_recorder_process_output_fd, F_GETFL);
         fcntl(gpu_screen_recorder_process_output_fd, F_SETFL, fdl | O_NONBLOCK);
         gpu_screen_recorder_process_output_file = fdopen(gpu_screen_recorder_process_output_fd, "r");
+        if(gpu_screen_recorder_process_output_file)
+            gpu_screen_recorder_process_output_fd = -1;
 
         // TODO: Start recording after this notification has disappeared to make sure it doesn't show up in the video.
         // Make clear to the user that the recording starts after the notification is gone.

@@ -100,3 +100,7 @@ Remove all dependencies from tools/gsr-global-hotkeys and roll our own keyboard 
 Test global hotkeys with azerty instead of qwerty.
 
 Fix cursor grab not working in owlboy, need to use xigrab.
+
+Dont allow autostart of replay if capture option is window recording (when window recording is added).
+
+Use global shortcuts desktop portal protocol on wayland when available.

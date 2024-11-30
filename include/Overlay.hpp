@@ -18,6 +18,7 @@
 
 namespace gsr {
     class DropdownButton;
+    class GlobalHotkeys;
 
     enum class RecordingStatus {
         NONE,
@@ -40,7 +41,7 @@ namespace gsr {
         Overlay& operator=(const Overlay&) = delete;
         ~Overlay();
 
-        void handle_events();
+        void handle_events(gsr::GlobalHotkeys *global_hotkeys);
         void on_event(mgl::Event &event);
         // Returns false if not visible
         bool draw();

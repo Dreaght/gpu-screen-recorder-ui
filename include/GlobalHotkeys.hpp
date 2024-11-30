@@ -4,6 +4,10 @@
 #include <functional>
 #include <string>
 
+namespace mgl {
+    class Event;
+}
+
 namespace gsr {
     struct Hotkey {
         uint64_t key = 0;
@@ -24,5 +28,7 @@ namespace gsr {
         virtual void unbind_all_keys() {}
         virtual bool bind_action(const std::string &id, GlobalHotkeyCallback callback) { (void)id; (void)callback; return false; };
         virtual void poll_events() = 0;
+        // Returns true if the event wasn't consumed (if the event didn't match a key that has been bound)
+        virtual bool on_event(mgl::Event &event) { (void)event; return true; }
     };
 }

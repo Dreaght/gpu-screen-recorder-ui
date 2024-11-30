@@ -1,6 +1,7 @@
 #include "../include/GlobalHotkeysX11.hpp"
-#define XK_MISCELLANY
-#include <X11/keysymdef.h>
+#include <X11/keysym.h>
+#include <mglpp/window/Event.hpp>
+#include <assert.h>
 
 namespace gsr {
     static bool x_failed = false;
@@ -23,6 +24,30 @@ namespace gsr {
             XFreeModifiermap(modmap);
         }
         return numlockmask;
+    }
+
+    static KeySym mgl_key_to_key_sym(mgl::Keyboard::Key key) {
+        switch(key) {
+            case mgl::Keyboard::Z:   return XK_z;
+            case mgl::Keyboard::F7:  return XK_F7;
+            case mgl::Keyboard::F8:  return XK_F8;
+            case mgl::Keyboard::F9:  return XK_F9;
+            case mgl::Keyboard::F10: return XK_F10;
+            default:                 return None;
+        }
+    }
+
+    static uint32_t mgl_key_modifiers_to_x11_modifier_mask(const mgl::Event::KeyEvent &key_event) {
+        uint32_t mask = 0;
+        if(key_event.shift)
+            mask |= ShiftMask;
+        if(key_event.control)
+            mask |= ControlMask;
+        if(key_event.alt)
+            mask |= Mod1Mask;
+        if(key_event.system)
+            mask |= Mod4Mask;
+        return mask;
     }
 
     GlobalHotkeysX11::GlobalHotkeysX11() {
@@ -122,16 +147,27 @@ namespace gsr {
         }
     }
 
+    bool GlobalHotkeysX11::on_event(mgl::Event &event) {
+        if(event.type != mgl::Event::KeyPressed)
+            return true;
+
+        // Note: not all keys are mapped in mgl_key_to_key_sym. If more hotkeys are added or changed then add the key mapping there
+        const KeySym key_sym = mgl_key_to_key_sym(event.key.code);
+        const uint32_t modifiers = mgl_key_modifiers_to_x11_modifier_mask(event.key);
+        return !call_hotkey_callback(Hotkey{key_sym, modifiers});
+    }
+
     static unsigned int key_state_without_locks(unsigned int key_state) {
         return key_state & ~(Mod2Mask|LockMask);
     }
 
-    void GlobalHotkeysX11::call_hotkey_callback(Hotkey hotkey) const {
+    bool GlobalHotkeysX11::call_hotkey_callback(Hotkey hotkey) const {
         for(const auto &[key, val] : bound_keys_by_id) {
             if(val.hotkey.key == hotkey.key && key_state_without_locks(val.hotkey.modifiers) == key_state_without_locks(hotkey.modifiers)) {
                 val.callback(key);
-                return;
+                return true;
             }
         }
+        return false;
     }
 }
