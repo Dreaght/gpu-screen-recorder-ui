@@ -362,6 +362,15 @@ namespace gsr {
         // TODO:
         //xi_setup();
 
+        key_bindings[0].key_event.code = mgl::Keyboard::Escape;
+        key_bindings[0].key_event.alt = false;
+        key_bindings[0].key_event.control = false;
+        key_bindings[0].key_event.shift = false;
+        key_bindings[0].key_event.system = false;
+        key_bindings[0].callback = [this]() {
+            page_stack.pop();
+        };
+
         memset(&window_texture, 0, sizeof(window_texture));
 
         std::optional<Config> new_config = read_config(gsr_info);
@@ -528,6 +537,24 @@ namespace gsr {
         }
     }
 
+    static uint32_t key_event_to_bitmask(mgl::Event::KeyEvent key_event) {
+        return ((uint32_t)key_event.alt     << (uint32_t)0)
+            |  ((uint32_t)key_event.control << (uint32_t)1)
+            |  ((uint32_t)key_event.shift   << (uint32_t)2)
+            |  ((uint32_t)key_event.system  << (uint32_t)3);
+    }
+
+    void Overlay::process_key_bindings(mgl::Event &event) {
+        if(event.type != mgl::Event::KeyReleased)
+            return;
+
+        const uint32_t event_key_bitmask = key_event_to_bitmask(event.key);
+        for(const KeyBinding &key_binding : key_bindings) {
+            if(event.key.code == key_binding.key_event.code && event_key_bitmask == key_event_to_bitmask(key_binding.key_event))
+                key_binding.callback();
+        }
+    }
+
     void Overlay::handle_events() {
         if(!visible || !window)
             return;
@@ -548,6 +575,8 @@ namespace gsr {
 
         if(!page_stack.on_event(event, *window, mgl::vec2f(0.0f, 0.0f)))
             return;
+
+        process_key_bindings(event);
     }
 
     bool Overlay::draw() {

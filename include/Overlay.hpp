@@ -14,6 +14,8 @@
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/system/Clock.hpp>
 
+#include <array>
+
 namespace gsr {
     class DropdownButton;
 
@@ -56,6 +58,7 @@ namespace gsr {
     private:
         void xi_setup();
         void handle_xi_events();
+        void process_key_bindings(mgl::Event &event);
         void xi_setup_fake_cursor();
         void xi_grab_all_devices();
         void xi_warp_pointer(mgl::vec2i position);
@@ -93,6 +96,12 @@ namespace gsr {
 
         void force_window_on_top();
     private:
+        using KeyBindingCallback = std::function<void()>;
+        struct KeyBinding {
+            mgl::Event::KeyEvent key_event;
+            KeyBindingCallback callback;
+        };
+
         std::unique_ptr<mgl::Window> window;
         mgl::Event event;
         std::string resources_path;
@@ -147,5 +156,7 @@ namespace gsr {
         int xi_opcode = 0;
         XEvent *xi_input_xev = nullptr;
         XEvent *xi_output_xev = nullptr;
+
+        std::array<KeyBinding, 1> key_bindings;
     };
 }
