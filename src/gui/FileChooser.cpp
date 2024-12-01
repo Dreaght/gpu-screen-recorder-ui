@@ -106,7 +106,7 @@ namespace gsr {
                 mouse_over_item = i;
             }
 
-            if(item_pos.y + item_size.y >= draw_pos.y && item_pos.y < scissor.position.y + scissor.size.y) {
+            if(item_pos.y + item_size.y >= scissor.position.y && item_pos.y < scissor.position.y + scissor.size.y) {
                 window.draw(folder_sprite);
 
                 // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
