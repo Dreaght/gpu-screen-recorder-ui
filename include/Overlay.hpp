@@ -160,5 +160,6 @@ namespace gsr {
         XEvent *xi_output_xev = nullptr;
 
         std::array<KeyBinding, 1> key_bindings;
+        bool drawn_first_frame = false;
     };
 }

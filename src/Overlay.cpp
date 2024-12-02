@@ -635,6 +635,15 @@ namespace gsr {
 
         window->display();
 
+        if(!drawn_first_frame) {
+            drawn_first_frame = true;
+            mgl::Event event;
+            event.type = mgl::Event::MouseMoved;
+            event.mouse_move.x = window->get_mouse_position().x;
+            event.mouse_move.y = window->get_mouse_position().y;
+            on_event(event);
+        }
+
         return true;
     }
 
@@ -717,6 +726,7 @@ namespace gsr {
         if(visible)
             return;
 
+        drawn_first_frame = false;
         window.reset();
         window = std::make_unique<mgl::Window>();
         deinit_theme();
@@ -936,12 +946,6 @@ namespace gsr {
 
         visible = true;
 
-        mgl::Event event;
-        event.type = mgl::Event::MouseMoved;
-        event.mouse_move.x = window->get_mouse_position().x;
-        event.mouse_move.y = window->get_mouse_position().y;
-        on_event(event);
-
         if(gpu_screen_recorder_process > 0) {
             switch(recording_status) {
                 case RecordingStatus::NONE:
@@ -997,6 +1001,8 @@ namespace gsr {
         screenshot_sprite.set_texture(nullptr);
 
         visible = false;
+        drawn_first_frame = false;
+
         if(window) {
             const mgl::vec2i new_cursor_position = mgl::vec2i(window->internal_window()->pos.x, window->internal_window()->pos.y) + window->get_mouse_position();
             window->set_visible(false);
