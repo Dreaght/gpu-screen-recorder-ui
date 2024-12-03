@@ -22,7 +22,7 @@ Add nvidia overclock option.
 
 Add support for window selection in capture.
 
-Add option to record the focused monitor. This works on wayland too when using kms capture since we can get cursor position without root and see which monitor (crtc) the cursor is on.
+Add option to record the focused monitor. This works on wayland too when using kms capture since we can get cursor position without root and see which monitor (crtc) the cursor is on. Or use create_window_get_center_position.
 
 Make hotkeys configurable.
 
@@ -76,8 +76,6 @@ Add profile option. Convert view to profile, add an option at the bottom that sa
 
 Verify monitor/audio when starting recording. Give an error if the options are no longer valid.
 
-Add option to record focused monitor. This is less error prone when plugging in monitors, etc.
-
 Get focused window when opening gsr-ui and pass that to the save replay script, to ignore gsr-ui when getting game name.
 
 gsr ui window has _NET_WM_STATE _NET_WM_STATE_ABOVE, not _NET_WM_STATE_FULLSCREEN
@@ -104,3 +102,5 @@ Fix cursor grab not working in owlboy, need to use xigrab.
 Dont allow autostart of replay if capture option is window recording (when window recording is added).
 
 Use global shortcuts desktop portal protocol on wayland when available.
+
+Use `gpu-screen-recorder --list-capture-options` instead of gsr_info.supported_capture_options.monitors and update it everytime when opening setting page and when starting recording.

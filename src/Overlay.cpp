@@ -285,15 +285,58 @@ namespace gsr {
     }
 
     // Returns the first monitor if not found. Assumes there is at least one monitor connected.
-    static const mgl_monitor* find_monitor_by_cursor_position(mgl::Window &window) {
+    static const mgl_monitor* find_monitor_at_position(mgl::Window &window, mgl::vec2i pos) {
         const mgl_window *win = window.internal_window();
         assert(win->num_monitors > 0);
         for(int i = 0; i < win->num_monitors; ++i) {
             const mgl_monitor *mon = &win->monitors[i];
-            if(mgl::IntRect({ mon->pos.x, mon->pos.y }, { mon->size.x, mon->size.y }).contains({ win->cursor_position.x, win->cursor_position.y }))
+            if(mgl::IntRect({ mon->pos.x, mon->pos.y }, { mon->size.x, mon->size.y }).contains(pos))
                 return mon;
         }
         return &win->monitors[0];
+    }
+
+    static mgl::vec2i create_window_get_center_position(Display *display) {
+        const int screen = DefaultScreen(display);
+        XSetWindowAttributes window_attr;
+        window_attr.event_mask = StructureNotifyMask;
+        const Window window = XCreateWindow(display, DefaultRootWindow(display), 0, 0, 32, 32, 0, DefaultDepth(display, screen), InputOutput, DefaultVisual(display, screen), CWEventMask, &window_attr);
+        if(!window)
+            return {0, 0};
+
+        const Atom net_wm_window_type_atom = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+        const Atom net_wm_window_type_notification_atom = XInternAtom(display, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
+        const Atom net_wm_window_type_utility = XInternAtom(display, "_NET_WM_WINDOW_TYPE_UTILITY", False);
+        const Atom net_wm_window_opacity = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
+
+        const Atom window_type_atoms[2] = {
+            net_wm_window_type_notification_atom,
+            net_wm_window_type_utility
+        };
+        XChangeProperty(display, window, net_wm_window_type_atom, XA_ATOM, 32, PropModeReplace, (const unsigned char*)window_type_atoms, 2L);
+
+        const double alpha = 0.0;
+        const unsigned long opacity = (unsigned long)(0xFFFFFFFFul * alpha);
+        XChangeProperty(display, window, net_wm_window_opacity, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&opacity, 1L);
+
+        XMapWindow(display, window);
+        XFlush(display);
+
+        mgl::vec2i window_pos;
+        XEvent xev;
+        while(true) {
+            XNextEvent(display, &xev);
+            if(xev.type == ConfigureNotify) {
+                window_pos.x = xev.xconfigure.x + xev.xconfigure.width / 2;
+                window_pos.y = xev.xconfigure.y + xev.xconfigure.height / 2;
+                break;
+            }
+        }
+
+        XDestroyWindow(display, window);
+        XFlush(display);
+
+        return window_pos;
     }
 
     static bool is_compositor_running(Display *dpy, int screen) {
@@ -774,7 +817,9 @@ namespace gsr {
             return;
         }
 
-        const mgl_monitor *focused_monitor = find_monitor_by_cursor_position(*window);
+        // The cursor position is wrong on wayland if an x11 window is not focused. On wayland we instead create a window and get the position where the wayland compositor puts it
+        const mgl::vec2i monitor_position_query_value = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? create_window_get_center_position(display) : mgl::vec2i(win->cursor_position.x, win->cursor_position.y);
+        const mgl_monitor *focused_monitor = find_monitor_at_position(*window, monitor_position_query_value);
         window_pos = {focused_monitor->pos.x, focused_monitor->pos.y};
         window_size = {focused_monitor->size.x, focused_monitor->size.y};
         get_theme().set_window_size(window_size);
