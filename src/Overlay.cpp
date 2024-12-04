@@ -297,10 +297,9 @@ namespace gsr {
     }
 
     static mgl::vec2i create_window_get_center_position(Display *display) {
-        const int screen = DefaultScreen(display);
         XSetWindowAttributes window_attr;
         window_attr.event_mask = StructureNotifyMask;
-        const Window window = XCreateWindow(display, DefaultRootWindow(display), 0, 0, 32, 32, 0, DefaultDepth(display, screen), InputOutput, DefaultVisual(display, screen), CWEventMask, &window_attr);
+        const Window window = XCreateWindow(display, DefaultRootWindow(display), 0, 0, 32, 32, 0, CopyFromParent, InputOutput, CopyFromParent, CWEventMask, &window_attr);
         if(!window)
             return {0, 0};
 
