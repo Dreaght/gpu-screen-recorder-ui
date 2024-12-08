@@ -22,15 +22,17 @@ namespace gsr {
         APPLICATION_CUSTOM
     };
 
-    SettingsPage::SettingsPage(Type type, const GsrInfo &gsr_info, Config &config, PageStack *page_stack) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
+        gsr_info(gsr_info),
         page_stack(page_stack),
         settings_title_text("Settings", get_theme().title_font)
     {
         audio_devices = get_audio_devices();
         application_audio = get_application_audio();
+        capture_options = get_supported_capture_options(*gsr_info);
 
         auto content_page = std::make_unique<GsrPage>();
         content_page->add_button("Back", "back", get_color_theme().page_bg_color);
@@ -41,9 +43,9 @@ namespace gsr {
         content_page_ptr = content_page.get();
         add_widget(std::move(content_page));
 
-        add_widgets(gsr_info);
-        add_page_specific_widgets(gsr_info);
-        load(gsr_info);
+        add_widgets();
+        add_page_specific_widgets();
+        load();
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
@@ -55,31 +57,31 @@ namespace gsr {
         return view_radio_button;
     }
 
-    std::unique_ptr<ComboBox> SettingsPage::create_record_area_box(const GsrInfo &gsr_info) {
+    std::unique_ptr<ComboBox> SettingsPage::create_record_area_box() {
         auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them
         // TODO: Enable this
-        //if(gsr_info.supported_capture_options.window)
+        //if(capture_options.window)
         //    record_area_box->add_item("Window", "window");
-        if(gsr_info.supported_capture_options.focused)
+        if(capture_options.focused)
             record_area_box->add_item("Follow focused window", "focused");
-        if(gsr_info.supported_capture_options.screen)
+        if(capture_options.screen)
             record_area_box->add_item("All monitors", "screen");
-        for(const auto &monitor : gsr_info.supported_capture_options.monitors) {
+        for(const auto &monitor : capture_options.monitors) {
             char name[256];
             snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
             record_area_box->add_item(name, monitor.name);
         }
-        if(gsr_info.supported_capture_options.portal)
+        if(capture_options.portal)
             record_area_box->add_item("Desktop portal", "portal");
         record_area_box_ptr = record_area_box.get();
         return record_area_box;
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_record_area(const GsrInfo &gsr_info) {
+    std::unique_ptr<Widget> SettingsPage::create_record_area() {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
         record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_color_theme().text_color));
-        record_area_list->add_widget(create_record_area_box(gsr_info));
+        record_area_list->add_widget(create_record_area_box());
         return record_area_list;
     }
 
@@ -172,11 +174,11 @@ namespace gsr {
         return checkbox;
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_capture_target(const GsrInfo &gsr_info) {
+    std::unique_ptr<Widget> SettingsPage::create_capture_target() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
 
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        capture_target_list->add_widget(create_record_area(gsr_info));
+        capture_target_list->add_widget(create_record_area());
         capture_target_list->add_widget(create_select_window());
         capture_target_list->add_widget(create_area_size_section());
         capture_target_list->add_widget(create_video_resolution_section());
@@ -378,40 +380,40 @@ namespace gsr {
         return quality_list;
     }
 
-    std::unique_ptr<ComboBox> SettingsPage::create_video_codec_box(const GsrInfo &gsr_info) {
+    std::unique_ptr<ComboBox> SettingsPage::create_video_codec_box() {
         auto video_codec_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them.
         // TODO: Show error if no encoders are supported.
         // TODO: Show warning (once) if only software encoder is available.
         video_codec_box->add_item("Auto (Recommended)", "auto");
-        if(gsr_info.supported_video_codecs.h264)
+        if(gsr_info->supported_video_codecs.h264)
             video_codec_box->add_item("H264", "h264");
-        if(gsr_info.supported_video_codecs.hevc)
+        if(gsr_info->supported_video_codecs.hevc)
             video_codec_box->add_item("HEVC", "hevc");
-        if(gsr_info.supported_video_codecs.av1)
+        if(gsr_info->supported_video_codecs.av1)
             video_codec_box->add_item("AV1", "av1");
-        if(gsr_info.supported_video_codecs.vp8)
+        if(gsr_info->supported_video_codecs.vp8)
             video_codec_box->add_item("VP8", "vp8");
-        if(gsr_info.supported_video_codecs.vp9)
+        if(gsr_info->supported_video_codecs.vp9)
             video_codec_box->add_item("VP9", "vp9");
-        if(gsr_info.supported_video_codecs.hevc_hdr)
+        if(gsr_info->supported_video_codecs.hevc_hdr)
             video_codec_box->add_item("HEVC (HDR)", "hevc_hdr");
-        if(gsr_info.supported_video_codecs.hevc_10bit)
+        if(gsr_info->supported_video_codecs.hevc_10bit)
             video_codec_box->add_item("HEVC (10 bit, reduces banding)", "hevc_10bit");
-        if(gsr_info.supported_video_codecs.av1_hdr)
+        if(gsr_info->supported_video_codecs.av1_hdr)
             video_codec_box->add_item("AV1 (HDR)", "av1_hdr");
-        if(gsr_info.supported_video_codecs.av1_10bit)
+        if(gsr_info->supported_video_codecs.av1_10bit)
             video_codec_box->add_item("AV1 (10 bit, reduces banding)", "av1_10bit");
-        if(gsr_info.supported_video_codecs.h264_software)
+        if(gsr_info->supported_video_codecs.h264_software)
             video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
         video_codec_box_ptr = video_codec_box.get();
         return video_codec_box;
     }
 
-    std::unique_ptr<List> SettingsPage::create_video_codec(const GsrInfo &gsr_info) {
+    std::unique_ptr<List> SettingsPage::create_video_codec() {
         auto video_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video codec:", get_color_theme().text_color));
-        video_codec_list->add_widget(create_video_codec_box(gsr_info));
+        video_codec_list->add_widget(create_video_codec_box());
         video_codec_ptr = video_codec_list.get();
         return video_codec_list;
     }
@@ -477,16 +479,16 @@ namespace gsr {
         return record_cursor_checkbox;
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_video_section(const GsrInfo &gsr_info) {
+    std::unique_ptr<Widget> SettingsPage::create_video_section() {
         auto video_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_section_list->add_widget(create_video_quality_section());
-        video_section_list->add_widget(create_video_codec(gsr_info));
+        video_section_list->add_widget(create_video_codec());
         video_section_list->add_widget(create_framerate_section());
         video_section_list->add_widget(create_record_cursor_section());
         return std::make_unique<Subsection>("Video", std::move(video_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_settings(const GsrInfo &gsr_info) {
+    std::unique_ptr<Widget> SettingsPage::create_settings() {
         auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
         page_list->set_spacing(0.018f);
         page_list->add_widget(create_view_radio_button());
@@ -496,16 +498,16 @@ namespace gsr {
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
-        settings_list->add_widget(create_capture_target(gsr_info));
+        settings_list->add_widget(create_capture_target());
         settings_list->add_widget(create_audio_section());
-        settings_list->add_widget(create_video_section(gsr_info));
+        settings_list->add_widget(create_video_section());
         settings_list_ptr = settings_list.get();
         settings_scrollable_page_ptr->add_widget(std::move(settings_list));
         return page_list;
     }
 
-    void SettingsPage::add_widgets(const GsrInfo &gsr_info) {
-        content_page_ptr->add_widget(create_settings(gsr_info));
+    void SettingsPage::add_widgets() {
+        content_page_ptr->add_widget(create_settings());
 
         record_area_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
             (void)text;
@@ -534,32 +536,32 @@ namespace gsr {
         };
         video_quality_box_ptr->on_selection_changed("", video_quality_box_ptr->get_selected_id());
 
-        if(!gsr_info.supported_capture_options.monitors.empty())
-            record_area_box_ptr->set_selected_item(gsr_info.supported_capture_options.monitors.front().name);
-        else if(gsr_info.supported_capture_options.portal)
+        if(!capture_options.monitors.empty())
+            record_area_box_ptr->set_selected_item(capture_options.monitors.front().name);
+        else if(capture_options.portal)
             record_area_box_ptr->set_selected_item("portal");
-        else if(gsr_info.supported_capture_options.window)
+        else if(capture_options.window)
             record_area_box_ptr->set_selected_item("window");
         else
             record_area_box_ptr->on_selection_changed("", "");
 
-        if(!gsr_info.system_info.supports_app_audio) {
+        if(!gsr_info->system_info.supports_app_audio) {
             add_application_audio_button_ptr->set_visible(false);
             add_custom_application_audio_button_ptr->set_visible(false);
             application_audio_invert_checkbox_ptr->set_visible(false);
         }
     }
 
-    void SettingsPage::add_page_specific_widgets(const GsrInfo &gsr_info) {
+    void SettingsPage::add_page_specific_widgets() {
         switch(type) {
             case Type::REPLAY:
-                add_replay_widgets(gsr_info);
+                add_replay_widgets();
                 break;
             case Type::RECORD:
-                add_record_widgets(gsr_info);
+                add_record_widgets();
                 break;
             case Type::STREAM:
-                add_stream_widgets(gsr_info);
+                add_stream_widgets();
                 break;
         }
     }
@@ -622,9 +624,9 @@ namespace gsr {
         return replay_time_list;
     }
 
-    std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically(const GsrInfo &gsr_info) {
+    std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
         char fullscreen_text[256];
-        snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info.system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
 
         auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         radiobutton->add_item("Don't turn on replay automatically", "dont_turn_on_automatically");
@@ -635,9 +637,9 @@ namespace gsr {
         return radiobutton;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder(const GsrInfo &gsr_info) {
+    std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info.system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
@@ -659,7 +661,7 @@ namespace gsr {
         estimated_file_size_ptr->set_text(buffer);
     }
 
-    void SettingsPage::add_replay_widgets(const GsrInfo &gsr_info) {
+    void SettingsPage::add_replay_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_info_data_list->add_widget(create_save_directory("Directory to save replays:"));
@@ -670,8 +672,8 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_start_replay_automatically(gsr_info));
-        general_list->add_widget(create_save_replay_in_game_folder(gsr_info));
+        general_list->add_widget(create_start_replay_automatically());
+        general_list->add_widget(create_save_replay_in_game_folder());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -716,22 +718,22 @@ namespace gsr {
         };
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder(const GsrInfo &gsr_info) {
+    std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info.system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
-    void SettingsPage::add_record_widgets(const GsrInfo &gsr_info) {
+    void SettingsPage::add_record_widgets() {
         auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         file_list->add_widget(create_save_directory("Directory to save the video:"));
         file_list->add_widget(create_container_section());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_save_recording_in_game_folder(gsr_info));
+        general_list->add_widget(create_save_recording_in_game_folder());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -825,7 +827,7 @@ namespace gsr {
         return container_list;
     }
 
-    void SettingsPage::add_stream_widgets(const GsrInfo&) {
+    void SettingsPage::add_stream_widgets() {
         auto streaming_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());
@@ -879,16 +881,16 @@ namespace gsr {
         save();
     }
 
-    void SettingsPage::load(const GsrInfo &gsr_info) {
+    void SettingsPage::load() {
         switch(type) {
             case Type::REPLAY:
-                load_replay(gsr_info);
+                load_replay();
                 break;
             case Type::RECORD:
-                load_record(gsr_info);
+                load_record();
                 break;
             case Type::STREAM:
-                load_stream(gsr_info);
+                load_stream();
                 break;
         }
     }
@@ -921,11 +923,11 @@ namespace gsr {
         return str.size() >= len && memcmp(str.data(), substr, len) == 0;
     }
 
-    void SettingsPage::load_audio_tracks(const RecordOptions &record_options, const GsrInfo &gsr_info) {
+    void SettingsPage::load_audio_tracks(const RecordOptions &record_options) {
         audio_track_list_ptr->clear();
         for(const std::string &audio_track : record_options.audio_tracks) {
             if(starts_with(audio_track, "app:")) {
-                if(!gsr_info.system_info.supports_app_audio)
+                if(!gsr_info->system_info.supports_app_audio)
                     continue;
 
                 std::string audio_track_name = audio_track.substr(4);
@@ -955,12 +957,12 @@ namespace gsr {
         }
     }
 
-    void SettingsPage::load_common(RecordOptions &record_options, const GsrInfo &gsr_info) {
+    void SettingsPage::load_common(RecordOptions &record_options) {
         record_area_box_ptr->set_selected_item(record_options.record_area_option);
         merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
         application_audio_invert_checkbox_ptr->set_checked(record_options.application_audio_invert);
         change_video_resolution_checkbox_ptr->set_checked(record_options.change_video_resolution);
-        load_audio_tracks(record_options, gsr_info);
+        load_audio_tracks(record_options);
         color_range_box_ptr->set_selected_item(record_options.color_range);
         video_quality_box_ptr->set_selected_item(record_options.video_quality);
         video_codec_box_ptr->set_selected_item(record_options.video_codec);
@@ -1009,8 +1011,8 @@ namespace gsr {
         video_bitrate_entry_ptr->set_text(std::to_string(record_options.video_bitrate));
     }
 
-    void SettingsPage::load_replay(const GsrInfo &gsr_info) {
-        load_common(config.replay_config.record_options, gsr_info);
+    void SettingsPage::load_replay() {
+        load_common(config.replay_config.record_options);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
         show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
@@ -1024,8 +1026,8 @@ namespace gsr {
         replay_time_entry_ptr->set_text(std::to_string(config.replay_config.replay_time));
     }
 
-    void SettingsPage::load_record(const GsrInfo &gsr_info) {
-        load_common(config.record_config.record_options, gsr_info);
+    void SettingsPage::load_record() {
+        load_common(config.record_config.record_options);
         save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
         show_recording_started_notification_checkbox_ptr->set_checked(config.record_config.show_recording_started_notifications);
         show_video_saved_notification_checkbox_ptr->set_checked(config.record_config.show_video_saved_notifications);
@@ -1033,8 +1035,8 @@ namespace gsr {
         container_box_ptr->set_selected_item(config.record_config.container);
     }
 
-    void SettingsPage::load_stream(const GsrInfo &gsr_info) {
-        load_common(config.streaming_config.record_options, gsr_info);
+    void SettingsPage::load_stream() {
+        load_common(config.streaming_config.record_options);
         show_streaming_started_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_started_notifications);
         show_streaming_stopped_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_stopped_notifications);
         streaming_service_box_ptr->set_selected_item(config.streaming_config.streaming_service);

@@ -13,7 +13,7 @@
 #define CONFIG_FILE_VERSION 1
 
 namespace gsr {
-    Config::Config(const GsrInfo &gsr_info) {
+    Config::Config(const SupportedCaptureOptions &capture_options) {
         const std::string default_save_directory = get_videos_dir();
 
         streaming_config.record_options.video_quality = "custom";
@@ -29,10 +29,10 @@ namespace gsr {
         replay_config.record_options.audio_tracks.push_back("default_output");
         replay_config.record_options.video_bitrate = 45000;
 
-        if(!gsr_info.supported_capture_options.monitors.empty()) {
-            streaming_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
-            record_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
-            replay_config.record_options.record_area_option = gsr_info.supported_capture_options.monitors.front().name;
+        if(!capture_options.monitors.empty()) {
+            streaming_config.record_options.record_area_option = capture_options.monitors.front().name;
+            record_config.record_options.record_area_option = capture_options.monitors.front().name;
+            replay_config.record_options.record_area_option = capture_options.monitors.front().name;
         }
     }
 
@@ -140,7 +140,7 @@ namespace gsr {
         };
     }
 
-    std::optional<Config> read_config(const GsrInfo &gsr_info) {
+    std::optional<Config> read_config(const SupportedCaptureOptions &capture_options) {
         std::optional<Config> config;
 
         const std::string config_path = get_config_dir() + "/config_ui";
@@ -150,7 +150,7 @@ namespace gsr {
             return config;
         }
 
-        config = Config(gsr_info);
+        config = Config(capture_options);
         config->streaming_config.record_options.audio_tracks.clear();
         config->record_config.record_options.audio_tracks.clear();
         config->replay_config.record_options.audio_tracks.clear();

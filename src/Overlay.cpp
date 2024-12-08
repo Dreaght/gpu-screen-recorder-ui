@@ -393,11 +393,11 @@ namespace gsr {
         return true;
     }
 
-    Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs) :
+    Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
-        gsr_info(gsr_info),
+        gsr_info(std::move(gsr_info)),
         egl_funcs(egl_funcs),
-        config(gsr_info),
+        config(capture_options),
         bg_screenshot_overlay({0.0f, 0.0f}),
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
@@ -416,11 +416,11 @@ namespace gsr {
 
         memset(&window_texture, 0, sizeof(window_texture));
 
-        std::optional<Config> new_config = read_config(gsr_info);
+        std::optional<Config> new_config = read_config(capture_options);
         if(new_config)
             config = std::move(new_config.value());
 
-        init_color_theme(gsr_info);
+        init_color_theme(this->gsr_info);
 
         power_supply_online_filepath = get_power_supply_online_filepath();
 
@@ -875,7 +875,7 @@ namespace gsr {
             button->set_item_icon("save", &get_theme().save_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, gsr_info, config, &page_stack);
+                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
                     page_stack.push(std::move(replay_settings_page));
                 } else if(id == "save") {
                     on_press_save_replay();
@@ -896,7 +896,7 @@ namespace gsr {
             button->set_item_icon("pause", &get_theme().pause_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, gsr_info, config, &page_stack);
+                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack);
                     page_stack.push(std::move(record_settings_page));
                 } else if(id == "pause") {
                     toggle_pause();
@@ -915,7 +915,7 @@ namespace gsr {
             button->set_item_icon("start", &get_theme().play_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, gsr_info, config, &page_stack);
+                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack);
                     page_stack.push(std::move(stream_settings_page));
                 } else if(id == "start") {
                     on_press_start_stream();
@@ -1525,6 +1525,24 @@ namespace gsr {
         }
     }
 
+    static bool validate_capture_target(const GsrInfo &gsr_info, const std::string &capture_target) {
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        // TODO: Also check x11 window when enabled (check if capture_target is a decminal/hex number)
+        if(capture_target == "focused" && !capture_options.focused) {
+            return false;
+        } else if(capture_target == "screen" && !capture_options.screen) {
+            return false;
+        } else if(capture_target == "portal" && !capture_options.portal) {
+            return false;
+        } else {
+            for(const GsrMonitor &monitor : capture_options.monitors) {
+                if(capture_target == monitor.name)
+                    return true;
+            }
+            return false;
+        }
+    }
+
     void Overlay::on_press_save_replay() {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
             return;
@@ -1567,6 +1585,13 @@ namespace gsr {
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(!disable_notification && config.replay_config.show_replay_stopped_notifications)
                 show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+            return;
+        }
+
+        if(!validate_capture_target(gsr_info, config.replay_config.record_options.record_area_option)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", config.replay_config.record_options.record_area_option.c_str());
+            show_notification(err_msg, 3.0, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::REPLAY);
             return;
         }
 
@@ -1674,6 +1699,13 @@ namespace gsr {
             recording_status = RecordingStatus::NONE;
             update_ui_recording_stopped();
             record_filepath.clear();
+            return;
+        }
+
+        if(!validate_capture_target(gsr_info, config.record_config.record_options.record_area_option)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid. Please change capture target in settings", config.record_config.record_options.record_area_option.c_str());
+            show_notification(err_msg, 3.0, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::RECORD);
             return;
         }
 
@@ -1803,6 +1835,13 @@ namespace gsr {
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(config.streaming_config.show_streaming_stopped_notifications)
                 show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+            return;
+        }
+
+        if(!validate_capture_target(gsr_info, config.streaming_config.record_options.record_area_option)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid. Please change capture target in settings", config.streaming_config.record_options.record_area_option.c_str());
+            show_notification(err_msg, 3.0, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::STREAM);
             return;
         }
 

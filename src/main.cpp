@@ -168,8 +168,11 @@ int main(void) {
         exit(1);
     }
 
-   if(gsr_info.system_info.display_server == gsr::DisplayServer::WAYLAND)
-       fprintf(stderr, "warning: Wayland support is experimental and requires XWayland. Things may not work as expected.\n");
+    const gsr::DisplayServer display_server = gsr_info.system_info.display_server;
+    if(display_server == gsr::DisplayServer::WAYLAND)
+        fprintf(stderr, "warning: Wayland support is experimental and requires XWayland. Things may not work as expected.\n");
+
+    gsr::SupportedCaptureOptions capture_options = gsr::get_supported_capture_options(gsr_info);
 
     std::string resources_path;
     if(access("sibs-build", F_OK) == 0) {
@@ -197,11 +200,11 @@ int main(void) {
 
     fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
-    auto overlay = std::make_unique<gsr::Overlay>(resources_path, gsr_info, egl_funcs);
+    auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
     //overlay.show();
 
     std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
-    if(gsr_info.system_info.display_server == gsr::DisplayServer::X11) {
+    if(display_server == gsr::DisplayServer::X11) {
         global_hotkeys = register_x11_hotkeys(overlay.get());
         if(!global_hotkeys) {
             fprintf(stderr, "info: failed to register some x11 hotkeys because they are registered by another program. Will use linux hotkeys instead that can clash with keys used by other applications\n");

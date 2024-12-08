@@ -7,7 +7,7 @@
 #include <optional>
 
 namespace gsr {
-    struct GsrInfo;
+    struct SupportedCaptureOptions;
 
     struct ConfigHotkey {
         int64_t keysym = 0;
@@ -92,7 +92,7 @@ namespace gsr {
     };
 
     struct Config {
-        Config(const GsrInfo &gsr_info);
+        Config(const SupportedCaptureOptions &capture_options);
 
         MainConfig main_config;
         StreamingConfig streaming_config;
@@ -100,6 +100,6 @@ namespace gsr {
         ReplayConfig replay_config;
     };
 
-    std::optional<Config> read_config(const GsrInfo &gsr_info);
+    std::optional<Config> read_config(const SupportedCaptureOptions &capture_options);
     void save_config(Config &config);
 }

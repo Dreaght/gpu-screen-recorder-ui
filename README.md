@@ -27,6 +27,8 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * libxkbcommon
 
 ## Runtime dependencies
+There are also additional dependencies needed at runtime:
+
 * [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/)
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
 

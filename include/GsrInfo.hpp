@@ -52,13 +52,13 @@ namespace gsr {
 
     struct GpuInfo {
         GpuVendor vendor = GpuVendor::UNKNOWN;
+        std::string card_path;
     };
 
     struct GsrInfo {
         SystemInfo system_info;
         GpuInfo gpu_info;
         SupportedVideoCodecs supported_video_codecs;
-        SupportedCaptureOptions supported_capture_options;
     };
 
     enum class GsrInfoExitStatus {
@@ -78,4 +78,5 @@ namespace gsr {
 
     std::vector<AudioDevice> get_audio_devices();
     std::vector<std::string> get_application_audio();
+    SupportedCaptureOptions get_supported_capture_options(const GsrInfo &gsr_info);
 }

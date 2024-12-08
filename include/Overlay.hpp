@@ -36,7 +36,7 @@ namespace gsr {
 
     class Overlay {
     public:
-        Overlay(std::string resources_path, GsrInfo gsr_info, egl_functions egl_funcs);
+        Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs);
         Overlay(const Overlay&) = delete;
         Overlay& operator=(const Overlay&) = delete;
         ~Overlay();

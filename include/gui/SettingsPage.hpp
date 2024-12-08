@@ -25,17 +25,17 @@ namespace gsr {
             STREAM
         };
 
-        SettingsPage(Type type, const GsrInfo &gsr_info, Config &config, PageStack *page_stack);
+        SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack);
         SettingsPage(const SettingsPage&) = delete;
         SettingsPage& operator=(const SettingsPage&) = delete;
 
-        void load(const GsrInfo &gsr_info);
+        void load();
         void save();
         void on_navigate_away_from_page() override;
     private:
         std::unique_ptr<RadioButton> create_view_radio_button();
-        std::unique_ptr<ComboBox> create_record_area_box(const GsrInfo &gsr_info);
-        std::unique_ptr<Widget> create_record_area(const GsrInfo &gsr_info);
+        std::unique_ptr<ComboBox> create_record_area_box();
+        std::unique_ptr<Widget> create_record_area();
         std::unique_ptr<List> create_select_window();
         std::unique_ptr<Entry> create_area_width_entry();
         std::unique_ptr<Entry> create_area_height_entry();
@@ -48,7 +48,7 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_restore_portal_session_checkbox();
         std::unique_ptr<List> create_restore_portal_session_section();
         std::unique_ptr<Widget> create_change_video_resolution_section();
-        std::unique_ptr<Widget> create_capture_target(const GsrInfo &gsr_info);
+        std::unique_ptr<Widget> create_capture_target();
         std::unique_ptr<ComboBox> create_audio_device_selection_combobox();
         std::unique_ptr<Button> create_remove_audio_device_button(List *audio_device_list_ptr);
         std::unique_ptr<List> create_audio_device();
@@ -70,8 +70,8 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_color_range_box();
         std::unique_ptr<List> create_color_range();
         std::unique_ptr<List> create_video_quality_section();
-        std::unique_ptr<ComboBox> create_video_codec_box(const GsrInfo &gsr_info);
-        std::unique_ptr<List> create_video_codec(const GsrInfo &gsr_info);
+        std::unique_ptr<ComboBox> create_video_codec_box();
+        std::unique_ptr<List> create_video_codec();
         std::unique_ptr<ComboBox> create_audio_codec_box();
         std::unique_ptr<List> create_audio_codec();
         std::unique_ptr<Entry> create_framerate_entry();
@@ -80,24 +80,24 @@ namespace gsr {
         std::unique_ptr<List> create_framerate_mode();
         std::unique_ptr<List> create_framerate_section();
         std::unique_ptr<Widget> create_record_cursor_section();
-        std::unique_ptr<Widget> create_video_section(const GsrInfo &gsr_info);
-        std::unique_ptr<Widget> create_settings(const GsrInfo &gsr_info);
-        void add_widgets(const GsrInfo &gsr_info);
+        std::unique_ptr<Widget> create_video_section();
+        std::unique_ptr<Widget> create_settings();
+        void add_widgets();
 
-        void add_page_specific_widgets(const GsrInfo &gsr_info);
+        void add_page_specific_widgets();
 
         std::unique_ptr<List> create_save_directory(const char *label);
         std::unique_ptr<ComboBox> create_container_box();
         std::unique_ptr<List> create_container_section();
         std::unique_ptr<Entry> create_replay_time_entry();
         std::unique_ptr<List> create_replay_time();
-        std::unique_ptr<RadioButton> create_start_replay_automatically(const GsrInfo &gsr_info);
-        std::unique_ptr<CheckBox> create_save_replay_in_game_folder(const GsrInfo &gsr_info);
+        std::unique_ptr<RadioButton> create_start_replay_automatically();
+        std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
         std::unique_ptr<Label> create_estimated_file_size();
         void update_estimated_file_size();
-        std::unique_ptr<CheckBox> create_save_recording_in_game_folder(const GsrInfo &gsr_info);
-        void add_replay_widgets(const GsrInfo &gsr_info);
-        void add_record_widgets(const GsrInfo &gsr_info);
+        std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
+        void add_replay_widgets();
+        void add_record_widgets();
 
         std::unique_ptr<ComboBox> create_streaming_service_box();
         std::unique_ptr<List> create_streaming_service_section();
@@ -105,13 +105,13 @@ namespace gsr {
         std::unique_ptr<List> create_stream_url_section();
         std::unique_ptr<ComboBox> create_stream_container_box();
         std::unique_ptr<List> create_stream_container_section();
-        void add_stream_widgets(const GsrInfo &gsr_info);
+        void add_stream_widgets();
 
-        void load_audio_tracks(const RecordOptions &record_options, const GsrInfo &gsr_info);
-        void load_common(RecordOptions &record_options, const GsrInfo &gsr_info);
-        void load_replay(const GsrInfo &gsr_info);
-        void load_record(const GsrInfo &gsr_info);
-        void load_stream(const GsrInfo &gsr_info);
+        void load_audio_tracks(const RecordOptions &record_options);
+        void load_common(RecordOptions &record_options);
+        void load_replay();
+        void load_record();
+        void load_stream();
 
         void save_common(RecordOptions &record_options);
         void save_replay();
@@ -120,8 +120,10 @@ namespace gsr {
     private:
         Type type;
         Config &config;
+        const GsrInfo *gsr_info = nullptr;
         std::vector<AudioDevice> audio_devices;
         std::vector<std::string> application_audio;
+        SupportedCaptureOptions capture_options;
 
         GsrPage *content_page_ptr = nullptr;
         ScrollablePage *settings_scrollable_page_ptr = nullptr;

@@ -38,6 +38,8 @@ namespace gsr {
                 gsr_info->gpu_info.vendor = GpuVendor::INTEL;
             else if(key_value->value == "nvidia")
                 gsr_info->gpu_info.vendor = GpuVendor::NVIDIA;
+        } else if(key_value->key == "card_path") {
+            gsr_info->gpu_info.card_path = key_value->value;
         }
     }
 
@@ -62,38 +64,6 @@ namespace gsr {
             gsr_info->supported_video_codecs.vp8 = true;
         else if(line == "vp9")
             gsr_info->supported_video_codecs.vp9 = true;
-    }
-
-    static std::optional<GsrMonitor> capture_option_line_to_monitor(std::string_view line) {
-        std::optional<GsrMonitor> monitor;
-        const std::optional<KeyValue> key_value = parse_key_value(line);
-        if(!key_value)
-            return monitor;
-
-        char value_buffer[256];
-        snprintf(value_buffer, sizeof(value_buffer), "%.*s", (int)key_value->value.size(), key_value->value.data());
-
-        monitor = GsrMonitor{std::string(key_value->key), mgl::vec2i{0, 0}};
-        if(sscanf(value_buffer, "%dx%d", &monitor->size.x, &monitor->size.y) != 2)
-            monitor->size = {0, 0};
-
-        return monitor;
-    }
-
-    static void parse_capture_options_line(GsrInfo *gsr_info, std::string_view line) {
-        if(line == "window")
-            gsr_info->supported_capture_options.window = true;
-        else if(line == "focused")
-            gsr_info->supported_capture_options.focused = true;
-        else if(line == "screen")
-            gsr_info->supported_capture_options.screen = true;
-        else if(line == "portal")
-            gsr_info->supported_capture_options.portal = true;
-        else {
-            std::optional<GsrMonitor> monitor = capture_option_line_to_monitor(line);
-            if(monitor)
-                gsr_info->supported_capture_options.monitors.push_back(std::move(monitor.value()));
-        }
     }
 
     enum class GsrInfoSection {
@@ -161,7 +131,7 @@ namespace gsr {
                     break;
                 }
                 case GsrInfoSection::CAPTURE_OPTIONS: {
-                    parse_capture_options_line(gsr_info, line);
+                    // Intentionally ignore, get capture options with get_supported_capture_options instead
                     break;
                 }
             }
@@ -230,7 +200,7 @@ namespace gsr {
             return application_audio;
         }
 
-        char output[16384];
+        char output[8192];
         ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
         if(bytes_read < 0 || ferror(f)) {
             fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-application-audio' output\n");
@@ -245,5 +215,76 @@ namespace gsr {
         });
 
         return application_audio;
+    }
+
+    static std::optional<GsrMonitor> capture_option_line_to_monitor(std::string_view line) {
+        std::optional<GsrMonitor> monitor;
+        const std::optional<KeyValue> key_value = parse_key_value(line);
+        if(!key_value)
+            return monitor;
+
+        char value_buffer[256];
+        snprintf(value_buffer, sizeof(value_buffer), "%.*s", (int)key_value->value.size(), key_value->value.data());
+
+        monitor = GsrMonitor{std::string(key_value->key), mgl::vec2i{0, 0}};
+        if(sscanf(value_buffer, "%dx%d", &monitor->size.x, &monitor->size.y) != 2)
+            monitor->size = {0, 0};
+
+        return monitor;
+    }
+
+    static void parse_capture_options_line(SupportedCaptureOptions &capture_options, std::string_view line) {
+        if(line == "window")
+            capture_options.window = true;
+        else if(line == "focused")
+            capture_options.focused = true;
+        else if(line == "screen")
+            capture_options.screen = true;
+        else if(line == "portal")
+            capture_options.portal = true;
+        else {
+            std::optional<GsrMonitor> monitor = capture_option_line_to_monitor(line);
+            if(monitor)
+                capture_options.monitors.push_back(std::move(monitor.value()));
+        }
+    }
+
+    static const char* gpu_vendor_to_string(GpuVendor vendor) {
+        switch(vendor) {
+            case GpuVendor::UNKNOWN: return "unknown";
+            case GpuVendor::AMD:     return "amd";
+            case GpuVendor::INTEL:   return "intel";
+            case GpuVendor::NVIDIA:  return "nvidia";
+        }
+        return "unknown";
+    }
+
+    SupportedCaptureOptions get_supported_capture_options(const GsrInfo &gsr_info) {
+        SupportedCaptureOptions capture_options;
+
+        char command[512];
+        snprintf(command, sizeof(command), "gpu-screen-recorder --list-capture-options %s %s", gsr_info.gpu_info.card_path.c_str(), gpu_vendor_to_string(gsr_info.gpu_info.vendor));
+
+        FILE *f = popen(command, "r");
+        if(!f) {
+            fprintf(stderr, "error: 'gpu-screen-recorder --list-capture-options' failed\n");
+            return capture_options;
+        }
+
+        char output[8192];
+        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
+        if(bytes_read < 0 || ferror(f)) {
+            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-capture-options' output\n");
+            pclose(f);
+            return capture_options;
+        }
+        output[bytes_read] = '\0';
+
+        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+            parse_capture_options_line(capture_options, line);
+            return true;
+        });
+
+        return capture_options;
     }
 }

@@ -66,7 +66,7 @@ Make save-video-in-game-folder.sh and notify-saved-name.sh run ~/.config/gpu-scr
     if the profile is called 4chan.
     Create a directory of such example scripts, including 4chan webm one.
 
-On nvidia check if suspend fix is applied. If not, show a popup asking the user to apply it (and apply it automatically).
+On nvidia check if suspend fix is applied. If not, show a popup asking the user to apply it (and apply it automatically). This is a requirement before this package is made to a flatpak.
 
 Show warning when using steam deck or when trying to capture hevc/av1 on amd (the same warnings as gpu screen recorder gtk).
 
@@ -103,4 +103,4 @@ Dont allow autostart of replay if capture option is window recording (when windo
 
 Use global shortcuts desktop portal protocol on wayland when available.
 
-Use `gpu-screen-recorder --list-capture-options` instead of gsr_info.supported_capture_options.monitors and update it everytime when opening setting page and when starting recording.
+When support for window capture is enabled on x11 then make sure to not save the window except temporary while the program is open.
