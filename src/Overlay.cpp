@@ -301,7 +301,8 @@ namespace gsr {
     static mgl::vec2i create_window_get_center_position(Display *display) {
         XSetWindowAttributes window_attr;
         window_attr.event_mask = StructureNotifyMask;
-        const Window window = XCreateWindow(display, DefaultRootWindow(display), 0, 0, 32, 32, 0, CopyFromParent, InputOutput, CopyFromParent, CWEventMask, &window_attr);
+        window_attr.background_pixel = 0;
+        const Window window = XCreateWindow(display, DefaultRootWindow(display), 0, 0, 16, 16, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel | CWEventMask, &window_attr);
         if(!window)
             return {0, 0};
 
@@ -1002,8 +1003,7 @@ namespace gsr {
         //     XFlush(display);
         // }
 
-        if(!prevent_game_minimizing)
-            window->set_fullscreen(true);
+        window->set_fullscreen(true);
 
         visible = true;
 

@@ -50,3 +50,4 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * Some games receive mouse input while the UI is open
 * Global hotkeys on Wayland can clash with keys used by other applications. This is primarly because Wayland compositors are missing support for global hotkey so this software uses a global hotkey system that works on all Wayland compositors.
+* When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
