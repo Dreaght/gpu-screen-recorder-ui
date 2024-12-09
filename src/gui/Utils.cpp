@@ -50,4 +50,21 @@ namespace gsr {
     void set_frame_delta_seconds(double frame_delta) {
         frame_delta_seconds = frame_delta;
     }
+
+    mgl::vec2f scale_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to) {
+        if(std::abs(from.x) <= 0.0001f || std::abs(from.y) <= 0.0001f)
+            return {0.0f, 0.0f};
+
+        const double height_to_width_ratio = (double)from.y / (double)from.x;
+        from.x = to.x;
+        from.y = from.x * height_to_width_ratio;
+        
+        if(from.y > to.y) {
+            const double width_height_ratio = (double)from.x / (double)from.y;
+            from.y = to.y;
+            from.x = from.y * width_height_ratio;
+        }
+
+        return from;
+    }
 }

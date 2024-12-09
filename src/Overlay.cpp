@@ -7,8 +7,10 @@
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/CustomRendererWidget.hpp"
 #include "../include/gui/SettingsPage.hpp"
+#include "../include/gui/GlobalSettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/gui/PageStack.hpp"
+#include "../include/gui/GsrPage.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys.hpp"
 
@@ -420,7 +422,7 @@ namespace gsr {
         if(new_config)
             config = std::move(new_config.value());
 
-        init_color_theme(this->gsr_info);
+        init_color_theme(config, this->gsr_info);
 
         power_supply_online_filepath = get_power_supply_online_filepath();
 
@@ -863,6 +865,7 @@ namespace gsr {
         const int button_width = button_height;
 
         auto main_buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        List * main_buttons_list_ptr = main_buttons_list.get();
         main_buttons_list->set_spacing(0.0f);
         {
             auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "Off", &get_theme().replay_button_texture,
@@ -927,6 +930,20 @@ namespace gsr {
         const mgl::vec2f main_buttons_list_size = main_buttons_list->get_size();
         main_buttons_list->set_position((mgl::vec2f(window_size.x * 0.5f, window_size.y * 0.25f) - main_buttons_list_size * 0.5f).floor());
         front_page_ptr->add_widget(std::move(main_buttons_list));
+
+        {
+            const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
+            const int settings_button_size = main_buttons_size.y * 0.2f;
+            auto button = std::make_unique<Button>(&get_theme().title_font, "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
+            button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
+            button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
+            button->set_icon(&get_theme().settings_small_texture);
+            button->on_click = [&]() {
+                auto settings_page = std::make_unique<GlobalSettingsPage>(&gsr_info, config, &page_stack);
+                page_stack.push(std::move(settings_page));
+            };
+            front_page_ptr->add_widget(std::move(button));
+        }
 
         close_button_widget.draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
             const int border_size = std::max(1.0f, 0.0015f * get_theme().window_height);

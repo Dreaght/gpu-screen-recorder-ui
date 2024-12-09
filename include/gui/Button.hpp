@@ -5,6 +5,7 @@
 
 #include <mglpp/graphics/Color.hpp>
 #include <mglpp/graphics/Text.hpp>
+#include <mglpp/graphics/Sprite.hpp>
 
 namespace gsr {
     class Button : public Widget {
@@ -20,15 +21,21 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
         void set_border_scale(float scale);
+        void set_bg_hover_color(mgl::Color color);
+        void set_icon(mgl::Texture *texture);
 
         const std::string& get_text() const;
         void set_text(std::string str);
 
         std::function<void()> on_click;
     private:
+        void scale_sprite_to_button_size();
+    private:
         mgl::vec2f size;
         mgl::Color bg_color;
+        mgl::Color bg_hover_color;
         mgl::Text text;
+        mgl::Sprite sprite;
         float border_scale = 0.0015f;
     };
 }

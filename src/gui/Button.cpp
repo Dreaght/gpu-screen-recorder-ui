@@ -12,7 +12,15 @@ namespace gsr {
     static const float padding_left_scale = 0.007f;
     static const float padding_right_scale = 0.007f;
 
-    Button::Button(mgl::Font *font, const char *text, mgl::vec2f size, mgl::Color bg_color) : size(size), bg_color(bg_color), text(text, *font) {
+    // These are relative to the button size
+    static const float padding_top_icon_scale = 0.25f;
+    static const float padding_bottom_icon_scale = 0.25f;
+    static const float padding_left_icon_scale = 0.25f;
+    static const float padding_right_icon_scale = 0.25f;
+
+    Button::Button(mgl::Font *font, const char *text, mgl::vec2f size, mgl::Color bg_color) :
+        size(size), bg_color(bg_color), bg_hover_color(bg_color), text(text, *font)
+    {
 
     }
 
@@ -37,17 +45,23 @@ namespace gsr {
             return;
 
         const mgl::vec2f draw_pos = position + offset;
-
         const mgl::vec2f item_size = get_size().floor();
+        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
+
         mgl::Rectangle background(item_size);
         background.set_position(draw_pos.floor());
-        background.set_color(bg_color);
+        background.set_color(mouse_inside ? bg_hover_color : bg_color);
         window.draw(background);
 
         text.set_position((draw_pos + item_size * 0.5f - text.get_bounds().size * 0.5f).floor());
         window.draw(text);
 
-        const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
+        if(sprite.get_texture() && sprite.get_texture()->is_valid()) {
+            scale_sprite_to_button_size();
+            sprite.set_position((background.get_position() + background.get_size() * 0.5f - sprite.get_size() * 0.5f).floor());
+            window.draw(sprite);
+        }
+
         if(mouse_inside) {
             const mgl::Color outline_color = (bg_color == get_color_theme().tint_color) ? mgl::Color(255, 255, 255) : get_color_theme().tint_color;
             draw_rectangle_outline(window, draw_pos, item_size, outline_color, std::max(1.0f, border_scale * get_theme().window_height));
@@ -76,11 +90,33 @@ namespace gsr {
         border_scale = scale;
     }
 
+    void Button::set_bg_hover_color(mgl::Color color) {
+        bg_hover_color = color;
+    }
+
+    void Button::set_icon(mgl::Texture *texture) {
+        sprite.set_texture(texture);
+    }
+
     const std::string& Button::get_text() const {
         return text.get_string();
     }
 
     void Button::set_text(std::string str) {
         text.set_string(std::move(str));
+    }
+
+    void Button::scale_sprite_to_button_size() {
+        if(!sprite.get_texture() || !sprite.get_texture()->is_valid())
+            return;
+
+        const mgl::vec2f button_size = get_size();
+        const int padding_icon_top = padding_top_icon_scale * button_size.y;
+        const int padding_icon_bottom = padding_bottom_icon_scale * button_size.y;
+        const int padding_icon_left = padding_left_icon_scale * button_size.y;
+        const int padding_icon_right = padding_right_icon_scale * button_size.y;
+
+        const mgl::vec2f desired_size = button_size - mgl::vec2f(padding_icon_left + padding_icon_right, padding_icon_top + padding_icon_bottom);
+        sprite.set_size(scale_keep_aspect_ratio(sprite.get_texture()->get_size().to_vec2f(), desired_size).floor());
     }
 }

@@ -27,8 +27,7 @@ namespace gsr {
         type(type),
         config(config),
         gsr_info(gsr_info),
-        page_stack(page_stack),
-        settings_title_text("Settings", get_theme().title_font)
+        page_stack(page_stack)
     {
         audio_devices = get_audio_devices();
         application_audio = get_application_audio();

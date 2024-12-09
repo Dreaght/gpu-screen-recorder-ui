@@ -1,4 +1,5 @@
 #include "../include/Theme.hpp"
+#include "../include/Config.hpp"
 #include "../include/GsrInfo.hpp"
 
 #include <assert.h>
@@ -6,6 +7,27 @@
 namespace gsr {
     static Theme *theme = nullptr;
     static ColorTheme *color_theme = nullptr;
+
+    static mgl::Color gpu_vendor_to_color(GpuVendor vendor) {
+        switch(vendor) {
+            case GpuVendor::UNKNOWN: return mgl::Color(221, 0, 49);
+            case GpuVendor::AMD:     return mgl::Color(221, 0, 49);
+            case GpuVendor::INTEL:   return mgl::Color(8, 109, 183);
+            case GpuVendor::NVIDIA:  return mgl::Color(118, 185, 0);
+        }
+        return mgl::Color(221, 0, 49);
+    }
+
+    static mgl::Color color_name_to_color(const std::string &color_name) {
+        GpuVendor vendor = GpuVendor::UNKNOWN;
+        if(color_name == "amd")
+            vendor = GpuVendor::AMD;
+        else if(color_name == "intel")
+            vendor = GpuVendor::INTEL;
+        else if(color_name == "nvidia")
+            vendor = GpuVendor::NVIDIA;
+        return gpu_vendor_to_color(vendor);
+    }
 
     bool Theme::set_window_size(mgl::vec2i window_size) {
         if(std::abs(window_size.x - window_width) < 0.1f && std::abs(window_size.y - window_height) < 0.1f)
@@ -42,6 +64,9 @@ namespace gsr {
             goto error;
 
         if(!theme->settings_texture.load_from_file((resources_path + "images/settings.png").c_str()))
+            goto error;
+
+        if(!theme->settings_small_texture.load_from_file((resources_path + "images/settings_small.png").c_str()))
             goto error;
 
         if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str()))
@@ -102,29 +127,16 @@ namespace gsr {
         return *theme;
     }
 
-    bool init_color_theme(const GsrInfo &gsr_info) {
+    bool init_color_theme(const Config &config, const GsrInfo &gsr_info) {
         if(color_theme)
             return true;
 
         color_theme = new ColorTheme();
 
-        switch(gsr_info.gpu_info.vendor) {
-            case GpuVendor::UNKNOWN: {
-                break;
-            }
-            case GpuVendor::AMD: {
-                color_theme->tint_color = mgl::Color(221, 0, 49);
-                break;
-            }
-            case GpuVendor::INTEL: {
-                color_theme->tint_color = mgl::Color(8, 109, 183);
-                break;
-            }
-            case GpuVendor::NVIDIA: {
-                color_theme->tint_color = mgl::Color(118, 185, 0);
-                break;
-            }
-        }
+        if(config.main_config.tint_color.empty())
+            color_theme->tint_color = gpu_vendor_to_color(gsr_info.gpu_info.vendor);
+        else
+            color_theme->tint_color = color_name_to_color(config.main_config.tint_color);
 
         return true;
     }

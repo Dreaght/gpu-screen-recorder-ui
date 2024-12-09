@@ -27,6 +27,7 @@ src = [
     'src/gui/CustomRendererWidget.cpp',
     'src/gui/FileChooser.cpp',
     'src/gui/SettingsPage.cpp',
+    'src/gui/GlobalSettingsPage.cpp',
     'src/gui/GsrPage.cpp',
     'src/gui/Subsection.cpp',
     'src/Utils.cpp',

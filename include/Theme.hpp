@@ -8,6 +8,7 @@
 #include <string>
 
 namespace gsr {
+    struct Config;
     struct GsrInfo;
 
     struct Theme {
@@ -26,6 +27,7 @@ namespace gsr {
 
         mgl::Texture combobox_arrow_texture;
         mgl::Texture settings_texture;
+        mgl::Texture settings_small_texture;
         mgl::Texture folder_texture;
         mgl::Texture up_arrow_texture;
         mgl::Texture replay_button_texture;
@@ -56,7 +58,7 @@ namespace gsr {
         mgl::Color text_color = mgl::Color(255, 255, 255);
     };
 
-    bool init_color_theme(const GsrInfo &gsr_info);
+    bool init_color_theme(const Config &config, const GsrInfo &gsr_info);
     void deinit_color_theme();
     ColorTheme& get_color_theme();
 }

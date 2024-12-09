@@ -181,7 +181,5 @@ namespace gsr {
         RadioButton *turn_on_replay_automatically_mode_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
-
-        mgl::Text settings_title_text;
     };
 }
