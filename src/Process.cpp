@@ -29,7 +29,7 @@ namespace gsr {
 
         debug_print_args(args);
 
-        pid_t pid = vfork();
+        const pid_t pid = vfork();
         if(pid == -1) {
             perror("Failed to vfork");
             return false;
@@ -38,7 +38,7 @@ namespace gsr {
             signal(SIGHUP, SIG_IGN);
 
             // Daemonize child to make the parent the init process which will reap the zombie child
-            pid_t second_child = vfork();
+            const pid_t second_child = vfork();
             if(second_child == 0) { // child
                 execvp(args[0], (char* const*)args);
                 perror("execvp");
@@ -68,7 +68,7 @@ namespace gsr {
 
         debug_print_args(args);
 
-        pid_t pid = vfork();
+        const pid_t pid = vfork();
         if(pid == -1) {
             close(fds[PIPE_READ]);
             close(fds[PIPE_WRITE]);
@@ -95,7 +95,7 @@ namespace gsr {
     int exec_program_get_stdout(const char **args, std::string &result) {
         result.clear();
         int read_fd = -1;
-        pid_t process_id = exec_program(args, &read_fd);
+        const pid_t process_id = exec_program(args, &read_fd);
         if(process_id == -1)
             return -1;
 

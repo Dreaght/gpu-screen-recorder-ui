@@ -64,8 +64,9 @@ namespace gsr {
         //    record_area_box->add_item("Window", "window");
         if(capture_options.focused)
             record_area_box->add_item("Follow focused window", "focused");
-        if(capture_options.screen)
-            record_area_box->add_item("All monitors", "screen");
+        // Do we really need this? it's only available on nvidia x11
+        //if(capture_options.screen)
+        //    record_area_box->add_item("All monitors", "screen");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
             snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
