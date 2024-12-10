@@ -1,5 +1,7 @@
 #include "../include/GsrInfo.hpp"
 #include "../include/Utils.hpp"
+#include "../include/Process.hpp"
+
 #include <optional>
 #include <string.h>
 
@@ -82,23 +84,19 @@ namespace gsr {
     GsrInfoExitStatus get_gpu_screen_recorder_info(GsrInfo *gsr_info) {
         *gsr_info = GsrInfo{};
 
-        FILE *f = popen("gpu-screen-recorder --info", "r");
-        if(!f) {
-            fprintf(stderr, "error: 'gpu-screen-recorder --info' failed\n");
-            return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
+        std::string stdout_str;
+        const char *args[] = { "gpu-screen-recorder", "--info", nullptr };
+        const int exit_status = exec_program_get_stdout(args, stdout_str);
+        switch(exit_status) {
+            case 0:  break;
+            case 14: return GsrInfoExitStatus::BROKEN_DRIVERS;
+            case 22: return GsrInfoExitStatus::OPENGL_FAILED;
+            case 23: return GsrInfoExitStatus::NO_DRM_CARD;
+            default: return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
         }
-
-        char output[8192];
-        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
-        if(bytes_read < 0 || ferror(f)) {
-            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --info' output\n");
-            pclose(f);
-            return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
-        }
-        output[bytes_read] = '\0';
 
         GsrInfoSection section = GsrInfoSection::UNKNOWN;
-        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+        string_split_char(stdout_str, '\n', [&](std::string_view line) {
             if(starts_with(line, "section=")) {
                 const std::string_view section_name = line.substr(8);
                 if(section_name == "system_info")
@@ -139,18 +137,7 @@ namespace gsr {
             return true;
         });
 
-        int status = pclose(f);
-        if(WIFEXITED(status)) {
-            switch(WEXITSTATUS(status)) {
-                case 0:  return GsrInfoExitStatus::OK;
-                case 14: return GsrInfoExitStatus::BROKEN_DRIVERS;
-                case 22: return GsrInfoExitStatus::OPENGL_FAILED;
-                case 23: return GsrInfoExitStatus::NO_DRM_CARD;
-                default: return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
-            }
-        }
-
-        return GsrInfoExitStatus::FAILED_TO_RUN_COMMAND;
+        return GsrInfoExitStatus::OK;
     }
 
     static std::optional<AudioDevice> parse_audio_device_line(std::string_view line) {
@@ -166,22 +153,14 @@ namespace gsr {
     std::vector<AudioDevice> get_audio_devices() {
         std::vector<AudioDevice> audio_devices;
 
-        FILE *f = popen("gpu-screen-recorder --list-audio-devices", "r");
-        if(!f) {
+        std::string stdout_str;
+        const char *args[] = { "gpu-screen-recorder", "--list-audio-devices", nullptr };
+        if(exec_program_get_stdout(args, stdout_str) != 0) {
             fprintf(stderr, "error: 'gpu-screen-recorder --list-audio-devices' failed\n");
             return audio_devices;
         }
 
-        char output[16384];
-        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
-        if(bytes_read < 0 || ferror(f)) {
-            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-audio-devices' output\n");
-            pclose(f);
-            return audio_devices;
-        }
-        output[bytes_read] = '\0';
-
-        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+        string_split_char(stdout_str, '\n', [&](std::string_view line) {
             std::optional<AudioDevice> audio_device = parse_audio_device_line(line);
             if(audio_device)
                 audio_devices.push_back(std::move(audio_device.value()));
@@ -194,22 +173,14 @@ namespace gsr {
     std::vector<std::string> get_application_audio() {
         std::vector<std::string> application_audio;
 
-        FILE *f = popen("gpu-screen-recorder --list-application-audio", "r");
-        if(!f) {
+        std::string stdout_str;
+        const char *args[] = { "gpu-screen-recorder", "--list-application-audio", nullptr };
+        if(exec_program_get_stdout(args, stdout_str) != 0) {
             fprintf(stderr, "error: 'gpu-screen-recorder --list-application-audio' failed\n");
             return application_audio;
         }
 
-        char output[8192];
-        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
-        if(bytes_read < 0 || ferror(f)) {
-            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-application-audio' output\n");
-            pclose(f);
-            return application_audio;
-        }
-        output[bytes_read] = '\0';
-
-        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+        string_split_char(stdout_str, '\n', [&](std::string_view line) {
             application_audio.emplace_back(line);
             return true;
         });
@@ -262,25 +233,14 @@ namespace gsr {
     SupportedCaptureOptions get_supported_capture_options(const GsrInfo &gsr_info) {
         SupportedCaptureOptions capture_options;
 
-        char command[512];
-        snprintf(command, sizeof(command), "gpu-screen-recorder --list-capture-options %s %s", gsr_info.gpu_info.card_path.c_str(), gpu_vendor_to_string(gsr_info.gpu_info.vendor));
-
-        FILE *f = popen(command, "r");
-        if(!f) {
+        std::string stdout_str;
+        const char *args[] = { "gpu-screen-recorder", "--list-capture-options", gsr_info.gpu_info.card_path.c_str(), gpu_vendor_to_string(gsr_info.gpu_info.vendor), nullptr };
+        if(exec_program_get_stdout(args, stdout_str) != 0) {
             fprintf(stderr, "error: 'gpu-screen-recorder --list-capture-options' failed\n");
             return capture_options;
         }
 
-        char output[8192];
-        ssize_t bytes_read = fread(output, 1, sizeof(output) - 1, f);
-        if(bytes_read < 0 || ferror(f)) {
-            fprintf(stderr, "error: failed to read 'gpu-screen-recorder --list-capture-options' output\n");
-            pclose(f);
-            return capture_options;
-        }
-        output[bytes_read] = '\0';
-
-        string_split_char({output, (size_t)bytes_read}, '\n', [&](std::string_view line) {
+        string_split_char(stdout_str, '\n', [&](std::string_view line) {
             parse_capture_options_line(capture_options, line);
             return true;
         });

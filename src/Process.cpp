@@ -92,6 +92,48 @@ namespace gsr {
         }
     }
 
+    int exec_program_get_stdout(const char **args, std::string &result) {
+        result.clear();
+        int read_fd = -1;
+        pid_t process_id = exec_program(args, &read_fd);
+        if(process_id == -1)
+            return -1;
+
+        int exit_status = 0;
+        char buffer[8192];
+        for(;;) {
+            ssize_t bytes_read = read(read_fd, buffer, sizeof(buffer));
+            if(bytes_read == 0) {
+                break;
+            } else if(bytes_read == -1) {
+                fprintf(stderr, "Failed to read from pipe to program %s, error: %s\n", args[0], strerror(errno));
+                exit_status = -1;
+                break;
+            }
+
+            buffer[bytes_read] = '\0';
+            result.append(buffer, bytes_read);
+        }
+
+        if(exit_status != 0)
+            kill(process_id, SIGKILL);
+
+        int status = 0;
+        if(waitpid(process_id, &status, 0) == -1) {
+            perror("waitpid failed");
+            exit_status = -1;
+        }
+
+        if(!WIFEXITED(status))
+            exit_status = -1;
+
+        if(exit_status == 0)
+            exit_status = WEXITSTATUS(status);
+
+        close(read_fd);
+        return exit_status;
+    }
+
     bool read_cmdline_arg0(const char *filepath, char *output_buffer) {
         output_buffer[0] = '\0';
 
