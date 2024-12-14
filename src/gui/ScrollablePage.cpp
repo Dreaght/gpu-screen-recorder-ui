@@ -19,18 +19,20 @@ namespace gsr {
         if(!visible)
             return true;
 
-        offset = position + offset + mgl::vec2f(0.0f, scroll_y);
-        Widget *selected_widget = selected_child_widget;
+        offset = position + offset;
 
         const mgl::vec2f content_size = get_inner_size();
         const mgl::vec2i scissor_pos(offset.x, offset.y);
         const mgl::vec2i scissor_size(content_size.x, content_size.y);
 
+        offset.y += scroll_y;
+        Widget *selected_widget = selected_child_widget;
+
         if(event.type == mgl::Event::MouseButtonPressed || event.type == mgl::Event::MouseButtonReleased) {
-            if(!mgl::IntRect(scissor_pos, scissor_pos).contains({event.mouse_button.x, event.mouse_button.y}))
+            if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_button.x, event.mouse_button.y}))
                 return true;
         } else if(event.type == mgl::Event::MouseMoved) {
-            if(!mgl::IntRect(scissor_pos, scissor_pos).contains({event.mouse_move.x, event.mouse_move.y}))
+            if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_move.x, event.mouse_move.y}))
                 return true;
         }
 
