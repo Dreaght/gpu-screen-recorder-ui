@@ -104,3 +104,5 @@ Dont allow autostart of replay if capture option is window recording (when windo
 Use global shortcuts desktop portal protocol on wayland when available.
 
 When support for window capture is enabled on x11 then make sure to not save the window except temporary while the program is open.
+
+Support CJK.

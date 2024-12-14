@@ -33,7 +33,7 @@ There are also additional dependencies needed at runtime:
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
 
 # License
-This software is licensed under GPL3.0-only. Files under `fonts/` directory are licensed under `SIL Open Font License`.
+This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.
 
 # Demo
 [![Click here to watch a demo video on youtube](https://img.youtube.com/vi/SOqXusCTXXA/0.jpg)](https://www.youtube.com/watch?v=SOqXusCTXXA)
