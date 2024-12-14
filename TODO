@@ -106,3 +106,5 @@ Use global shortcuts desktop portal protocol on wayland when available.
 When support for window capture is enabled on x11 then make sure to not save the window except temporary while the program is open.
 
 Support CJK.
+
+Move ui hover code from ::draw to ::on_event, to properly handle widget event stack.

@@ -106,7 +106,7 @@ namespace gsr {
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
 
         const mgl::vec2f inner_size = get_inner_size();
-        mgl_scissor new_scissor = {
+        const mgl_scissor new_scissor = {
             mgl_vec2i{(int)position.x, (int)position.y},
             mgl_vec2i{(int)inner_size.x, (int)inner_size.y}
         };

@@ -20,7 +20,7 @@ namespace gsr {
         mgl_scissor prev_scissor;
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
 
-        mgl_scissor new_scissor = {
+        const mgl_scissor new_scissor = {
             mgl_vec2i{(int)draw_pos.x, (int)draw_pos.y},
             mgl_vec2i{(int)size.x, (int)size.y}
         };

@@ -22,6 +22,18 @@ namespace gsr {
         offset = position + offset + mgl::vec2f(0.0f, scroll_y);
         Widget *selected_widget = selected_child_widget;
 
+        const mgl::vec2f content_size = get_inner_size();
+        const mgl::vec2i scissor_pos(offset.x, offset.y);
+        const mgl::vec2i scissor_size(content_size.x, content_size.y);
+
+        if(event.type == mgl::Event::MouseButtonPressed || event.type == mgl::Event::MouseButtonReleased) {
+            if(!mgl::IntRect(scissor_pos, scissor_pos).contains({event.mouse_button.x, event.mouse_button.y}))
+                return true;
+        } else if(event.type == mgl::Event::MouseMoved) {
+            if(!mgl::IntRect(scissor_pos, scissor_pos).contains({event.mouse_move.x, event.mouse_move.y}))
+                return true;
+        }
+
         if(event.type == mgl::Event::MouseButtonReleased && moving_scrollbar_with_cursor) {
             moving_scrollbar_with_cursor = false;
             remove_widget_as_selected_in_parent();
@@ -79,7 +91,7 @@ namespace gsr {
         mgl_window_get_scissor(window.internal_window(), &prev_scissor);
 
         const mgl::vec2f content_size = get_inner_size();
-        mgl_scissor new_scissor = {
+        const mgl_scissor new_scissor = {
             mgl_vec2i{(int)offset.x, (int)offset.y},
             mgl_vec2i{(int)content_size.x, (int)content_size.y}
         };
