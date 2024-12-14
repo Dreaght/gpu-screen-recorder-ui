@@ -1571,12 +1571,12 @@ namespace gsr {
     static bool validate_capture_target(const GsrInfo &gsr_info, const std::string &capture_target) {
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
         // TODO: Also check x11 window when enabled (check if capture_target is a decminal/hex number)
-        if(capture_target == "focused" && !capture_options.focused) {
-            return false;
-        } else if(capture_target == "screen" && !capture_options.screen) {
-            return false;
-        } else if(capture_target == "portal" && !capture_options.portal) {
-            return false;
+        if(capture_target == "focused") {
+            return capture_options.focused;
+        } else if(capture_target == "screen") {
+            return capture_options.screen;
+        } else if(capture_target == "portal") {
+            return capture_options.portal;
         } else {
             for(const GsrMonitor &monitor : capture_options.monitors) {
                 if(capture_target == monitor.name)
