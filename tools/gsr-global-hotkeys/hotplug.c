@@ -24,7 +24,7 @@ bool hotplug_event_init(hotplug_event *self) {
     if(fd == -1)
         return false; /* Not root user */
 
-    if(bind(fd, (void *)&nls, sizeof(struct sockaddr_nl))) {
+    if(bind(fd, (void*)&nls, sizeof(struct sockaddr_nl))) {
         close(fd);
         return false;
     }

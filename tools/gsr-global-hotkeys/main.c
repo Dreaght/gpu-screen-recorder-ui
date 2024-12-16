@@ -23,34 +23,39 @@ static global_hotkey global_hotkeys[NUM_GLOBAL_HOTKEYS] = {
     { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "replay_save"  }
 };
 
-static void on_key_callback(uint32_t key, uint32_t modifiers, int press_status, void *userdata) {
+static bool on_key_callback(uint32_t key, uint32_t modifiers, int press_status, void *userdata) {
     (void)userdata;
     if(press_status != 1) /* 1 == Pressed */
-        return;
+        return true;
 
     for(int i = 0; i < NUM_GLOBAL_HOTKEYS; ++i) {
         if(key == global_hotkeys[i].key && modifiers == global_hotkeys[i].modifiers) {
             puts(global_hotkeys[i].action);
             fflush(stdout);
+            return false;
         }
     }
+
+    return true;
 }
 
 int main(void) {
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
-            fprintf(stderr, "error: failed to change user to root\n");
+            fprintf(stderr, "Error: failed to change user to root\n");
             return 1;
         }
     }
 
     keyboard_event keyboard_ev;
-    if(!keyboard_event_init(&keyboard_ev, true)) {
+    if(!keyboard_event_init(&keyboard_ev, true, true)) {
         fprintf(stderr, "Error: failed to setup hotplugging and no keyboard input devices were found\n");
         setuid(user_id);
         return 1;
     }
+
+    fprintf(stderr, "Info: global hotkeys setup, waiting for hotkeys to be pressed\n");
 
     for(;;) {
         keyboard_event_poll_events(&keyboard_ev, -1, on_key_callback, NULL);
@@ -58,8 +63,6 @@ int main(void) {
             fprintf(stderr, "Info: stdout closed (parent process likely closed this process), exiting...\n");
             break;
         }
-
-
     }
 
     keyboard_event_deinit(&keyboard_ev);

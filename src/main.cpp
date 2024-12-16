@@ -203,17 +203,17 @@ int main(void) {
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
     //overlay.show();
 
-    std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
-    if(display_server == gsr::DisplayServer::X11) {
-        global_hotkeys = register_x11_hotkeys(overlay.get());
-        if(!global_hotkeys) {
-            fprintf(stderr, "Info: failed to register some x11 hotkeys because they are registered by another program. Will use linux hotkeys instead that can clash with keys used by other applications\n");
-            global_hotkeys = register_linux_hotkeys(overlay.get());
-        }
-    } else {
-        fprintf(stderr, "Info: Global linux hotkeys are used which can clash with keys used by other applications. Use X11 instead if this is an issue for you\n");
-        global_hotkeys = register_linux_hotkeys(overlay.get());
-    }
+    // std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
+    // if(display_server == gsr::DisplayServer::X11) {
+    //     global_hotkeys = register_x11_hotkeys(overlay.get());
+    //     if(!global_hotkeys) {
+    //         fprintf(stderr, "Info: failed to register some x11 hotkeys because they are registered by another program. Will use linux hotkeys instead\n");
+    //         global_hotkeys = register_linux_hotkeys(overlay.get());
+    //     }
+    // } else {
+    //     global_hotkeys = register_linux_hotkeys(overlay.get());
+    // }
+    std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = register_linux_hotkeys(overlay.get());
 
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 

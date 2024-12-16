@@ -30,12 +30,18 @@ typedef enum {
 } keyboard_button_state;
 
 typedef struct {
-    struct pollfd event_polls[MAX_EVENT_POLLS]; /* Current size is |num_event_polls| */
-    int dev_input_ids[MAX_EVENT_POLLS];         /* Current size is |num_event_polls| */
+    int dev_input_id;
+    bool grabbed;
+} event_extra_data;
+
+typedef struct {
+    struct pollfd event_polls[MAX_EVENT_POLLS];      /* Current size is |num_event_polls| */
+    event_extra_data event_extra_data[MAX_EVENT_POLLS]; /* Current size is |num_event_polls| */
     int num_event_polls;
 
     int stdout_event_index;
     int hotplug_event_index;
+    int uinput_fd;
     bool stdout_failed;
 
     hotplug_event hotplug_ev;
@@ -51,13 +57,14 @@ typedef struct {
 } keyboard_event;
 
 /* |key| is a KEY_ from linux/input-event-codes.h. |modifiers| is a bitmask of keyboard_modkeys. |press_status| is 0 for released, 1 for pressed and 2 for repeat */
-typedef void (*key_callback)(uint32_t key, uint32_t modifiers, int press_status, void *userdata);
+/* Return true to allow other applications to receive the key input (when using exclusive grab) */
+typedef bool (*key_callback)(uint32_t key, uint32_t modifiers, int press_status, void *userdata);
 
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error);
+bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab);
 void keyboard_event_deinit(keyboard_event *self);
 
 /* If |timeout_milliseconds| is -1 then wait until an event is received */
 void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds, key_callback callback, void *userdata);
-bool keyboard_event_stdout_has_failed(keyboard_event *self);
+bool keyboard_event_stdout_has_failed(const keyboard_event *self);
 
 #endif /* KEYBOARD_EVENT_H */
