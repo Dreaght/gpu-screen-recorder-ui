@@ -25,17 +25,15 @@ static global_hotkey global_hotkeys[NUM_GLOBAL_HOTKEYS] = {
 
 static bool on_key_callback(uint32_t key, uint32_t modifiers, int press_status, void *userdata) {
     (void)userdata;
-    if(press_status != 1) /* 1 == Pressed */
-        return true;
-
     for(int i = 0; i < NUM_GLOBAL_HOTKEYS; ++i) {
         if(key == global_hotkeys[i].key && modifiers == global_hotkeys[i].modifiers) {
-            puts(global_hotkeys[i].action);
-            fflush(stdout);
+            if(press_status == 1) { /* 1 == Pressed */
+                puts(global_hotkeys[i].action);
+                fflush(stdout);
+            }
             return false;
         }
     }
-
     return true;
 }
 
