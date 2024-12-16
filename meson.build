@@ -68,6 +68,7 @@ executable(
         'tools/gsr-global-hotkeys/keyboard_event.c',
         'tools/gsr-global-hotkeys/main.c'
     ],
+    c_args : '-fstack-protector-all',
     install : true
 )
 

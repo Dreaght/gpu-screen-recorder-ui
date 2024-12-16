@@ -9,7 +9,7 @@
 
 typedef struct {
     uint32_t key;
-    uint32_t modifiers; /* modkeys */
+    uint32_t modifiers; /* keyboard_modkeys bitmask */
     const char *action;
 } global_hotkey;
 
