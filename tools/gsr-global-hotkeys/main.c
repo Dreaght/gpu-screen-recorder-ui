@@ -1,28 +1,11 @@
+#include "keyboard_event.h"
+
+/* C stdlib */
 #include <stdio.h>
+#include <stdint.h>
+
+/* POSIX */
 #include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <poll.h>
-
-#include <libudev.h>
-#include <libinput.h>
-#include <libevdev/libevdev.h>
-#include <xkbcommon/xkbcommon.h>
-
-typedef struct {
-    struct xkb_context *xkb_context;
-    struct xkb_keymap *xkb_keymap;
-    struct xkb_state *xkb_state;
-} key_mapper;
-
-typedef enum {
-    MODKEY_ALT   = 1 << 0,
-    MODKEY_SUPER = 1 << 1,
-    MODKEY_CTRL  = 1 << 2,
-    MODKEY_SHIFT = 1 << 3
-} modkeys;
 
 typedef struct {
     uint32_t key;
@@ -32,186 +15,28 @@ typedef struct {
 
 #define NUM_GLOBAL_HOTKEYS 6
 static global_hotkey global_hotkeys[NUM_GLOBAL_HOTKEYS] = {
-    { .key = XKB_KEY_z,   .modifiers = MODKEY_ALT,                .action = "show_hide"    },
-    { .key = XKB_KEY_F9,  .modifiers = MODKEY_ALT,                .action = "record"       },
-    { .key = XKB_KEY_F7,  .modifiers = MODKEY_ALT,                .action = "pause"        },
-    { .key = XKB_KEY_F8,  .modifiers = MODKEY_ALT,                .action = "stream"       },
-    { .key = XKB_KEY_F10, .modifiers = MODKEY_ALT | MODKEY_SHIFT, .action = "replay_start" },
-    { .key = XKB_KEY_F10, .modifiers = MODKEY_ALT,                .action = "replay_save"  }
+    { .key = KEY_Z,   .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "show_hide"    },
+    { .key = KEY_F9,  .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "record"       },
+    { .key = KEY_F7,  .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "pause"        },
+    { .key = KEY_F8,  .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "stream"       },
+    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_ALT | KEYBOARD_MODKEY_SHIFT, .action = "replay_start" },
+    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "replay_save"  }
 };
 
-static int open_restricted(const char *path, int flags, void *user_data) {
-    (void)user_data;
-    int fd = open(path, flags);
-    if(fd < 0)
-        fprintf(stderr, "error: failed to open %s, error: %s\n", path, strerror(errno));
-    return fd < 0 ? -errno : fd;
-}
+static void on_key_callback(uint32_t key, uint32_t modifiers, int press_status, void *userdata) {
+    (void)userdata;
+    if(press_status != 1) /* 1 == Pressed */
+        return;
 
-static void close_restricted(int fd, void *user_data) {
-    (void)user_data;
-    close(fd);
-}
-
-static const struct libinput_interface interface = {
-    .open_restricted = open_restricted,
-    .close_restricted = close_restricted,
-};
-
-static bool is_mod_key(xkb_keycode_t xkb_key_code) {
-    return xkb_key_code >= XKB_KEY_Shift_L && xkb_key_code <= XKB_KEY_Hyper_R;
-}
-
-typedef struct {
-    const char *modname;
-    modkeys key;
-} modname_to_modkey_map;
-
-static uint32_t xkb_state_to_modifiers(struct xkb_state *xkb_state) {
-    const modname_to_modkey_map modifier_keys[] = {
-        { .modname = XKB_MOD_NAME_ALT,   .key = MODKEY_ALT   },
-        { .modname = XKB_MOD_NAME_LOGO,  .key = MODKEY_SUPER },
-        { .modname = XKB_MOD_NAME_SHIFT, .key = MODKEY_SHIFT },
-        { .modname = XKB_MOD_NAME_CTRL,  .key = MODKEY_CTRL  }
-    };
-
-    uint32_t modifiers = 0;
-    for(int i = 0; i < 4; ++i) {
-        if(xkb_state_mod_name_is_active(xkb_state, modifier_keys[i].modname, XKB_STATE_MODS_EFFECTIVE) > 0)
-            modifiers |= modifier_keys[i].key;
-    }
-    return modifiers;
-}
-
-#define KEY_CODE_EV_TO_XKB(key) ((key) + 8)
-
-static int print_key_event(struct libinput_event *event, key_mapper *mapper) {
-    struct libinput_event_keyboard *keyboard = libinput_event_get_keyboard_event(event);
-    const uint32_t key_code = libinput_event_keyboard_get_key(keyboard);
-    enum libinput_key_state state_code = libinput_event_keyboard_get_key_state(keyboard);
-
-    const xkb_keycode_t xkb_key_code = KEY_CODE_EV_TO_XKB(key_code);
-    xkb_state_update_key(mapper->xkb_state, xkb_key_code, state_code == LIBINPUT_KEY_STATE_PRESSED ? XKB_KEY_DOWN : XKB_KEY_UP);
-    xkb_keysym_t xkb_key_sym = xkb_state_key_get_one_sym(mapper->xkb_state, xkb_key_code);
-    // char main_key[128];
-    // main_key[0] = '\0';
-
-    // if(xkb_state_mod_name_is_active(mapper->xkb_state, XKB_MOD_NAME_LOGO, XKB_STATE_MODS_EFFECTIVE) > 0)
-    //     strcat(main_key, "Super+");
-    // if(xkb_state_mod_name_is_active(mapper->xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0)
-    //     strcat(main_key, "Ctrl+");
-    // if(xkb_state_mod_name_is_active(mapper->xkb_state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE) > 0 && strcmp(main_key, "Meta") != 0)
-    //     strcat(main_key, "Alt+");
-    // if(xkb_state_mod_name_is_active(mapper->xkb_state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE) > 0)
-    //     strcat(main_key, "Shift+");
-
-    // if(!is_mod_key(xkb_key_sym)) {
-    //     char reg_key[64];
-    //     reg_key[0] = '\0';
-    //     xkb_keysym_get_name(xkb_key_sym, reg_key, sizeof(reg_key));
-    //     strcat(main_key, reg_key);
-    // }
-
-    if(state_code != LIBINPUT_KEY_STATE_PRESSED)
-        return 0;
-
-    const uint32_t current_modifiers = xkb_state_to_modifiers(mapper->xkb_state);
     for(int i = 0; i < NUM_GLOBAL_HOTKEYS; ++i) {
-        if(xkb_key_sym == global_hotkeys[i].key && current_modifiers == global_hotkeys[i].modifiers) {
+        if(key == global_hotkeys[i].key && modifiers == global_hotkeys[i].modifiers) {
             puts(global_hotkeys[i].action);
             fflush(stdout);
-            break;
         }
     }
-
-    return 0;
-}
-
-static int handle_events(struct libinput *libinput, key_mapper *mapper) {
-    int result = -1;
-    struct libinput_event *event;
-
-    if(libinput_dispatch(libinput) < 0)
-        return result;
-
-    while((event = libinput_get_event(libinput)) != NULL) {
-        if(libinput_event_get_type(event) == LIBINPUT_EVENT_KEYBOARD_KEY)
-            print_key_event(event, mapper);
-
-        libinput_event_destroy(event);
-        result = 0;
-    }
-
-    return result;
-}
-
-static int run_mainloop(struct libinput *libinput, key_mapper *mapper) {
-    struct pollfd fds[2] = {
-        {
-            .fd = libinput_get_fd(libinput),
-            .events = POLLIN,
-            .revents = 0
-        },
-        {
-            .fd = STDOUT_FILENO,
-            .events = 0,
-            .revents = 0
-        }
-    };
-
-    if(handle_events(libinput, mapper) != 0) {
-        fprintf(stderr, "error: didn't receive device added events. Is this program not running as root?\n");
-        return -1;
-    }
-
-    while(poll(fds, 2, -1) >= 0) {
-        if(fds[0].revents & POLLIN)
-            handle_events(libinput, mapper);
-        if(fds[1].revents & (POLLHUP|POLLERR))
-            break;
-    }
-
-    return 0;
-}
-
-static bool mapper_refresh_keymap(key_mapper *mapper) {
-    if(mapper->xkb_keymap != NULL) {
-        xkb_keymap_unref(mapper->xkb_keymap);
-        mapper->xkb_keymap = NULL;
-    }
-
-    // TODO:
-    struct xkb_rule_names names = {
-        NULL, NULL,
-        NULL,//keymap_is_default(mapper->layout) ? NULL : mapper->layout,
-        NULL,//keymap_is_default(mapper->variant) ? NULL : mapper->variant,
-        NULL
-    };
-    mapper->xkb_keymap = xkb_keymap_new_from_names(mapper->xkb_context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    if(mapper->xkb_keymap == NULL) {
-        fprintf(stderr, "error: failed to create XKB keymap.\n");
-        return false;
-    }
-
-    if(mapper->xkb_state != NULL) {
-        xkb_state_unref(mapper->xkb_state);
-        mapper->xkb_state = NULL;
-    }
-
-    mapper->xkb_state = xkb_state_new(mapper->xkb_keymap);
-    if(mapper->xkb_state == NULL) {
-        fprintf(stderr, "error: failed to create XKB state.\n");
-        return false;
-    }
-
-    return true;
 }
 
 int main(void) {
-    int result = 0;
-    struct udev *udev = NULL;
-    struct libinput *libinput = NULL;
-
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
@@ -220,53 +45,24 @@ int main(void) {
         }
     }
 
-    udev = udev_new();
-    if(!udev) {
-        fprintf(stderr, "error: udev_new failed\n");
-        result = 1;
-        goto done;
+    keyboard_event keyboard_ev;
+    if(!keyboard_event_init(&keyboard_ev, true)) {
+        fprintf(stderr, "Error: failed to setup hotplugging and no keyboard input devices were found\n");
+        setuid(user_id);
+        return 1;
     }
 
-    libinput = libinput_udev_create_context(&interface, NULL, udev);
-    if(!libinput) {
-        fprintf(stderr, "error: libinput_udev_create_context failed\n");
-        result = 1;
-        goto done;
+    for(;;) {
+        keyboard_event_poll_events(&keyboard_ev, -1, on_key_callback, NULL);
+        if(keyboard_event_stdout_has_failed(&keyboard_ev)) {
+            fprintf(stderr, "Info: stdout closed (parent process likely closed this process), exiting...\n");
+            break;
+        }
+
+
     }
 
-    if(libinput_udev_assign_seat(libinput, "seat0") != 0) {
-        fprintf(stderr, "error: libinput_udev_assign_seat with seat0 failed\n");
-        result = 1;
-        goto done;
-    }
-
-    key_mapper mapper;
-    mapper.xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if(!mapper.xkb_context) {
-        fprintf(stderr, "error: xkb_context_new failed\n");
-        result = 1;
-        goto done;
-    }
-
-    if(!mapper_refresh_keymap(&mapper)) {
-        fprintf(stderr, "error: key mapper failed\n");
-        result = 1;
-        goto done;
-    }
-
-    if(run_mainloop(libinput, &mapper) < 0) {
-        fprintf(stderr, "error: failed to start main loop\n");
-        result = 1;
-        goto done;
-    }
-
-    done:
-    if(libinput)
-        libinput_unref(libinput);
-
-    if(udev)
-        udev_unref(udev);
-
+    keyboard_event_deinit(&keyboard_ev);
     setuid(user_id);
-    return result;
+    return 0;
 }

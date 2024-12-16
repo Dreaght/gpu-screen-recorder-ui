@@ -62,22 +62,13 @@ executable(
 )
 
 executable(
-    'gsr-window-name',
-    ['tools/gsr-window-name/main.c'],
-    install : true,
-    dependencies : [dependency('x11')],
-)
-
-executable(
     'gsr-global-hotkeys',
-    ['tools/gsr-global-hotkeys/main.c'],
-    install : true,
-    dependencies : [
-        dependency('libevdev'),
-        dependency('libudev'),
-        dependency('libinput'),
-        dependency('xkbcommon')
+    [
+        'tools/gsr-global-hotkeys/hotplug.c',
+        'tools/gsr-global-hotkeys/keyboard_event.c',
+        'tools/gsr-global-hotkeys/main.c'
     ],
+    install : true
 )
 
 install_subdir('images', install_dir : gsr_ui_resources_path)

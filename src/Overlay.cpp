@@ -1374,6 +1374,7 @@ namespace gsr {
         }
     }
 
+    // TODO: Instead of checking power supply status periodically listen to power supply event
     void Overlay::update_power_supply_status() {
         if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_power_supply_connected")
             return;

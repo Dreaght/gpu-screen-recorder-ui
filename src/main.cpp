@@ -156,7 +156,7 @@ int main(void) {
     signal(SIGINT, sigint_handler);
 
     if(mgl_init() != 0) {
-        fprintf(stderr, "error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
+        fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
         exit(1);
     }
 
@@ -164,13 +164,13 @@ int main(void) {
     // TODO: Show the error in ui
     gsr::GsrInfoExitStatus gsr_info_exit_status = gsr::get_gpu_screen_recorder_info(&gsr_info);
     if(gsr_info_exit_status != gsr::GsrInfoExitStatus::OK) {
-        fprintf(stderr, "error: failed to get gpu-screen-recorder info, error: %d\n", (int)gsr_info_exit_status);
+        fprintf(stderr, "Error: failed to get gpu-screen-recorder info, error: %d\n", (int)gsr_info_exit_status);
         exit(1);
     }
 
     const gsr::DisplayServer display_server = gsr_info.system_info.display_server;
     if(display_server == gsr::DisplayServer::WAYLAND)
-        fprintf(stderr, "warning: Wayland support is experimental and requires XWayland. Things may not work as expected.\n");
+        fprintf(stderr, "Warning: Wayland support is experimental and requires XWayland. Things may not work as expected.\n");
 
     gsr::SupportedCaptureOptions capture_options = gsr::get_supported_capture_options(gsr_info);
 
@@ -198,7 +198,7 @@ int main(void) {
         exit(1);
     }
 
-    fprintf(stderr, "info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+    fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
     //overlay.show();
@@ -207,11 +207,11 @@ int main(void) {
     if(display_server == gsr::DisplayServer::X11) {
         global_hotkeys = register_x11_hotkeys(overlay.get());
         if(!global_hotkeys) {
-            fprintf(stderr, "info: failed to register some x11 hotkeys because they are registered by another program. Will use linux hotkeys instead that can clash with keys used by other applications\n");
+            fprintf(stderr, "Info: failed to register some x11 hotkeys because they are registered by another program. Will use linux hotkeys instead that can clash with keys used by other applications\n");
             global_hotkeys = register_linux_hotkeys(overlay.get());
         }
     } else {
-        fprintf(stderr, "info: Global linux hotkeys are used which can clash with keys used by other applications. Use X11 instead if this is an issue for you\n");
+        fprintf(stderr, "Info: Global linux hotkeys are used which can clash with keys used by other applications. Use X11 instead if this is an issue for you\n");
         global_hotkeys = register_linux_hotkeys(overlay.get());
     }
 
@@ -230,7 +230,7 @@ int main(void) {
         }
     }
 
-    fprintf(stderr, "info: shutting down!\n");
+    fprintf(stderr, "Info: shutting down!\n");
     overlay.reset();
     gsr::deinit_theme();
     gsr::deinit_color_theme();

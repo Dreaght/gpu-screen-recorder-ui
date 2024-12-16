@@ -93,8 +93,6 @@ Run `systemctl status --user gpu-screen-recorder` when starting recording and gi
 
 Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
 
-Remove all dependencies from tools/gsr-global-hotkeys and roll our own keyboard events code.
-
 Test global hotkeys with azerty instead of qwerty.
 
 Fix cursor grab not working in owlboy, need to use xigrab.
