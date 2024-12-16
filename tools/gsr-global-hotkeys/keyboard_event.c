@@ -203,7 +203,9 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
     if(index < 0 || index >= self->num_event_polls)
         return;
 
+    ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
     close(self->event_polls[index].fd);
+
     for(int j = index + 1; j < self->num_event_polls; ++j) {
         self->event_polls[j - 1] = self->event_polls[j];
         self->event_extra_data[j - 1] = self->event_extra_data[j];
@@ -319,6 +321,7 @@ void keyboard_event_deinit(keyboard_event *self) {
     }
 
     for(int i = 0; i < self->num_event_polls; ++i) {
+        ioctl(self->event_polls[i].fd, EVIOCGRAB, 0);
         close(self->event_polls[i].fd);
     }
     self->num_event_polls = 0;
