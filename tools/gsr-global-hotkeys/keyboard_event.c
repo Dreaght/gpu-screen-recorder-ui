@@ -92,7 +92,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, const 
     }
 
     if(keyboard_event_has_exclusive_grab(self) && extra_data->grabbed) {
-        /* TODO: Error check? */
+        /* TODO: What to do on error? */
         if(write(self->uinput_fd, &event, sizeof(event)) != sizeof(event))
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
     }
@@ -135,7 +135,9 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
 
     unsigned long evbit = 0;
     ioctl(fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
-    if(strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0 && (evbit & (1 << EV_KEY))) {
+    const bool is_keyboard = evbit & (1 << EV_KEY);
+    const bool is_pointer = (evbit & (1 << EV_REL)) || (evbit & (1 << EV_ABS));
+    if(strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0 && is_keyboard && !is_pointer) {
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
@@ -214,6 +216,7 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
 }
 
 /* Returns the fd to the uinput */
+/* Documented here: https://www.kernel.org/doc/html/v4.12/input/uinput.html */
 static int setup_virtual_keyboard_input(const char *name) {
     /* TODO: O_NONBLOCK? */
     int fd = open("/dev/uinput", O_WRONLY);
@@ -265,7 +268,6 @@ bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool excl
     self->hotplug_event_index = -1;
 
     if(exclusive_grab) {
-        // TODO: If this fails, try /dev/input/uinput instead
         self->uinput_fd = setup_virtual_keyboard_input(GSR_UI_VIRTUAL_KEYBOARD_NAME);
         if(self->uinput_fd <= 0)
             fprintf(stderr, "Warning: failed to setup virtual keyboard input for exclusive grab. The focused application will receive keys used for global hotkeys\n");
@@ -341,7 +343,7 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds, 
         return;
 
     for(int i = 0; i < self->num_event_polls; ++i) {
-        if(i == self->stdout_event_index && self->event_polls[i].revents & (POLLHUP|POLLERR))
+        if(i == self->stdout_event_index && (self->event_polls[i].revents & (POLLHUP|POLLERR)))
             self->stdout_failed = true;
 
         if(self->event_polls[i].revents & POLLHUP) { /* TODO: What if this is the hotplug fd? */
