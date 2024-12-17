@@ -136,15 +136,16 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
     unsigned long evbit = 0;
     ioctl(fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
     const bool is_keyboard = evbit & (1 << EV_KEY);
-    const bool is_pointer = (evbit & (1 << EV_REL)) || (evbit & (1 << EV_ABS));
-    if(strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0 && is_keyboard && !is_pointer) {
+
+    if(is_keyboard && strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0) {
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
-        /* Test if device supports KEY_A since not all devices that support EV_KEY are keyboards, for example even a power button is an EV_KEY */
-        const int key_test = KEY_A;
-        const bool supports_key_events = key_bits[key_test/8] & (1 << (key_test % 8));
-        if(supports_key_events) {
+        const bool supports_key_events = key_bits[KEY_A/8] & (1 << (KEY_A % 8));
+        const bool supports_mouse_events = key_bits[BTN_MOUSE/8] & (1 << (BTN_MOUSE % 8));
+        const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
+        const bool supports_wheel_events = key_bits[BTN_WHEEL/8] & (1 << (BTN_WHEEL % 8));
+        if(supports_key_events && !supports_mouse_events && !supports_joystick_events && !supports_wheel_events) {
             if(self->num_event_polls < MAX_EVENT_POLLS) {
                 bool grabbed = false;
                 if(keyboard_event_has_exclusive_grab(self)) {
@@ -233,6 +234,16 @@ static int setup_virtual_keyboard_input(const char *name) {
     for(int i = 1; i < KEY_MAX; ++i) {
         success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }
+
+    success &= (ioctl(fd, UI_SET_EVBIT, EV_REL) != -1);
+    success &= (ioctl(fd, UI_SET_RELBIT, REL_X) != -1);
+    success &= (ioctl(fd, UI_SET_RELBIT, REL_Y) != -1);
+    success &= (ioctl(fd, UI_SET_RELBIT, REL_Z) != -1);
+
+    // success &= (ioctl(fd, UI_SET_EVBIT, EV_ABS) != -1);
+    // success &= (ioctl(fd, UI_SET_ABSBIT, ABS_X) != -1);
+    // success &= (ioctl(fd, UI_SET_ABSBIT, ABS_Y) != -1);
+    // success &= (ioctl(fd, UI_SET_ABSBIT, ABS_Z) != -1);
 
     int ui_version = 0;
     success &= (ioctl(fd, UI_GET_VERSION, &ui_version) != -1);
