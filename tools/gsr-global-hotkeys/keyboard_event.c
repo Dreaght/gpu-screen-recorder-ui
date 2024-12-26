@@ -270,6 +270,8 @@ static int setup_virtual_keyboard_input(const char *name) {
     }
 
     bool success = true;
+    success &= (ioctl(fd, UI_SET_EVBIT, EV_SYN) != -1);
+    success &= (ioctl(fd, UI_SET_EVBIT, EV_MSC) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_KEY) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
         success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
