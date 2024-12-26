@@ -578,10 +578,12 @@ namespace gsr {
             select_directory_page->add_widget(std::move(file_chooser));
 
             select_directory_page->on_click = [this, file_chooser_ptr](const std::string &id) {
-                if(id == "save")
+                if(id == "save") {
                     save_directory_button_ptr->set_text(file_chooser_ptr->get_current_directory());
-                else if(id == "cancel")
                     page_stack->pop();
+                } else if(id == "cancel") {
+                    page_stack->pop();
+                }
             };
 
             page_stack->push(std::move(select_directory_page));
