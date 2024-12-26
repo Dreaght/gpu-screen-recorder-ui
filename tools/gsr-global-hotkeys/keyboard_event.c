@@ -18,6 +18,10 @@
 
 #define GSR_UI_VIRTUAL_KEYBOARD_NAME "gsr-ui virtual keyboard"
 
+#define KEY_RELEASE 0
+#define KEY_PRESS 1
+#define KEY_REPEAT 2
+
 /*
     We could get initial keyboard state with:
     unsigned char key_states[KEY_MAX/8 + 1];
@@ -28,6 +32,22 @@ static bool keyboard_event_has_exclusive_grab(const keyboard_event *self) {
     return self->uinput_fd > 0;
 }
 
+static void keyboard_event_send_virtual_keyboard_event(keyboard_event *self, uint16_t code, int32_t value) {
+    if(self->uinput_fd <= 0)
+        return;
+
+    struct input_event event = {0};
+    event.type = EV_KEY;
+    event.code = code;
+    event.value = value;
+    write(self->uinput_fd, &event, sizeof(event));
+
+    event.type = EV_SYN;
+    event.code = 0;
+    event.value = SYN_REPORT;
+    write(self->uinput_fd, &event, sizeof(event));
+}
+
 static void keyboard_event_process_input_event_data(keyboard_event *self, const event_extra_data *extra_data, int fd, key_callback callback, void *userdata) {
     struct input_event event;
     if(read(fd, &event, sizeof(event)) != sizeof(event)) {
@@ -35,12 +55,31 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, const 
         return;
     }
 
-    // value = 1 == key pressed
-    //if(event.type == EV_KEY && event.code == KEY_A && event.value == 1) {
+    //if(event.type == EV_KEY && event.code == KEY_A && event.value == KEY_PRESS) {
         //fprintf(stderr, "fd: %d, type: %d, pressed %d, value: %d\n", fd, event.type, event.code, event.value);
     //}
 
     if(event.type == EV_KEY) {
+        /*
+            TODO: This is a hack! if a keyboard is grabbed while a key is being repeated then the key release will not be registered properly.
+            To deal with this we ignore repeat key that is sent without without pressed first and when the key is released we send key press and key release.
+            Maybe this needs to be done for all keys? Find a better solution if there is one!
+        */
+        const bool first_key_event = !self->has_received_key_event;
+        self->has_received_key_event = true;
+
+        if(first_key_event && event.value == KEY_REPEAT)
+            self->repeat_key_to_ignore = (int32_t)event.code;
+
+        if(self->repeat_key_to_ignore > 0 && event.code == self->repeat_key_to_ignore) {
+            if(event.value == KEY_RELEASE) {
+                self->repeat_key_to_ignore = 0;
+                keyboard_event_send_virtual_keyboard_event(self, event.code, KEY_PRESS);
+                keyboard_event_send_virtual_keyboard_event(self, event.code, KEY_RELEASE);
+            }
+            return;
+        }
+
         switch(event.code) {
             case KEY_LEFTSHIFT:
                 self->lshift_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
@@ -141,10 +180,11 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
-        const bool supports_key_events = key_bits[KEY_A/8] & (1 << (KEY_A % 8));
-        const bool supports_mouse_events = key_bits[BTN_MOUSE/8] & (1 << (BTN_MOUSE % 8));
+        const bool supports_key_events      = key_bits[KEY_A/8]        & (1 << (KEY_A % 8));
+        const bool supports_mouse_events    = key_bits[BTN_MOUSE/8]    & (1 << (BTN_MOUSE % 8));
+        //const bool supports_touch_events    = key_bits[BTN_TOUCH/8]    & (1 << (BTN_TOUCH % 8));
         const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
-        const bool supports_wheel_events = key_bits[BTN_WHEEL/8] & (1 << (BTN_WHEEL % 8));
+        const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
         if(supports_key_events && !supports_mouse_events && !supports_joystick_events && !supports_wheel_events) {
             if(self->num_event_polls < MAX_EVENT_POLLS) {
                 bool grabbed = false;

@@ -12,6 +12,9 @@ namespace gsr {
     struct ConfigHotkey {
         int64_t keysym = 0;
         uint32_t modifiers = 0;
+
+        bool operator==(const ConfigHotkey &other) const;
+        bool operator!=(const ConfigHotkey &other) const;
     };
 
     struct RecordOptions {
@@ -94,6 +97,8 @@ namespace gsr {
 
     struct Config {
         Config(const SupportedCaptureOptions &capture_options);
+        bool operator==(const Config &other);
+        bool operator!=(const Config &other);
 
         MainConfig main_config;
         StreamingConfig streaming_config;

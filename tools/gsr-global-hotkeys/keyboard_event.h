@@ -43,6 +43,8 @@ typedef struct {
     int hotplug_event_index;
     int uinput_fd;
     bool stdout_failed;
+    int32_t repeat_key_to_ignore;
+    bool has_received_key_event;
 
     hotplug_event hotplug_ev;
 

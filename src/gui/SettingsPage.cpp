@@ -64,9 +64,6 @@ namespace gsr {
         //    record_area_box->add_item("Window", "window");
         if(capture_options.focused)
             record_area_box->add_item("Follow focused window", "focused");
-        // Do we really need this? it's only available on nvidia x11
-        //if(capture_options.screen)
-        //    record_area_box->add_item("All monitors", "screen");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
             snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
@@ -896,6 +893,7 @@ namespace gsr {
     }
 
     void SettingsPage::save() {
+        Config prev_config = config;
         switch(type) {
             case Type::REPLAY:
                 save_replay();
@@ -908,6 +906,9 @@ namespace gsr {
                 break;
         }
         save_config(config);
+
+        if(on_config_changed && config != prev_config)
+            on_config_changed();
     }
 
     static const std::string* get_application_audio_by_name_case_insensitive(const std::vector<std::string> &application_audio, const std::string &name) {

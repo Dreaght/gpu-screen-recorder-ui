@@ -906,6 +906,10 @@ namespace gsr {
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
+                    replay_settings_page->on_config_changed = [this]() {
+                        if(recording_status == RecordingStatus::REPLAY)
+                            show_notification("Replay settings have been modified.\nYou may need to restart replay to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                    };
                     page_stack.push(std::move(replay_settings_page));
                 } else if(id == "save") {
                     on_press_save_replay();
@@ -927,6 +931,10 @@ namespace gsr {
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack);
+                    record_settings_page->on_config_changed = [this]() {
+                        if(recording_status == RecordingStatus::RECORD)
+                            show_notification("Recording settings have been modified.\nYou may need to restart recording to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                    };
                     page_stack.push(std::move(record_settings_page));
                 } else if(id == "pause") {
                     toggle_pause();
@@ -946,6 +954,10 @@ namespace gsr {
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack);
+                    stream_settings_page->on_config_changed = [this]() {
+                        if(recording_status == RecordingStatus::STREAM)
+                            show_notification("Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                    };
                     page_stack.push(std::move(stream_settings_page));
                 } else if(id == "start") {
                     on_press_start_stream();
@@ -1318,7 +1330,7 @@ namespace gsr {
                         show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 } else {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-                    show_notification("Replay stopped because of an error", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
+                    show_notification("Replay stopped because of an error. Verify if settings are correct", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
                 }
                 break;
             }
@@ -1334,7 +1346,7 @@ namespace gsr {
                         show_notification("Streaming has stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 } else {
                     fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-                    show_notification("Streaming stopped because of an error", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
+                    show_notification("Streaming stopped because of an error. Verify if settings are correct", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
                 }
                 break;
             }
@@ -1399,7 +1411,7 @@ namespace gsr {
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-            show_notification("Failed to start/save recording", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+            show_notification("Failed to start/save recording. Verify if settings are correct", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
         }
     }
 
@@ -1574,8 +1586,6 @@ namespace gsr {
         // TODO: Also check x11 window when enabled (check if capture_target is a decminal/hex number)
         if(capture_target == "focused") {
             return capture_options.focused;
-        } else if(capture_target == "screen") {
-            return capture_options.screen;
         } else if(capture_target == "portal") {
             return capture_options.portal;
         } else {

@@ -27,7 +27,6 @@ namespace gsr {
     struct SupportedCaptureOptions {
         bool window = false;
         bool focused = false;
-        bool screen = false;
         bool portal = false;
         std::vector<GsrMonitor> monitors;
     };

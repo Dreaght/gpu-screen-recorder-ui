@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <libgen.h>
+#include <iostream>
 
 #define FORMAT_I32 "%" PRIi32
 #define FORMAT_I64 "%" PRIi64
@@ -13,6 +14,14 @@
 #define CONFIG_FILE_VERSION 1
 
 namespace gsr {
+    bool ConfigHotkey::operator==(const ConfigHotkey &other) const {
+        return keysym == other.keysym && modifiers == other.modifiers;
+    }
+
+    bool ConfigHotkey::operator!=(const ConfigHotkey &other) const {
+        return !operator==(other);
+    }
+
     Config::Config(const SupportedCaptureOptions &capture_options) {
         const std::string default_save_directory = get_videos_dir();
 
@@ -139,6 +148,38 @@ namespace gsr {
             {"replay.start_stop_recording_hotkey", &config.replay_config.start_stop_recording_hotkey},
             {"replay.save_recording_hotkey", &config.replay_config.save_recording_hotkey}
         };
+    }
+
+    bool Config::operator==(const Config &other) {
+        const auto config_options = get_config_options(*this);
+        const auto config_options_other = get_config_options(const_cast<Config&>(other));
+        for(auto it : config_options) {
+            auto it_other = config_options_other.find(it.first);
+            if(it_other == config_options_other.end() || it_other->second.index() != it.second.index())
+                return false;
+
+            if(std::holds_alternative<bool*>(it.second)) {
+                if(*std::get<bool*>(it.second) != *std::get<bool*>(it_other->second))
+                    return false;
+            } else if(std::holds_alternative<std::string*>(it.second)) {
+                if(*std::get<std::string*>(it.second) != *std::get<std::string*>(it_other->second))
+                    return false;
+            } else if(std::holds_alternative<int32_t*>(it.second)) {
+                if(*std::get<int32_t*>(it.second) != *std::get<int32_t*>(it_other->second))
+                    return false;
+            } else if(std::holds_alternative<ConfigHotkey*>(it.second)) {
+                if(*std::get<ConfigHotkey*>(it.second) != *std::get<ConfigHotkey*>(it_other->second))
+                    return false;
+            } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
+                if(*std::get<std::vector<std::string>*>(it.second) != *std::get<std::vector<std::string>*>(it_other->second))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    bool Config::operator!=(const Config &other) {
+        return !operator==(other);
     }
 
     std::optional<Config> read_config(const SupportedCaptureOptions &capture_options) {

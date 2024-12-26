@@ -209,8 +209,6 @@ namespace gsr {
             capture_options.window = true;
         else if(line == "focused")
             capture_options.focused = true;
-        else if(line == "screen")
-            capture_options.screen = true;
         else if(line == "portal")
             capture_options.portal = true;
         else {
