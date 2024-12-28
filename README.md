@@ -8,6 +8,8 @@ You can report an issue by emailing the issue to dec05eba@protonmail.com.
 
 # Usage
 Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
+There is also an option in the settings to enable/disable starting the program on system startup. This option only works on systems that use systemd.
+You have to manually add `gsr-ui` to system startup on systems that uses another init system.
 
 # Installation
 If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
