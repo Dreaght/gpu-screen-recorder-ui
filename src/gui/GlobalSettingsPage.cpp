@@ -1,6 +1,7 @@
 #include "../../include/gui/GlobalSettingsPage.hpp"
 
 #include "../../include/Theme.hpp"
+#include "../../include/Process.hpp"
 #include "../../include/gui/GsrPage.hpp"
 #include "../../include/gui/PageStack.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
@@ -59,9 +60,40 @@ namespace gsr {
         return std::make_unique<Subsection>("Appearance", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_startup_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto startup_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
+        startup_radio_button_ptr = startup_radio_button.get();
+        startup_radio_button->add_item("Don't start this program on system startup", "dont_start_on_system_startup");
+        startup_radio_button->add_item("Start this program on system startup", "start_on_system_startup");
+        startup_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
+            bool enable = false;
+            if(id == "dont_start_on_system_startup")
+                enable = false;
+            else if(id == "start_on_system_startup")
+                enable = true;
+            else
+                return;
+
+            const char *args[] = { "systemctl", enable ? "enable" : "disable", "--user", "gpu-screen-recorder-ui", nullptr };
+            std::string stdout_str;
+            const int exit_status = exec_program_get_stdout(args, stdout_str);
+            if(on_startup_changed)
+                on_startup_changed(enable, exit_status);
+        };
+        list->add_widget(std::move(startup_radio_button));
+        return std::make_unique<Subsection>("Startup", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+    }
+
     void GlobalSettingsPage::add_widgets() {
         auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size());
-        scrollable_page->add_widget(create_appearance_subsection(scrollable_page.get()));
+
+        auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        settings_list->set_spacing(0.018f);
+        settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
+        scrollable_page->add_widget(std::move(settings_list));
+
         content_page_ptr->add_widget(std::move(scrollable_page));
     }
 
@@ -74,6 +106,11 @@ namespace gsr {
             tint_color_radio_button_ptr->set_selected_item(gpu_vendor_to_color_name(gsr_info->gpu_info.vendor));
         else
             tint_color_radio_button_ptr->set_selected_item(config.main_config.tint_color);
+
+        const char *args[] = { "systemctl", "is-enabled", "--quiet", "--user", "gpu-screen-recorder-ui", nullptr };
+        std::string stdout_str;
+        const int exit_status = exec_program_get_stdout(args, stdout_str);
+        startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
     }
 
     void GlobalSettingsPage::save() {

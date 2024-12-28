@@ -4,6 +4,8 @@
 #include "../GsrInfo.hpp"
 #include "../Config.hpp"
 
+#include <functional>
+
 namespace gsr {
     class GsrPage;
     class PageStack;
@@ -20,8 +22,12 @@ namespace gsr {
         void load();
         void save();
         void on_navigate_away_from_page() override;
+
+        // Called with (enable, exit_status)
+        std::function<void(bool, int)> on_startup_changed;
     private:
         std::unique_ptr<Subsection> create_appearance_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<Subsection> create_startup_subsection(ScrollablePage *parent_page);
         void add_widgets();
     private:
         Config &config;
@@ -30,5 +36,6 @@ namespace gsr {
         GsrPage *content_page_ptr = nullptr;
         PageStack *page_stack = nullptr;
         RadioButton *tint_color_radio_button_ptr = nullptr;
+        RadioButton *startup_radio_button_ptr = nullptr;
     };
 }

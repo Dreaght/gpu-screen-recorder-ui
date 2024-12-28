@@ -260,6 +260,8 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
                 };
 
                 keyboard_event_fetch_update_key_states(self, &self->event_extra_data[self->num_event_polls], fd);
+                if(self->event_extra_data[self->num_event_polls].num_keys_pressed > 0)
+                    fprintf(stderr, "Info: device not grabbed yet because some keys are still being pressed: /dev/input/event%d\n", dev_input_id);
 
                 ++self->num_event_polls;
                 return true;

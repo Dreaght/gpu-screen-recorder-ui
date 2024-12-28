@@ -625,11 +625,11 @@ namespace gsr {
 
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
         char fullscreen_text[256];
-        snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
 
         auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         radiobutton->add_item("Don't turn on replay automatically", "dont_turn_on_automatically");
-        radiobutton->add_item("Turn on replay at system startup", "turn_on_at_system_startup");
+        radiobutton->add_item("Turn on replay when this program starts", "turn_on_at_system_startup");
         radiobutton->add_item(fullscreen_text, "turn_on_at_fullscreen");
         radiobutton->add_item("Turn on replay when power supply is connected", "turn_on_at_power_supply_connected");
         turn_on_replay_automatically_mode_ptr = radiobutton.get();
@@ -638,7 +638,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
@@ -719,7 +719,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 only)");
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;

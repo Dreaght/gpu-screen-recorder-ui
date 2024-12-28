@@ -10,6 +10,8 @@
 #include "../GsrInfo.hpp"
 #include "../Config.hpp"
 
+#include <functional>
+
 namespace gsr {
     class GsrPage;
     class PageStack;

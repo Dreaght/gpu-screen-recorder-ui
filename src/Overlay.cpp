@@ -979,6 +979,15 @@ namespace gsr {
             button->set_icon(&get_theme().settings_small_texture);
             button->on_click = [&]() {
                 auto settings_page = std::make_unique<GlobalSettingsPage>(&gsr_info, config, &page_stack);
+                settings_page->on_startup_changed = [&](bool enable, int exit_status) {
+                    if(exit_status == 0)
+                        return;
+
+                    if(enable)
+                        show_notification("Failed to add GPU Screen Recorder to system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                    else
+                        show_notification("Failed to remove GPU Screen Recorder from system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                };
                 page_stack.push(std::move(settings_page));
             };
             front_page_ptr->add_widget(std::move(button));
