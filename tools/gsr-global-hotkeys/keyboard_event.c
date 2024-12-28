@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 /* POSIX */
 #include <fcntl.h>
@@ -22,36 +23,110 @@
 #define KEY_PRESS 1
 #define KEY_REPEAT 2
 
-/*
-    We could get initial keyboard state with:
-    unsigned char key_states[KEY_MAX/8 + 1];
-    ioctl(fd, EVIOCGKEY(sizeof(key_states)), key_states), but ignore that for now
-*/
+#define KEY_STATES_SIZE (KEY_MAX/8 + 1)
 
-static bool keyboard_event_has_exclusive_grab(const keyboard_event *self) {
+static inline int count_num_bits_set(unsigned char c) {
+    int n = 0;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    c >>= 1;
+    n += (c & 1);
+    return n;
+}
+
+static inline bool keyboard_event_has_exclusive_grab(const keyboard_event *self) {
     return self->uinput_fd > 0;
 }
 
-static void keyboard_event_send_virtual_keyboard_event(keyboard_event *self, uint16_t code, int32_t value) {
-    if(self->uinput_fd <= 0)
-        return;
+static int keyboard_event_get_num_keys_pressed(const unsigned char *key_states) {
+    if(!key_states)
+        return 0;
 
-    struct input_event event = {0};
-    event.type = EV_KEY;
-    event.code = code;
-    event.value = value;
-    write(self->uinput_fd, &event, sizeof(event));
-
-    event.type = EV_SYN;
-    event.code = 0;
-    event.value = SYN_REPORT;
-    write(self->uinput_fd, &event, sizeof(event));
+    int num_keys_pressed = 0;
+    for(int i = 0; i < KEY_STATES_SIZE; ++i) {
+        num_keys_pressed += count_num_bits_set(key_states[i]);
+    }
+    return num_keys_pressed;
 }
 
-static void keyboard_event_process_input_event_data(keyboard_event *self, const event_extra_data *extra_data, int fd, key_callback callback, void *userdata) {
+static void keyboard_event_fetch_update_key_states(keyboard_event *self, event_extra_data *extra_data, int fd) {
+    fsync(fd);
+    if(!extra_data->key_states)
+        return;
+
+    if(ioctl(fd, EVIOCGKEY(KEY_STATES_SIZE), extra_data->key_states) == -1)
+        fprintf(stderr, "Warning: failed to fetch key states for device: /dev/input/event%d\n", extra_data->dev_input_id);
+
+    if(!keyboard_event_has_exclusive_grab(self) || extra_data->grabbed)
+        return;
+
+    extra_data->num_keys_pressed = keyboard_event_get_num_keys_pressed(extra_data->key_states);
+    if(extra_data->num_keys_pressed == 0) {
+        extra_data->grabbed = ioctl(fd, EVIOCGRAB, 1) != -1;
+        if(extra_data->grabbed)
+            fprintf(stderr, "Info: grabbed device: /dev/input/event%d\n", extra_data->dev_input_id);
+        else
+            fprintf(stderr, "Warning: failed to exclusively grab device: /dev/input/event%d. The focused application may receive keys used for global hotkeys\n", extra_data->dev_input_id);
+    }
+}
+
+static void keyboard_event_process_key_state_change(keyboard_event *self, struct input_event event, event_extra_data *extra_data, int fd) {
+    if(event.type != EV_KEY)
+        return;
+
+    if(!extra_data->key_states || event.code >= KEY_STATES_SIZE * 8)
+        return;
+
+    const unsigned int byte_index = event.code / 8;
+    const unsigned char bit_index = event.code % 8;
+    unsigned char key_byte_state = extra_data->key_states[byte_index];
+    const bool prev_key_pressed = (key_byte_state & (1 << bit_index)) != KEY_RELEASE;
+
+    if(event.value == KEY_RELEASE) {
+        key_byte_state &= ~(1 << bit_index);
+        if(prev_key_pressed)
+            --extra_data->num_keys_pressed;
+    } else {
+        key_byte_state |= (1 << bit_index);
+        if(!prev_key_pressed)
+            ++extra_data->num_keys_pressed;
+    }
+
+    extra_data->key_states[byte_index] = key_byte_state;
+
+    if(!keyboard_event_has_exclusive_grab(self) || extra_data->grabbed)
+        return;
+
+    if(extra_data->num_keys_pressed == 0) {
+        extra_data->grabbed = ioctl(fd, EVIOCGRAB, 1) != -1;
+        if(extra_data->grabbed)
+            fprintf(stderr, "Info: grabbed device: /dev/input/event%d\n", extra_data->dev_input_id);
+        else
+            fprintf(stderr, "Warning: failed to exclusively grab device: /dev/input/event%d. The focused application may receive keys used for global hotkeys\n", extra_data->dev_input_id);
+    }
+}
+
+static void keyboard_event_process_input_event_data(keyboard_event *self, event_extra_data *extra_data, int fd, key_callback callback, void *userdata) {
     struct input_event event;
     if(read(fd, &event, sizeof(event)) != sizeof(event)) {
         fprintf(stderr, "Error: failed to read input event data\n");
+        return;
+    }
+
+    if(event.type == EV_SYN && event.code == SYN_DROPPED) {
+        /* TODO: Don't do this on every SYN_DROPPED to prevent spamming this, instead wait until the next event or wait for timeout */
+        keyboard_event_fetch_update_key_states(self, extra_data, fd);
         return;
     }
 
@@ -60,25 +135,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, const 
     //}
 
     if(event.type == EV_KEY) {
-        /*
-            TODO: This is a hack! if a keyboard is grabbed while a key is being repeated then the key release will not be registered properly.
-            To deal with this we ignore repeat key that is sent without without pressed first and when the key is released we send key press and key release.
-            Maybe this needs to be done for all keys? Find a better solution if there is one!
-        */
-        const bool first_key_event = !self->has_received_key_event;
-        self->has_received_key_event = true;
-
-        if(first_key_event && event.value == KEY_REPEAT)
-            self->repeat_key_to_ignore = (int32_t)event.code;
-
-        if(self->repeat_key_to_ignore > 0 && event.code == self->repeat_key_to_ignore) {
-            if(event.value == KEY_RELEASE) {
-                self->repeat_key_to_ignore = 0;
-                keyboard_event_send_virtual_keyboard_event(self, event.code, KEY_PRESS);
-                keyboard_event_send_virtual_keyboard_event(self, event.code, KEY_RELEASE);
-            }
-            return;
-        }
+        keyboard_event_process_key_state_change(self, event, extra_data, fd);
 
         switch(event.code) {
             case KEY_LEFTSHIFT:
@@ -130,7 +187,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, const 
         }
     }
 
-    if(keyboard_event_has_exclusive_grab(self) && extra_data->grabbed) {
+    if(extra_data->grabbed) {
         /* TODO: What to do on error? */
         if(write(self->uinput_fd, &event, sizeof(event)) != sizeof(event))
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
@@ -186,14 +243,8 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
         const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
         if(supports_key_events && !supports_mouse_events && !supports_joystick_events && !supports_wheel_events) {
-            if(self->num_event_polls < MAX_EVENT_POLLS) {
-                bool grabbed = false;
-                if(keyboard_event_has_exclusive_grab(self)) {
-                    grabbed = ioctl(fd, EVIOCGRAB, 1) != -1;
-                    if(!grabbed)
-                        fprintf(stderr, "Warning: failed to exclusively grab device %s. The focused application may receive keys used for global hotkeys\n", device_name);
-                }
-
+            unsigned char *key_states = calloc(1, KEY_STATES_SIZE);
+            if(key_states && self->num_event_polls < MAX_EVENT_POLLS) {
                 //fprintf(stderr, "%s (%s) supports key inputs\n", dev_input_filepath, device_name);
                 self->event_polls[self->num_event_polls] = (struct pollfd) {
                     .fd = fd,
@@ -203,8 +254,12 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
 
                 self->event_extra_data[self->num_event_polls] = (event_extra_data) {
                     .dev_input_id = dev_input_id,
-                    .grabbed = grabbed
+                    .grabbed = false,
+                    .key_states = key_states,
+                    .num_keys_pressed = 0
                 };
+
+                keyboard_event_fetch_update_key_states(self, &self->event_extra_data[self->num_event_polls], fd);
 
                 ++self->num_event_polls;
                 return true;
@@ -249,9 +304,10 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
     ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
     close(self->event_polls[index].fd);
 
-    for(int j = index + 1; j < self->num_event_polls; ++j) {
-        self->event_polls[j - 1] = self->event_polls[j];
-        self->event_extra_data[j - 1] = self->event_extra_data[j];
+    for(int i = index + 1; i < self->num_event_polls; ++i) {
+        self->event_polls[i - 1] = self->event_polls[i];
+        free(self->event_extra_data[i - 1].key_states);
+        self->event_extra_data[i - 1] = self->event_extra_data[i];
     }
     --self->num_event_polls;
 }
@@ -332,9 +388,12 @@ bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool excl
             .events = 0,
             .revents = 0
         };
+
         self->event_extra_data[self->num_event_polls] = (event_extra_data) {
             .dev_input_id = -1,
-            .grabbed = false
+            .grabbed = false,
+            .key_states = NULL,
+            .num_keys_pressed = 0
         };
 
         self->stdout_event_index = self->num_event_polls;
@@ -347,9 +406,12 @@ bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool excl
             .events = POLLIN,
             .revents = 0
         };
+
         self->event_extra_data[self->num_event_polls] = (event_extra_data) {
             .dev_input_id = -1,
-            .grabbed = false
+            .grabbed = false,
+            .key_states = NULL,
+            .num_keys_pressed = 0
         };
 
         self->hotplug_event_index = self->num_event_polls;
@@ -378,6 +440,7 @@ void keyboard_event_deinit(keyboard_event *self) {
     for(int i = 0; i < self->num_event_polls; ++i) {
         ioctl(self->event_polls[i].fd, EVIOCGRAB, 0);
         close(self->event_polls[i].fd);
+        free(self->event_extra_data[i].key_states);
     }
     self->num_event_polls = 0;
 
@@ -408,11 +471,14 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds, 
         if(!(self->event_polls[i].revents & POLLIN))
             continue;
 
-        if(i == self->hotplug_event_index)
+        if(i == self->hotplug_event_index) {
             /* Device is added to end of |event_polls| so it's ok to add while iterating it via index */
             hotplug_event_process_event_data(&self->hotplug_ev, self->event_polls[i].fd, on_device_added_callback, self);
-        else
+        } else if(i == self->stdout_event_index) {
+            /* Do nothing, this shouldn't happen anyways since we dont poll for input */
+        } else {
             keyboard_event_process_input_event_data(self, &self->event_extra_data[i], self->event_polls[i].fd, callback, userdata);
+        }
     }
 }
 
