@@ -305,10 +305,10 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
 
     ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
     close(self->event_polls[index].fd);
+    free(self->event_extra_data[index].key_states);
 
     for(int i = index + 1; i < self->num_event_polls; ++i) {
         self->event_polls[i - 1] = self->event_polls[i];
-        free(self->event_extra_data[i - 1].key_states);
         self->event_extra_data[i - 1] = self->event_extra_data[i];
     }
     --self->num_event_polls;
