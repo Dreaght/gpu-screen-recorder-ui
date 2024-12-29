@@ -1,6 +1,5 @@
 #include "../include/GsrInfo.hpp"
 #include "../include/Theme.hpp"
-#include "../include/window_texture.h"
 #include "../include/Overlay.hpp"
 #include "../include/GlobalHotkeysX11.hpp"
 #include "../include/GlobalHotkeysLinux.hpp"
@@ -9,6 +8,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <thread>
+#include <string.h>
 
 #include <X11/keysym.h>
 #include <mglpp/mglpp.hpp>
@@ -132,12 +132,42 @@ static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Over
     return global_hotkeys;
 }
 
-int main(void) {
+static void usage() {
+    printf("usage: gsr-ui [action]\n");
+    printf("OPTIONS:\n");
+    printf("  action  The launch action. Should be either \"launch-show\" or \"launch-hide\". Optional, defaults to \"launch-hide\".\n");
+    printf("          If \"launch-show\" is used then the program starts and the UI is immediately opened and can be shown/hidden with Alt+Z.\n");
+    printf("          If \"launch-hide\" is used then the program starts but the UI is not opened until Alt+Z is pressed.\n");
+    exit(1);
+}
+
+enum class LaunchAction {
+    LAUNCH_SHOW,
+    LAUNCH_HIDE
+};
+
+int main(int argc, char **argv) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
 
     if(geteuid() == 0) {
         fprintf(stderr, "Error: don't run gsr-ui as the root user\n");
         return 1;
+    }
+
+    LaunchAction launch_action = LaunchAction::LAUNCH_HIDE;
+    if(argc == 1) {
+        launch_action = LaunchAction::LAUNCH_HIDE;
+    } else if(argc == 2) {
+        if(strcmp(argv[1], "launch-show") == 0) {
+            launch_action = LaunchAction::LAUNCH_SHOW;
+        } else if(strcmp(argv[1], "launch-hide") == 0) {
+            launch_action = LaunchAction::LAUNCH_HIDE;
+        } else {
+            printf("error: invalid action \"%s\", expected \"launch-show\" or \"launch-hide\".\n", argv[1]);
+            usage();
+        }
+    } else {
+        usage();
     }
 
     // Cant get window texture when prime-run is used
@@ -201,7 +231,6 @@ int main(void) {
     fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
-    //overlay.show();
 
     // std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
     // if(display_server == gsr::DisplayServer::X11) {
@@ -214,6 +243,9 @@ int main(void) {
     //     global_hotkeys = register_linux_hotkeys(overlay.get());
     // }
     std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = register_linux_hotkeys(overlay.get());
+
+    if(launch_action == LaunchAction::LAUNCH_SHOW)
+        overlay->show();
 
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 

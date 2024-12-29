@@ -985,7 +985,7 @@ namespace gsr {
 
                     if(exit_status == 127) {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add gsr-ui to system startup on systems that uses another init system.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
                     } else {
                         if(enable)
                             show_notification("Failed to add GPU Screen Recorder to system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
