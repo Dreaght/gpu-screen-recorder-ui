@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
     // TODO: This is a shitty method to detect if multiple instances of gsr-ui is running but this will work properly even in flatpak
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
     if(is_gsr_ui_virtual_keyboard_running()) {
-        const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
+        const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
         gsr::exec_program_daemonized(args);
         return 1;
     }
