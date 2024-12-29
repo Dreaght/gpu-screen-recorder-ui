@@ -306,7 +306,7 @@ int main(int argc, char **argv) {
     global_hotkeys.reset();
 
     if(exit_reason == "back-to-old-ui") {
-        const char *args[] = { "gpu-screen-recorder-gtk", nullptr };
+        const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };
         execvp(args[0], (char* const*)args);
     }
 
