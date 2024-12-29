@@ -75,9 +75,17 @@ namespace gsr {
             else
                 return;
 
-            const char *args[] = { "systemctl", enable ? "enable" : "disable", "--user", "gpu-screen-recorder-ui", nullptr };
             std::string stdout_str;
-            const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
+            int exit_status = 0;
+            const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+            if(inside_flatpak) {
+                const char *args[] = { "flatpak-spawn", "--host", "--", "systemctl", enable ? "enable" : "disable", "--user", "gpu-screen-recorder-ui-flatpak", nullptr };
+                exit_status = exec_program_get_stdout(args, stdout_str);
+            } else {
+                const char *args[] = { "systemctl", enable ? "enable" : "disable", "--user", "gpu-screen-recorder-ui", nullptr };
+                exit_status = exec_program_get_stdout(args, stdout_str);
+            }
+
             if(on_startup_changed)
                 on_startup_changed(enable, exit_status);
         };
@@ -107,9 +115,17 @@ namespace gsr {
         else
             tint_color_radio_button_ptr->set_selected_item(config.main_config.tint_color);
 
-        const char *args[] = { "systemctl", "is-enabled", "--quiet", "--user", "gpu-screen-recorder-ui", nullptr };
         std::string stdout_str;
-        const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
+        int exit_status = 0;
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+        if(inside_flatpak) {
+            const char *args[] = { "flatpak-spawn", "--host", "--", "systemctl", "is-enabled", "--quiet", "--user", "gpu-screen-recorder-ui", nullptr };
+            exit_status = exec_program_get_stdout(args, stdout_str);
+        } else {
+            const char *args[] = { "systemctl", "is-enabled", "--quiet", "--user", "gpu-screen-recorder-ui", nullptr };
+            exit_status = exec_program_get_stdout(args, stdout_str);
+        }
+
         startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
     }
 

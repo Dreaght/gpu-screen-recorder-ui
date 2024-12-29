@@ -17,9 +17,5 @@ namespace gsr {
     pid_t exec_program(const char **args, int *read_fd);
     // Arguments ending with NULL. Returns the exit status of the program or -1 on error
     int exec_program_get_stdout(const char **args, std::string &result);
-    // Arguments ending with NULL. Returns the exit status of the program or -1 on error.
-    // This works the same as |exec_program_get_stdout|, except on flatpak where this runs the program on the
-    // host machine with flatpak-spawn --host
-    int exec_program_on_host_get_stdout(const char **args, std::string &result);
     pid_t pidof(const char *process_name);
 }
