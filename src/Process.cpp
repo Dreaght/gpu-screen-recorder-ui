@@ -31,6 +31,15 @@ namespace gsr {
         return true;
     }
 
+    static int count_num_args(const char **args) {
+        int num_args = 0;
+        while(*args) {
+            ++num_args;
+            ++args;
+        }
+        return num_args;
+    }
+
     bool exec_program_daemonized(const char **args) {
         /* 1 argument */
         if(args[0] == nullptr)
@@ -141,6 +150,30 @@ namespace gsr {
 
         close(read_fd);
         return exit_status;
+    }
+
+    int exec_program_on_host_get_stdout(const char **args, std::string &result) {
+        if(count_num_args(args) > 64 - 3) {
+            fprintf(stderr, "Error: too many arguments when trying to launch \"%s\"\n", args[0]);
+            return -1;
+        }
+
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+        if(inside_flatpak) {
+            // Assumes programs wont need more than 64 - 3 args
+            const char *modified_args[64] = { "flatpak-spawn", "--host", "--" };
+            for(int i = 3; i < 64; ++i) {
+                const char *arg = args[i - 3];
+                if(!arg) {
+                    modified_args[i] = nullptr;
+                    break;
+                }
+                modified_args[i] = arg;
+            }
+            return exec_program_get_stdout(modified_args, result);
+        } else {
+            return exec_program_get_stdout(args, result);
+        }
     }
 
     // |output_buffer| should be at least PATH_MAX in size
