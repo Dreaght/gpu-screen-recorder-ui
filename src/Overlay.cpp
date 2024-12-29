@@ -1281,6 +1281,11 @@ namespace gsr {
         return result;
     }
 
+    static void truncate_string(std::string &str, int max_length) {
+        if((int)str.size() > max_length)
+            str.replace(str.begin() + max_length, str.end(), "...");
+    }
+
     void Overlay::save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type) {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
@@ -1298,6 +1303,7 @@ namespace gsr {
         const std::string new_video_filepath = video_directory + "/" + video_filename;
         rename(video_filepath, new_video_filepath.c_str());
 
+        truncate_string(focused_window_name, 20);
         std::string text;
         switch(notification_type) {
             case NotificationType::RECORD:
