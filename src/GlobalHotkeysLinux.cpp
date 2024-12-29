@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <string.h>
 
 #define PIPE_READ 0
@@ -31,6 +32,14 @@ namespace gsr {
     }
 
     bool GlobalHotkeysLinux::start() {
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+        const char *user_homepath = getenv("HOME");
+        if(!user_homepath)
+            user_homepath = "/tmp";
+
+        char gsr_global_hotkeys_flatpak[PATH_MAX];
+        snprintf(gsr_global_hotkeys_flatpak, sizeof(gsr_global_hotkeys_flatpak), "%s/.local/share/gpu-screen-recorder/gsr-global-hotkeys", user_homepath);
+
         if(process_id > 0)
             return false;
 
@@ -51,8 +60,14 @@ namespace gsr {
                 close(pipes[i]);
             }
 
-            const char *args[] = { "gsr-global-hotkeys", NULL };
-            execvp(args[0], (char* const*)args);
+            if(inside_flatpak) {
+                const char *args[] = { "flatpak-spawn", "--host", "--", gsr_global_hotkeys_flatpak, NULL };
+                execvp(args[0], (char* const*)args);
+            } else {
+                const char *args[] = { "gsr-global-hotkeys", NULL };
+                execvp(args[0], (char* const*)args);
+            }
+
             perror("execvp");
             _exit(127);
         } else { /* parent */

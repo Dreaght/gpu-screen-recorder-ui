@@ -177,12 +177,13 @@ int main(int argc, char **argv) {
     if(argc == 1) {
         launch_action = LaunchAction::LAUNCH_HIDE;
     } else if(argc == 2) {
-        if(strcmp(argv[1], "launch-show") == 0) {
+        const char *launch_action_opt = argv[1];
+        if(strcmp(launch_action_opt, "launch-show") == 0) {
             launch_action = LaunchAction::LAUNCH_SHOW;
-        } else if(strcmp(argv[1], "launch-hide") == 0) {
+        } else if(strcmp(launch_action_opt, "launch-hide") == 0) {
             launch_action = LaunchAction::LAUNCH_HIDE;
         } else {
-            printf("error: invalid action \"%s\", expected \"launch-show\" or \"launch-hide\".\n", argv[1]);
+            printf("error: invalid action \"%s\", expected \"launch-show\" or \"launch-hide\".\n", launch_action_opt);
             usage();
         }
     } else {
