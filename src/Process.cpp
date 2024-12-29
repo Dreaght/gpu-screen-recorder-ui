@@ -22,6 +22,15 @@ namespace gsr {
         fprintf(stderr, "\n");
     }
 
+    static bool is_number(const char *str) {
+        for(int i = 0; str[i]; ++i) {
+            char c = str[i];
+            if(c < '0' || c > '9')
+                return false;
+        }
+        return true;
+    }
+
     bool exec_program_daemonized(const char **args) {
         /* 1 argument */
         if(args[0] == nullptr)
@@ -134,7 +143,8 @@ namespace gsr {
         return exit_status;
     }
 
-    bool read_cmdline_arg0(const char *filepath, char *output_buffer) {
+    // |output_buffer| should be at least PATH_MAX in size
+    bool read_cmdline_arg0(const char *filepath, char *output_buffer, int output_buffer_size) {
         output_buffer[0] = '\0';
 
         const char *arg0_end = NULL;
@@ -151,13 +161,40 @@ namespace gsr {
         if(!arg0_end)
             goto err;
 
-        memcpy(output_buffer, buffer, arg0_end - buffer);
-        output_buffer[arg0_end - buffer] = '\0';
-        close(fd);
-        return true;
+        if((arg0_end - buffer) + 1 <= output_buffer_size) {
+            memcpy(output_buffer, buffer, arg0_end - buffer);
+            output_buffer[arg0_end - buffer] = '\0';
+            close(fd);
+            return true;
+        }
 
         err:
         close(fd);
         return false;
+    }
+
+    pid_t pidof(const char *process_name) {
+        pid_t result = -1;
+        DIR *dir = opendir("/proc");
+        if(!dir)
+            return -1;
+
+        char cmdline_filepath[PATH_MAX];
+        char arg0[PATH_MAX];
+
+        struct dirent *entry;
+        while((entry = readdir(dir)) != NULL) {
+            if(!is_number(entry->d_name))
+                continue;
+
+            snprintf(cmdline_filepath, sizeof(cmdline_filepath), "/proc/%s/cmdline", entry->d_name);
+            if(read_cmdline_arg0(cmdline_filepath, arg0, sizeof(arg0)) && strcmp(process_name, arg0) == 0) {
+                result = atoi(entry->d_name);
+                break;
+            }
+        }
+
+        closedir(dir);
+        return result;
     }
 }

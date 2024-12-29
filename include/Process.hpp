@@ -17,6 +17,5 @@ namespace gsr {
     pid_t exec_program(const char **args, int *read_fd);
     // Arguments ending with NULL. Returns the exit status of the program or -1 on error
     int exec_program_get_stdout(const char **args, std::string &result);
-    // |output_buffer| should be at least PATH_MAX in size
-    bool read_cmdline_arg0(const char *filepath, char *output_buffer);
+    pid_t pidof(const char *process_name);
 }

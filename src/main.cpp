@@ -4,6 +4,7 @@
 #include "../include/GlobalHotkeysX11.hpp"
 #include "../include/GlobalHotkeysLinux.hpp"
 #include "../include/gui/Utils.hpp"
+#include "../include/Process.hpp"
 
 #include <unistd.h>
 #include <signal.h>
@@ -168,6 +169,13 @@ int main(int argc, char **argv) {
         }
     } else {
         usage();
+    }
+
+    const pid_t gsr_ui_pid = gsr::pidof("gsr-ui");
+    if(gsr_ui_pid != -1) {
+        const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
+        gsr::exec_program_daemonized(args);
+        return 1;
     }
 
     // Cant get window texture when prime-run is used

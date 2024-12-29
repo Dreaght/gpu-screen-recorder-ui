@@ -118,3 +118,5 @@ All steam game names by ID are available at https://api.steampowered.com/ISteamA
 Dont put widget position to int position when scrolling. This makes the UI jitter when it's coming to a halt.
 
 Show a popup asking if the user wants to add the program to system startup when launching the program, with a dismiss option and "Do not show again".
+
+Show warning if another instance of gpu screen recorder is already running when starting recording?
