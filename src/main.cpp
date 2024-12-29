@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
     gsr::SupportedCaptureOptions capture_options = gsr::get_supported_capture_options(gsr_info);
 
     std::string resources_path;
-    if(access("sibs-build", F_OK) == 0) {
+    if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
         resources_path = "./";
     } else {
 #ifdef GSR_UI_RESOURCES_PATH
