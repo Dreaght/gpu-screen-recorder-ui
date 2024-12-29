@@ -283,8 +283,10 @@ int main(int argc, char **argv) {
 
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 
+    std::string exit_reason;
     mgl::Clock frame_delta_clock;
-    while(running && mgl_is_connected_to_display_server()) {
+
+    while(running && mgl_is_connected_to_display_server() && !overlay->should_exit(exit_reason)) {
         const double frame_delta_seconds = frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
@@ -301,6 +303,12 @@ int main(int argc, char **argv) {
     gsr::deinit_theme();
     gsr::deinit_color_theme();
     mgl_deinit();
+    global_hotkeys.reset();
+
+    if(exit_reason == "back-to-old-ui") {
+        const char *args[] = { "gpu-screen-recorder-gtk", nullptr };
+        execvp(args[0], (char* const*)args);
+    }
 
     return 0;
 }

@@ -12,6 +12,7 @@ namespace gsr {
     class ScrollablePage;
     class Subsection;
     class RadioButton;
+    class Button;
 
     class GlobalSettingsPage : public StaticPage {
     public:
@@ -25,9 +26,14 @@ namespace gsr {
 
         // Called with (enable, exit_status)
         std::function<void(bool, int)> on_startup_changed;
+        // Called with (reason)
+        std::function<void(const char*)> on_click_exit_program_button;
     private:
         std::unique_ptr<Subsection> create_appearance_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_startup_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<Button> create_exit_program_button();
+        std::unique_ptr<Button> create_go_back_to_old_ui_button();
+        std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);
         void add_widgets();
     private:
         Config &config;

@@ -836,7 +836,7 @@ namespace gsr {
 
         if(!init_theme(resources_path)) {
             fprintf(stderr, "Error: failed to load theme\n");
-            exit(1);
+            ::exit(1);
         }
 
         mgl_window *win = window->internal_window();
@@ -903,6 +903,7 @@ namespace gsr {
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("save", &get_theme().save_texture);
+            button->set_item_icon("settings", &get_theme().settings_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
@@ -928,6 +929,7 @@ namespace gsr {
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("pause", &get_theme().pause_texture);
+            button->set_item_icon("settings", &get_theme().settings_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack);
@@ -951,6 +953,7 @@ namespace gsr {
             button->add_item("Start", "start", "Alt+F8");
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
+            button->set_item_icon("settings", &get_theme().settings_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack);
@@ -992,6 +995,10 @@ namespace gsr {
                         else
                             show_notification("Failed to remove GPU Screen Recorder from system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
                     }
+                };
+                settings_page->on_click_exit_program_button = [&](const char *reason) {
+                    do_exit = true;
+                    exit_reason = reason;
                 };
                 page_stack.push(std::move(settings_page));
             };
@@ -1221,6 +1228,17 @@ namespace gsr {
 
     bool Overlay::is_open() const {
         return visible;
+    }
+
+    bool Overlay::should_exit(std::string &reason) const {
+        reason.clear();
+        if(do_exit)
+            reason = exit_reason;
+        return do_exit;
+    }
+
+    void Overlay::exit() {
+        do_exit = true;
     }
 
     void Overlay::update_notification_process_status() {

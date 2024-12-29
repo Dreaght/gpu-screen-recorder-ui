@@ -85,6 +85,34 @@ namespace gsr {
         return std::make_unique<Subsection>("Startup", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
+    std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
+        auto exit_program_button = std::make_unique<Button>(&get_theme().body_font, "Exit program", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        exit_program_button->on_click = [&]() {
+            if(on_click_exit_program_button)
+                on_click_exit_program_button("exit");
+        };
+        return exit_program_button;
+    }
+
+    std::unique_ptr<Button> GlobalSettingsPage::create_go_back_to_old_ui_button() {
+        auto exit_program_button = std::make_unique<Button>(&get_theme().body_font, "Go back to the old UI", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        exit_program_button->on_click = [&]() {
+            if(on_click_exit_program_button)
+                on_click_exit_program_button("back-to-old-ui");
+        };
+        return exit_program_button;
+    }
+
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->add_widget(create_exit_program_button());
+        if(inside_flatpak)
+            list->add_widget(create_go_back_to_old_ui_button());
+        return std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+    }
+
     void GlobalSettingsPage::add_widgets() {
         auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size());
 
@@ -92,6 +120,7 @@ namespace gsr {
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));
 
         content_page_ptr->add_widget(std::move(scrollable_page));

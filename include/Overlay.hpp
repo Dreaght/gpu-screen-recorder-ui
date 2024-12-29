@@ -56,6 +56,8 @@ namespace gsr {
         void save_replay();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
         bool is_open() const;
+        bool should_exit(std::string &reason) const;
+        void exit();
     private:
         void xi_setup();
         void handle_xi_events();
@@ -161,5 +163,8 @@ namespace gsr {
 
         std::array<KeyBinding, 1> key_bindings;
         bool drawn_first_frame = false;
+
+        bool do_exit = false;
+        std::string exit_reason;
     };
 }
