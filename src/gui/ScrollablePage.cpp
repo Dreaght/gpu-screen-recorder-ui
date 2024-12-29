@@ -28,18 +28,26 @@ namespace gsr {
         offset.y += scroll_y;
         Widget *selected_widget = selected_child_widget;
 
-        if(event.type == mgl::Event::MouseButtonPressed || event.type == mgl::Event::MouseButtonReleased) {
-            if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_button.x, event.mouse_button.y}))
-                return true;
-        } else if(event.type == mgl::Event::MouseMoved) {
-            if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_move.x, event.mouse_move.y}))
-                return true;
+        if(event.type == mgl::Event::MouseButtonPressed && scrollbar_rect.contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
+            set_widget_as_selected_in_parent();
+            moving_scrollbar_with_cursor = true;
+            scrollbar_move_cursor_start_pos = mgl::vec2f(event.mouse_button.x, event.mouse_button.y);
+            scrollbar_move_cursor_scroll_y_start = scroll_y;
+            return false;
         }
 
         if(event.type == mgl::Event::MouseButtonReleased && moving_scrollbar_with_cursor) {
             moving_scrollbar_with_cursor = false;
             remove_widget_as_selected_in_parent();
             return false;
+        }
+
+        if(event.type == mgl::Event::MouseButtonPressed || event.type == mgl::Event::MouseButtonReleased) {
+            if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_button.x, event.mouse_button.y}))
+                return true;
+        } else if(event.type == mgl::Event::MouseMoved) {
+            if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_move.x, event.mouse_move.y}))
+                return true;
         }
 
         if(selected_widget) {
@@ -62,14 +70,6 @@ namespace gsr {
         if(event.type == mgl::Event::MouseWheelScrolled) {
             const double scroll = event.mouse_wheel_scroll.delta * scroll_speed;
             scroll_target_y += scroll;
-            return false;
-        }
-
-        if(event.type == mgl::Event::MouseButtonPressed && scrollbar_rect.contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
-            set_widget_as_selected_in_parent();
-            moving_scrollbar_with_cursor = true;
-            scrollbar_move_cursor_start_pos = mgl::vec2f(event.mouse_button.x, event.mouse_button.y);
-            scrollbar_move_cursor_scroll_y_start = scroll_y;
             return false;
         }
 

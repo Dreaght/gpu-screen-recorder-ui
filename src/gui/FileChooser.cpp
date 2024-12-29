@@ -96,7 +96,12 @@ namespace gsr {
                 selected_item_background.set_color(get_color_theme().tint_color);
                 window.draw(selected_item_background);
             }
-            if(!has_parent_with_selected_child_widget() && mouse_over_item == -1 && mgl::FloatRect(item_pos, item_size).contains(mouse_pos)) {
+
+            if(!has_parent_with_selected_child_widget() && mouse_over_item == -1 &&
+                mouse_pos.x >= scissor.position.x && mouse_pos.x <= scissor.position.x + scissor.size.x &&
+                mouse_pos.y >= scissor.position.y && mouse_pos.y <= scissor.position.y + scissor.size.y &&
+                mgl::FloatRect(item_pos, item_size).contains(mouse_pos))
+            {
                 // mgl::Rectangle selected_item_background(item_size.floor());
                 // selected_item_background.set_position(item_pos.floor());
                 // selected_item_background.set_color(mgl::Color(20, 20, 20, 150));
