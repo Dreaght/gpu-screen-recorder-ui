@@ -5,6 +5,7 @@
 #include "../include/GlobalHotkeysLinux.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
+#include "../include/Rpc.hpp"
 
 #include <unistd.h>
 #include <signal.h>
@@ -193,8 +194,14 @@ int main(int argc, char **argv) {
     // TODO: This is a shitty method to detect if multiple instances of gsr-ui is running but this will work properly even in flatpak
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
     if(is_gsr_ui_virtual_keyboard_running()) {
-        const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
-        gsr::exec_program_daemonized(args);
+        gsr::Rpc rpc;
+        if(rpc.open("gsr-ui") && rpc.write("show_ui", 7)) {
+            fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
+        } else {
+            fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
+            const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
+            gsr::exec_program_daemonized(args);
+        }
         return 1;
     }
     // const pid_t gsr_ui_pid = gsr::pidof("gsr-ui");
@@ -264,18 +271,16 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
+    auto rpc = std::make_unique<gsr::Rpc>();
+    if(!rpc->create("gsr-ui"))
+        fprintf(stderr, "Error: Failed to create rpc, commands won't be received\n");
+
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
 
-    // std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
-    // if(display_server == gsr::DisplayServer::X11) {
-    //     global_hotkeys = register_x11_hotkeys(overlay.get());
-    //     if(!global_hotkeys) {
-    //         fprintf(stderr, "Info: failed to register some x11 hotkeys because they are registered by another program. Will use linux hotkeys instead\n");
-    //         global_hotkeys = register_linux_hotkeys(overlay.get());
-    //     }
-    // } else {
-    //     global_hotkeys = register_linux_hotkeys(overlay.get());
-    // }
+    rpc->add_handler("show_ui", [&](const std::string&) {
+        overlay->show();
+    });
+
     std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = register_linux_hotkeys(overlay.get());
 
     if(launch_action == LaunchAction::LAUNCH_SHOW)
@@ -290,6 +295,7 @@ int main(int argc, char **argv) {
         const double frame_delta_seconds = frame_delta_clock.restart();
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
+        rpc->poll();
         global_hotkeys->poll_events();
         overlay->handle_events(global_hotkeys.get());
         if(!overlay->draw()) {
@@ -299,11 +305,12 @@ int main(int argc, char **argv) {
     }
 
     fprintf(stderr, "Info: shutting down!\n");
+    rpc.reset();
+    global_hotkeys.reset();
     overlay.reset();
     gsr::deinit_theme();
     gsr::deinit_color_theme();
     mgl_deinit();
-    global_hotkeys.reset();
 
     if(exit_reason == "back-to-old-ui") {
         const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };

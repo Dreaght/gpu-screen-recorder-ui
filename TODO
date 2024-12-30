@@ -120,3 +120,5 @@ Dont put widget position to int position when scrolling. This makes the UI jitte
 Show a popup asking if the user wants to add the program to system startup when launching the program, with a dismiss option and "Do not show again".
 
 Show warning if another instance of gpu screen recorder is already running when starting recording?
+
+Change gsr-global-hotkeys to outputs keys pressed instead of the command. This can be done pretty safely by only output keys when modifiers (such as alt) is pressed.

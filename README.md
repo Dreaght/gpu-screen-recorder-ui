@@ -9,7 +9,8 @@ You can report an issue by emailing the issue to dec05eba@protonmail.com.
 # Usage
 Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
 There is also an option in the settings to enable/disable starting the program on system startup. This option only works on systems that use systemd.
-You have to manually add `gsr-ui` to system startup on systems that uses another init system.
+You have to manually add `gsr-ui` to system startup on systems that uses another init system.\
+Note that at the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.
 
 # Installation
 If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
@@ -50,3 +51,4 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * Some games receive mouse input while the UI is open
 * When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
+* Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.

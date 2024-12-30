@@ -89,7 +89,7 @@ namespace gsr {
     }
 
     bool GlobalHotkeysLinux::bind_action(const std::string &id, GlobalHotkeyCallback callback) {
-        return bound_actions_by_id.insert(std::make_pair(id, callback)).second;
+        return bound_actions_by_id.insert(std::make_pair(id, std::move(callback))).second;
     }
 
     void GlobalHotkeysLinux::poll_events() {
@@ -103,20 +103,23 @@ namespace gsr {
             return;
         }
 
+        std::string action;
         char buffer[256];
         while(true) {
             char *line = fgets(buffer, sizeof(buffer), read_file);
             if(!line)
                 break;
 
-            const int line_len = strlen(line);
+            int line_len = strlen(line);
             if(line_len == 0)
                 continue;
 
-            if(line[line_len - 1] == '\n')
+            if(line[line_len - 1] == '\n') {
                 line[line_len - 1] = '\0';
+                --line_len;
+            }
 
-            const std::string action = line;
+            action = line;
             auto it = bound_actions_by_id.find(action);
             if(it != bound_actions_by_id.end())
                 it->second(action);

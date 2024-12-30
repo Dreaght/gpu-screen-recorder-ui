@@ -38,6 +38,7 @@ src = [
     'src/Overlay.cpp',
     'src/GlobalHotkeysX11.cpp',
     'src/GlobalHotkeysLinux.cpp',
+    'src/Rpc.cpp',
     'src/main.cpp',
 ]
 
