@@ -1211,7 +1211,7 @@ namespace gsr {
         const char *notification_type_str = notification_type_to_string(notification_type);
         if(notification_type_str) {
             notification_args[9] = "--icon";
-            notification_args[10] = "record",
+            notification_args[10] = notification_type_str;
             notification_args[11] = nullptr;
         } else {
             notification_args[9] = nullptr;
