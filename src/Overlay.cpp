@@ -470,8 +470,6 @@ namespace gsr {
             notification_process = -1;
         }
 
-        close_gpu_screen_recorder_output();
-
         if(gpu_screen_recorder_process > 0) {
             kill(gpu_screen_recorder_process, SIGINT);
             int status;
@@ -481,6 +479,8 @@ namespace gsr {
             }
             gpu_screen_recorder_process = -1;
         }
+
+        close_gpu_screen_recorder_output();
 
         free(xi_input_xev);
         free(xi_output_xev);
