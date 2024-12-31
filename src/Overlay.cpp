@@ -1973,7 +1973,6 @@ namespace gsr {
             "-fm", framerate_mode.c_str(),
             "-encoder", encoder,
             "-f", fps.c_str(),
-            "-f", fps.c_str(),
             "-v", "no",
             "-o", url.c_str()
         };
