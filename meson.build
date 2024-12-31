@@ -1,4 +1,4 @@
-project('gsr-ui', ['c', 'cpp'], version : '1.0.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-ui', ['c', 'cpp'], version : '1.0.1', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 if get_option('buildtype') == 'debug'
     add_project_arguments('-g3', language : ['c', 'cpp'])
