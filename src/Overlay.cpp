@@ -1306,12 +1306,18 @@ namespace gsr {
         truncate_string(focused_window_name, 20);
         std::string text;
         switch(notification_type) {
-            case NotificationType::RECORD:
+            case NotificationType::RECORD: {
+                if(!config.record_config.show_video_saved_notifications)
+                    return;
                 text = "Saved recording to '" + focused_window_name + "/" + video_filename + "'";
                 break;
-            case NotificationType::REPLAY:
+            }
+            case NotificationType::REPLAY: {
+                if(!config.replay_config.show_replay_saved_notifications)
+                    return;
                 text = "Saved replay to '" + focused_window_name + "/" + video_filename + "'";
                 break;
+            }
             case NotificationType::NONE:
             case NotificationType::STREAM:
                 break;

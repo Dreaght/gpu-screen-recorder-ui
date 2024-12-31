@@ -45,17 +45,21 @@ namespace gsr {
         Window focused_window = None;
 
         if(cap_type == WindowCaptureType::FOCUSED) {
-            // Atom type = None;
-            // int format = 0;
-            // unsigned long num_items = 0;
-            // unsigned long bytes_left = 0;
-            // unsigned char *data = NULL;
-            // XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
+            Atom type = None;
+            int format = 0;
+            unsigned long num_items = 0;
+            unsigned long bytes_left = 0;
+            unsigned char *data = NULL;
+            XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
 
-            // fprintf(stderr, "focused window: %p\n", (void*)data);
+            if(type == XA_WINDOW && num_items == 1 && data)
+                focused_window = *(Window*)data;
 
-            // if(type == XA_WINDOW && num_items == 1 && data)
-            //     return *(Window*)data;
+            if(data)
+                XFree(data);
+
+            if(focused_window)
+                return focused_window;
 
             int revert_to = 0;
             XGetInputFocus(dpy, &focused_window, &revert_to);
@@ -72,7 +76,7 @@ namespace gsr {
 
     static char* get_window_title(Display *dpy, Window window) {
         const Atom net_wm_name_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
-        const Atom wm_name_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
+        const Atom wm_name_atom = XInternAtom(dpy, "WM_NAME", False);
         const Atom utf8_string_atom = XInternAtom(dpy, "UTF8_STRING", False);
 
         Atom type = None;
@@ -135,6 +139,7 @@ namespace gsr {
         char *window_title = get_window_title(dpy, focused_window);
         if(window_title) {
             result = string_string(window_title);
+            XFree(window_title);
             return result;
         }
 
