@@ -35,12 +35,12 @@ namespace gsr {
 
                 const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y));
                 if(mouse_inside) {
-                    const size_t prev_selected_item = selected_item;
+                    if(selected_item != i && on_selection_changed) {
+                        if(!on_selection_changed(item.text.get_string(), item.id))
+                            return false;
+                    }
+
                     selected_item = i;
-
-                    if(selected_item != prev_selected_item && on_selection_changed)
-                        on_selection_changed(item.text.get_string(), item.id);
-
                     return false;
                 }
 
@@ -158,12 +158,12 @@ namespace gsr {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
             if(item.id == id) {
-                const size_t prev_selected_item = selected_item;
+                if(trigger_event && (trigger_event_even_if_selection_not_changed || selected_item != i) && on_selection_changed) {
+                    if(!on_selection_changed(item.text.get_string(), item.id))
+                        break;
+                }
+
                 selected_item = i;
-
-                if(trigger_event && (trigger_event_even_if_selection_not_changed || selected_item != prev_selected_item) && on_selection_changed)
-                    on_selection_changed(item.text.get_string(), item.id);
-
                 break;
             }
         }

@@ -516,6 +516,7 @@ namespace gsr {
             video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
             change_video_resolution_checkbox_ptr->set_visible(!focused_selected);
             restore_portal_session_list_ptr->set_visible(portal_selected);
+            return true;
         };
 
         change_video_resolution_checkbox_ptr->on_changed = [this](bool checked) {
@@ -530,6 +531,8 @@ namespace gsr {
 
             if(estimated_file_size_ptr)
                 estimated_file_size_ptr->set_visible(custom_selected);
+
+            return true;
         };
         video_quality_box_ptr->on_selection_changed("", video_quality_box_ptr->get_selected_id());
 
@@ -705,6 +708,7 @@ namespace gsr {
             framerate_mode_list_ptr->set_visible(advanced_view);
             notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
+            return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
 
@@ -760,6 +764,7 @@ namespace gsr {
             framerate_mode_list_ptr->set_visible(advanced_view);
             notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
+            return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }
@@ -860,6 +865,7 @@ namespace gsr {
             container_list_ptr->set_visible(custom_option);
             twitch_stream_key_entry_ptr->set_visible(twitch_option);
             youtube_stream_key_entry_ptr->set_visible(youtube_option);
+            return true;
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
 
@@ -872,6 +878,7 @@ namespace gsr {
             framerate_mode_list_ptr->set_visible(advanced_view);
             notifications_subsection_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
+            return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
     }

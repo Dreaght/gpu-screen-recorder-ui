@@ -27,7 +27,8 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
 
-        std::function<void(const std::string &text, const std::string &id)> on_selection_changed;
+        // Return false to revert the change
+        std::function<bool(const std::string &text, const std::string &id)> on_selection_changed;
     private:
         void update_if_dirty();
     private:

@@ -55,6 +55,7 @@ namespace gsr {
                 get_color_theme().tint_color = mgl::Color(118, 185, 0);
             else if(id == "intel")
                 get_color_theme().tint_color = mgl::Color(8, 109, 183);
+            return true;
         };
         list->add_widget(std::move(tint_color_radio_button));
         return std::make_unique<Subsection>("Appearance", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
@@ -62,10 +63,11 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_startup_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        auto startup_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Start program on system startup?", get_color_theme().text_color));
+        auto startup_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
         startup_radio_button_ptr = startup_radio_button.get();
-        startup_radio_button->add_item("Don't start this program on system startup", "dont_start_on_system_startup");
-        startup_radio_button->add_item("Start this program on system startup", "start_on_system_startup");
+        startup_radio_button->add_item("Yes", "start_on_system_startup");
+        startup_radio_button->add_item("No", "dont_start_on_system_startup");
         startup_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
             bool enable = false;
             if(id == "dont_start_on_system_startup")
@@ -73,13 +75,14 @@ namespace gsr {
             else if(id == "start_on_system_startup")
                 enable = true;
             else
-                return;
+                return false;
 
             const char *args[] = { "systemctl", enable ? "enable" : "disable", "--user", "gpu-screen-recorder-ui", nullptr };
             std::string stdout_str;
             const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
             if(on_startup_changed)
                 on_startup_changed(enable, exit_status);
+            return exit_status == 0;
         };
         list->add_widget(std::move(startup_radio_button));
         return std::make_unique<Subsection>("Startup", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
