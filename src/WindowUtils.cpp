@@ -45,21 +45,21 @@ namespace gsr {
         Window focused_window = None;
 
         if(cap_type == WindowCaptureType::FOCUSED) {
-            Atom type = None;
-            int format = 0;
-            unsigned long num_items = 0;
-            unsigned long bytes_left = 0;
-            unsigned char *data = NULL;
-            XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
+            // Atom type = None;
+            // int format = 0;
+            // unsigned long num_items = 0;
+            // unsigned long bytes_left = 0;
+            // unsigned char *data = NULL;
+            // XGetWindowProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, 0, 1, False, XA_WINDOW, &type, &format, &num_items, &bytes_left, &data);
 
-            if(type == XA_WINDOW && num_items == 1 && data)
-                focused_window = *(Window*)data;
+            // if(type == XA_WINDOW && num_items == 1 && data)
+            //     focused_window = *(Window*)data;
 
-            if(data)
-                XFree(data);
+            // if(data)
+            //     XFree(data);
 
-            if(focused_window)
-                return focused_window;
+            // if(focused_window)
+            //     return focused_window;
 
             int revert_to = 0;
             XGetInputFocus(dpy, &focused_window, &revert_to);
