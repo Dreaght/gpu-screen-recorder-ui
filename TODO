@@ -122,3 +122,5 @@ Show a popup asking if the user wants to add the program to system startup when 
 Show warning if another instance of gpu screen recorder is already running when starting recording?
 
 Change gsr-global-hotkeys to outputs keys pressed instead of the command. This can be done pretty safely by only output keys when modifiers (such as alt) is pressed.
+
+Keyboard leds get turned off when stopping gsr-global-hotkeys (for example numlock). The numlock key has to be pressed twice again to make it look correct to match its state.

@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
     if(is_gsr_ui_virtual_keyboard_running()) {
         gsr::Rpc rpc;
-        if(rpc.open("gsr-ui") && rpc.write("show_ui", 7)) {
+        if(rpc.open("gsr-ui") && rpc.write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
         } else {
             fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
