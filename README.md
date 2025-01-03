@@ -10,7 +10,8 @@ You can report an issue by emailing the issue to dec05eba@protonmail.com.
 Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
 There is also an option in the settings to enable/disable starting the program on system startup. This option only works on systems that use systemd.
 You have to manually add `gsr-ui` to system startup on systems that uses another init system.\
-Note that at the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.
+Note that at the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.\
+If you experience this issue then please email dec05eba@protonmail.com to get it fixed.
 
 # Installation
 If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
@@ -51,4 +52,4 @@ If you want to donate you can donate via bitcoin or monero.
 
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
-* Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.
+* Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI. If you experience this issue then please email dec05eba@protonmail.com to get it fixed.
