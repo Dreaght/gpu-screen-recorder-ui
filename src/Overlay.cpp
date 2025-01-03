@@ -2003,6 +2003,7 @@ namespace gsr {
             "-o", url.c_str()
         };
 
+        config.streaming_config.record_options.merge_audio_tracks = true;
         add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
 
         args.push_back(nullptr);

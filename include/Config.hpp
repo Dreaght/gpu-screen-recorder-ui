@@ -25,7 +25,7 @@ namespace gsr {
         int32_t video_height = 0;
         int32_t fps = 60;
         int32_t video_bitrate = 15000;
-        bool merge_audio_tracks = true;
+        bool merge_audio_tracks = true; // Currently unused for streaming because all known streaming sites only support 1 audio track
         bool application_audio_invert = false;
         bool change_video_resolution = false;
         std::vector<std::string> audio_tracks;

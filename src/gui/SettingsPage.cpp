@@ -304,7 +304,8 @@ namespace gsr {
     std::unique_ptr<Widget> SettingsPage::create_audio_section() {
         auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_device_section_list->add_widget(create_audio_track_section());
-        audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
+        if(type != Type::STREAM)
+            audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
         audio_device_section_list->add_widget(create_application_audio_invert_checkbox());
         audio_device_section_list->add_widget(create_audio_codec());
         return std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
@@ -1007,7 +1008,8 @@ namespace gsr {
 
     void SettingsPage::load_common(RecordOptions &record_options) {
         record_area_box_ptr->set_selected_item(record_options.record_area_option);
-        merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
+        if(merge_audio_tracks_checkbox_ptr)
+            merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
         application_audio_invert_checkbox_ptr->set_checked(record_options.application_audio_invert);
         change_video_resolution_checkbox_ptr->set_checked(record_options.change_video_resolution);
         load_audio_tracks(record_options);
@@ -1128,7 +1130,8 @@ namespace gsr {
         record_options.video_height = atoi(video_height_entry_ptr->get_text().c_str());
         record_options.fps = atoi(framerate_entry_ptr->get_text().c_str());
         record_options.video_bitrate = atoi(video_bitrate_entry_ptr->get_text().c_str());
-        record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
+        if(merge_audio_tracks_checkbox_ptr)
+            record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
         record_options.application_audio_invert = application_audio_invert_checkbox_ptr->is_checked();
         record_options.change_video_resolution = change_video_resolution_checkbox_ptr->is_checked();
         save_audio_tracks(record_options.audio_tracks, audio_track_list_ptr);
