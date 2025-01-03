@@ -74,6 +74,14 @@ executable(
     install : true
 )
 
+executable(
+    'gsr-ui-cli',
+    [
+        'tools/gsr-ui-cli/main.c'
+    ],
+    install : true
+)
+
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
 

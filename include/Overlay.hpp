@@ -58,6 +58,8 @@ namespace gsr {
         bool is_open() const;
         bool should_exit(std::string &reason) const;
         void exit();
+
+        const Config& get_config() const;
     private:
         void xi_setup();
         void handle_xi_events();

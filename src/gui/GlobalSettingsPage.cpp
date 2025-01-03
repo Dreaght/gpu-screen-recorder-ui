@@ -88,6 +88,27 @@ namespace gsr {
         return std::make_unique<Subsection>("Startup", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_hotkey_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        enable_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
+        enable_hotkeys_radio_button->add_item("Enable hotkeys and restart", "enable_hotkeys");
+        enable_hotkeys_radio_button->add_item("Disable hotkeys and restart", "disable_hotkeys");
+        enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
+            if(!on_click_exit_program_button)
+                return true;
+
+            if(id == "enable_hotkeys")
+                on_click_exit_program_button("restart");
+            else if(id == "disable_hotkeys")
+                on_click_exit_program_button("restart");
+
+            return true;
+        };
+        list->add_widget(std::move(enable_hotkeys_radio_button));
+        return std::make_unique<Subsection>("Hotkeys", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+    }
+
     std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
         auto exit_program_button = std::make_unique<Button>(&get_theme().body_font, "Exit program", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         exit_program_button->on_click = [&]() {
@@ -108,7 +129,6 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         list->add_widget(create_exit_program_button());
         if(inside_flatpak)
@@ -123,6 +143,7 @@ namespace gsr {
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));
 
@@ -143,10 +164,13 @@ namespace gsr {
         std::string stdout_str;
         const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
         startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
+
+        enable_hotkeys_radio_button_ptr->set_selected_item(config.main_config.enable_hotkeys ? "enable_hotkeys" : "disable_hotkeys", false, false);
     }
 
     void GlobalSettingsPage::save() {
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
+        config.main_config.enable_hotkeys = enable_hotkeys_radio_button_ptr->get_selected_id() == "enable_hotkeys";
         save_config(config);
     }
 }

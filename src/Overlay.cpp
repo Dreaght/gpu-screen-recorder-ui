@@ -487,6 +487,7 @@ namespace gsr {
         }
 
         close_gpu_screen_recorder_output();
+        deinit_color_theme();
     }
 
     void Overlay::xi_setup() {
@@ -1259,6 +1260,10 @@ namespace gsr {
 
     void Overlay::exit() {
         do_exit = true;
+    }
+
+    const Config& Overlay::get_config() const {
+        return config;
     }
 
     void Overlay::update_notification_process_status() {

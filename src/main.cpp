@@ -1,5 +1,4 @@
 #include "../include/GsrInfo.hpp"
-#include "../include/Theme.hpp"
 #include "../include/Overlay.hpp"
 #include "../include/GlobalHotkeysX11.hpp"
 #include "../include/GlobalHotkeysLinux.hpp"
@@ -132,6 +131,43 @@ static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Over
     });
 
     return global_hotkeys;
+}
+
+static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
+    rpc->add_handler("show_ui", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->show();
+    });
+
+    rpc->add_handler("toggle-show", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_show();
+    });
+
+    rpc->add_handler("toggle-record", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_record();
+    });
+
+    rpc->add_handler("toggle-pause", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_pause();
+    });
+
+    rpc->add_handler("toggle-stream", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_stream();
+    });
+
+    rpc->add_handler("toggle-replay", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_replay();
+    });
+
+    rpc->add_handler("replay-save", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->save_replay();
+    });
 }
 
 static bool is_gsr_ui_virtual_keyboard_running() {
@@ -271,20 +307,19 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
+    auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
+    if(launch_action == LaunchAction::LAUNCH_SHOW)
+        overlay->show();
+
     auto rpc = std::make_unique<gsr::Rpc>();
     if(!rpc->create("gsr-ui"))
         fprintf(stderr, "Error: Failed to create rpc, commands won't be received\n");
 
-    auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
+    rpc_add_commands(rpc.get(), overlay.get());
 
-    rpc->add_handler("show_ui", [&](const std::string&) {
-        overlay->show();
-    });
-
-    std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = register_linux_hotkeys(overlay.get());
-
-    if(launch_action == LaunchAction::LAUNCH_SHOW)
-        overlay->show();
+    std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
+    if(overlay->get_config().main_config.enable_hotkeys)
+        global_hotkeys = register_linux_hotkeys(overlay.get());
 
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 
@@ -296,7 +331,10 @@ int main(int argc, char **argv) {
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
         rpc->poll();
-        global_hotkeys->poll_events();
+
+        if(global_hotkeys)
+            global_hotkeys->poll_events();
+
         overlay->handle_events(global_hotkeys.get());
         if(!overlay->draw()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -306,14 +344,16 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: shutting down!\n");
     rpc.reset();
-    global_hotkeys.reset();
+    if(global_hotkeys)
+        global_hotkeys.reset();
     overlay.reset();
-    gsr::deinit_theme();
-    gsr::deinit_color_theme();
     mgl_deinit();
 
     if(exit_reason == "back-to-old-ui") {
         const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };
+        execvp(args[0], (char* const*)args);
+    } else if(exit_reason == "restart") {
+        const char *args[] = { "gsr-ui", nullptr };
         execvp(args[0], (char* const*)args);
     }
 

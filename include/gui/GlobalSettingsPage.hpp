@@ -31,6 +31,7 @@ namespace gsr {
     private:
         std::unique_ptr<Subsection> create_appearance_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_startup_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<Subsection> create_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Button> create_exit_program_button();
         std::unique_ptr<Button> create_go_back_to_old_ui_button();
         std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);
@@ -43,5 +44,6 @@ namespace gsr {
         PageStack *page_stack = nullptr;
         RadioButton *tint_color_radio_button_ptr = nullptr;
         RadioButton *startup_radio_button_ptr = nullptr;
+        RadioButton *enable_hotkeys_radio_button_ptr = nullptr;
     };
 }
