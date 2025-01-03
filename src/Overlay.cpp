@@ -1115,8 +1115,6 @@ namespace gsr {
         XFlush(display);
 
         if(xi_display) {
-            XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
-            XFlush(xi_display);
             cursor_texture.clear();
             cursor_sprite.set_texture(nullptr);
         }
@@ -1142,6 +1140,18 @@ namespace gsr {
         if(xi_display) {
             XCloseDisplay(xi_display);
             xi_display = nullptr;
+
+            if(window) {
+                mgl_context *context = mgl_get_context();
+                Display *display = (Display*)context->connection;
+
+                const mgl::vec2i new_cursor_position = mgl::vec2i(window->internal_window()->pos.x, window->internal_window()->pos.y) + window->get_mouse_position();
+                XWarpPointer(display, DefaultRootWindow(display), DefaultRootWindow(display), 0, 0, 0, 0, new_cursor_position.x, new_cursor_position.y);
+                XFlush(display);
+
+                XFixesShowCursor(display, DefaultRootWindow(display));
+                XFlush(display);
+            }
         }
 
         if(window) {
