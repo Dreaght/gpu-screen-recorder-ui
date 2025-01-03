@@ -65,7 +65,6 @@ namespace gsr {
         void grab_mouse_and_keyboard();
         void xi_setup_fake_cursor();
         void xi_grab_all_devices();
-        void xi_warp_pointer(mgl::vec2i position);
 
         void close_gpu_screen_recorder_output();
 
@@ -124,7 +123,6 @@ namespace gsr {
         mgl::Texture cursor_texture;
         mgl::Sprite cursor_sprite;
         mgl::vec2i cursor_hotspot;
-        bool cursor_drawn = false;
 
         WindowTexture window_texture;
         PageStack page_stack;
@@ -166,5 +164,8 @@ namespace gsr {
 
         bool do_exit = false;
         std::string exit_reason;
+
+        mgl::vec2i window_size = { 1280, 720 };
+        mgl::vec2i window_pos = { 0, 0 };
     };
 }

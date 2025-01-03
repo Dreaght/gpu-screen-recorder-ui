@@ -59,7 +59,7 @@ namespace gsr {
             const pid_t second_child = vfork();
             if(second_child == 0) { // child
                 execvp(args[0], (char* const*)args);
-                perror("execvp");
+                perror(args[0]);
                 _exit(127);
             } else if(second_child != -1) {
                 // TODO:
@@ -98,7 +98,7 @@ namespace gsr {
             close(fds[PIPE_WRITE]);
 
             execvp(args[0], (char* const*)args);
-            perror("execvp");
+            perror(args[0]);
             _exit(127);
         } else { /* parent */
             close(fds[PIPE_WRITE]);

@@ -58,6 +58,7 @@ executable(
         dependency('xcomposite'),
         dependency('xfixes'),
         dependency('xi'),
+        dependency('xcursor'),
     ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )

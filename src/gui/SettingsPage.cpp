@@ -387,20 +387,20 @@ namespace gsr {
             video_codec_box->add_item("H264", "h264");
         if(gsr_info->supported_video_codecs.hevc)
             video_codec_box->add_item("HEVC", "hevc");
+        if(gsr_info->supported_video_codecs.hevc_10bit)
+            video_codec_box->add_item("HEVC (10 bit, reduces banding)", "hevc_10bit");
+        if(gsr_info->supported_video_codecs.hevc_hdr)
+            video_codec_box->add_item("HEVC (HDR)", "hevc_hdr");
         if(gsr_info->supported_video_codecs.av1)
             video_codec_box->add_item("AV1", "av1");
+        if(gsr_info->supported_video_codecs.av1_10bit)
+            video_codec_box->add_item("AV1 (10 bit, reduces banding)", "av1_10bit");
+        if(gsr_info->supported_video_codecs.av1_hdr)
+            video_codec_box->add_item("AV1 (HDR)", "av1_hdr");
         if(gsr_info->supported_video_codecs.vp8)
             video_codec_box->add_item("VP8", "vp8");
         if(gsr_info->supported_video_codecs.vp9)
             video_codec_box->add_item("VP9", "vp9");
-        if(gsr_info->supported_video_codecs.hevc_hdr)
-            video_codec_box->add_item("HEVC (HDR)", "hevc_hdr");
-        if(gsr_info->supported_video_codecs.hevc_10bit)
-            video_codec_box->add_item("HEVC (10 bit, reduces banding)", "hevc_10bit");
-        if(gsr_info->supported_video_codecs.av1_hdr)
-            video_codec_box->add_item("AV1 (HDR)", "av1_hdr");
-        if(gsr_info->supported_video_codecs.av1_10bit)
-            video_codec_box->add_item("AV1 (10 bit, reduces banding)", "av1_10bit");
         if(gsr_info->supported_video_codecs.h264_software)
             video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
         video_codec_box_ptr = video_codec_box.get();

@@ -29,6 +29,7 @@
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/shape.h>
+#include <X11/Xcursor/Xcursor.h>
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
 
@@ -43,6 +44,10 @@ namespace gsr {
 
     static bool is_focused_application_wayland(Display *dpy) {
         return get_focused_window(dpy, WindowCaptureType::FOCUSED) == 0;
+    }
+
+    static bool is_cursor_hovering_application_wayland(Display *dpy) {
+        return get_focused_window(dpy, WindowCaptureType::CURSOR) == 0;
     }
 
     static mgl::Texture texture_from_ximage(XImage *img) {
@@ -70,17 +75,17 @@ namespace gsr {
         return texture;
     }
 
-    static bool texture_from_x11_cursor(XFixesCursorImage *x11_cursor_image, bool *visible, mgl::vec2i *hotspot, mgl::Texture &texture) {
+    static bool texture_from_x11_cursor(XcursorImage *x11_cursor_image, bool *visible, mgl::vec2i *hotspot, mgl::Texture &texture) {
         uint8_t *cursor_data = NULL;
         uint8_t *out = NULL;
-        const unsigned long *pixels = NULL;
+        const unsigned int *pixels = NULL;
         *visible = false;
 
         if(!x11_cursor_image)
-            goto err;
+            return false;
 
         if(!x11_cursor_image->pixels)
-            goto err;
+            return false;
 
         hotspot->x = x11_cursor_image->xhot;
         hotspot->y = x11_cursor_image->yhot;
@@ -88,12 +93,12 @@ namespace gsr {
         pixels = x11_cursor_image->pixels;
         cursor_data = (uint8_t*)malloc((int)x11_cursor_image->width * (int)x11_cursor_image->height * 4);
         if(!cursor_data)
-            goto err;
+            return false;
 
         out = cursor_data;
         /* Un-premultiply alpha */
-        for(int y = 0; y < x11_cursor_image->height; ++y) {
-            for(int x = 0; x < x11_cursor_image->width; ++x) {
+        for(uint32_t y = 0; y < x11_cursor_image->height; ++y) {
+            for(uint32_t x = 0; x < x11_cursor_image->width; ++x) {
                 uint32_t pixel = *pixels++;
                 uint8_t *in = (uint8_t*)&pixel;
                 uint8_t alpha = in[3];
@@ -114,13 +119,7 @@ namespace gsr {
 
         texture.load_from_memory(cursor_data, x11_cursor_image->width, x11_cursor_image->height, MGL_IMAGE_FORMAT_RGBA);
         free(cursor_data);
-        XFree(x11_cursor_image);
         return true;
-
-        err:
-        if(x11_cursor_image)
-            XFree(x11_cursor_image);
-        return false;
     }
 
     static char hex_value_to_str(uint8_t v) {
@@ -299,6 +298,16 @@ namespace gsr {
         return &win->monitors[0];
     }
 
+    static mgl::vec2i get_cursor_position(Display *dpy) {
+        Window root_window = None;
+        Window window = None;
+        int dummy_i;
+        unsigned int dummy_u;
+        mgl::vec2i root_pos;
+        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &root_pos.x, &root_pos.y, &dummy_i, &dummy_i, &dummy_u);
+        return root_pos;
+    }
+
     static mgl::vec2i create_window_get_center_position(Display *display) {
         const int size = 16;
         XSetWindowAttributes window_attr;
@@ -431,9 +440,6 @@ namespace gsr {
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
     {
-        // TODO:
-        //xi_setup();
-
         key_bindings[0].key_event.code = mgl::Keyboard::Escape;
         key_bindings[0].key_event.alt = false;
         key_bindings[0].key_event.control = false;
@@ -481,11 +487,6 @@ namespace gsr {
         }
 
         close_gpu_screen_recorder_output();
-
-        free(xi_input_xev);
-        free(xi_output_xev);
-        if(xi_display)
-            XCloseDisplay(xi_display);
     }
 
     void Overlay::xi_setup() {
@@ -509,6 +510,7 @@ namespace gsr {
         unsigned char mask[XIMaskLen(XI_LASTEVENT)];
         memset(mask, 0, sizeof(mask));
         XISetMask(mask, XI_Motion);
+        //XISetMask(mask, XI_RawMotion);
         XISetMask(mask, XI_ButtonPress);
         XISetMask(mask, XI_ButtonRelease);
         XISetMask(mask, XI_KeyPress);
@@ -567,8 +569,8 @@ namespace gsr {
                     xi_output_xev->xmotion.display = display;
                     xi_output_xev->xmotion.window = window->get_system_handle();
                     xi_output_xev->xmotion.subwindow = window->get_system_handle();
-                    xi_output_xev->xmotion.x = de->event_x;
-                    xi_output_xev->xmotion.y = de->event_y;
+                    xi_output_xev->xmotion.x = de->root_x - window_pos.x;
+                    xi_output_xev->xmotion.y = de->root_y - window_pos.y;
                     xi_output_xev->xmotion.x_root = de->root_x;
                     xi_output_xev->xmotion.y_root = de->root_y;
                     //xi_output_xev->xmotion.state = // modifiers // TODO:
@@ -580,8 +582,8 @@ namespace gsr {
                     xi_output_xev->xbutton.display = display;
                     xi_output_xev->xbutton.window = window->get_system_handle();
                     xi_output_xev->xbutton.subwindow = window->get_system_handle();
-                    xi_output_xev->xbutton.x = de->event_x;
-                    xi_output_xev->xbutton.y = de->event_y;
+                    xi_output_xev->xbutton.x = de->root_x - window_pos.x;
+                    xi_output_xev->xbutton.y = de->root_y - window_pos.y;
                     xi_output_xev->xbutton.x_root = de->root_x;
                     xi_output_xev->xbutton.y_root = de->root_y;
                     //xi_output_xev->xbutton.state = // modifiers // TODO:
@@ -594,8 +596,8 @@ namespace gsr {
                     xi_output_xev->xkey.display = display;
                     xi_output_xev->xkey.window = window->get_system_handle();
                     xi_output_xev->xkey.subwindow = window->get_system_handle();
-                    xi_output_xev->xkey.x = de->event_x;
-                    xi_output_xev->xkey.y = de->event_y;
+                    xi_output_xev->xkey.x = de->root_x - window_pos.x;
+                    xi_output_xev->xkey.y = de->root_y - window_pos.y;
                     xi_output_xev->xkey.x_root = de->root_x;
                     xi_output_xev->xkey.y_root = de->root_y;
                     xi_output_xev->xkey.state = de->mods.effective;
@@ -694,12 +696,6 @@ namespace gsr {
         page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
 
         if(cursor_texture.is_valid()) {
-            if(!cursor_drawn) {
-                cursor_drawn = true;
-                XFixesHideCursor(xi_display, DefaultRootWindow(xi_display));
-                XFlush(xi_display);
-            }
-
             cursor_sprite.set_position((window->get_mouse_position() - cursor_hotspot).to_vec2f());
             window->draw(cursor_sprite);
         }
@@ -737,13 +733,32 @@ namespace gsr {
         if(!xi_display)
             return;
 
-        XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
+        XFixesHideCursor(xi_display, DefaultRootWindow(xi_display));
         XFlush(xi_display);
 
+        // TODO: XCURSOR_SIZE and XCURSOR_THEME environment variables
+        const char *cursor_theme = XcursorGetTheme(xi_display);
+        if(!cursor_theme) {
+            //fprintf(stderr, "Warning: failed to get cursor theme, using \"default\" theme instead\n");
+            cursor_theme = "default";
+        }
+
+        int cursor_size = XcursorGetDefaultSize(xi_display);
+        if(cursor_size <= 1)
+            cursor_size = 24;
+
+        XcursorImage *cursor_image = XcursorShapeLoadImage(XC_left_ptr, cursor_theme, cursor_size);
+        if(!cursor_image) {
+            fprintf(stderr, "Error: failed to get cursor\n");
+            return;
+        }
+
         bool cursor_visible = false;
-        texture_from_x11_cursor(XFixesGetCursorImage(xi_display), &cursor_visible, &cursor_hotspot, cursor_texture);
+        texture_from_x11_cursor(cursor_image, &cursor_visible, &cursor_hotspot, cursor_texture);
         if(cursor_texture.is_valid())
             cursor_sprite.set_texture(&cursor_texture);
+
+        XcursorImageDestroy(cursor_image);
     }
 
     void Overlay::xi_grab_all_devices() {
@@ -755,38 +770,22 @@ namespace gsr {
         if(!info)
             return;
 
-        for (int i = 0; i < num_devices; ++i) {
-            const XIDeviceInfo *dev = &info[i];
-            XIEventMask masks[1];
-            unsigned char mask0[XIMaskLen(XI_LASTEVENT)];
-            memset(mask0, 0, sizeof(mask0));
-            XISetMask(mask0, XI_Motion);
-            XISetMask(mask0, XI_ButtonPress);
-            XISetMask(mask0, XI_ButtonRelease);
-            XISetMask(mask0, XI_KeyPress);
-            XISetMask(mask0, XI_KeyRelease);
-            masks[0].deviceid = dev->deviceid;
-            masks[0].mask_len = sizeof(mask0);
-            masks[0].mask = mask0;
-            XIGrabDevice(xi_display, dev->deviceid, window->get_system_handle(), CurrentTime, None, XIGrabModeAsync, XIGrabModeAsync, XIOwnerEvents, masks);
-        }
-
-        XFlush(xi_display);
-        XIFreeDeviceInfo(info);
-    }
-
-    void Overlay::xi_warp_pointer(mgl::vec2i position) {
-        if(!xi_display)
-            return;
-
-        int num_devices = 0;
-        XIDeviceInfo *info = XIQueryDevice(xi_display, XIAllDevices, &num_devices);
-        if(!info)
-            return;
+        unsigned char mask[XIMaskLen(XI_LASTEVENT)];
+        memset(mask, 0, sizeof(mask));
+        XISetMask(mask, XI_Motion);
+        //XISetMask(mask, XI_RawMotion);
+        XISetMask(mask, XI_ButtonPress);
+        XISetMask(mask, XI_ButtonRelease);
+        XISetMask(mask, XI_KeyPress);
+        XISetMask(mask, XI_KeyRelease);
 
         for (int i = 0; i < num_devices; ++i) {
             const XIDeviceInfo *dev = &info[i];
-            XIWarpPointer(xi_display, dev->deviceid, DefaultRootWindow(xi_display), DefaultRootWindow(xi_display), 0, 0, 0, 0, position.x, position.y);
+            XIEventMask xi_masks;
+            xi_masks.deviceid = dev->deviceid;
+            xi_masks.mask_len = sizeof(mask);
+            xi_masks.mask = mask;
+            XIGrabDevice(xi_display, dev->deviceid, window->get_system_handle(), CurrentTime, None, XIGrabModeAsync, XIGrabModeAsync, XIOwnerEvents, &xi_masks);
         }
 
         XFlush(xi_display);
@@ -810,8 +809,8 @@ namespace gsr {
         // a fullscreen window for the ui.
         const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || !is_focused_application_wayland(display);
 
-        mgl::vec2i window_size = { 1280, 720 };
-        mgl::vec2i window_pos = { 0, 0 };
+        window_size = { 1280, 720 };
+        window_pos = { 0, 0 };
 
         mgl::Window::CreateParams window_create_params;
         window_create_params.size = window_size;
@@ -846,7 +845,8 @@ namespace gsr {
         }
 
         // The cursor position is wrong on wayland if an x11 window is not focused. On wayland we instead create a window and get the position where the wayland compositor puts it
-        const mgl::vec2i monitor_position_query_value = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? create_window_get_center_position(display) : mgl::vec2i(win->cursor_position.x, win->cursor_position.y);
+        const mgl::vec2i cursor_position = get_cursor_position(display);
+        const mgl::vec2i monitor_position_query_value = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? create_window_get_center_position(display) : cursor_position;
         const mgl_monitor *focused_monitor = find_monitor_at_position(*window, monitor_position_query_value);
         window_pos = {focused_monitor->pos.x, focused_monitor->pos.y};
         window_size = {focused_monitor->size.x, focused_monitor->size.y};
@@ -855,6 +855,9 @@ namespace gsr {
         window->set_size(window_size);
         window->set_size_limits(window_size, window_size);
         window->set_position(window_pos);
+
+        win->cursor_position.x = cursor_position.x - window_pos.x;
+        win->cursor_position.y = cursor_position.y - window_pos.y;
 
         update_compositor_texture(focused_monitor);
 
@@ -1032,6 +1035,11 @@ namespace gsr {
             return true;
         };
 
+        // The focused application can be an xwayland application but the cursor can hover over a wayland application.
+        // This is even the case when hovering over the titlebar of the xwayland application.
+        if(!is_cursor_hovering_application_wayland(display))
+            xi_setup();
+
         //window->set_fullscreen(true);
         if(gsr_info.system_info.display_server == DisplayServer::X11)
             make_window_click_through(display, window->get_system_handle());
@@ -1045,7 +1053,7 @@ namespace gsr {
             XFreeCursor(display, default_cursor);
             default_cursor = 0;
         }
-        default_cursor = XCreateFontCursor(display, XC_arrow);
+        default_cursor = XCreateFontCursor(display, XC_left_ptr);
         XFlush(display);
 
         grab_mouse_and_keyboard();
@@ -1107,10 +1115,8 @@ namespace gsr {
         XFlush(display);
 
         if(xi_display) {
-            // TODO: Only show cursor if it wasn't hidden before the ui was shown
-            cursor_drawn = false;
-            //XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
-            //XFlush(xi_display);
+            XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
+            XFlush(xi_display);
             cursor_texture.clear();
             cursor_sprite.set_texture(nullptr);
         }
@@ -1123,20 +1129,24 @@ namespace gsr {
         visible = false;
         drawn_first_frame = false;
 
+        if(xi_input_xev) {
+            free(xi_input_xev);
+            xi_input_xev = nullptr;
+        }
+
+        if(xi_output_xev) {
+            free(xi_output_xev);
+            xi_output_xev = nullptr;
+        }
+
+        if(xi_display) {
+            XCloseDisplay(xi_display);
+            xi_display = nullptr;
+        }
+
         if(window) {
-            const mgl::vec2i new_cursor_position = mgl::vec2i(window->internal_window()->pos.x, window->internal_window()->pos.y) + window->get_mouse_position();
             window->set_visible(false);
             window.reset();
-
-            if(xi_display) {
-                XFlush(display);
-                XWarpPointer(display, DefaultRootWindow(display), DefaultRootWindow(display), 0, 0, 0, 0, new_cursor_position.x, new_cursor_position.y);
-                XFlush(display);
-                //xi_warp_pointer(new_cursor_position);
-
-                XFixesShowCursor(xi_display, DefaultRootWindow(xi_display));
-                XFlush(xi_display);
-            }
         }
 
         deinit_theme();
@@ -1145,7 +1155,7 @@ namespace gsr {
     void Overlay::toggle_show() {
         if(visible) {
             //hide();
-            // We dont want to hide immediately because hide is called in event callback, in which it destroys the window.
+            // We dont want to hide immediately because hide is called in mgl event callback, in which it destroys the mgl window.
             // Instead remove all pages and wait until next iteration to close the UI (which happens when there are no pages to render).
             while(!page_stack.empty()) {
                 page_stack.pop();
@@ -2021,8 +2031,8 @@ namespace gsr {
             return false;
 
         bool window_texture_loaded = false;
-        const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED);
-        if(is_window_fullscreen_on_monitor(display, focused_window, monitor) && focused_window)
+        const Window focused_window = get_focused_window(display, WindowCaptureType::CURSOR);
+        if(focused_window && is_window_fullscreen_on_monitor(display, focused_window, monitor))
             window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window->internal_window()), focused_window, egl_funcs) == 0;
 
         if(window_texture_loaded && window_texture.texture_id) {

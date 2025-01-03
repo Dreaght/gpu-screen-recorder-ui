@@ -24,6 +24,7 @@ GPU Screen Recorder UI uses meson build system so you need to install `meson` to
 These are the dependencies needed to build GPU Screen Recorder UI:
 
 * x11 (libx11, libxrandr, libxrender, libxcomposite, libxfixes, libxi)
+* libxcursor
 * libglvnd (which provides libgl, libglx and libegl)
 * linux-api-headers
 
@@ -49,6 +50,5 @@ If you want to donate you can donate via bitcoin or monero.
 * Monero: 4An9kp2qW1C9Gah7ewv4JzcNFQ5TAX7ineGCqXWK6vQnhsGGcRpNgcn8r9EC3tMcgY7vqCKs3nSRXhejMHBaGvFdN2egYet
 
 # Known issues
-* Some games receive mouse input while the UI is open
 * When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
 * Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.

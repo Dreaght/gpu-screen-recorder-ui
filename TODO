@@ -1,12 +1,4 @@
-setcap nice for good performance when opening overlay when game is running below 60 fps.
-Maybe grab cursor with xi, as that will prevent games from detecting movement with xi2 api.
-
-Fullscreen on wayland doesn't render windows behind because it's a compositor optimization, to not draw anything behind (only draw the window directly without compositing).
-Fix this by drawing the window smaller, or have two windows (left and right half monitor width).
-Maybe change design to have black triangles appear and get larger until they fill the screen, with even spaces being left with no triangles.
-    Exclude triangles from a diagonal line across the screen.
-    Have buttons appear slanted in 3D.
-    All of these things should be done with vertex buffer, for real 3D.
+setcap nice for good performance when opening overlay when game is running below 60 fps (on amd).
 
 WAYLAND_DISPLAY gamescope-0, DISPLAY=:1 (gamescope xwayland)
 
@@ -47,7 +39,7 @@ Add global setting. In that setting there should be an option to enable/disable 
 
 Add profiles and hotkey to switch between profiles (show notification when switching profile).
 
-Fix first frame being black.
+Fix first frame being black when running without a compositor.
 
 Add support for systray.
 
@@ -70,32 +62,23 @@ On nvidia check if suspend fix is applied. If not, show a popup asking the user 
 
 Show warning when using steam deck or when trying to capture hevc/av1 on amd (the same warnings as gpu screen recorder gtk).
 
-Add option to capture application audio. This should show a popup where you can use one of the available applications or a custom one and choose to record that application or all applications except that one.
-
 Add profile option. Convert view to profile, add an option at the bottom that says "Edit profiles..." which should show a popup where you can create/remove profiles. New profiles should always be in advanced view.
 
 Verify monitor/audio when starting recording. Give an error if the options are no longer valid.
 
-Get focused window when opening gsr-ui and pass that to the save replay script, to ignore gsr-ui when getting game name.
-
-gsr ui window has _NET_WM_STATE _NET_WM_STATE_ABOVE, not _NET_WM_STATE_FULLSCREEN
+gsr ui window has _NET_WM_STATE _NET_WM_STATE_ABOVE, not _NET_WM_STATE_FULLSCREEN.
 
 For replay on fullscreen detect focused fullscreen window by checking if the window size is the same as the monitor size instead of _NET_WM_STATE_FULLSCREEN.
-
-Add audio devices/app refresh button.
 
 Play camera shutter sound when saving recording. When another sound when starting recording.
 
 Some games such as "The Finals" crashes/freezes when they lose focus when running them on x11 on a laptop with prime setup and the monitor runs on the iGPU while the game runs on the dGPU.
-Try to reproduce this and if it happens try grab cursor and keyboard instead of setting gsr ui focus and make gsr ui click through like gsr notify. This might fix the issue.
 
 Run `systemctl status --user gpu-screen-recorder` when starting recording and give a notification warning if it returns 0 (running). Or run pidof gpu-screen-recorder.
 
 Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
 
 Test global hotkeys with azerty instead of qwerty.
-
-Fix cursor grab not working in owlboy, need to use xigrab.
 
 Dont allow autostart of replay if capture option is window recording (when window recording is added).
 
@@ -117,10 +100,9 @@ All steam game names by ID are available at https://api.steampowered.com/ISteamA
 
 Dont put widget position to int position when scrolling. This makes the UI jitter when it's coming to a halt.
 
-Show a popup asking if the user wants to add the program to system startup when launching the program, with a dismiss option and "Do not show again".
-
 Show warning if another instance of gpu screen recorder is already running when starting recording?
 
-Change gsr-global-hotkeys to outputs keys pressed instead of the command. This can be done pretty safely by only output keys when modifiers (such as alt) is pressed.
-
 Keyboard leds get turned off when stopping gsr-global-hotkeys (for example numlock). The numlock key has to be pressed twice again to make it look correct to match its state.
+
+Implement hotkey changing in global settings by getting mgl key events. During this time gsr-global-hotkey would either need to be paused or add code in the callback handler for the existing hotkeys since they are grabbing hotkeys.
+    This can only be done after gsr-global-hotkeys properly handle different keyboard layouts to make sure mgl keys match gsr-global-hotkey keys.

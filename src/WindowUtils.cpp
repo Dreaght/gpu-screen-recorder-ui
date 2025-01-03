@@ -29,19 +29,56 @@ namespace gsr {
         return window_has_atom(dpy, window, net_wm_state_atom) || window_has_atom(dpy, window, wm_state_atom);
     }
 
+    static Window window_get_target_window_child(Display *display, Window window) {
+        if(window == None)
+            return None;
+
+        if(window_is_user_program(display, window))
+            return window;
+
+        Window root;
+        Window parent;
+        Window *children = nullptr;
+        unsigned int num_children = 0;
+        if(!XQueryTree(display, window, &root, &parent, &children, &num_children) || !children)
+            return None;
+
+        Window found_window = None;
+        for(int i = num_children - 1; i >= 0; --i) {
+            if(children[i] && window_is_user_program(display, children[i])) {
+                found_window = children[i];
+                goto finished;
+            }
+        }
+
+        for(int i = num_children - 1; i >= 0; --i) {
+            if(children[i]) {
+                Window win = window_get_target_window_child(display, children[i]);
+                if(win) {
+                    found_window = win;
+                    goto finished;
+                }
+            }
+        }
+
+        finished:
+        XFree(children);
+        return found_window;
+    }
+
     static Window get_window_at_cursor_position(Display *dpy) {
         Window root_window = None;
         Window window = None;
         int dummy_i;
         unsigned int dummy_u;
-        int cursor_pos_x = 0;
-        int cursor_pos_y = 0;
-        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &cursor_pos_x, &cursor_pos_y, &dummy_u);
+        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &dummy_i, &dummy_i, &dummy_u);
+        if(window)
+            window = window_get_target_window_child(dpy, window);
         return window;
     }
 
     Window get_focused_window(Display *dpy, WindowCaptureType cap_type) {
-        const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+        //const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
         Window focused_window = None;
 
         if(cap_type == WindowCaptureType::FOCUSED) {
@@ -68,7 +105,7 @@ namespace gsr {
         }
 
         focused_window = get_window_at_cursor_position(dpy);
-        if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
+        if(focused_window && focused_window != DefaultRootWindow(dpy))
             return focused_window;
 
         return None;

@@ -68,7 +68,7 @@ namespace gsr {
                 execvp(args[0], (char* const*)args);
             }
 
-            perror("execvp");
+            perror("gsr-global-hotkeys");
             _exit(127);
         } else { /* parent */
             process_id = pid;
