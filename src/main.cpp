@@ -229,7 +229,9 @@ int main(int argc, char **argv) {
 
     // TODO: This is a shitty method to detect if multiple instances of gsr-ui is running but this will work properly even in flatpak
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
-    if(is_gsr_ui_virtual_keyboard_running()) {
+    // TODO: This method doesn't work when disabling hotkeys and the method below with pidof gsr-ui doesn't work in flatpak.
+    // What do? creating a pid file doesn't work in flatpak either.
+    if(is_gsr_ui_virtual_keyboard_running() || gsr::pidof("gsr-ui") != -1) {
         gsr::Rpc rpc;
         if(rpc.open("gsr-ui") && rpc.write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
@@ -240,12 +242,6 @@ int main(int argc, char **argv) {
         }
         return 1;
     }
-    // const pid_t gsr_ui_pid = gsr::pidof("gsr-ui");
-    // if(gsr_ui_pid != -1) {
-    //     const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
-    //     gsr::exec_program_daemonized(args);
-    //     return 1;
-    // }
 
     // Cant get window texture when prime-run is used
     disable_prime_run();
@@ -353,7 +349,7 @@ int main(int argc, char **argv) {
         const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };
         execvp(args[0], (char* const*)args);
     } else if(exit_reason == "restart") {
-        const char *args[] = { "gsr-ui", nullptr };
+        const char *args[] = { "gsr-ui", "launch-show", nullptr };
         execvp(args[0], (char* const*)args);
     }
 
