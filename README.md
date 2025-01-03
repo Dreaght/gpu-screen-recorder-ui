@@ -9,9 +9,7 @@ You can report an issue by emailing the issue to dec05eba@protonmail.com.
 # Usage
 Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
 There is also an option in the settings to enable/disable starting the program on system startup. This option only works on systems that use systemd.
-You have to manually add `gsr-ui` to system startup on systems that uses another init system.\
-Note that at the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.\
-If you experience this issue then please email dec05eba@protonmail.com to get it fixed.
+You have to manually add `gsr-ui` to system startup on systems that uses another init system.
 
 # Installation
 If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
@@ -34,6 +32,12 @@ There are also additional dependencies needed at runtime:
 
 * [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/)
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
+
+## Program behavior notes
+At the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.\
+If you experience this issue then please email dec05eba@protonmail.com to get it fixed.\
+This program has to grab all keyboards and create a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.
+This might cause issues for you if you use input remapping software. If this is an issue for you then please email dec05eba@protonmail.com and an option to workaround the issue could be added.
 
 # License
 This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.
