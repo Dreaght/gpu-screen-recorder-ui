@@ -338,11 +338,27 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<Entry> SettingsPage::create_video_bitrate_entry() {
+    std::unique_ptr<List> SettingsPage::create_video_bitrate_entry() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "15000", (int)(get_theme().body_font.get_character_size() * 4.0f));
         video_bitrate_entry->validate_handler = create_entry_validator_integer_in_range(1, 500000);
         video_bitrate_entry_ptr = video_bitrate_entry.get();
-        return video_bitrate_entry;
+        list->add_widget(std::move(video_bitrate_entry));
+
+        if(type == Type::STREAM) {
+            auto size_mb_label = std::make_unique<Label>(&get_theme().body_font, "1.92MB", get_color_theme().text_color);
+            Label *size_mb_label_ptr = size_mb_label.get();
+            list->add_widget(std::move(size_mb_label));
+
+            video_bitrate_entry_ptr->on_changed = [size_mb_label_ptr](const std::string &text) {
+                const double video_bitrate_mb_per_seconds = (double)atoi(text.c_str()) / 1000LL / 8LL * 1.024;
+                char buffer[32];
+                snprintf(buffer, sizeof(buffer), "%.2fMB", video_bitrate_mb_per_seconds);
+                size_mb_label_ptr->set_text(buffer);
+            };
+        }
+
+        return list;
     }
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate() {
@@ -647,16 +663,16 @@ namespace gsr {
         return checkbox;
     }
 
-    std::unique_ptr<Label> SettingsPage::create_estimated_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 5.23MB", get_color_theme().text_color);
+    std::unique_ptr<Label> SettingsPage::create_estimated_replay_file_size() {
+        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 57.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
 
-    void SettingsPage::update_estimated_file_size() {
+    void SettingsPage::update_estimated_replay_file_size() {
         const int64_t replay_time_seconds = atoi(replay_time_entry_ptr->get_text().c_str());
         const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
-        const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1024.0 / 1024.0;
+        const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
         char buffer[512];
         snprintf(buffer, sizeof(buffer), "Estimated video max file size in RAM: %.2fMB", video_filesize_mb);
@@ -670,7 +686,7 @@ namespace gsr {
         file_info_data_list->add_widget(create_container_section());
         file_info_data_list->add_widget(create_replay_time());
         file_info_list->add_widget(std::move(file_info_data_list));
-        file_info_list->add_widget(create_estimated_file_size());
+        file_info_list->add_widget(create_estimated_replay_file_size());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -713,11 +729,11 @@ namespace gsr {
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
 
         replay_time_entry_ptr->on_changed = [this](const std::string&) {
-            update_estimated_file_size();
+            update_estimated_replay_file_size();
         };
 
         video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
-            update_estimated_file_size();
+            update_estimated_replay_file_size();
         };
     }
 
@@ -729,11 +745,29 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<Label> SettingsPage::create_estimated_record_file_size() {
+        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video file size per minute (excluding audio): 345.60MB", get_color_theme().text_color);
+        estimated_file_size_ptr = label.get();
+        return label;
+    }
+
+    void SettingsPage::update_estimated_record_file_size() {
+        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
+        const double video_filesize_mb_per_minute = (60.0 * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
+
+        char buffer[512];
+        snprintf(buffer, sizeof(buffer), "Estimated video file size per minute (excluding audio): %.2fMB", video_filesize_mb_per_minute);
+        estimated_file_size_ptr->set_text(buffer);
+    }
+
     void SettingsPage::add_record_widgets() {
-        auto file_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_list->add_widget(create_save_directory("Directory to save the video:"));
-        file_list->add_widget(create_container_section());
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        file_info_data_list->add_widget(create_save_directory("Directory to save the video:"));
+        file_info_data_list->add_widget(create_container_section());
+        file_info_list->add_widget(std::move(file_info_data_list));
+        file_info_list->add_widget(create_estimated_record_file_size());
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
@@ -767,6 +801,10 @@ namespace gsr {
             return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
+
+        video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
+            update_estimated_record_file_size();
+        };
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_streaming_service_box() {

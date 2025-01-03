@@ -69,7 +69,7 @@ namespace gsr {
         std::unique_ptr<Widget> create_audio_track_section();
         std::unique_ptr<Widget> create_audio_section();
         std::unique_ptr<List> create_video_quality_box();
-        std::unique_ptr<Entry> create_video_bitrate_entry();
+        std::unique_ptr<List> create_video_bitrate_entry();
         std::unique_ptr<List> create_video_bitrate();
         std::unique_ptr<ComboBox> create_color_range_box();
         std::unique_ptr<List> create_color_range();
@@ -97,9 +97,11 @@ namespace gsr {
         std::unique_ptr<List> create_replay_time();
         std::unique_ptr<RadioButton> create_start_replay_automatically();
         std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
-        std::unique_ptr<Label> create_estimated_file_size();
-        void update_estimated_file_size();
+        std::unique_ptr<Label> create_estimated_replay_file_size();
+        void update_estimated_replay_file_size();
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
+        std::unique_ptr<Label> create_estimated_record_file_size();
+        void update_estimated_record_file_size();
         void add_replay_widgets();
         void add_record_widgets();
 
