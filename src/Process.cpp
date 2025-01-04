@@ -206,7 +206,7 @@ namespace gsr {
         return false;
     }
 
-    pid_t pidof(const char *process_name) {
+    pid_t pidof(const char *process_name, pid_t ignore_pid) {
         pid_t result = -1;
         DIR *dir = opendir("/proc");
         if(!dir)
@@ -222,8 +222,11 @@ namespace gsr {
 
             snprintf(cmdline_filepath, sizeof(cmdline_filepath), "/proc/%s/cmdline", entry->d_name);
             if(read_cmdline_arg0(cmdline_filepath, arg0, sizeof(arg0)) && strcmp(process_name, arg0) == 0) {
-                result = atoi(entry->d_name);
-                break;
+                const pid_t pid = atoi(entry->d_name);
+                if(pid != ignore_pid) {
+                    result = pid;
+                    break;
+                }
             }
         }
 

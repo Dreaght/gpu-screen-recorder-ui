@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
     // TODO: This method doesn't work when disabling hotkeys and the method below with pidof gsr-ui doesn't work in flatpak.
     // What do? creating a pid file doesn't work in flatpak either.
-    if(is_gsr_ui_virtual_keyboard_running() || gsr::pidof("gsr-ui") != -1) {
+    if(is_gsr_ui_virtual_keyboard_running() || gsr::pidof("gsr-ui", getpid()) != -1) {
         gsr::Rpc rpc;
         if(rpc.open("gsr-ui") && rpc.write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
