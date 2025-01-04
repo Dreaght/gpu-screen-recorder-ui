@@ -22,21 +22,8 @@ static void get_runtime_filepath(char *buffer, size_t buffer_size, const char *f
     snprintf(buffer, buffer_size, "%s/%s", dir, filename);
 }
 
-static FILE* fifo_open_non_blocking(const char *filepath) {
-    const int fd = open(filepath, O_RDWR | O_NONBLOCK);
-    if(fd <= 0)
-        return NULL;
-
-    FILE *file = fdopen(fd, "r+");
-    if(!file) {
-        close(fd);
-        return NULL;
-    }
-    return file;
-}
-
 /* Assumes |str| size is less than 256 */
-static void fifo_write_all(FILE *file, const char *str) {
+static void fifo_write_all(int file_fd, const char *str) {
     char command[256];
     const ssize_t command_size = snprintf(command, sizeof(command), "%s\n", str);
     if(command_size >= (ssize_t)sizeof(command)) {
@@ -46,8 +33,7 @@ static void fifo_write_all(FILE *file, const char *str) {
 
     ssize_t offset = 0;
     while(offset < (ssize_t)command_size) {
-        const ssize_t bytes_written = fwrite(str + offset, 1, command_size - offset, file);
-        fflush(file);
+        const ssize_t bytes_written = write(file_fd, str + offset, command_size - offset);
         if(bytes_written > 0)
             offset += bytes_written;
     }
@@ -106,13 +92,13 @@ int main(int argc, char **argv) {
 
     char fifo_filepath[PATH_MAX];
     get_runtime_filepath(fifo_filepath, sizeof(fifo_filepath), "gsr-ui");
-    FILE *fifo_file = fifo_open_non_blocking(fifo_filepath);
-    if(!fifo_file) {
+    const int fifo_fd = open(fifo_filepath, O_RDWR | O_NONBLOCK);
+    if(fifo_fd <= 0) {
         fprintf(stderr, "Error: failed to open fifo file %s. Maybe gsr-ui is not running?\n", fifo_filepath);
         exit(2);
     }
 
-    fifo_write_all(fifo_file, command);
-    fclose(fifo_file);
+    fifo_write_all(fifo_fd, command);
+    close(fifo_fd);
     return 0;
 }
