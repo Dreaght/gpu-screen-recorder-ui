@@ -47,7 +47,12 @@ namespace gsr {
     }
 
     static bool is_cursor_hovering_application_wayland(Display *dpy) {
-        return get_focused_window(dpy, WindowCaptureType::CURSOR) == 0;
+        Window root_window = None;
+        Window window = None;
+        int dummy_i;
+        unsigned int dummy_u;
+        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &dummy_i, &dummy_i, &dummy_u);
+        return window == None;
     }
 
     static mgl::Texture texture_from_ximage(XImage *img) {
