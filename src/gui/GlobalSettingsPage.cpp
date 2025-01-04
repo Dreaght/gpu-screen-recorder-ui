@@ -89,11 +89,14 @@ namespace gsr {
     }
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_hotkey_subsection(ScrollablePage *parent_page) {
-        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         enable_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
-        enable_hotkeys_radio_button->add_item("Enable hotkeys and restart", "enable_hotkeys");
-        enable_hotkeys_radio_button->add_item("Disable hotkeys and restart", "disable_hotkeys");
+        enable_hotkeys_radio_button->add_item("Enable hotkeys", "enable_hotkeys");
+        if(!inside_flatpak)
+            enable_hotkeys_radio_button->add_item("Disable hotkeys", "disable_hotkeys");
+        enable_hotkeys_radio_button->add_item("Only grab virtual devices (supports input remapping software)", "enable_hotkeys_virtual_devices");
         enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
             if(!on_click_exit_program_button)
                 return true;
@@ -102,11 +105,12 @@ namespace gsr {
                 on_click_exit_program_button("restart");
             else if(id == "disable_hotkeys")
                 on_click_exit_program_button("restart");
+            else if(id == "enable_hotkeys_virtual_devices")
+                on_click_exit_program_button("restart");
 
             return true;
         };
-        list->add_widget(std::move(enable_hotkeys_radio_button));
-        return std::make_unique<Subsection>("Hotkeys", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>("Hotkeys", std::move(enable_hotkeys_radio_button), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
@@ -137,15 +141,13 @@ namespace gsr {
     }
 
     void GlobalSettingsPage::add_widgets() {
-        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
         auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size());
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
-        if(!inside_flatpak)
-            settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));
 
@@ -167,14 +169,12 @@ namespace gsr {
         const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
         startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
 
-        if(enable_hotkeys_radio_button_ptr)
-            enable_hotkeys_radio_button_ptr->set_selected_item(config.main_config.enable_hotkeys ? "enable_hotkeys" : "disable_hotkeys", false, false);
+        enable_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
     }
 
     void GlobalSettingsPage::save() {
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
-        if(enable_hotkeys_radio_button_ptr)
-            config.main_config.enable_hotkeys = enable_hotkeys_radio_button_ptr->get_selected_id() == "enable_hotkeys";
+        config.main_config.hotkeys_enable_option = enable_hotkeys_radio_button_ptr->get_selected_id();
         save_config(config);
     }
 }

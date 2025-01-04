@@ -213,9 +213,39 @@ static bool keyboard_event_has_event_with_dev_input_fd(keyboard_event *self, int
     return false;
 }
 
+/* TODO: Is there a more efficient way to do this? */
+static bool dev_input_is_virtual(int dev_input_id) {
+    DIR *dir = opendir("/sys/devices/virtual/input");
+    if(!dir)
+        return false;
+
+    bool is_virtual = false;
+    char virtual_input_filepath[1024];
+    for(;;) {
+        struct dirent *entry = readdir(dir);
+        if(!entry)
+            break;
+
+        if(strncmp(entry->d_name, "input", 5) != 0)
+            continue;
+
+        snprintf(virtual_input_filepath, sizeof(virtual_input_filepath), "/sys/devices/virtual/input/%s/event%d", entry->d_name, dev_input_id);
+        if(access(virtual_input_filepath, F_OK) == 0) {
+            is_virtual = true;
+            break;
+        }
+    }
+
+    closedir(dir);
+    return is_virtual;
+}
+
 static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, const char *dev_input_filepath) {
     const int dev_input_id = get_dev_input_id_from_filepath(dev_input_filepath);
     if(dev_input_id == -1)
+        return false;
+
+    if(self->grab_type == KEYBOARD_GRAB_TYPE_VIRTUAL && !dev_input_is_virtual(dev_input_id))
         return false;
 
     if(keyboard_event_has_event_with_dev_input_fd(self, dev_input_id))
@@ -373,10 +403,11 @@ static int setup_virtual_keyboard_input(const char *name) {
     return fd;
 }
 
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab) {
+bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type) {
     memset(self, 0, sizeof(*self));
     self->stdout_event_index = -1;
     self->hotplug_event_index = -1;
+    self->grab_type = grab_type;
 
     if(exclusive_grab) {
         self->uinput_fd = setup_virtual_keyboard_input(GSR_UI_VIRTUAL_KEYBOARD_NAME);

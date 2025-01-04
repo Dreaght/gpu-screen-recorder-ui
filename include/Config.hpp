@@ -43,7 +43,7 @@ namespace gsr {
     struct MainConfig {
         int32_t config_file_version = 0;
         bool software_encoding_warning_shown = false;
-        bool enable_hotkeys = true;
+        std::string hotkeys_enable_option = "enable_hotkeys";
         std::string tint_color;
     };
 

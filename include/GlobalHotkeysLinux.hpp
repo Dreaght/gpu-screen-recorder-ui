@@ -7,7 +7,12 @@
 namespace gsr {
     class GlobalHotkeysLinux : public GlobalHotkeys {
     public:
-        GlobalHotkeysLinux();
+        enum class GrabType {
+            ALL,
+            VIRTUAL
+        };
+
+        GlobalHotkeysLinux(GrabType grab_type);
         GlobalHotkeysLinux(const GlobalHotkeysLinux&) = delete;
         GlobalHotkeysLinux& operator=(const GlobalHotkeysLinux&) = delete;
         ~GlobalHotkeysLinux() override;
@@ -20,5 +25,6 @@ namespace gsr {
         int pipes[2];
         FILE *read_file = nullptr;
         std::unordered_map<std::string, GlobalHotkeyCallback> bound_actions_by_id;
+        GrabType grab_type;
     };
 }

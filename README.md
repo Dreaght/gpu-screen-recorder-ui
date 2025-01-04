@@ -37,7 +37,7 @@ There are also additional dependencies needed at runtime:
 At the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.\
 If you experience this issue then please email dec05eba@protonmail.com to get it fixed.\
 This program has to grab all keyboards and create a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.
-This might cause issues for you if you use input remapping software. To workaround this you can go into settings and disable hotkeys and use the included `gsr-ui-cli` tool to control the UI remotely. You can combine `gsr-ui-cli` commands to hotkeys in your desktop environments hotkey settings.
+This might cause issues for you if you use input remapping software. To workaround this you can go into settings and select "Only grab virtual devices"
 
 # License
 This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.

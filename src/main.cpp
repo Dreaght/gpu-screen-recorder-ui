@@ -95,8 +95,8 @@ static std::unique_ptr<gsr::GlobalHotkeysX11> register_x11_hotkeys(gsr::Overlay 
     return global_hotkeys;
 }
 
-static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Overlay *overlay) {
-    auto global_hotkeys = std::make_unique<gsr::GlobalHotkeysLinux>();
+static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Overlay *overlay, gsr::GlobalHotkeysLinux::GrabType grab_type) {
+    auto global_hotkeys = std::make_unique<gsr::GlobalHotkeysLinux>(grab_type);
     if(!global_hotkeys->start())
         fprintf(stderr, "error: failed to start global hotkeys\n");
 
@@ -314,8 +314,10 @@ int main(int argc, char **argv) {
     rpc_add_commands(rpc.get(), overlay.get());
 
     std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
-    if(overlay->get_config().main_config.enable_hotkeys)
-        global_hotkeys = register_linux_hotkeys(overlay.get());
+    if(overlay->get_config().main_config.hotkeys_enable_option == "enable_hotkeys")
+        global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::ALL);
+    else if(overlay->get_config().main_config.hotkeys_enable_option == "enable_hotkeys_virtual_devices")
+        global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::VIRTUAL);
 
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 

@@ -3,6 +3,7 @@
 /* C stdlib */
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 /* POSIX */
 #include <unistd.h>
@@ -37,7 +38,32 @@ static bool on_key_callback(uint32_t key, uint32_t modifiers, int press_status, 
     return true;
 }
 
-int main(void) {
+static void usage(void) {
+    fprintf(stderr, "usage: gsr-global-hotkeys [--all|--virtual]\n");
+    fprintf(stderr, "OPTIONS:\n");
+    fprintf(stderr, "  --all        Grab all devices.\n");
+    fprintf(stderr, "  --virtual    Grab all virtual devices only.\n");
+}
+
+int main(int argc, char **argv) {
+    keyboard_grab_type grab_type = KEYBOARD_GRAB_TYPE_ALL;
+    if(argc == 2) {
+        const char *grab_type_arg = argv[1];
+        if(strcmp(grab_type_arg, "--all") == 0) {
+            grab_type = KEYBOARD_GRAB_TYPE_ALL;
+        } else if(strcmp(grab_type_arg, "--virtual") == 0) {
+            grab_type = KEYBOARD_GRAB_TYPE_VIRTUAL;
+        } else {
+            fprintf(stderr, "Error: expected --all or --virtual, got %s\n", grab_type_arg);
+            usage();
+            return 1;
+        }
+    } else if(argc != 1) {
+        fprintf(stderr, "Error: expected 0 or 1 arguments, got %d argument(s)\n", argc);
+        usage();
+        return 1;
+    }
+
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
@@ -47,7 +73,7 @@ int main(void) {
     }
 
     keyboard_event keyboard_ev;
-    if(!keyboard_event_init(&keyboard_ev, true, true)) {
+    if(!keyboard_event_init(&keyboard_ev, true, true, grab_type)) {
         fprintf(stderr, "Error: failed to setup hotplugging and no keyboard input devices were found\n");
         setuid(user_id);
         return 1;

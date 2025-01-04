@@ -9,7 +9,15 @@
 #define PIPE_WRITE 1
 
 namespace gsr {
-    GlobalHotkeysLinux::GlobalHotkeysLinux() {
+    static const char* grab_type_to_arg(GlobalHotkeysLinux::GrabType grab_type) {
+        switch(grab_type) {
+            case GlobalHotkeysLinux::GrabType::ALL:     return "--all";
+            case GlobalHotkeysLinux::GrabType::VIRTUAL: return "--virtual";
+        }
+        return "--all";
+    }
+
+    GlobalHotkeysLinux::GlobalHotkeysLinux(GrabType grab_type) : grab_type(grab_type) {
         for(int i = 0; i < 2; ++i) {
             pipes[i] = -1;
         }
@@ -32,6 +40,7 @@ namespace gsr {
     }
 
     bool GlobalHotkeysLinux::start() {
+        const char *grab_type_arg = grab_type_to_arg(grab_type);
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
         const char *user_homepath = getenv("HOME");
         if(!user_homepath)
@@ -61,10 +70,10 @@ namespace gsr {
             }
 
             if(inside_flatpak) {
-                const char *args[] = { "flatpak-spawn", "--host", "--", gsr_global_hotkeys_flatpak, NULL };
+                const char *args[] = { "flatpak-spawn", "--host", "--", gsr_global_hotkeys_flatpak, grab_type_arg, nullptr };
                 execvp(args[0], (char* const*)args);
             } else {
-                const char *args[] = { "gsr-global-hotkeys", NULL };
+                const char *args[] = { "gsr-global-hotkeys", grab_type_arg, nullptr };
                 execvp(args[0], (char* const*)args);
             }
 

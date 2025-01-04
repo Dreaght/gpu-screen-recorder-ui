@@ -36,6 +36,11 @@ typedef struct {
     int num_keys_pressed;
 } event_extra_data;
 
+typedef enum {
+    KEYBOARD_GRAB_TYPE_ALL,
+    KEYBOARD_GRAB_TYPE_VIRTUAL
+} keyboard_grab_type;
+
 typedef struct {
     struct pollfd event_polls[MAX_EVENT_POLLS];      /* Current size is |num_event_polls| */
     event_extra_data event_extra_data[MAX_EVENT_POLLS]; /* Current size is |num_event_polls| */
@@ -45,6 +50,7 @@ typedef struct {
     int hotplug_event_index;
     int uinput_fd;
     bool stdout_failed;
+    keyboard_grab_type grab_type;
 
     hotplug_event hotplug_ev;
 
@@ -62,7 +68,7 @@ typedef struct {
 /* Return true to allow other applications to receive the key input (when using exclusive grab) */
 typedef bool (*key_callback)(uint32_t key, uint32_t modifiers, int press_status, void *userdata);
 
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab);
+bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type);
 void keyboard_event_deinit(keyboard_event *self);
 
 /* If |timeout_milliseconds| is -1 then wait until an event is received */
