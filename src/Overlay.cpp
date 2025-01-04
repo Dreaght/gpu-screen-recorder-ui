@@ -2052,7 +2052,9 @@ namespace gsr {
             return false;
 
         bool window_texture_loaded = false;
-        const Window focused_window = get_focused_window(display, WindowCaptureType::CURSOR);
+        Window focused_window = get_focused_window(display, WindowCaptureType::CURSOR);
+        if(!focused_window)
+            focused_window = get_focused_window(display, WindowCaptureType::FOCUSED);
         if(focused_window && is_window_fullscreen_on_monitor(display, focused_window, monitor))
             window_texture_loaded = window_texture_init(&window_texture, display, mgl_window_get_egl_display(window->internal_window()), focused_window, egl_funcs) == 0;
 

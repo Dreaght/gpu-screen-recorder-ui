@@ -57,3 +57,4 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
 * Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI. If you experience this issue then please email dec05eba@protonmail.com to get it fixed.
+* The mouse position can sometimes shift when opening the UI.
