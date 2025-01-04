@@ -106,3 +106,5 @@ Keyboard leds get turned off when stopping gsr-global-hotkeys (for example numlo
 
 Implement hotkey changing in global settings by getting mgl key events. During this time gsr-global-hotkey would either need to be paused or add code in the callback handler for the existing hotkeys since they are grabbing hotkeys.
     This can only be done after gsr-global-hotkeys properly handle different keyboard layouts to make sure mgl keys match gsr-global-hotkey keys.
+
+Re-enable hotkey enable/disable section for flatpak.

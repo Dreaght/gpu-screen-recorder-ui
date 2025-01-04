@@ -137,13 +137,15 @@ namespace gsr {
     }
 
     void GlobalSettingsPage::add_widgets() {
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
         auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size());
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
-        settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
+        if(!inside_flatpak)
+            settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));
 
@@ -165,12 +167,14 @@ namespace gsr {
         const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
         startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
 
-        enable_hotkeys_radio_button_ptr->set_selected_item(config.main_config.enable_hotkeys ? "enable_hotkeys" : "disable_hotkeys", false, false);
+        if(enable_hotkeys_radio_button_ptr)
+            enable_hotkeys_radio_button_ptr->set_selected_item(config.main_config.enable_hotkeys ? "enable_hotkeys" : "disable_hotkeys", false, false);
     }
 
     void GlobalSettingsPage::save() {
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
-        config.main_config.enable_hotkeys = enable_hotkeys_radio_button_ptr->get_selected_id() == "enable_hotkeys";
+        if(enable_hotkeys_radio_button_ptr)
+            config.main_config.enable_hotkeys = enable_hotkeys_radio_button_ptr->get_selected_id() == "enable_hotkeys";
         save_config(config);
     }
 }
