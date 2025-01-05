@@ -827,7 +827,7 @@ namespace gsr {
         window_create_params.override_redirect = prevent_game_minimizing;
         window_create_params.background_color = bg_color;
         window_create_params.support_alpha = true;
-        window_create_params.window_type = MGL_WINDOW_TYPE_NORMAL;
+        window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
         window_create_params.render_api = MGL_RENDER_API_EGL;
 
         if(!window->create("gsr ui", window_create_params))
@@ -847,6 +847,7 @@ namespace gsr {
         mgl_window *win = window->internal_window();
         if(win->num_monitors == 0) {
             fprintf(stderr, "gsr warning: no monitors found, not showing overlay\n");
+            window.reset();
             return;
         }
 
@@ -1053,7 +1054,7 @@ namespace gsr {
         window->set_visible(true);
 
         make_window_sticky(display, window->get_system_handle());
-        hide_window_from_taskbar(display, window->get_system_handle());
+        //hide_window_from_taskbar(display, window->get_system_handle());
 
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
