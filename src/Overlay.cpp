@@ -827,6 +827,8 @@ namespace gsr {
         window_create_params.override_redirect = prevent_game_minimizing;
         window_create_params.background_color = bg_color;
         window_create_params.support_alpha = true;
+        // MGL_WINDOW_TYPE_DIALOG is needed for kde plasma wayland in some cases, otherwise the window will pop up on another activity
+        // or may not be visible at all
         window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
         window_create_params.render_api = MGL_RENDER_API_EGL;
 
