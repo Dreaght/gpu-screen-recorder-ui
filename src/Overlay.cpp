@@ -1054,7 +1054,7 @@ namespace gsr {
         window->set_visible(true);
 
         make_window_sticky(display, window->get_system_handle());
-        //hide_window_from_taskbar(display, window->get_system_handle());
+        hide_window_from_taskbar(display, window->get_system_handle());
 
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
