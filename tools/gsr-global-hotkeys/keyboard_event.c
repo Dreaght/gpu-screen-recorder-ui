@@ -165,7 +165,8 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
             default: {
                 const bool shift_pressed = self->lshift_button_state == KEYBOARD_BUTTON_PRESSED || self->rshift_button_state == KEYBOARD_BUTTON_PRESSED;
                 const bool ctrl_pressed = self->lctrl_button_state == KEYBOARD_BUTTON_PRESSED || self->rctrl_button_state == KEYBOARD_BUTTON_PRESSED;
-                const bool alt_pressed = self->lalt_button_state == KEYBOARD_BUTTON_PRESSED || self->ralt_button_state == KEYBOARD_BUTTON_PRESSED;
+                const bool lalt_pressed = self->lalt_button_state == KEYBOARD_BUTTON_PRESSED;
+                const bool ralt_pressed = self->ralt_button_state == KEYBOARD_BUTTON_PRESSED;
                 const bool meta_pressed = self->lmeta_button_state == KEYBOARD_BUTTON_PRESSED || self->rmeta_button_state == KEYBOARD_BUTTON_PRESSED;
                 //fprintf(stderr, "pressed key: %d, state: %d, shift: %s, ctrl: %s, alt: %s, meta: %s\n", event.code, event.value,
                 //   shift_pressed ? "yes" : "no", ctrl_pressed ? "yes" : "no", alt_pressed ? "yes" : "no", meta_pressed ? "yes" : "no");
@@ -174,8 +175,10 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
                     modifiers |= KEYBOARD_MODKEY_SHIFT;
                 if(ctrl_pressed)
                     modifiers |= KEYBOARD_MODKEY_CTRL;
-                if(alt_pressed)
-                    modifiers |= KEYBOARD_MODKEY_ALT;
+                if(lalt_pressed)
+                    modifiers |= KEYBOARD_MODKEY_LALT;
+                if(ralt_pressed)
+                    modifiers |= KEYBOARD_MODKEY_RALT;
                 if(meta_pressed)
                     modifiers |= KEYBOARD_MODKEY_SUPER;
 

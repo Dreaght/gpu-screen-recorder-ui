@@ -7,9 +7,10 @@ Note: This software is still in early alpha. Expect bugs, and please report any 
 You can report an issue by emailing the issue to dec05eba@protonmail.com.
 
 # Usage
-Run `gsr-ui` and press `Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
+Run `gsr-ui` and press `Left Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
 There is also an option in the settings to enable/disable starting the program on system startup. This option only works on systems that use systemd.
-You have to manually add `gsr-ui` to system startup on systems that uses another init system.
+You have to manually add `gsr-ui` to system startup on systems that uses another init system.\
+A program called `gsr-ui-cli` is also installed when installing this software. This can be used to remotely control the UI. Run `gsr-ui-cli --help` to list the available commands.
 
 # Installation
 If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
@@ -34,7 +35,7 @@ There are also additional dependencies needed at runtime:
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
 
 ## Program behavior notes
-At the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI.\
+At the moment different keyboard layouts are not supported. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Left Alt+Y instead of Left Alt+Z to open/hide the UI.\
 If you experience this issue then please email dec05eba@protonmail.com to get it fixed.\
 This program has to grab all keyboards and create a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.
 This might cause issues for you if you use input remapping software. To workaround this you can go into settings and select "Only grab virtual devices"
@@ -56,5 +57,5 @@ If you want to donate you can donate via bitcoin or monero.
 
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
-* Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Alt+Y instead of Alt+Z to open/hide the UI. If you experience this issue then please email dec05eba@protonmail.com to get it fixed.
+* Different keyboard layouts are not supported at the moment. The physical layout of keys are used for global hotkeys. If your Z and Y keys are swapped for example then you need to press Left Alt+Y instead of Left Alt+Z to open/hide the UI. If you experience this issue then please email dec05eba@protonmail.com to get it fixed.
 * The mouse position can sometimes shift when opening the UI.

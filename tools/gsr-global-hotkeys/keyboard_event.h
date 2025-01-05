@@ -18,10 +18,11 @@
 #define MAX_EVENT_POLLS 32
 
 typedef enum {
-    KEYBOARD_MODKEY_ALT   = 1 << 0,
-    KEYBOARD_MODKEY_SUPER = 1 << 1,
-    KEYBOARD_MODKEY_CTRL  = 1 << 2,
-    KEYBOARD_MODKEY_SHIFT = 1 << 3
+    KEYBOARD_MODKEY_LALT   = 1 << 0,
+    KEYBOARD_MODKEY_RALT   = 1 << 2,
+    KEYBOARD_MODKEY_SUPER  = 1 << 3,
+    KEYBOARD_MODKEY_CTRL   = 1 << 4,
+    KEYBOARD_MODKEY_SHIFT  = 1 << 5
 } keyboard_modkeys;
 
 typedef enum {

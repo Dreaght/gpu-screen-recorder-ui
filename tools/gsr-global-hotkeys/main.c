@@ -16,12 +16,12 @@ typedef struct {
 
 #define NUM_GLOBAL_HOTKEYS 6
 static global_hotkey global_hotkeys[NUM_GLOBAL_HOTKEYS] = {
-    { .key = KEY_Z,   .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "show_hide"    },
-    { .key = KEY_F9,  .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "record"       },
-    { .key = KEY_F7,  .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "pause"        },
-    { .key = KEY_F8,  .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "stream"       },
-    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_ALT | KEYBOARD_MODKEY_SHIFT, .action = "replay_start" },
-    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_ALT,                         .action = "replay_save"  }
+    { .key = KEY_Z,   .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "show_hide"    },
+    { .key = KEY_F9,  .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "record"       },
+    { .key = KEY_F7,  .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "pause"        },
+    { .key = KEY_F8,  .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "stream"       },
+    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_LALT | KEYBOARD_MODKEY_SHIFT, .action = "replay_start" },
+    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "replay_save"  }
 };
 
 static bool on_key_callback(uint32_t key, uint32_t modifiers, int press_status, void *userdata) {

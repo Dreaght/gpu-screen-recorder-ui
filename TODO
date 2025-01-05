@@ -92,7 +92,7 @@ Move ui hover code from ::draw to ::on_event, to properly handle widget event st
 
 Save audio devices by name instead of id. This is more robust since audio id can change(?).
 
-Improve linux global hotkeys startup time by parsing /proc/bus/input/devices instead of ioctl.
+Improve linux global hotkeys startup time by parsing /proc/bus/input/devices instead of ioctl. <- Do this!
 
 We can get the name of the running steam game without x11 by listing processes and finding the one that runs a program called "reaper" with the arguments SteamLaunch AppId=<number>. The binary comes after the -- argument, get the name of the game by parsing out name from that, in the format steamapps/common/<name>/.
 
@@ -107,4 +107,8 @@ Keyboard leds get turned off when stopping gsr-global-hotkeys (for example numlo
 Implement hotkey changing in global settings by getting mgl key events. During this time gsr-global-hotkey would either need to be paused or add code in the callback handler for the existing hotkeys since they are grabbing hotkeys.
     This can only be done after gsr-global-hotkeys properly handle different keyboard layouts to make sure mgl keys match gsr-global-hotkey keys.
 
-Re-enable hotkey enable/disable section for flatpak.
+Re-enable hotkey disable option for flatpak.
+
+Make gsr-ui flatpak systemd work nicely with non-flatpak gsr-ui. Maybe change ExecStart to do flatpak run ... || gsr-ui, but make it run as a shell command first with /bin/sh -c "".
+
+When enabling X11 global hotkey again only grab lalt, not ralt.
