@@ -42,19 +42,6 @@ namespace gsr {
     static const double force_window_on_top_timeout_seconds = 1.0;
     static const double replay_status_update_check_timeout_seconds = 1.0;
 
-    static bool is_focused_application_wayland(Display *dpy) {
-        return get_focused_window(dpy, WindowCaptureType::FOCUSED) == 0;
-    }
-
-    static bool is_cursor_hovering_application_wayland(Display *dpy) {
-        Window root_window = None;
-        Window window = None;
-        int dummy_i;
-        unsigned int dummy_u;
-        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &dummy_i, &dummy_i, &dummy_u);
-        return window == None;
-    }
-
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
         // TODO:
@@ -301,91 +288,6 @@ namespace gsr {
                 return mon;
         }
         return &win->monitors[0];
-    }
-
-    static mgl::vec2i get_cursor_position(Display *dpy) {
-        Window root_window = None;
-        Window window = None;
-        int dummy_i;
-        unsigned int dummy_u;
-        mgl::vec2i root_pos;
-        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &root_pos.x, &root_pos.y, &dummy_i, &dummy_i, &dummy_u);
-        return root_pos;
-    }
-
-    static mgl::vec2i create_window_get_center_position(Display *display) {
-        const int size = 16;
-        XSetWindowAttributes window_attr;
-        window_attr.event_mask = StructureNotifyMask;
-        window_attr.background_pixel = 0;
-        const Window window = XCreateWindow(display, DefaultRootWindow(display), 0, 0, size, size, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel | CWEventMask, &window_attr);
-        if(!window)
-            return {0, 0};
-
-        const Atom net_wm_window_type_atom = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
-        const Atom net_wm_window_type_notification_atom = XInternAtom(display, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
-        const Atom net_wm_window_type_utility = XInternAtom(display, "_NET_WM_WINDOW_TYPE_UTILITY", False);
-        const Atom net_wm_window_opacity = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
-
-        const Atom window_type_atoms[2] = {
-            net_wm_window_type_notification_atom,
-            net_wm_window_type_utility
-        };
-        XChangeProperty(display, window, net_wm_window_type_atom, XA_ATOM, 32, PropModeReplace, (const unsigned char*)window_type_atoms, 2L);
-
-        const double alpha = 0.0;
-        const unsigned long opacity = (unsigned long)(0xFFFFFFFFul * alpha);
-        XChangeProperty(display, window, net_wm_window_opacity, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&opacity, 1L);
-
-        XSizeHints *size_hints = XAllocSizeHints();
-        size_hints->width = size;
-        size_hints->min_width = size;
-        size_hints->max_width = size;
-        size_hints->height = size;
-        size_hints->min_height = size;
-        size_hints->max_height = size;
-        size_hints->flags = PSize | PMinSize | PMaxSize;
-        XSetWMNormalHints(display, window, size_hints);
-        XFree(size_hints);
-
-        XMapWindow(display, window);
-        XFlush(display);
-
-        const int x_fd = XConnectionNumber(display);
-        mgl::vec2i window_pos;
-        XEvent xev;
-        while(true) {
-            struct pollfd poll_fd;
-            poll_fd.fd = x_fd;
-            poll_fd.events = POLLIN;
-            poll_fd.revents = 0;
-            const int fds_ready = poll(&poll_fd, 1, 1000);
-            if(fds_ready == 0) {
-                fprintf(stderr, "Error: timed out waiting for ConfigureNotify after XCreateWindow\n");
-                break;
-            } else if(fds_ready == -1 || !(poll_fd.revents & POLLIN)) {
-                continue;
-            }
-
-            XNextEvent(display, &xev);
-            if(xev.type == ConfigureNotify) {
-                window_pos.x = xev.xconfigure.x + xev.xconfigure.width / 2;
-                window_pos.y = xev.xconfigure.y + xev.xconfigure.height / 2;
-                break;
-            }
-        }
-
-        XDestroyWindow(display, window);
-        XFlush(display);
-
-        return window_pos;
-    }
-
-    static bool is_compositor_running(Display *dpy, int screen) {
-        char prop_name[20];
-        snprintf(prop_name, sizeof(prop_name), "_NET_WM_CM_S%d", screen);
-        Atom prop_atom = XInternAtom(dpy, prop_name, False);
-        return XGetSelectionOwner(dpy, prop_atom) != None;
     }
 
     static std::string get_power_supply_online_filepath() {
@@ -810,27 +712,37 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
+        const std::string wm_name = get_window_manager_name(display);
+        const bool is_kwin = wm_name == "KWin";
+
+        // The cursor position is wrong on wayland if an x11 window is not focused. On wayland we instead create a window and get the position where the wayland compositor puts it
+        Window x11_cursor_window = None;
+        const mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
+        const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
+
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
-        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || !is_focused_application_wayland(display);
+        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window;
 
-        window_size = { 1280, 720 };
+        window_size = { 32, 32 };
         window_pos = { 0, 0 };
 
         mgl::Window::CreateParams window_create_params;
         window_create_params.size = window_size;
-        window_create_params.min_size = window_size;
-        window_create_params.max_size = window_size;
+        if(prevent_game_minimizing) {
+            window_create_params.min_size = window_size;
+            window_create_params.max_size = window_size;
+        }
         window_create_params.position = window_pos;
-        window_create_params.hidden = true;
+        window_create_params.hidden = prevent_game_minimizing;
         window_create_params.override_redirect = prevent_game_minimizing;
         window_create_params.background_color = bg_color;
         window_create_params.support_alpha = true;
         window_create_params.hide_decorations = true;
         // MGL_WINDOW_TYPE_DIALOG is needed for kde plasma wayland in some cases, otherwise the window will pop up on another activity
         // or may not be visible at all
-        window_create_params.window_type = MGL_WINDOW_TYPE_DIALOG;
+        window_create_params.window_type = (is_kwin && gsr_info.system_info.display_server == DisplayServer::WAYLAND) ? MGL_WINDOW_TYPE_DIALOG : MGL_WINDOW_TYPE_NORMAL;
         window_create_params.render_api = MGL_RENDER_API_EGL;
 
         if(!window->create("gsr ui", window_create_params))
@@ -854,17 +766,16 @@ namespace gsr {
             return;
         }
 
-        // The cursor position is wrong on wayland if an x11 window is not focused. On wayland we instead create a window and get the position where the wayland compositor puts it
-        const mgl::vec2i cursor_position = get_cursor_position(display);
-        const mgl::vec2i monitor_position_query_value = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? create_window_get_center_position(display) : cursor_position;
         const mgl_monitor *focused_monitor = find_monitor_at_position(*window, monitor_position_query_value);
         window_pos = {focused_monitor->pos.x, focused_monitor->pos.y};
         window_size = {focused_monitor->size.x, focused_monitor->size.y};
         get_theme().set_window_size(window_size);
 
-        window->set_size(window_size);
-        window->set_size_limits(window_size, window_size);
-        window->set_position(window_pos);
+        if(prevent_game_minimizing) {
+            window->set_size(window_size);
+            window->set_size_limits(window_size, window_size);
+            window->set_position(window_pos);
+        }
 
         win->cursor_position.x = cursor_position.x - window_pos.x;
         win->cursor_position.y = cursor_position.y - window_pos.y;
@@ -1047,7 +958,7 @@ namespace gsr {
 
         // The focused application can be an xwayland application but the cursor can hover over a wayland application.
         // This is even the case when hovering over the titlebar of the xwayland application.
-        if(!is_cursor_hovering_application_wayland(display))
+        if(prevent_game_minimizing)
             xi_setup();
 
         //window->set_fullscreen(true);
