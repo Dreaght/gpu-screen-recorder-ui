@@ -321,7 +321,7 @@ namespace gsr {
             }
 
             XNextEvent(display, &xev);
-            if(xev.type == ConfigureNotify) {
+            if(xev.type == ConfigureNotify && xev.xconfigure.window == window) {
                 got_data = xev.xconfigure.x > 0 && xev.xconfigure.y > 0;
                 position.x = xev.xconfigure.x + xev.xconfigure.width / 2;
                 position.y = xev.xconfigure.y + xev.xconfigure.height / 2;
@@ -382,7 +382,7 @@ namespace gsr {
             }
 
             XNextEvent(display, &xev);
-            if(xev.type == MapNotify) {
+            if(xev.type == MapNotify && xev.xmap.window == window) {
                 int x = 0;
                 int y = 0;
                 Window w = None;
@@ -393,7 +393,7 @@ namespace gsr {
                 position.y = y + size / 2;
                 if(got_data)
                     break;
-            } else if(xev.type == ConfigureNotify) {
+            } else if(xev.type == ConfigureNotify && xev.xconfigure.window == window) {
                 got_data = xev.xconfigure.x > 0 && xev.xconfigure.y > 0;
                 position.x = xev.xconfigure.x + xev.xconfigure.width / 2;
                 position.y = xev.xconfigure.y + xev.xconfigure.height / 2;
