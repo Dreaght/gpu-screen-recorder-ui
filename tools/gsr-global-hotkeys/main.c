@@ -7,6 +7,7 @@
 
 /* POSIX */
 #include <unistd.h>
+#include <dlfcn.h>
 
 typedef struct {
     uint32_t key;
@@ -45,6 +46,76 @@ static void usage(void) {
     fprintf(stderr, "  --virtual    Grab all virtual devices only.\n");
 }
 
+typedef void* (*XOpenDisplay_FUNC)(const char*);
+typedef int (*XErrorHandler_FUNC)(void *display, void* error_event);
+typedef XErrorHandler_FUNC (*XSetErrorHandler_FUNC)(XErrorHandler_FUNC handler);
+
+static int x_ignore_error(void *display, void *ee) {
+    (void)display;
+    (void)ee;
+    return 0;
+}
+
+static x11_context setup_x11_context(void) {
+    x11_context x_context = {0};
+    XSetErrorHandler_FUNC XSetErrorHandler = NULL;
+
+    void *x11_lib = dlopen("libX11.so.6", RTLD_LAZY);
+    if(!x11_lib) {
+        fprintf(stderr, "Warning: dlopen libX11.so.6 failed\n");
+        return x_context;
+    }
+
+    XOpenDisplay_FUNC XOpenDisplay = dlsym(x11_lib, "XOpenDisplay");
+    if(!XOpenDisplay) {
+        fprintf(stderr, "Warning: dlsym XOpenDisplay failed\n");
+        goto fail;
+    }
+
+    x_context.XKeycodeToKeysym = dlsym(x11_lib, "XKeycodeToKeysym");
+    if(!x_context.XKeycodeToKeysym) {
+        fprintf(stderr, "Warning: dlsym XKeycodeToKeysym failed\n");
+        goto fail;
+    }
+
+    x_context.XPending = dlsym(x11_lib, "XPending");
+    if(!x_context.XPending) {
+        fprintf(stderr, "Warning: dlsym XPending failed\n");
+        goto fail;
+    }
+
+    x_context.XNextEvent = dlsym(x11_lib, "XNextEvent");
+    if(!x_context.XNextEvent) {
+        fprintf(stderr, "Warning: dlsym XNextEvent failed\n");
+        goto fail;
+    }
+
+    x_context.XRefreshKeyboardMapping = dlsym(x11_lib, "XRefreshKeyboardMapping");
+    if(!x_context.XRefreshKeyboardMapping) {
+        fprintf(stderr, "Warning: dlsym XRefreshKeyboardMapping failed\n");
+        goto fail;
+    }
+
+    x_context.display = XOpenDisplay(NULL);
+    if(!x_context.display) {
+        fprintf(stderr, "Warning: XOpenDisplay failed\n");
+        goto fail;
+    }
+
+    XSetErrorHandler = dlsym(x11_lib, "XSetErrorHandler");
+    if(XSetErrorHandler)
+        XSetErrorHandler(x_ignore_error);
+    else
+        fprintf(stderr, "Warning: dlsym XSetErrorHandler failed\n");
+
+    return x_context;
+
+    fail:
+    memset(&x_context, 0, sizeof(x_context));
+    dlclose(x11_lib);
+    return x_context;
+}
+
 int main(int argc, char **argv) {
     keyboard_grab_type grab_type = KEYBOARD_GRAB_TYPE_ALL;
     if(argc == 2) {
@@ -64,6 +135,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    x11_context x_context = setup_x11_context();
+
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
@@ -73,7 +146,7 @@ int main(int argc, char **argv) {
     }
 
     keyboard_event keyboard_ev;
-    if(!keyboard_event_init(&keyboard_ev, true, true, grab_type)) {
+    if(!keyboard_event_init(&keyboard_ev, true, true, grab_type, x_context)) {
         fprintf(stderr, "Error: failed to setup hotplugging and no keyboard input devices were found\n");
         setuid(user_id);
         return 1;
