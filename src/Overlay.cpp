@@ -782,9 +782,6 @@ namespace gsr {
 
         update_compositor_texture(focused_monitor);
 
-        top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
-        logo_sprite = mgl::Sprite(&get_theme().logo_texture);
-
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
         top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);

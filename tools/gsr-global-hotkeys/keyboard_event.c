@@ -184,6 +184,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     if(event.type == EV_KEY) {
         keyboard_event_process_key_state_change(self, event, extra_data, fd);
 
+        /* We do this conversion from keycode to keysym back to keycode to support different keyboard layouts in the X server (which Wayland also uses to support Xwayland) */
         uint32_t keycode = event.code;
         const uint32_t keysym = keycode_to_keysym(self, event.code);
         if(keysym)

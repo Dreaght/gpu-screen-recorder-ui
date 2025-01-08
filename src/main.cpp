@@ -37,6 +37,7 @@ static void disable_prime_run() {
     unsetenv("__NV_PRIME_RENDER_OFFLOAD_PROVIDER");
     unsetenv("__GLX_VENDOR_LIBRARY_NAME");
     unsetenv("__VK_LAYER_NV_optimus");
+    unsetenv("DRI_PRIME");
 }
 
 static std::unique_ptr<gsr::GlobalHotkeysX11> register_x11_hotkeys(gsr::Overlay *overlay) {
