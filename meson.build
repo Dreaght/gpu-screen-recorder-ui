@@ -71,7 +71,10 @@ executable(
         'tools/gsr-global-hotkeys/main.c'
     ],
     c_args : '-fstack-protector-all',
-    install : true
+    install : true,
+    dependencies: [
+        dependency('x11'),
+    ]
 )
 
 executable(
