@@ -20,8 +20,6 @@ Make hotkeys configurable.
 
 Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation. Also a button to create a new directory.
 
-Support wayland (excluding gnome, or force xwayland on gnome).
-
 Restart replay on system start if monitor resolution changes.
 
 Show warning when selecting hevc/av1 on amd because of amd driver/ffmpeg bug.
