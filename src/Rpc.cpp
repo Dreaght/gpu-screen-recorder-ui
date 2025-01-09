@@ -6,7 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/fcntl.h>
+#include <fcntl.h>
 
 namespace gsr {
     static void get_runtime_filepath(char *buffer, size_t buffer_size, const char *filename) {

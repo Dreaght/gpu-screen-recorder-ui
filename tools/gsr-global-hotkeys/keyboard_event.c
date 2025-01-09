@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <sys/poll.h>
+#include <poll.h>
 
 /* LINUX */
 #include <linux/input.h>

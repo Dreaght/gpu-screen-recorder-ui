@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 /* POSIX */
-#include <sys/poll.h>
+#include <poll.h>
 
 /* LINUX */
 #include <linux/input-event-codes.h>
