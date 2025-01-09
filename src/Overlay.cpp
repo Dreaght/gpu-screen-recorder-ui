@@ -743,7 +743,10 @@ namespace gsr {
         // MGL_WINDOW_TYPE_DIALOG is needed for kde plasma wayland in some cases, otherwise the window will pop up on another activity
         // or may not be visible at all
         window_create_params.window_type = (is_kwin && gsr_info.system_info.display_server == DisplayServer::WAYLAND) ? MGL_WINDOW_TYPE_DIALOG : MGL_WINDOW_TYPE_NORMAL;
-        window_create_params.render_api = MGL_RENDER_API_EGL;
+        // Nvidia + Wayland + Egl doesn't work on some systems properly and it instead falls back to software rendering.
+        // Use Glx on Wayland to workaround this issue. This is fine since Egl is only needed for x11 to reliably get the texture of the fullscreen window on Nvidia
+        // when a compositor isn't running.
+        window_create_params.render_api = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? MGL_RENDER_API_GLX : MGL_RENDER_API_EGL;
 
         if(!window->create("gsr ui", window_create_params))
             fprintf(stderr, "error: failed to create window\n");
