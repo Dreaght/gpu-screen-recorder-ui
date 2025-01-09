@@ -12,13 +12,30 @@
 /* POSIX */
 #include <sys/poll.h>
 
-/* Linux */
+/* LINUX */
 #include <linux/input-event-codes.h>
 
-/* System */
-#include <X11/Xlib.h>
-
 #define MAX_EVENT_POLLS 32
+
+typedef struct {
+    union {
+        int type;
+        unsigned char data[192];
+    };
+} XEvent;
+
+typedef unsigned long (*XKeycodeToKeysym_FUNC)(void *display, unsigned char keycode, int index);
+typedef int (*XPending_FUNC)(void *display);
+typedef int (*XNextEvent_FUNC)(void *display, XEvent *event_return);
+typedef int (*XRefreshKeyboardMapping_FUNC)(void* event_map);
+
+typedef struct {
+    void *display;
+    XKeycodeToKeysym_FUNC XKeycodeToKeysym;
+    XPending_FUNC XPending;
+    XNextEvent_FUNC XNextEvent;
+    XRefreshKeyboardMapping_FUNC XRefreshKeyboardMapping;
+} x11_context;
 
 typedef enum {
     KEYBOARD_MODKEY_LALT   = 1 << 0,
@@ -55,7 +72,7 @@ typedef struct {
     int uinput_fd;
     bool stdout_failed;
     keyboard_grab_type grab_type;
-    Display *display;
+    x11_context x_context;
 
     hotplug_event hotplug_ev;
 
@@ -73,7 +90,7 @@ typedef struct {
 /* Return true to allow other applications to receive the key input (when using exclusive grab) */
 typedef bool (*key_callback)(uint32_t key, uint32_t modifiers, int press_status, void *userdata);
 
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type, Display *display);
+bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type, x11_context x_context);
 void keyboard_event_deinit(keyboard_event *self);
 
 /* If |timeout_milliseconds| is -1 then wait until an event is received */

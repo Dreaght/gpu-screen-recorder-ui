@@ -13,12 +13,9 @@
 #include <dirent.h>
 #include <sys/poll.h>
 
-/* Linux */
+/* LINUX */
 #include <linux/input.h>
 #include <linux/uinput.h>
-
-/* System */
-#include <X11/keysym.h>
 
 #define GSR_UI_VIRTUAL_KEYBOARD_NAME "gsr-ui virtual keyboard"
 
@@ -29,6 +26,22 @@
 #define KEY_STATES_SIZE (KEY_MAX/8 + 1)
 
 #define KEYCODE_TO_XKB_KEYCODE(key) ((key) + 8)
+
+#define XK_Shift_L                       0xffe1  /* Left shift */
+#define XK_Shift_R                       0xffe2  /* Right shift */
+#define XK_Control_L                     0xffe3  /* Left control */
+#define XK_Control_R                     0xffe4  /* Right control */
+#define XK_Alt_L                         0xffe9  /* Left alt */
+#define XK_Alt_R                         0xffea  /* Right alt */
+#define XK_Super_L                       0xffeb  /* Left super */
+#define XK_Super_R                       0xffec  /* Right super */
+
+#define XK_z                             0x007a
+#define XK_F7                            0xffc4
+#define XK_F8                            0xffc5
+#define XK_F9                            0xffc6
+#define XK_F10                           0xffc7
+#define XK_F11                           0xffc8
 
 static inline int count_num_bits_set(unsigned char c) {
     int n = 0;
@@ -124,8 +137,8 @@ static void keyboard_event_process_key_state_change(keyboard_event *self, struct
 
 static uint32_t keycode_to_keysym(keyboard_event *self, uint16_t keycode) {
     const unsigned long xkb_keycode = KEYCODE_TO_XKB_KEYCODE(keycode);
-    if(self->display && xkb_keycode <= 255)
-        return XKeycodeToKeysym(self->display, xkb_keycode, 0);
+    if(self->x_context.display && self->x_context.XKeycodeToKeysym && xkb_keycode <= 255)
+        return self->x_context.XKeycodeToKeysym(self->x_context.display, xkb_keycode, 0);
     else
         return 0;
 }
@@ -446,12 +459,12 @@ static int setup_virtual_keyboard_input(const char *name) {
     return fd;
 }
 
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type, Display *display) {
+bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type, x11_context x_context) {
     memset(self, 0, sizeof(*self));
     self->stdout_event_index = -1;
     self->hotplug_event_index = -1;
     self->grab_type = grab_type;
-    self->display = display;
+    self->x_context = x_context;
 
     if(exclusive_grab) {
         self->uinput_fd = setup_virtual_keyboard_input(GSR_UI_VIRTUAL_KEYBOARD_NAME);
@@ -531,16 +544,18 @@ static void on_device_added_callback(const char *devname, void *userdata) {
     keyboard_event_try_add_device_if_keyboard(keyboard_ev, dev_input_filepath);
 }
 
+#define MappingNotify 34
+
 static void keyboard_event_poll_x11_events(keyboard_event *self) {
-    if(!self->display)
+    if(!self->x_context.display || !self->x_context.XPending || !self->x_context.XNextEvent || !self->x_context.XRefreshKeyboardMapping)
         return;
 
     XEvent xev;
-    while(XPending(self->display)) {
+    while(self->x_context.XPending(self->x_context.display)) {
         xev.type = 0;
-        XNextEvent(self->display, &xev);
+        self->x_context.XNextEvent(self->x_context.display, &xev);
         if(xev.type == MappingNotify)
-            XRefreshKeyboardMapping(&xev.xmapping);
+            self->x_context.XRefreshKeyboardMapping(xev.data);
     }
 }
 
