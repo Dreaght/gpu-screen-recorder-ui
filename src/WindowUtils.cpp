@@ -4,10 +4,15 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 
+#include <mglpp/system/Utf8.hpp>
+
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <poll.h>
+
+#include <optional>
 
 #define MAX_PROPERTY_VALUE_LEN 4096
 
@@ -134,7 +139,26 @@ namespace gsr {
         return None;
     }
 
-    static char* get_window_title(Display *dpy, Window window) {
+    static std::string utf8_sanitize(const uint8_t *str, int size) {
+        const uint32_t zero_width_space_codepoint = 0x200b; // Some games such as the finals has zero-width space characters
+        std::string result;
+        for(int i = 0; i < size;) {
+            // Some games such as the finals has utf8-bom between each character, wtf?
+            if(i + 3 < size && memcmp(str + i, "\xEF\xBB\xBF", 3) == 0) {
+                i += 3;
+                continue;
+            }
+
+            uint32_t codepoint = 0;
+            size_t codepoint_length = 1;
+            if(mgl::utf8_decode(str + i, size - i, &codepoint, &codepoint_length) && codepoint != zero_width_space_codepoint)
+                result.append((const char*)str + i, codepoint_length);
+            i += codepoint_length;
+        }
+        return result;
+    }
+
+    static std::optional<std::string> get_window_title(Display *dpy, Window window) {
         const Atom net_wm_name_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
         const Atom wm_name_atom = XInternAtom(dpy, "WM_NAME", False);
         const Atom utf8_string_atom = XInternAtom(dpy, "UTF8_STRING", False);
@@ -147,7 +171,7 @@ namespace gsr {
         XGetWindowProperty(dpy, window, net_wm_name_atom, 0, 1024, False, utf8_string_atom, &type, &format, &num_items, &bytes_left, &data);
 
         if(type == utf8_string_atom && format == 8 && data)
-            return (char*)data;
+            return utf8_sanitize(data, num_items);
 
         type = None;
         format = 0;
@@ -157,16 +181,18 @@ namespace gsr {
         XGetWindowProperty(dpy, window, wm_name_atom, 0, 1024, False, 0, &type, &format, &num_items, &bytes_left, &data);
 
         if((type == XA_STRING || type == utf8_string_atom) && data)
-            return (char*)data;
+            return utf8_sanitize(data, num_items);
 
-        return NULL;
+        return std::nullopt;
     }
 
-    static const char* strip(const char *str, int *len) {
-        int str_len = strlen(str);
+    static std::string strip(const std::string &str) {
+        int start_index = 0;
+        int str_len = str.size();
+
         for(int i = 0; i < str_len; ++i) {
             if(str[i] != ' ') {
-                str += i;
+                start_index += i;
                 str_len -= i;
                 break;
             }
@@ -179,14 +205,7 @@ namespace gsr {
             }
         }
 
-        *len = str_len;
-        return str;
-    }
-
-    static std::string strip_strip(const char *str) {
-        int len = 0;
-        str = strip(str, &len);
-        return std::string(str, len);
+        return str.substr(start_index, str_len);
     }
 
     std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type) {
@@ -196,17 +215,16 @@ namespace gsr {
             return result;
 
         // Window title is not always ideal (for example for a browser), but for games its pretty much required
-        char *window_title = get_window_title(dpy, focused_window);
+        const std::optional<std::string> window_title = get_window_title(dpy, focused_window);
         if(window_title) {
-            result = strip_strip(window_title);
-            XFree(window_title);
+            result = strip(window_title.value());
             return result;
         }
 
         XClassHint class_hint = {nullptr, nullptr};
         XGetClassHint(dpy, focused_window, &class_hint);
         if(class_hint.res_class) {
-            result = strip_strip(class_hint.res_class);
+            result = strip(class_hint.res_class);
             return result;
         }
 
@@ -442,11 +460,9 @@ namespace gsr {
         if(!window)
             return wm_name;
 
-        char *window_title = get_window_title(display, window);
-        if(window_title) {
-            wm_name = strip_strip(window_title);
-            XFree(window_title);
-        }
+        const std::optional<std::string> window_title = get_window_title(display, window);
+        if(window_title)
+            wm_name = strip(window_title.value());
 
         return wm_name;
     }
