@@ -56,3 +56,17 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
 * Opening the UI when a game is fullscreened can mess up the game window a bit on Hyprland and Sway. I believe this is an issue in Hyprland and Sway.
+
+# FAQ
+## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
+If you have previously used the flatpak version of GPU Screen Recorder with the new UI then non-flatpak version of the systemd service will conflict with that.
+Run these commands to first remove the flatpak version of the systemd service:
+```
+systemctl stop --user gpu-screen-recorder-ui
+rm ~/.local/share/systemd/user/gpu-screen-recorder-ui.service
+systemctl --user daemon-reload
+```
+and then start and enable the non-flatpak systemd service:
+```
+systemctl enable --now --user gpu-screen-recorder-ui`
+```
