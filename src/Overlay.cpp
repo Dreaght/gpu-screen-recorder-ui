@@ -164,7 +164,7 @@ namespace gsr {
         return std::abs(a - b) <= difference;
     }
 
-    static bool is_window_fullscreen_on_monitor(Display *display, Window window, const mgl_monitor *monitor) {
+    static bool is_window_fullscreen_on_monitor(Display *display, Window window, const Monitor &monitor) {
         if(!window)
             return false;
 
@@ -173,8 +173,8 @@ namespace gsr {
             return false;
 
         const int margin = 2;
-        return diff_int(geometry.x, monitor->pos.x, margin) && diff_int(geometry.y, monitor->pos.y, margin)
-            && diff_int(geometry.width, monitor->size.x, margin) && diff_int(geometry.height, monitor->size.y, margin);
+        return diff_int(geometry.x, monitor.position.x, margin) && diff_int(geometry.y, monitor.position.y, margin)
+            && diff_int(geometry.width, monitor.size.x, margin) && diff_int(geometry.height, monitor.size.y, margin);
     }
 
     /*static bool is_window_fullscreen_on_monitor(Display *display, Window window, const mgl_monitor *monitors, int num_monitors) {
@@ -279,15 +279,13 @@ namespace gsr {
     }
 
     // Returns the first monitor if not found. Assumes there is at least one monitor connected.
-    static const mgl_monitor* find_monitor_at_position(mgl::Window &window, mgl::vec2i pos) {
-        const mgl_window *win = window.internal_window();
-        assert(win->num_monitors > 0);
-        for(int i = 0; i < win->num_monitors; ++i) {
-            const mgl_monitor *mon = &win->monitors[i];
-            if(mgl::IntRect({ mon->pos.x, mon->pos.y }, { mon->size.x, mon->size.y }).contains(pos))
-                return mon;
+    static const Monitor* find_monitor_at_position(const std::vector<Monitor> &monitors, mgl::vec2i pos) {
+        assert(!monitors.empty());
+        for(const Monitor &monitor : monitors) {
+            if(mgl::IntRect(monitor.position, monitor.size).contains(pos))
+                return &monitor;
         }
-        return &win->monitors[0];
+        return &monitors.front();
     }
 
     static std::string get_power_supply_online_filepath() {
@@ -712,25 +710,39 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
+        const std::vector<Monitor> monitors = get_monitors(display);
+        if(monitors.empty()) {
+            fprintf(stderr, "gsr warning: no monitors found, not showing overlay\n");
+            window.reset();
+            return;
+        }
+
         const std::string wm_name = get_window_manager_name(display);
         const bool is_kwin = wm_name == "KWin";
+        const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
 
         // The cursor position is wrong on wayland if an x11 window is not focused. On wayland we instead create a window and get the position where the wayland compositor puts it
         Window x11_cursor_window = None;
         const mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
         const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
 
+        const Monitor *focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
+        if(is_wlroots) {
+            window_pos = focused_monitor->position;
+            window_size = focused_monitor->size;
+        } else {
+            window_pos = {0, 0};
+            window_size = {32, 32};
+        }
+
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
         const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window;
 
-        window_size = { 32, 32 };
-        window_pos = { 0, 0 };
-
         mgl::Window::CreateParams window_create_params;
         window_create_params.size = window_size;
-        if(prevent_game_minimizing) {
+        if(is_wlroots || prevent_game_minimizing) {
             window_create_params.min_size = window_size;
             window_create_params.max_size = window_size;
         }
@@ -757,33 +769,26 @@ namespace gsr {
         data = 1;
         XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
+        window_pos = focused_monitor->position;
+        window_size = focused_monitor->size;
         if(!init_theme(resources_path)) {
             fprintf(stderr, "Error: failed to load theme\n");
-            ::exit(1);
-        }
-
-        mgl_window *win = window->internal_window();
-        if(win->num_monitors == 0) {
-            fprintf(stderr, "gsr warning: no monitors found, not showing overlay\n");
             window.reset();
             return;
         }
-
-        const mgl_monitor *focused_monitor = find_monitor_at_position(*window, monitor_position_query_value);
-        window_pos = {focused_monitor->pos.x, focused_monitor->pos.y};
-        window_size = {focused_monitor->size.x, focused_monitor->size.y};
         get_theme().set_window_size(window_size);
 
-        if(prevent_game_minimizing) {
+        if(is_wlroots || prevent_game_minimizing) {
             window->set_size(window_size);
             window->set_size_limits(window_size, window_size);
             window->set_position(window_pos);
         }
 
+        mgl_window *win = window->internal_window();
         win->cursor_position.x = cursor_position.x - window_pos.x;
         win->cursor_position.y = cursor_position.y - window_pos.y;
 
-        update_compositor_texture(focused_monitor);
+        update_compositor_texture(*focused_monitor);
 
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
@@ -991,7 +996,8 @@ namespace gsr {
         //     XFlush(display);
         // }
 
-        window->set_fullscreen(true);
+        if(!is_wlroots)
+            window->set_fullscreen(true);
 
         visible = true;
 
@@ -1954,7 +1960,7 @@ namespace gsr {
             show_notification("Streaming has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
     }
 
-    bool Overlay::update_compositor_texture(const mgl_monitor *monitor) {
+    bool Overlay::update_compositor_texture(const Monitor &monitor) {
         window_texture_deinit(&window_texture);
         window_texture_sprite.set_texture(nullptr);
         screenshot_texture.clear();
@@ -1977,7 +1983,7 @@ namespace gsr {
             window_texture_texture = mgl::Texture(window_texture.texture_id, MGL_TEXTURE_FORMAT_RGB);
             window_texture_sprite.set_texture(&window_texture_texture);
         } else {
-            XImage *img = XGetImage(display, DefaultRootWindow(display), monitor->pos.x, monitor->pos.y, monitor->size.x, monitor->size.y, AllPlanes, ZPixmap);
+            XImage *img = XGetImage(display, DefaultRootWindow(display), monitor.position.x, monitor.position.y, monitor.size.x, monitor.size.y, AllPlanes, ZPixmap);
             if(!img)
                 fprintf(stderr, "Error: failed to take a screenshot\n");
 

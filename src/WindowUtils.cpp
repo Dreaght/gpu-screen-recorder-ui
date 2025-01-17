@@ -6,6 +6,10 @@
 
 #include <mglpp/system/Utf8.hpp>
 
+extern "C" {
+#include <mgl/window/window.h>
+}
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -470,7 +474,18 @@ namespace gsr {
     bool is_compositor_running(Display *dpy, int screen) {
         char prop_name[20];
         snprintf(prop_name, sizeof(prop_name), "_NET_WM_CM_S%d", screen);
-        Atom prop_atom = XInternAtom(dpy, prop_name, False);
+        const Atom prop_atom = XInternAtom(dpy, prop_name, False);
         return XGetSelectionOwner(dpy, prop_atom) != None;
+    }
+
+    static void get_monitors_callback(const mgl_monitor *monitor, void *userdata) {
+        std::vector<Monitor> *monitors = (std::vector<Monitor>*)userdata;
+        monitors->push_back({mgl::vec2i(monitor->pos.x, monitor->pos.y), mgl::vec2i(monitor->size.x, monitor->size.y)});
+    }
+
+    std::vector<Monitor> get_monitors(Display *dpy) {
+        std::vector<Monitor> monitors;
+        mgl_for_each_active_monitor_output(dpy, get_monitors_callback, &monitors);
+        return monitors;
     }
 }

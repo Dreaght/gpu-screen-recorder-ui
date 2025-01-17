@@ -5,6 +5,7 @@
 #include "GsrInfo.hpp"
 #include "Config.hpp"
 #include "window_texture.h"
+#include "WindowUtils.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -97,7 +98,7 @@ namespace gsr {
         void on_press_start_replay(bool disable_notification);
         void on_press_start_record();
         void on_press_start_stream();
-        bool update_compositor_texture(const mgl_monitor *monitor);
+        bool update_compositor_texture(const Monitor &monitor);
 
         void force_window_on_top();
     private:

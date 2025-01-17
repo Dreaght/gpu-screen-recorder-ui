@@ -54,8 +54,8 @@ If you want to donate you can donate via bitcoin or monero.
 * Monero: 4An9kp2qW1C9Gah7ewv4JzcNFQ5TAX7ineGCqXWK6vQnhsGGcRpNgcn8r9EC3tMcgY7vqCKs3nSRXhejMHBaGvFdN2egYet
 
 # Known issues
-* When the UI is open the wallpaper is shown instead of the game on Hyprland and Sway. This is an issue with Hyprland and Sway. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
-* Opening the UI when a game is fullscreened can mess up the game window a bit on Hyprland and Sway. I believe this is an issue in Hyprland and Sway.
+* When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
+* Opening the UI when a game is fullscreened can mess up the game window a bit on Hyprland. I believe this is an issue with Hyprland.
 
 # FAQ
 ## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
