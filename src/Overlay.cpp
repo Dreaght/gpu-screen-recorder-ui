@@ -667,7 +667,15 @@ namespace gsr {
         XcursorImageDestroy(cursor_image);
     }
 
-    void Overlay::xi_grab_all_devices() {
+    static bool device_is_mouse(const XIDeviceInfo *dev) {
+        for(int i = 0; i < dev->num_classes; ++i) {
+            if(dev->classes[i]->type == XIMasterPointer || dev->classes[i]->type == XISlavePointer)
+                return true;
+        }
+        return false;
+    }
+
+    void Overlay::xi_grab_all_mouse_devices() {
         if(!xi_display)
             return;
 
@@ -687,6 +695,9 @@ namespace gsr {
 
         for (int i = 0; i < num_devices; ++i) {
             const XIDeviceInfo *dev = &info[i];
+            if(!device_is_mouse(dev))
+                continue;
+
             XIEventMask xi_masks;
             xi_masks.deviceid = dev->deviceid;
             xi_masks.mask_len = sizeof(mask);
@@ -989,7 +1000,7 @@ namespace gsr {
 
         // We want to grab all devices to prevent any other application below the UI from receiving events.
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
-        xi_grab_all_devices();
+        xi_grab_all_mouse_devices();
 
         // if(gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
         //     set_focused_window(display, window->get_system_handle());

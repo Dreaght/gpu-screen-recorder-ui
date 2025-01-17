@@ -67,7 +67,7 @@ namespace gsr {
         void process_key_bindings(mgl::Event &event);
         void grab_mouse_and_keyboard();
         void xi_setup_fake_cursor();
-        void xi_grab_all_devices();
+        void xi_grab_all_mouse_devices();
 
         void close_gpu_screen_recorder_output();
 
