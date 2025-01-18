@@ -56,6 +56,7 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
 * Opening the UI when a game is fullscreened can mess up the game window a bit on Hyprland. I believe this is an issue with Hyprland.
+* Global hotkeys work incorrectly with different keyboard layouts in the flatpak version when using wayland (keys are not in their physical location). This seems to be a flatpak limitation.
 
 # FAQ
 ## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
