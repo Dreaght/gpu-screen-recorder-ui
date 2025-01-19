@@ -584,38 +584,42 @@ namespace gsr {
 
         //force_window_on_top();
 
-        window->clear(bg_color);
+        const bool draw_ui = show_overlay_clock.get_elapsed_time_seconds() >= show_overlay_timeout_seconds;
 
-        if(window_texture_sprite.get_texture() && window_texture.texture_id) {
-            window->draw(window_texture_sprite);
-            window->draw(bg_screenshot_overlay);
-        } else if(screenshot_texture.is_valid()) {
-            window->draw(screenshot_sprite);
-            window->draw(bg_screenshot_overlay);
-        }
+        window->clear(draw_ui ? bg_color : mgl::Color(0, 0, 0, 0));
 
-        window->draw(top_bar_background);
-        window->draw(top_bar_text);
-        window->draw(logo_sprite);
+        if(draw_ui) {
+            if(window_texture_sprite.get_texture() && window_texture.texture_id) {
+                window->draw(window_texture_sprite);
+                window->draw(bg_screenshot_overlay);
+            } else if(screenshot_texture.is_valid()) {
+                window->draw(screenshot_sprite);
+                window->draw(bg_screenshot_overlay);
+            }
 
-        close_button_widget.draw(*window, mgl::vec2f(0.0f, 0.0f));
-        page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
+            window->draw(top_bar_background);
+            window->draw(top_bar_text);
+            window->draw(logo_sprite);
 
-        if(cursor_texture.is_valid()) {
-            cursor_sprite.set_position((window->get_mouse_position() - cursor_hotspot).to_vec2f());
-            window->draw(cursor_sprite);
+            close_button_widget.draw(*window, mgl::vec2f(0.0f, 0.0f));
+            page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
+
+            if(cursor_texture.is_valid()) {
+                cursor_sprite.set_position((window->get_mouse_position() - cursor_hotspot).to_vec2f());
+                window->draw(cursor_sprite);
+            }
+
+            if(!drawn_first_frame) {
+                drawn_first_frame = true;
+                mgl::Event event;
+                event.type = mgl::Event::MouseMoved;
+                event.mouse_move.x = window->get_mouse_position().x;
+                event.mouse_move.y = window->get_mouse_position().y;
+                on_event(event);
+            }
         }
 
         window->display();
-
-        if(!drawn_first_frame) {
-            drawn_first_frame = true;
-            mgl::Event event;
-            event.type = mgl::Event::MouseMoved;
-            event.mouse_move.x = window->get_mouse_position().x;
-            event.mouse_move.y = window->get_mouse_position().y;
-            on_event(event);
-        }
 
         return true;
     }
@@ -773,6 +777,8 @@ namespace gsr {
 
         if(!window->create("gsr ui", window_create_params))
             fprintf(stderr, "error: failed to create window\n");
+
+        //window->set_low_latency(true);
 
         unsigned char data = 2; // Prefer being composed to allow transparency
         XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
@@ -1030,6 +1036,10 @@ namespace gsr {
 
         if(paused)
             update_ui_recording_paused();
+
+        show_overlay_timeout_seconds = prevent_game_minimizing ? 0.0 : 0.15;
+        show_overlay_clock.restart();
+        draw();
     }
 
     void Overlay::hide() {
@@ -1093,6 +1103,16 @@ namespace gsr {
         }
 
         if(window) {
+            if(show_overlay_timeout_seconds > 0.0001) {
+                window->clear(mgl::Color(0, 0, 0, 0));
+                window->display();
+
+                mgl_context *context = mgl_get_context();
+                context->gl.glFlush();
+                context->gl.glFinish();
+                usleep(50 * 1000); // EGL doesn't do an immediate flush for some reason
+            }
+
             window->set_visible(false);
             window.reset();
         }

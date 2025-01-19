@@ -170,5 +170,8 @@ namespace gsr {
 
         mgl::vec2i window_size = { 1280, 720 };
         mgl::vec2i window_pos = { 0, 0 };
+
+        mgl::Clock show_overlay_clock;
+        double show_overlay_timeout_seconds = 0.0;
     };
 }
