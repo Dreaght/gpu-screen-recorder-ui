@@ -31,7 +31,7 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 ## Runtime dependencies
 There are also additional dependencies needed at runtime:
 
-* [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/)
+* [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/) (version 5.0.0 or greater)
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
 
 ## Program behavior notes
