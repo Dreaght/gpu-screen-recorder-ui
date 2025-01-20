@@ -113,3 +113,8 @@ When enabling X11 global hotkey again only grab lalt, not ralt.
 
 When adding window capture only add it to recording and streaming and do the window selection when recording starts, to make it more ergonomic with hotkeys.
     If hotkey for recording/streaming start is pressed on the button for start is clicked then hide the ui if it's visible and show the window selection option (cursor).
+
+Instead of using x11 in gsr-global-hotkeys do the keysym to keycode mapping in gsr-ui and send that to gsr-global-hotkeys. Also improve gsr-global-hotkeys setup performance
+    by only grabbing keys after the first button press.
+
+Show an error that prime run will be disabled when using desktop portal capture option. This can cause issues as the user may have selected a video codec option that isn't available on their iGPU but is available on the prime-run dGPU.

@@ -24,13 +24,15 @@ namespace gsr {
         void save();
         void on_navigate_away_from_page() override;
 
-        // Called with (enable, exit_status)
-        std::function<void(bool, int)> on_startup_changed;
-        // Called with (reason)
-        std::function<void(const char*)> on_click_exit_program_button;
+        std::function<void(bool enable, int exit_status)> on_startup_changed;
+        std::function<void(const char *reason)> on_click_exit_program_button;
+        std::function<void(const char *hotkey_option)> on_keyboard_hotkey_changed;
+        std::function<void(const char *hotkey_option)> on_joystick_hotkey_changed;
     private:
         std::unique_ptr<Subsection> create_appearance_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_startup_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<RadioButton> create_enable_keyboard_hotkeys_button();
+        std::unique_ptr<RadioButton> create_enable_joystick_hotkeys_button();
         std::unique_ptr<Subsection> create_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Button> create_exit_program_button();
         std::unique_ptr<Button> create_go_back_to_old_ui_button();
@@ -44,6 +46,7 @@ namespace gsr {
         PageStack *page_stack = nullptr;
         RadioButton *tint_color_radio_button_ptr = nullptr;
         RadioButton *startup_radio_button_ptr = nullptr;
-        RadioButton *enable_hotkeys_radio_button_ptr = nullptr;
+        RadioButton *enable_keyboard_hotkeys_radio_button_ptr = nullptr;
+        RadioButton *enable_joystick_hotkeys_radio_button_ptr = nullptr;
     };
 }

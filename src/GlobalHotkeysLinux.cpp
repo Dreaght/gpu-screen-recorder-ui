@@ -109,12 +109,12 @@ namespace gsr {
 
     void GlobalHotkeysLinux::poll_events() {
         if(process_id <= 0) {
-            fprintf(stderr, "error: GlobalHotkeysLinux::poll_events failed, process has not been started yet. Use GlobalHotkeysLinux::start to start the process first\n");
+            //fprintf(stderr, "error: GlobalHotkeysLinux::poll_events failed, process has not been started yet. Use GlobalHotkeysLinux::start to start the process first\n");
             return;
         }
 
         if(!read_file) {
-            fprintf(stderr, "error: GlobalHotkeysLinux::poll_events failed, read file hasn't opened\n");
+            //fprintf(stderr, "error: GlobalHotkeysLinux::poll_events failed, read file hasn't opened\n");
             return;
         }
 

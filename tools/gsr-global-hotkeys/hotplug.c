@@ -22,7 +22,7 @@ bool hotplug_event_init(hotplug_event *self) {
 
     const int fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
     if(fd == -1)
-        return false; /* Not root user */
+        return false;
 
     if(bind(fd, (void*)&nls, sizeof(struct sockaddr_nl))) {
         close(fd);
@@ -56,19 +56,21 @@ static void hotplug_event_parse_netlink_data(hotplug_event *self, const char *li
         if(strcmp(line, "SUBSYSTEM=input") == 0)
             self->subsystem_is_input = true;
 
-        if(self->subsystem_is_input && strncmp(line, "DEVNAME=", 8) == 0)
+        if(self->subsystem_is_input && strncmp(line, "DEVNAME=", 8) == 0) {
             callback(line+8, userdata);
+            self->event_is_add = false;
+        }
     }
 }
 
 /* Netlink uevent structure is documented here: https://web.archive.org/web/20160127215232/https://www.kernel.org/doc/pending/hotplug.txt */
 void hotplug_event_process_event_data(hotplug_event *self, int fd, hotplug_device_added_callback callback, void *userdata) {
     const int bytes_read = read(fd, self->event_data, sizeof(self->event_data));
-    int data_index = 0;
     if(bytes_read <= 0)
         return;
 
     /* Hotplug data ends with a newline and a null terminator */
+    int data_index = 0;
     while(data_index < bytes_read) {
         hotplug_event_parse_netlink_data(self, self->event_data + data_index, callback, userdata);
         data_index += strlen(self->event_data + data_index) + 1; /* Skip null terminator as well */

@@ -9,6 +9,15 @@
 #include "../../include/gui/List.hpp"
 #include "../../include/gui/Label.hpp"
 #include "../../include/gui/RadioButton.hpp"
+#include "../../include/gui/LineSeparator.hpp"
+
+#ifndef GSR_UI_VERSION
+#define GSR_UI_VERSION "unknown"
+#endif
+
+#ifndef GSR_FLATPAK_VERSION
+#define GSR_FLATPAK_VERSION "unknown"
+#endif
 
 namespace gsr {
     static const char* gpu_vendor_to_color_name(GpuVendor vendor) {
@@ -19,6 +28,16 @@ namespace gsr {
             case GpuVendor::NVIDIA:  return "nvidia";
         }
         return "amd";
+    }
+
+    static const char* gpu_vendor_to_string(GpuVendor vendor) {
+        switch(vendor) {
+            case GpuVendor::UNKNOWN: return "Unknown";
+            case GpuVendor::AMD:     return "AMD";
+            case GpuVendor::INTEL:   return "Intel";
+            case GpuVendor::NVIDIA:  return "NVIDIA";
+        }
+        return "unknown";
     }
 
     GlobalSettingsPage::GlobalSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
@@ -88,29 +107,45 @@ namespace gsr {
         return std::make_unique<Subsection>("Startup", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
-    std::unique_ptr<Subsection> GlobalSettingsPage::create_hotkey_subsection(ScrollablePage *parent_page) {
-        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-
-        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
-        enable_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
-        enable_hotkeys_radio_button->add_item("Enable hotkeys", "enable_hotkeys");
-        if(!inside_flatpak)
-            enable_hotkeys_radio_button->add_item("Disable hotkeys", "disable_hotkeys");
+    std::unique_ptr<RadioButton> GlobalSettingsPage::create_enable_keyboard_hotkeys_button() {
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        enable_keyboard_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
+        enable_hotkeys_radio_button->add_item("Yes", "enable_hotkeys");
+        enable_hotkeys_radio_button->add_item("No", "disable_hotkeys");
         enable_hotkeys_radio_button->add_item("Only grab virtual devices (supports input remapping software)", "enable_hotkeys_virtual_devices");
         enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
-            if(!on_click_exit_program_button)
-                return true;
-
-            if(id == "enable_hotkeys")
-                on_click_exit_program_button("restart");
-            else if(id == "disable_hotkeys")
-                on_click_exit_program_button("restart");
-            else if(id == "enable_hotkeys_virtual_devices")
-                on_click_exit_program_button("restart");
-
+            if(on_keyboard_hotkey_changed)
+                on_keyboard_hotkey_changed(id.c_str());
             return true;
         };
-        return std::make_unique<Subsection>("Hotkeys", std::move(enable_hotkeys_radio_button), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+        return enable_hotkeys_radio_button;
+    }
+
+    std::unique_ptr<RadioButton> GlobalSettingsPage::create_enable_joystick_hotkeys_button() {
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        enable_joystick_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
+        enable_hotkeys_radio_button->add_item("Yes", "enable_hotkeys");
+        enable_hotkeys_radio_button->add_item("No", "disable_hotkeys");
+        enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
+            if(on_joystick_hotkey_changed)
+                on_joystick_hotkey_changed(id.c_str());
+            return true;
+        };
+        return enable_hotkeys_radio_button;
+    }
+
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_hotkey_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        List *list_ptr = list.get();
+        auto subsection = std::make_unique<Subsection>("Hotkeys", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable keyboard hotkeys?", get_color_theme().text_color));
+        list_ptr->add_widget(create_enable_keyboard_hotkeys_button());
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable controller hotkeys?", get_color_theme().text_color));
+        list_ptr->add_widget(create_enable_joystick_hotkeys_button());
+        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Double-click the share button to save a replay", get_color_theme().text_color));
+        return subsection;
     }
 
     std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
@@ -133,11 +168,32 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        list->add_widget(create_exit_program_button());
-        if(inside_flatpak)
-            list->add_widget(create_go_back_to_old_ui_button());
-        return std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        List *list_ptr = list.get();
+        auto subsection = std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+
+        {
+            auto buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+            buttons_list->add_widget(create_exit_program_button());
+            if(inside_flatpak)
+                buttons_list->add_widget(create_go_back_to_old_ui_button());
+            list_ptr->add_widget(std::move(buttons_list));
+        }
+        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+        {
+            char str[256];
+            snprintf(str, sizeof(str), "UI version: %s", GSR_UI_VERSION);
+            list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+
+            if(inside_flatpak) {
+                snprintf(str, sizeof(str), "Flatpak version: %s", GSR_FLATPAK_VERSION);
+                list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+            }
+
+            snprintf(str, sizeof(str), "GPU vendor: %s", gpu_vendor_to_string(gsr_info->gpu_info.vendor));
+            list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+        }
+        return subsection;
     }
 
     void GlobalSettingsPage::add_widgets() {
@@ -169,12 +225,14 @@ namespace gsr {
         const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
         startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
 
-        enable_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
+        enable_keyboard_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
+        enable_joystick_hotkeys_radio_button_ptr->set_selected_item(config.main_config.joystick_hotkeys_enable_option, false, false);
     }
 
     void GlobalSettingsPage::save() {
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
-        config.main_config.hotkeys_enable_option = enable_hotkeys_radio_button_ptr->get_selected_id();
+        config.main_config.hotkeys_enable_option = enable_keyboard_hotkeys_radio_button_ptr->get_selected_id();
+        config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
         save_config(config);
     }
 }

@@ -38,6 +38,8 @@ src = [
     'src/Overlay.cpp',
     'src/GlobalHotkeysX11.cpp',
     'src/GlobalHotkeysLinux.cpp',
+    'src/GlobalHotkeysJoystick.cpp',
+    'src/Hotplug.cpp',
     'src/Rpc.cpp',
     'src/main.cpp',
 ]
@@ -48,6 +50,9 @@ mglpp_dep = mglpp_proj.get_variable('mglpp_dep')
 prefix = get_option('prefix')
 datadir = get_option('datadir')
 gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
+
+add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', language: ['c', 'cpp'])
+add_project_arguments('-DGSR_FLATPAK_VERSION="5.0.10"', language: ['c', 'cpp'])
 
 executable(
     meson.project_name(),

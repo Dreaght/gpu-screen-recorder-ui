@@ -61,6 +61,9 @@ namespace gsr {
         void exit();
 
         const Config& get_config() const;
+
+        std::function<void(const char *hotkey_option)> on_keyboard_hotkey_changed;
+        std::function<void(const char *hotkey_option)> on_joystick_hotkey_changed;
     private:
         void xi_setup();
         void handle_xi_events();

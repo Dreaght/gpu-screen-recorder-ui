@@ -1,7 +1,7 @@
 #include "../include/GsrInfo.hpp"
 #include "../include/Overlay.hpp"
-#include "../include/GlobalHotkeysX11.hpp"
 #include "../include/GlobalHotkeysLinux.hpp"
+#include "../include/GlobalHotkeysJoystick.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
@@ -41,62 +41,6 @@ static void disable_prime_run() {
     unsetenv("DRI_PRIME");
 }
 
-static std::unique_ptr<gsr::GlobalHotkeysX11> register_x11_hotkeys(gsr::Overlay *overlay) {
-    auto global_hotkeys = std::make_unique<gsr::GlobalHotkeysX11>();
-    const bool show_hotkey_registered = global_hotkeys->bind_key_press({ XK_z, Mod1Mask }, "show_hide", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_show();
-    });
-
-    const bool record_hotkey_registered = global_hotkeys->bind_key_press({ XK_F9, Mod1Mask }, "record", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_record();
-    });
-
-    const bool pause_hotkey_registered = global_hotkeys->bind_key_press({ XK_F7, Mod1Mask }, "pause", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_pause();
-    });
-
-    const bool stream_hotkey_registered = global_hotkeys->bind_key_press({ XK_F8, Mod1Mask }, "stream", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_stream();
-    });
-
-    const bool replay_hotkey_registered = global_hotkeys->bind_key_press({ XK_F10, ShiftMask | Mod1Mask }, "replay_start", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_replay();
-    });
-
-    const bool replay_save_hotkey_registered = global_hotkeys->bind_key_press({ XK_F10, Mod1Mask }, "replay_save", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->save_replay();
-    });
-
-    if(!show_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+z for showing the overlay because the hotkey is registered by another program\n");
-
-    if(!record_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+f9 for recording because the hotkey is registered by another program\n");
-
-    if(!pause_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+f7 for pausing because the hotkey is registered by another program\n");
-
-    if(!stream_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+f8 for streaming because the hotkey is registered by another program\n");
-
-    if(!replay_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+shift+f10 for starting replay because the hotkey is registered by another program\n");
-
-    if(!replay_save_hotkey_registered)
-        fprintf(stderr, "error: failed to register hotkey alt+f10 for saving replay because the hotkey is registered by another program\n");
-
-    if(!show_hotkey_registered || !record_hotkey_registered || !pause_hotkey_registered || !stream_hotkey_registered || !replay_hotkey_registered || !replay_save_hotkey_registered)
-        return nullptr;
-
-    return global_hotkeys;
-}
-
 static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Overlay *overlay, gsr::GlobalHotkeysLinux::GrabType grab_type) {
     auto global_hotkeys = std::make_unique<gsr::GlobalHotkeysLinux>(grab_type);
     if(!global_hotkeys->start())
@@ -133,6 +77,19 @@ static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Over
     });
 
     return global_hotkeys;
+}
+
+static std::unique_ptr<gsr::GlobalHotkeysJoystick> register_joystick_hotkeys(gsr::Overlay *overlay) {
+    auto global_hotkeys_js = std::make_unique<gsr::GlobalHotkeysJoystick>();
+    if(!global_hotkeys_js->start())
+        fprintf(stderr, "Warning: failed to start joystick hotkeys\n");
+
+    global_hotkeys_js->bind_action("save_replay", [overlay](const std::string &id) {
+        fprintf(stderr, "pressed %s\n", id.c_str());
+        overlay->save_replay();
+    });
+
+    return global_hotkeys_js;
 }
 
 static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
@@ -292,9 +249,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // Cant get window texture when prime-run is used
-    disable_prime_run();
-
     // Stop nvidia driver from buffering frames
     setenv("__GL_MaxFramesAllowed", "1", true);
     // If this is set to 1 then cuGraphicsGLRegisterImage will fail for egl context with error: invalid OpenGL or DirectX context,
@@ -307,11 +261,6 @@ int main(int argc, char **argv) {
 
     signal(SIGINT, sigint_handler);
 
-    if(mgl_init() != 0) {
-        fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
-        exit(1);
-    }
-
     gsr::GsrInfo gsr_info;
     // TODO: Show the error in ui
     gsr::GsrInfoExitStatus gsr_info_exit_status = gsr::get_gpu_screen_recorder_info(&gsr_info);
@@ -321,8 +270,17 @@ int main(int argc, char **argv) {
     }
 
     const gsr::DisplayServer display_server = gsr_info.system_info.display_server;
-    if(display_server == gsr::DisplayServer::WAYLAND)
-        fprintf(stderr, "Warning: Wayland support is experimental and requires XWayland. Things may not work as expected.\n");
+    if(display_server == gsr::DisplayServer::WAYLAND) {
+        fprintf(stderr, "Warning: Wayland doesn't support this program properly and XWayland is required. Things may not work as expected. Use X11 if you experience issues.\n");
+    } else {
+        // Cant get window texture when prime-run is used
+        disable_prime_run();
+    }
+
+    if(mgl_init() != 0) {
+        fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
+        exit(1);
+    }
 
     gsr::SupportedCaptureOptions capture_options = gsr::get_supported_capture_options(gsr_info);
 
@@ -368,6 +326,28 @@ int main(int argc, char **argv) {
     else if(overlay->get_config().main_config.hotkeys_enable_option == "enable_hotkeys_virtual_devices")
         global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::VIRTUAL);
 
+    overlay->on_keyboard_hotkey_changed = [&](const char *hotkey_option) {
+        global_hotkeys.reset();
+        if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+            global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::ALL);
+        else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
+            global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::VIRTUAL);
+        else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+            global_hotkeys.reset();
+    };
+
+    std::unique_ptr<gsr::GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
+    if(overlay->get_config().main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
+        global_hotkeys_js = register_joystick_hotkeys(overlay.get());
+
+    overlay->on_joystick_hotkey_changed = [&](const char *hotkey_option) {
+        global_hotkeys_js.reset();
+        if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+            global_hotkeys_js = register_joystick_hotkeys(overlay.get());
+        else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+            global_hotkeys_js.reset();
+    };
+
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 
     std::string exit_reason;
@@ -382,6 +362,9 @@ int main(int argc, char **argv) {
         if(global_hotkeys)
             global_hotkeys->poll_events();
 
+        if(global_hotkeys_js)
+            global_hotkeys_js->poll_events();
+
         overlay->handle_events(global_hotkeys.get());
         if(!overlay->draw()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -391,8 +374,8 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: shutting down!\n");
     rpc.reset();
-    if(global_hotkeys)
-        global_hotkeys.reset();
+    global_hotkeys.reset();
+    global_hotkeys_js.reset();
     overlay.reset();
     mgl_deinit();
 

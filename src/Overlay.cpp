@@ -942,10 +942,20 @@ namespace gsr {
                             show_notification("Failed to remove GPU Screen Recorder from system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
                     }
                 };
-                settings_page->on_click_exit_program_button = [&](const char *reason) {
+
+                settings_page->on_click_exit_program_button = [this](const char *reason) {
                     do_exit = true;
                     exit_reason = reason;
                 };
+
+                settings_page->on_keyboard_hotkey_changed = [this](const char *hotkey_option) {
+                    on_keyboard_hotkey_changed(hotkey_option);
+                };
+
+                settings_page->on_joystick_hotkey_changed = [this](const char *hotkey_option) {
+                    on_joystick_hotkey_changed(hotkey_option);
+                };
+
                 page_stack.push(std::move(settings_page));
             };
             front_page_ptr->add_widget(std::move(button));

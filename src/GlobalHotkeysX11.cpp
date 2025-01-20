@@ -138,6 +138,9 @@ namespace gsr {
     }
 
     void GlobalHotkeysX11::poll_events() {
+        if(!dpy)
+            return;
+
         while(XPending(dpy)) {
             XNextEvent(dpy, &xev);
             if(xev.type == KeyPress) {

@@ -116,6 +116,24 @@ static x11_context setup_x11_context(void) {
     return x_context;
 }
 
+static bool is_gsr_global_hotkeys_already_running(void) {
+    FILE *f = fopen("/proc/bus/input/devices", "rb");
+    if(!f)
+        return false;
+
+    bool virtual_keyboard_running = false;
+    char line[1024];
+    while(fgets(line, sizeof(line), f)) {
+        if(strstr(line, "gsr-ui virtual keyboard")) {
+            virtual_keyboard_running = true;
+            break;
+        }
+    }
+
+    fclose(f);
+    return virtual_keyboard_running;
+}
+
 int main(int argc, char **argv) {
     keyboard_grab_type grab_type = KEYBOARD_GRAB_TYPE_ALL;
     if(argc == 2) {
@@ -132,6 +150,11 @@ int main(int argc, char **argv) {
     } else if(argc != 1) {
         fprintf(stderr, "Error: expected 0 or 1 arguments, got %d argument(s)\n", argc);
         usage();
+        return 1;
+    }
+
+    if(is_gsr_global_hotkeys_already_running()) {
+        fprintf(stderr, "Error: gsr-global-hotkeys is already running\n");
         return 1;
     }
 
