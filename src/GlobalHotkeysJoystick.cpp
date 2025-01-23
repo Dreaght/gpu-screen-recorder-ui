@@ -155,15 +155,20 @@ namespace gsr {
             return;
 
         if(event.number == 8 && event.value == 1) {
-            ++num_times_clicked;
-            if(num_times_clicked == 1)
-                double_click_clock.restart();
-            else if(num_times_clicked == 2 && double_click_clock.restart() >= double_click_timeout_seconds)
-                num_times_clicked = 0;
+            const double now = double_click_clock.get_elapsed_time_seconds();
+            if(!prev_time_clicked.has_value()) {
+                prev_time_clicked = now;
+                return;
+            }
 
-            if(num_times_clicked == 2) {
-                save_replay = true;
-                num_times_clicked = 0;
+            if(prev_time_clicked.has_value()) {
+                const bool double_clicked = (now - prev_time_clicked.value()) < double_click_timeout_seconds;
+                if(double_clicked) {
+                    save_replay = true;
+                    prev_time_clicked.reset();
+                } else {
+                    prev_time_clicked = now;
+                }
             }
         }
     }

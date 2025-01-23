@@ -3,6 +3,7 @@
 #include "GlobalHotkeys.hpp"
 #include "Hotplug.hpp"
 #include <unordered_map>
+#include <optional>
 #include <thread>
 #include <poll.h>
 #include <mglpp/system/Clock.hpp>
@@ -45,7 +46,7 @@ namespace gsr {
         int event_index = -1;
 
         mgl::Clock double_click_clock;
-        int num_times_clicked = 0;
+        std::optional<double> prev_time_clicked;
         bool save_replay = false;
         int hotplug_poll_index = -1;
         Hotplug hotplug;
