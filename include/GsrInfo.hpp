@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <stdint.h>
 
 #include <mglpp/system/vec.hpp>
 
@@ -24,6 +25,21 @@ namespace gsr {
         mgl::vec2i size;
     };
 
+    struct GsrVersion {
+        uint8_t major = 0;
+        uint8_t minor = 0;
+        uint8_t patch = 0;
+
+        bool operator>(const GsrVersion &other) const;
+        bool operator>=(const GsrVersion &other) const;
+        bool operator<(const GsrVersion &other) const;
+        bool operator<=(const GsrVersion &other) const;
+        bool operator==(const GsrVersion &other) const;
+        bool operator!=(const GsrVersion &other) const;
+
+        std::string to_string() const;
+    };
+
     struct SupportedCaptureOptions {
         bool window = false;
         bool focused = false;
@@ -40,6 +56,7 @@ namespace gsr {
     struct SystemInfo {
         DisplayServer display_server = DisplayServer::UNKNOWN;
         bool supports_app_audio = false;
+        GsrVersion gsr_version;
     };
 
     enum class GpuVendor {

@@ -1866,6 +1866,11 @@ namespace gsr {
             "-o", output_directory.c_str()
         };
 
+        if(config.replay_config.restart_replay_on_save && gsr_info.system_info.gsr_version >= GsrVersion{5, 0, 2}) {
+            args.push_back("-overlap-replay");
+            args.push_back("no");
+        }
+
         add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
 
         args.push_back(nullptr);

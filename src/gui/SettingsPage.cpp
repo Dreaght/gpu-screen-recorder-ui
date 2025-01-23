@@ -664,6 +664,12 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_restart_replay_on_save() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Restart replay on save");
+        restart_replay_on_save = checkbox.get();
+        return checkbox;
+    }
+
     std::unique_ptr<Label> SettingsPage::create_estimated_replay_file_size() {
         auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 57.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
@@ -693,6 +699,8 @@ namespace gsr {
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_start_replay_automatically());
         general_list->add_widget(create_save_replay_in_game_folder());
+        if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 2})
+            general_list->add_widget(create_restart_replay_on_save());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -1065,6 +1073,8 @@ namespace gsr {
         load_common(config.replay_config.record_options);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
+        if(restart_replay_on_save)
+            restart_replay_on_save->set_checked(config.replay_config.restart_replay_on_save);
         show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
         show_replay_stopped_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_stopped_notifications);
         show_replay_saved_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_saved_notifications);
@@ -1193,6 +1203,8 @@ namespace gsr {
         save_common(config.replay_config.record_options);
         config.replay_config.turn_on_replay_automatically_mode = turn_on_replay_automatically_mode_ptr->get_selected_id();
         config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
+        if(restart_replay_on_save)
+            config.replay_config.restart_replay_on_save = restart_replay_on_save->is_checked();
         config.replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
         config.replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();

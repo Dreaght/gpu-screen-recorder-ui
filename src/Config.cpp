@@ -149,6 +149,7 @@ namespace gsr {
             {"replay.record_options.restore_portal_session", &config.replay_config.record_options.restore_portal_session},
             {"replay.turn_on_replay_automatically_mode", &config.replay_config.turn_on_replay_automatically_mode},
             {"replay.save_video_in_game_folder", &config.replay_config.save_video_in_game_folder},
+            {"replay.restart_replay_on_save", &config.replay_config.restart_replay_on_save},
             {"replay.show_replay_started_notifications", &config.replay_config.show_replay_started_notifications},
             {"replay.show_replay_stopped_notifications", &config.replay_config.show_replay_stopped_notifications},
             {"replay.show_replay_saved_notifications", &config.replay_config.show_replay_saved_notifications},

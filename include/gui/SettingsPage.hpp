@@ -97,6 +97,7 @@ namespace gsr {
         std::unique_ptr<List> create_replay_time();
         std::unique_ptr<RadioButton> create_start_replay_automatically();
         std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
+        std::unique_ptr<CheckBox> create_restart_replay_on_save();
         std::unique_ptr<Label> create_estimated_replay_file_size();
         void update_estimated_replay_file_size();
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
@@ -170,6 +171,7 @@ namespace gsr {
         List *stream_url_list_ptr = nullptr;
         List *container_list_ptr = nullptr;
         CheckBox *save_replay_in_game_folder_ptr = nullptr;
+        CheckBox *restart_replay_on_save = nullptr;
         Label *estimated_file_size_ptr = nullptr;
         CheckBox *show_replay_started_notification_checkbox_ptr = nullptr;
         CheckBox *show_replay_stopped_notification_checkbox_ptr = nullptr;

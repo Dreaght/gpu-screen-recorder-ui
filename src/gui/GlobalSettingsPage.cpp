@@ -24,11 +24,11 @@ extern "C" {
 #include <mglpp/graphics/Text.hpp>
 
 #ifndef GSR_UI_VERSION
-#define GSR_UI_VERSION "unknown"
+#define GSR_UI_VERSION "Unknown"
 #endif
 
 #ifndef GSR_FLATPAK_VERSION
-#define GSR_FLATPAK_VERSION "unknown"
+#define GSR_FLATPAK_VERSION "Unknown"
 #endif
 
 namespace gsr {
@@ -403,7 +403,11 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
 
         char str[128];
-        snprintf(str, sizeof(str), "UI version: %s", GSR_UI_VERSION);
+        const std::string gsr_version = gsr_info->system_info.gsr_version.to_string();
+        snprintf(str, sizeof(str), "GSR version: %s", gsr_version.c_str());
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+
+        snprintf(str, sizeof(str), "GSR-UI version: %s", GSR_UI_VERSION);
         list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
 
         if(inside_flatpak) {

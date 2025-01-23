@@ -84,6 +84,8 @@ namespace gsr {
     }
 
     bool GlobalHotkeysJoystick::bind_action(const std::string &id, GlobalHotkeyCallback callback) {
+        if(num_poll_fd == 0)
+            return false;
         return bound_actions_by_id.insert(std::make_pair(id, std::move(callback))).second;
     }
 

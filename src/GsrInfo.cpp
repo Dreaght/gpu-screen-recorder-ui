@@ -6,6 +6,93 @@
 #include <string.h>
 
 namespace gsr {
+    bool GsrVersion::operator>(const GsrVersion &other) const {
+        return major > other.major || (major == other.major && minor > other.minor) || (major == other.major && minor == other.minor && patch > other.patch);
+    }
+
+    bool GsrVersion::operator>=(const GsrVersion &other) const {
+        return major >= other.major || (major == other.major && minor >= other.minor) || (major == other.major && minor == other.minor && patch >= other.patch);
+    }
+
+    bool GsrVersion::operator<(const GsrVersion &other) const {
+        return !operator>=(other);
+    }
+
+    bool GsrVersion::operator<=(const GsrVersion &other) const {
+        return !operator>(other);
+    }
+
+    bool GsrVersion::operator==(const GsrVersion &other) const {
+        return major == other.major && minor == other.minor && patch == other.patch;
+    }
+
+    bool GsrVersion::operator!=(const GsrVersion &other) const {
+        return !operator==(other);
+    }
+
+    std::string GsrVersion::to_string() const {
+        std::string result;
+        if(major == 0 && minor == 0 && patch == 0)
+            result = "Unknown";
+        else
+            result = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
+        return result;
+    }
+
+    /* Returns -1 on error */
+    static int parse_u8(const char *str, int size) {
+        if(size <= 0)
+            return -1;
+
+        int result = 0;
+        for(int i = 0; i < size; ++i) {
+            char c = str[i];
+            if(c >= '0' && c <= '9') {
+                result = result * 10 + (c - '0');
+                if(result > 255)
+                    return -1;
+            } else {
+                return -1;
+            }
+        }
+        return result;
+    }
+
+    static GsrVersion parse_gsr_version(const std::string_view str) {
+        GsrVersion result;
+        uint8_t numbers[3];
+        int number_index = 0;
+
+        size_t index = 0;
+        while(true) {
+            size_t next_index = str.find('.', index);
+            if(next_index == std::string::npos)
+                next_index = str.size();
+
+            const int number = parse_u8(str.data() + index, next_index - index);
+            if(number == -1) {
+                fprintf(stderr, "Error: gpu-screen-recorder --info contains invalid gsr version: %.*s\n", (int)str.size(), str.data());
+                return {0, 0, 0};
+            }
+
+            if(number_index >= 3) {
+                fprintf(stderr, "Error: gpu-screen-recorder --info contains invalid gsr version: %.*s\n", (int)str.size(), str.data());
+                return {0, 0, 0};
+            }
+
+            numbers[number_index] = number;
+            ++number_index;
+            index = next_index + 1;
+            if(next_index == str.size())
+                break;
+        }
+
+        result.major = numbers[0];
+        result.minor = numbers[1];
+        result.patch = numbers[2];
+        return result;
+    }
+
     static std::optional<KeyValue> parse_key_value(std::string_view line) {
         const size_t space_index = line.find('|');
         if(space_index == std::string_view::npos)
@@ -25,6 +112,8 @@ namespace gsr {
                 gsr_info->system_info.display_server = DisplayServer::WAYLAND;
         } else if(key_value->key == "supports_app_audio") {
             gsr_info->system_info.supports_app_audio = key_value->value == "yes";
+        } else if(key_value->key == "gsr_version") {
+            gsr_info->system_info.gsr_version = parse_gsr_version(key_value->value);
         }
     }
 

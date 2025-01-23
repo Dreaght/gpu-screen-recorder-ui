@@ -638,13 +638,13 @@ static void keyboard_event_parse_stdin_command(keyboard_event *self, const char 
             .modifiers = modifiers
         };
         ++self->num_global_hotkeys;
-        fprintf(stderr, "Info: bound hotkey: %s\n", action);
+        fprintf(stderr, "Info: binded hotkey: %s\n", action);
     } else if(strncmp(command, "unbind_all", 10) == 0) {
         for(int i = 0; i < self->num_global_hotkeys; ++i) {
             free(self->global_hotkeys[i].action);
         }
         self->num_global_hotkeys = 0;
-        fprintf(stderr, "Info: unbound all hotkeys\n");
+        fprintf(stderr, "Info: unbinded all hotkeys\n");
     } else {
         fprintf(stderr, "Warning: got invalid command: \"%s\", expected command to start with either \"bind\" or \"unbind_all\"\n", command);
     }

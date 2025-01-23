@@ -90,6 +90,7 @@ namespace gsr {
         RecordOptions record_options;
         std::string turn_on_replay_automatically_mode = "dont_turn_on_automatically";
         bool save_video_in_game_folder = false;
+        bool restart_replay_on_save = false;
         bool show_replay_started_notifications = true;
         bool show_replay_stopped_notifications = true;
         bool show_replay_saved_notifications = true;

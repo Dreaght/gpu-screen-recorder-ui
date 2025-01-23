@@ -166,6 +166,9 @@ namespace gsr {
     }
 
     bool GlobalHotkeysLinux::bind_key_press(Hotkey hotkey, const std::string &id, GlobalHotkeyCallback callback) {
+        if(process_id <= 0)
+            return false;
+
         if(bound_actions_by_id.find(id) != bound_actions_by_id.end())
             return false;
 
@@ -202,6 +205,9 @@ namespace gsr {
     }
 
     void GlobalHotkeysLinux::unbind_all_keys() {
+        if(process_id <= 0)
+            return;
+
         if(bound_actions_by_id.empty())
             return;
 
