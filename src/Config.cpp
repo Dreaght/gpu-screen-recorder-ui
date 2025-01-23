@@ -1,21 +1,21 @@
 #include "../include/Config.hpp"
 #include "../include/Utils.hpp"
 #include "../include/GsrInfo.hpp"
+#include "../include/GlobalHotkeys.hpp"
 #include <variant>
 #include <limits.h>
 #include <inttypes.h>
 #include <libgen.h>
 #include <iostream>
+#include <mglpp/window/Keyboard.hpp>
 
 #define FORMAT_I32 "%" PRIi32
 #define FORMAT_I64 "%" PRIi64
 #define FORMAT_U32 "%" PRIu32
 
-#define CONFIG_FILE_VERSION 1
-
 namespace gsr {
     bool ConfigHotkey::operator==(const ConfigHotkey &other) const {
-        return keysym == other.keysym && modifiers == other.modifiers;
+        return key == other.key && modifiers == other.modifiers;
     }
 
     bool ConfigHotkey::operator!=(const ConfigHotkey &other) const {
@@ -25,18 +25,25 @@ namespace gsr {
     Config::Config(const SupportedCaptureOptions &capture_options) {
         const std::string default_save_directory = get_videos_dir();
 
+        streaming_config.start_stop_hotkey = {mgl::Keyboard::F8, HOTKEY_MOD_LALT};
         streaming_config.record_options.video_quality = "custom";
         streaming_config.record_options.audio_tracks.push_back("default_output");
         streaming_config.record_options.video_bitrate = 15000;
 
+        record_config.start_stop_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LALT};
+        record_config.pause_unpause_hotkey = {mgl::Keyboard::F7, HOTKEY_MOD_LALT};
         record_config.save_directory = default_save_directory;
         record_config.record_options.audio_tracks.push_back("default_output");
         record_config.record_options.video_bitrate = 45000;
 
+        replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
+        replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
         replay_config.record_options.video_quality = "custom";
         replay_config.save_directory = default_save_directory;
         replay_config.record_options.audio_tracks.push_back("default_output");
         replay_config.record_options.video_bitrate = 45000;
+
+        main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
 
         if(!capture_options.monitors.empty()) {
             streaming_config.record_options.record_area_option = capture_options.monitors.front().name;
@@ -61,6 +68,7 @@ namespace gsr {
             {"main.hotkeys_enable_option", &config.main_config.hotkeys_enable_option},
             {"main.joystick_hotkeys_enable_option", &config.main_config.joystick_hotkeys_enable_option},
             {"main.tint_color", &config.main_config.tint_color},
+            {"main.show_hide_hotkey", &config.main_config.show_hide_hotkey},
 
             {"streaming.record_options.record_area_option", &config.streaming_config.record_options.record_area_option},
             {"streaming.record_options.record_area_width", &config.streaming_config.record_options.record_area_width},
@@ -89,7 +97,7 @@ namespace gsr {
             {"streaming.twitch.key", &config.streaming_config.twitch.stream_key},
             {"streaming.custom.url", &config.streaming_config.custom.url},
             {"streaming.custom.container", &config.streaming_config.custom.container},
-            {"streaming.start_stop_recording_hotkey", &config.streaming_config.start_stop_recording_hotkey},
+            {"streaming.start_stop_hotkey", &config.streaming_config.start_stop_hotkey},
 
             {"record.record_options.record_area_option", &config.record_config.record_options.record_area_option},
             {"record.record_options.record_area_width", &config.record_config.record_options.record_area_width},
@@ -116,8 +124,8 @@ namespace gsr {
             {"record.show_video_saved_notifications", &config.record_config.show_video_saved_notifications},
             {"record.save_directory", &config.record_config.save_directory},
             {"record.container", &config.record_config.container},
-            {"record.start_stop_recording_hotkey", &config.record_config.start_stop_recording_hotkey},
-            {"record.pause_unpause_recording_hotkey", &config.record_config.pause_unpause_recording_hotkey},
+            {"record.start_stop_hotkey", &config.record_config.start_stop_hotkey},
+            {"record.pause_unpause_hotkey", &config.record_config.pause_unpause_hotkey},
 
             {"replay.record_options.record_area_option", &config.replay_config.record_options.record_area_option},
             {"replay.record_options.record_area_width", &config.replay_config.record_options.record_area_width},
@@ -147,8 +155,8 @@ namespace gsr {
             {"replay.save_directory", &config.replay_config.save_directory},
             {"replay.container", &config.replay_config.container},
             {"replay.time", &config.replay_config.replay_time},
-            {"replay.start_stop_recording_hotkey", &config.replay_config.start_stop_recording_hotkey},
-            {"replay.save_recording_hotkey", &config.replay_config.save_recording_hotkey}
+            {"replay.start_stop_hotkey", &config.replay_config.start_stop_hotkey},
+            {"replay.save_hotkey", &config.replay_config.save_hotkey}
         };
     }
 
@@ -229,9 +237,9 @@ namespace gsr {
             } else if(std::holds_alternative<ConfigHotkey*>(it->second)) {
                 std::string value_str(key_value->value);
                 ConfigHotkey *config_hotkey = std::get<ConfigHotkey*>(it->second);
-                if(sscanf(value_str.c_str(), FORMAT_I64 " " FORMAT_U32, &config_hotkey->keysym, &config_hotkey->modifiers) != 2) {
+                if(sscanf(value_str.c_str(), FORMAT_I64 " " FORMAT_U32, &config_hotkey->key, &config_hotkey->modifiers) != 2) {
                     fprintf(stderr, "Warning: Invalid config option value for %.*s\n", (int)key_value->key.size(), key_value->key.data());
-                    config_hotkey->keysym = 0;
+                    config_hotkey->key = 0;
                     config_hotkey->modifiers = 0;
                 }
             } else if(std::holds_alternative<std::vector<std::string>*>(it->second)) {
@@ -242,7 +250,7 @@ namespace gsr {
             return true;
         });
 
-        if(config->main_config.config_file_version != CONFIG_FILE_VERSION) {
+        if(config->main_config.config_file_version != GSR_CONFIG_FILE_VERSION) {
             fprintf(stderr, "Info: the config file is outdated, resetting it\n");
             config = std::nullopt;
         }
@@ -251,7 +259,7 @@ namespace gsr {
     }
 
     void save_config(Config &config) {
-        config.main_config.config_file_version = CONFIG_FILE_VERSION;
+        config.main_config.config_file_version = GSR_CONFIG_FILE_VERSION;
 
         const std::string config_path = get_config_dir() + "/config_ui";
 
@@ -280,7 +288,7 @@ namespace gsr {
                 fprintf(file, "%.*s " FORMAT_I32 "\n", (int)it.first.size(), it.first.data(), *std::get<int32_t*>(it.second));
             } else if(std::holds_alternative<ConfigHotkey*>(it.second)) {
                 const ConfigHotkey *config_hotkey = std::get<ConfigHotkey*>(it.second);
-                    fprintf(file, "%.*s " FORMAT_I64 " " FORMAT_U32 "\n", (int)it.first.size(), it.first.data(), config_hotkey->keysym, config_hotkey->modifiers);
+                    fprintf(file, "%.*s " FORMAT_I64 " " FORMAT_U32 "\n", (int)it.first.size(), it.first.data(), config_hotkey->key, config_hotkey->modifiers);
             } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
                 std::vector<std::string> *array = std::get<std::vector<std::string>*>(it.second);
                 for(const std::string &value : *array) {

@@ -16,8 +16,6 @@ Add support for window selection in capture.
 
 Add option to record the focused monitor. This works on wayland too when using kms capture since we can get cursor position without root and see which monitor (crtc) the cursor is on. Or use create_window_get_center_position.
 
-Make hotkeys configurable.
-
 Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation. Also a button to create a new directory.
 
 Restart replay on system start if monitor resolution changes.
@@ -76,8 +74,6 @@ Run `systemctl status --user gpu-screen-recorder` when starting recording and gi
 
 Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
 
-Test global hotkeys with azerty instead of qwerty.
-
 Dont allow autostart of replay if capture option is window recording (when window recording is added).
 
 Use global shortcuts desktop portal protocol on wayland when available.
@@ -102,11 +98,6 @@ Show warning if another instance of gpu screen recorder is already running when 
 
 Keyboard leds get turned off when stopping gsr-global-hotkeys (for example numlock). The numlock key has to be pressed twice again to make it look correct to match its state.
 
-Implement hotkey changing in global settings by getting mgl key events. During this time gsr-global-hotkey would either need to be paused or add code in the callback handler for the existing hotkeys since they are grabbing hotkeys.
-    This can only be done after gsr-global-hotkeys properly handle different keyboard layouts to make sure mgl keys match gsr-global-hotkey keys.
-
-Re-enable hotkey disable option for flatpak.
-
 Make gsr-ui flatpak systemd work nicely with non-flatpak gsr-ui. Maybe change ExecStart to do flatpak run ... || gsr-ui, but make it run as a shell command first with /bin/sh -c "".
 
 When enabling X11 global hotkey again only grab lalt, not ralt.
@@ -114,7 +105,6 @@ When enabling X11 global hotkey again only grab lalt, not ralt.
 When adding window capture only add it to recording and streaming and do the window selection when recording starts, to make it more ergonomic with hotkeys.
     If hotkey for recording/streaming start is pressed on the button for start is clicked then hide the ui if it's visible and show the window selection option (cursor).
 
-Instead of using x11 in gsr-global-hotkeys do the keysym to keycode mapping in gsr-ui and send that to gsr-global-hotkeys. Also improve gsr-global-hotkeys setup performance
-    by only grabbing keys after the first button press.
-
 Show an error that prime run will be disabled when using desktop portal capture option. This can cause issues as the user may have selected a video codec option that isn't available on their iGPU but is available on the prime-run dGPU.
+
+Is it possible to configure hotkey and the new hotkey to get triggered immediately?

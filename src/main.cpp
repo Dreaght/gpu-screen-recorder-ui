@@ -1,18 +1,14 @@
 #include "../include/GsrInfo.hpp"
 #include "../include/Overlay.hpp"
-#include "../include/GlobalHotkeysLinux.hpp"
-#include "../include/GlobalHotkeysJoystick.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
 
 #include <unistd.h>
 #include <signal.h>
-#include <thread>
 #include <string.h>
 #include <limits.h>
 
-#include <X11/keysym.h>
 #include <mglpp/mglpp.hpp>
 #include <mglpp/system/Clock.hpp>
 
@@ -39,57 +35,6 @@ static void disable_prime_run() {
     unsetenv("__GLX_VENDOR_LIBRARY_NAME");
     unsetenv("__VK_LAYER_NV_optimus");
     unsetenv("DRI_PRIME");
-}
-
-static std::unique_ptr<gsr::GlobalHotkeysLinux> register_linux_hotkeys(gsr::Overlay *overlay, gsr::GlobalHotkeysLinux::GrabType grab_type) {
-    auto global_hotkeys = std::make_unique<gsr::GlobalHotkeysLinux>(grab_type);
-    if(!global_hotkeys->start())
-        fprintf(stderr, "error: failed to start global hotkeys\n");
-
-    global_hotkeys->bind_action("show_hide", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_show();
-    });
-
-    global_hotkeys->bind_action("record", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_record();
-    });
-
-    global_hotkeys->bind_action("pause", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_pause();
-    });
-
-    global_hotkeys->bind_action("stream", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_stream();
-    });
-
-    global_hotkeys->bind_action("replay_start", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->toggle_replay();
-    });
-
-    global_hotkeys->bind_action("replay_save", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->save_replay();
-    });
-
-    return global_hotkeys;
-}
-
-static std::unique_ptr<gsr::GlobalHotkeysJoystick> register_joystick_hotkeys(gsr::Overlay *overlay) {
-    auto global_hotkeys_js = std::make_unique<gsr::GlobalHotkeysJoystick>();
-    if(!global_hotkeys_js->start())
-        fprintf(stderr, "Warning: failed to start joystick hotkeys\n");
-
-    global_hotkeys_js->bind_action("save_replay", [overlay](const std::string &id) {
-        fprintf(stderr, "pressed %s\n", id.c_str());
-        overlay->save_replay();
-    });
-
-    return global_hotkeys_js;
 }
 
 static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
@@ -320,34 +265,6 @@ int main(int argc, char **argv) {
 
     rpc_add_commands(rpc.get(), overlay.get());
 
-    std::unique_ptr<gsr::GlobalHotkeys> global_hotkeys = nullptr;
-    if(overlay->get_config().main_config.hotkeys_enable_option == "enable_hotkeys")
-        global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::ALL);
-    else if(overlay->get_config().main_config.hotkeys_enable_option == "enable_hotkeys_virtual_devices")
-        global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::VIRTUAL);
-
-    overlay->on_keyboard_hotkey_changed = [&](const char *hotkey_option) {
-        global_hotkeys.reset();
-        if(strcmp(hotkey_option, "enable_hotkeys") == 0)
-            global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::ALL);
-        else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
-            global_hotkeys = register_linux_hotkeys(overlay.get(), gsr::GlobalHotkeysLinux::GrabType::VIRTUAL);
-        else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
-            global_hotkeys.reset();
-    };
-
-    std::unique_ptr<gsr::GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
-    if(overlay->get_config().main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
-        global_hotkeys_js = register_joystick_hotkeys(overlay.get());
-
-    overlay->on_joystick_hotkey_changed = [&](const char *hotkey_option) {
-        global_hotkeys_js.reset();
-        if(strcmp(hotkey_option, "enable_hotkeys") == 0)
-            global_hotkeys_js = register_joystick_hotkeys(overlay.get());
-        else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
-            global_hotkeys_js.reset();
-    };
-
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 
     std::string exit_reason;
@@ -358,24 +275,15 @@ int main(int argc, char **argv) {
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
         rpc->poll();
-
-        if(global_hotkeys)
-            global_hotkeys->poll_events();
-
-        if(global_hotkeys_js)
-            global_hotkeys_js->poll_events();
-
-        overlay->handle_events(global_hotkeys.get());
+        overlay->handle_events();
         if(!overlay->draw()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            usleep(100 * 1000); // 100ms
             mgl_ping_display_server();
         }
     }
 
     fprintf(stderr, "Info: shutting down!\n");
     rpc.reset();
-    global_hotkeys.reset();
-    global_hotkeys_js.reset();
     overlay.reset();
     mgl_deinit();
 

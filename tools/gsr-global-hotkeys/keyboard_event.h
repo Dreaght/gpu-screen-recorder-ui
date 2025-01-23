@@ -11,38 +11,24 @@
 
 /* POSIX */
 #include <poll.h>
+#include <pthread.h>
 
 /* LINUX */
 #include <linux/input-event-codes.h>
 
 #define MAX_EVENT_POLLS 32
-
-typedef struct {
-    union {
-        int type;
-        unsigned char data[192];
-    };
-} XEvent;
-
-typedef unsigned long (*XKeycodeToKeysym_FUNC)(void *display, unsigned char keycode, int index);
-typedef int (*XPending_FUNC)(void *display);
-typedef int (*XNextEvent_FUNC)(void *display, XEvent *event_return);
-typedef int (*XRefreshKeyboardMapping_FUNC)(void* event_map);
-
-typedef struct {
-    void *display;
-    XKeycodeToKeysym_FUNC XKeycodeToKeysym;
-    XPending_FUNC XPending;
-    XNextEvent_FUNC XNextEvent;
-    XRefreshKeyboardMapping_FUNC XRefreshKeyboardMapping;
-} x11_context;
+#define MAX_CLOSE_FDS 256
+#define MAX_GLOBAL_HOTKEYS 32
 
 typedef enum {
     KEYBOARD_MODKEY_LALT   = 1 << 0,
-    KEYBOARD_MODKEY_RALT   = 1 << 2,
-    KEYBOARD_MODKEY_SUPER  = 1 << 3,
-    KEYBOARD_MODKEY_CTRL   = 1 << 4,
-    KEYBOARD_MODKEY_SHIFT  = 1 << 5
+    KEYBOARD_MODKEY_RALT   = 1 << 1,
+    KEYBOARD_MODKEY_LSUPER = 1 << 2,
+    KEYBOARD_MODKEY_RSUPER = 1 << 3,
+    KEYBOARD_MODKEY_LCTRL  = 1 << 4,
+    KEYBOARD_MODKEY_RCTRL  = 1 << 5,
+    KEYBOARD_MODKEY_LSHIFT = 1 << 6,
+    KEYBOARD_MODKEY_RSHIFT = 1 << 7
 } keyboard_modkeys;
 
 typedef enum {
@@ -63,38 +49,44 @@ typedef enum {
 } keyboard_grab_type;
 
 typedef struct {
+    uint32_t key;
+    uint32_t modifiers; /* keyboard_modkeys bitmask */
+    char *action;
+} global_hotkey;
+
+typedef struct {
     struct pollfd event_polls[MAX_EVENT_POLLS];      /* Current size is |num_event_polls| */
     event_extra_data event_extra_data[MAX_EVENT_POLLS]; /* Current size is |num_event_polls| */
     int num_event_polls;
 
-    int stdout_event_index;
+    int stdin_event_index;
     int hotplug_event_index;
     int uinput_fd;
-    bool stdout_failed;
+    bool stdin_failed;
     keyboard_grab_type grab_type;
-    x11_context x_context;
+
+    pthread_t close_dev_input_fds_thread;
+    pthread_mutex_t close_dev_input_mutex;
+    int close_fds[MAX_CLOSE_FDS];
+    int num_close_fds;
+    bool running;
+
+    char stdin_command_data[512];
+    int stdin_command_data_size;
+
+    global_hotkey global_hotkeys[MAX_GLOBAL_HOTKEYS];
+    int num_global_hotkeys;
 
     hotplug_event hotplug_ev;
 
-    keyboard_button_state lshift_button_state;
-    keyboard_button_state rshift_button_state;
-    keyboard_button_state lctrl_button_state;
-    keyboard_button_state rctrl_button_state;
-    keyboard_button_state lalt_button_state;
-    keyboard_button_state ralt_button_state;
-    keyboard_button_state lmeta_button_state;
-    keyboard_button_state rmeta_button_state;
+    uint32_t modifier_button_states;
 } keyboard_event;
 
-/* |key| is a KEY_ from linux/input-event-codes.h. |modifiers| is a bitmask of keyboard_modkeys. |press_status| is 0 for released, 1 for pressed and 2 for repeat */
-/* Return true to allow other applications to receive the key input (when using exclusive grab) */
-typedef bool (*key_callback)(uint32_t key, uint32_t modifiers, int press_status, void *userdata);
-
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type, x11_context x_context);
+bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_grab_type grab_type);
 void keyboard_event_deinit(keyboard_event *self);
 
 /* If |timeout_milliseconds| is -1 then wait until an event is received */
-void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds, key_callback callback, void *userdata);
-bool keyboard_event_stdout_has_failed(const keyboard_event *self);
+void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds);
+bool keyboard_event_stdin_has_failed(const keyboard_event *self);
 
 #endif /* KEYBOARD_EVENT_H */

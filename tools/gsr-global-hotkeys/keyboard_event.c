@@ -25,24 +25,6 @@
 
 #define KEY_STATES_SIZE (KEY_MAX/8 + 1)
 
-#define KEYCODE_TO_XKB_KEYCODE(key) ((key) + 8)
-
-#define XK_Shift_L                       0xffe1  /* Left shift */
-#define XK_Shift_R                       0xffe2  /* Right shift */
-#define XK_Control_L                     0xffe3  /* Left control */
-#define XK_Control_R                     0xffe4  /* Right control */
-#define XK_Alt_L                         0xffe9  /* Left alt */
-#define XK_Alt_R                         0xffea  /* Right alt */
-#define XK_Super_L                       0xffeb  /* Left super */
-#define XK_Super_R                       0xffec  /* Right super */
-
-#define XK_z                             0x007a
-#define XK_F7                            0xffc4
-#define XK_F8                            0xffc5
-#define XK_F9                            0xffc6
-#define XK_F10                           0xffc7
-#define XK_F11                           0xffc8
-
 static inline int count_num_bits_set(unsigned char c) {
     int n = 0;
     n += (c & 1);
@@ -135,36 +117,44 @@ static void keyboard_event_process_key_state_change(keyboard_event *self, struct
     }
 }
 
-static uint32_t keycode_to_keysym(keyboard_event *self, uint16_t keycode) {
-    const unsigned long xkb_keycode = KEYCODE_TO_XKB_KEYCODE(keycode);
-    if(self->x_context.display && self->x_context.XKeycodeToKeysym && xkb_keycode <= 255)
-        return self->x_context.XKeycodeToKeysym(self->x_context.display, xkb_keycode, 0);
-    else
-        return 0;
-}
+/* Return true if a global hotkey is assigned to the key combination */
+static bool keyboard_event_on_key_pressed(keyboard_event *self, const struct input_event *event, uint32_t modifiers) {
+    if(event->value != KEYBOARD_BUTTON_PRESSED)
+        return false;
 
-/* TODO: Support more keys when needed */
-static uint32_t keysym_to_keycode(uint32_t keysym) {
-    switch(keysym) {
-        case XK_Control_L:  return KEY_LEFTCTRL;
-        case XK_Shift_L:    return KEY_LEFTSHIFT;
-        case XK_Alt_L:      return KEY_LEFTALT;
-        case XK_Super_L:    return KEY_LEFTMETA;
-        case XK_Control_R:  return KEY_RIGHTCTRL;
-        case XK_Shift_R:    return KEY_RIGHTSHIFT;
-        case XK_Alt_R:      return KEY_RIGHTALT;
-        case XK_Super_R:    return KEY_RIGHTMETA;
-        case XK_z:          return KEY_Z;
-        case XK_F7:         return KEY_F7;
-        case XK_F8:         return KEY_F8;
-        case XK_F9:         return KEY_F9;
-        case XK_F10:        return KEY_F10;
-        case XK_F11:        return KEY_F11;
-        default:            return 0;
+    bool global_hotkey_match = false;
+    for(int i = 0; i < self->num_global_hotkeys; ++i) {
+        if(event->code == self->global_hotkeys[i].key && modifiers == self->global_hotkeys[i].modifiers) {
+            puts(self->global_hotkeys[i].action);
+            fflush(stdout);
+            global_hotkey_match = true;
+        }
     }
+    return global_hotkey_match;
 }
 
-static void keyboard_event_process_input_event_data(keyboard_event *self, event_extra_data *extra_data, int fd, key_callback callback, void *userdata) {
+static inline uint32_t set_bit(uint32_t value, uint32_t bit_flag, bool set) {
+    if(set)
+        return value | bit_flag;
+    else
+        return value & ~bit_flag;
+}
+
+static uint32_t keycode_to_modifier_bit(uint32_t keycode) {
+    switch(keycode) {
+        case KEY_LEFTSHIFT:  return KEYBOARD_MODKEY_LSHIFT;
+        case KEY_RIGHTSHIFT: return KEYBOARD_MODKEY_RSHIFT;
+        case KEY_LEFTCTRL:   return KEYBOARD_MODKEY_LCTRL;
+        case KEY_RIGHTCTRL:  return KEYBOARD_MODKEY_RCTRL;
+        case KEY_LEFTALT:    return KEYBOARD_MODKEY_LALT;
+        case KEY_RIGHTALT:   return KEYBOARD_MODKEY_RALT;
+        case KEY_LEFTMETA:   return KEYBOARD_MODKEY_LSUPER;
+        case KEY_RIGHTMETA:  return KEYBOARD_MODKEY_RSUPER;
+    }
+    return 0;
+}
+
+static void keyboard_event_process_input_event_data(keyboard_event *self, event_extra_data *extra_data, int fd) {
     struct input_event event;
     if(read(fd, &event, sizeof(event)) != sizeof(event)) {
         fprintf(stderr, "Error: failed to read input event data\n");
@@ -183,63 +173,12 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
 
     if(event.type == EV_KEY) {
         keyboard_event_process_key_state_change(self, event, extra_data, fd);
-
-        /* We do this conversion from keycode to keysym back to keycode to support different keyboard layouts in the X server (which Wayland also uses to support Xwayland) */
-        uint32_t keycode = event.code;
-        const uint32_t keysym = keycode_to_keysym(self, event.code);
-        if(keysym)
-            keycode = keysym_to_keycode(keysym);
-
-        switch(keycode) {
-            case KEY_LEFTSHIFT:
-                self->lshift_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_RIGHTSHIFT:
-                self->rshift_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_LEFTCTRL:
-                self->lctrl_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_RIGHTCTRL:
-                self->rctrl_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_LEFTALT:
-                self->lalt_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_RIGHTALT:
-                self->ralt_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_LEFTMETA:
-                self->lmeta_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            case KEY_RIGHTMETA:
-                self->rmeta_button_state = event.value >= 1 ? KEYBOARD_BUTTON_PRESSED : KEYBOARD_BUTTON_RELEASED;
-                break;
-            default: {
-                const bool shift_pressed = self->lshift_button_state == KEYBOARD_BUTTON_PRESSED || self->rshift_button_state == KEYBOARD_BUTTON_PRESSED;
-                const bool ctrl_pressed = self->lctrl_button_state == KEYBOARD_BUTTON_PRESSED || self->rctrl_button_state == KEYBOARD_BUTTON_PRESSED;
-                const bool lalt_pressed = self->lalt_button_state == KEYBOARD_BUTTON_PRESSED;
-                const bool ralt_pressed = self->ralt_button_state == KEYBOARD_BUTTON_PRESSED;
-                const bool meta_pressed = self->lmeta_button_state == KEYBOARD_BUTTON_PRESSED || self->rmeta_button_state == KEYBOARD_BUTTON_PRESSED;
-                //fprintf(stderr, "pressed key: %d, state: %d, shift: %s, ctrl: %s, alt: %s, meta: %s\n", keycode, event.value,
-                //   shift_pressed ? "yes" : "no", ctrl_pressed ? "yes" : "no", alt_pressed ? "yes" : "no", meta_pressed ? "yes" : "no");
-                uint32_t modifiers = 0;
-                if(shift_pressed)
-                    modifiers |= KEYBOARD_MODKEY_SHIFT;
-                if(ctrl_pressed)
-                    modifiers |= KEYBOARD_MODKEY_CTRL;
-                if(lalt_pressed)
-                    modifiers |= KEYBOARD_MODKEY_LALT;
-                if(ralt_pressed)
-                    modifiers |= KEYBOARD_MODKEY_RALT;
-                if(meta_pressed)
-                    modifiers |= KEYBOARD_MODKEY_SUPER;
-
-                if(!callback(keycode, modifiers, event.value, userdata))
-                    return;
-
-                break;
-            }
+        const uint32_t modifier_bit = keycode_to_modifier_bit(event.code);
+        if(modifier_bit == 0) {
+            if(keyboard_event_on_key_pressed(self, &event, self->modifier_button_states))
+                return;
+        } else {
+            self->modifier_button_states = set_bit(self->modifier_button_states, modifier_bit, event.value >= 1);
         }
     }
 
@@ -248,6 +187,36 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         if(write(self->uinput_fd, &event, sizeof(event)) != sizeof(event))
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
     }
+}
+
+/* Retarded linux takes very long time to close /dev/input/eventN files, even though they are virtual and opened read-only */
+static void* keyboard_event_close_fds_callback(void *userdata) {
+    keyboard_event *self = userdata;
+    while(self->running) {
+        pthread_mutex_lock(&self->close_dev_input_mutex);
+        for(int i = 0; i < self->num_close_fds; ++i) {
+            close(self->close_fds[i]);
+        }
+        self->num_close_fds = 0;
+        pthread_mutex_unlock(&self->close_dev_input_mutex);
+
+        usleep(100 * 1000); /* 100 milliseconds */
+    }
+    return NULL;
+}
+
+static bool keyboard_event_try_add_close_fd(keyboard_event *self, int fd) {
+    bool success = false;
+    pthread_mutex_lock(&self->close_dev_input_mutex);
+    if(self->num_close_fds < MAX_CLOSE_FDS) {
+        self->close_fds[self->num_close_fds] = fd;
+        ++self->num_close_fds;
+        success = true;
+    } else {
+        success = false;
+    }
+    pthread_mutex_unlock(&self->close_dev_input_mutex);
+    return success;
 }
 
 /* Returns -1 if invalid format. Expected |dev_input_filepath| to be in format /dev/input/eventN */
@@ -357,7 +326,10 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         }
     }
 
-    close(fd);
+    if(!keyboard_event_try_add_close_fd(self, fd)) {
+        fprintf(stderr, "Error: failed to add immediately, closing now\n");
+        close(fd);
+    }
     return false;
 }
 
@@ -459,12 +431,19 @@ static int setup_virtual_keyboard_input(const char *name) {
     return fd;
 }
 
-bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool exclusive_grab, keyboard_grab_type grab_type, x11_context x_context) {
+bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_grab_type grab_type) {
     memset(self, 0, sizeof(*self));
-    self->stdout_event_index = -1;
+    self->stdin_event_index = -1;
     self->hotplug_event_index = -1;
     self->grab_type = grab_type;
-    self->x_context = x_context;
+    self->running = true;
+
+    pthread_mutex_init(&self->close_dev_input_mutex, NULL);
+    if(pthread_create(&self->close_dev_input_fds_thread, NULL, keyboard_event_close_fds_callback, self) != 0) {
+        self->close_dev_input_fds_thread = 0;
+        fprintf(stderr, "Error: failed to create close fds thread\n");
+        return false;
+    }
 
     if(exclusive_grab) {
         self->uinput_fd = setup_virtual_keyboard_input(GSR_UI_VIRTUAL_KEYBOARD_NAME);
@@ -472,23 +451,21 @@ bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool excl
             fprintf(stderr, "Warning: failed to setup virtual keyboard input for exclusive grab. The focused application will receive keys used for global hotkeys\n");
     }
 
-    if(poll_stdout_error) {
-        self->event_polls[self->num_event_polls] = (struct pollfd) {
-            .fd = STDOUT_FILENO,
-            .events = 0,
-            .revents = 0
-        };
+    self->event_polls[self->num_event_polls] = (struct pollfd) {
+        .fd = STDIN_FILENO,
+        .events = POLLIN,
+        .revents = 0
+    };
 
-        self->event_extra_data[self->num_event_polls] = (event_extra_data) {
-            .dev_input_id = -1,
-            .grabbed = false,
-            .key_states = NULL,
-            .num_keys_pressed = 0
-        };
+    self->event_extra_data[self->num_event_polls] = (event_extra_data) {
+        .dev_input_id = -1,
+        .grabbed = false,
+        .key_states = NULL,
+        .num_keys_pressed = 0
+    };
 
-        self->stdout_event_index = self->num_event_polls;
-        ++self->num_event_polls;
-    }
+    self->stdin_event_index = self->num_event_polls;
+    ++self->num_event_polls;
 
     if(hotplug_event_init(&self->hotplug_ev)) {
         self->event_polls[self->num_event_polls] = (struct pollfd) {
@@ -522,6 +499,13 @@ bool keyboard_event_init(keyboard_event *self, bool poll_stdout_error, bool excl
 }
 
 void keyboard_event_deinit(keyboard_event *self) {
+    self->running = false;
+
+    for(int i = 0; i < self->num_global_hotkeys; ++i) {
+        free(self->global_hotkeys[i].action);
+    }
+    self->num_global_hotkeys = 0;
+
     if(self->uinput_fd > 0) {
         close(self->uinput_fd);
         self->uinput_fd = -1;
@@ -535,40 +519,184 @@ void keyboard_event_deinit(keyboard_event *self) {
     self->num_event_polls = 0;
 
     hotplug_event_deinit(&self->hotplug_ev);
+
+    if(self->close_dev_input_fds_thread > 0) {
+        pthread_join(self->close_dev_input_fds_thread, NULL);
+        self->close_dev_input_fds_thread = 0;
+    }
+
+    pthread_mutex_destroy(&self->close_dev_input_mutex);
 }
 
 static void on_device_added_callback(const char *devname, void *userdata) {
     keyboard_event *keyboard_ev = userdata;
-    char dev_input_filepath[1024];
+    char dev_input_filepath[256];
     snprintf(dev_input_filepath, sizeof(dev_input_filepath), "/dev/%s", devname);
     keyboard_event_try_add_device_if_keyboard(keyboard_ev, dev_input_filepath);
 }
 
-#define MappingNotify 34
+/* Returns -1 on error */
+static int parse_u8(const char *str, int size) {
+    if(size <= 0)
+        return -1;
 
-static void keyboard_event_poll_x11_events(keyboard_event *self) {
-    if(!self->x_context.display || !self->x_context.XPending || !self->x_context.XNextEvent || !self->x_context.XRefreshKeyboardMapping)
-        return;
+    int result = 0;
+    for(int i = 0; i < size; ++i) {
+        char c = str[i];
+        if(c >= '0' && c <= '9') {
+            result = result * 10 + (c - '0');
+            if(result > 255)
+                return -1;
+        } else {
+            return -1;
+        }
+    }
+    return result;
+}
 
-    XEvent xev;
-    while(self->x_context.XPending(self->x_context.display)) {
-        xev.type = 0;
-        self->x_context.XNextEvent(self->x_context.display, &xev);
-        if(xev.type == MappingNotify)
-            self->x_context.XRefreshKeyboardMapping(xev.data);
+static bool keyboard_event_parse_bind_keys(const char *str, int size, uint8_t *key, uint32_t *modifiers) {
+    *key = 0;
+    *modifiers = 0;
+
+    const char *number_start = str;
+    const char *end = str + size;
+    for(;;) {
+        const char *next = strchr(number_start, '+');
+        if(!next)
+            next = end;
+
+        const int number_len = next - number_start;
+        const int number = parse_u8(number_start, number_len);
+        if(number == -1) {
+            fprintf(stderr, "Error: bind command keys \"%s\" is in invalid format\n", str);
+            return false;
+        }
+
+        const uint32_t modifier_bit = keycode_to_modifier_bit(number);
+        if(modifier_bit == 0) {
+            if(*key != 0) {
+                fprintf(stderr, "Error: can't bind hotkey with multiple non-modifier keys\n");
+                return false;
+            }
+            *key = number;
+        } else {
+            *modifiers = set_bit(*modifiers, modifier_bit, true);
+        }
+
+        number_start = next + 1;
+        if(next == end)
+            break;
+    }
+
+    if(key == 0) {
+        fprintf(stderr, "Error: can't bind hotkey without a non-modifier key\n");
+        return false;
+    }
+
+    if(modifiers == 0) {
+        fprintf(stderr, "Error: can't bind hotkey without a modifier\n");
+        return false;
+    }
+
+    return true;
+}
+
+/* |command| is null-terminated */
+static void keyboard_event_parse_stdin_command(keyboard_event *self, const char *command, int command_size) {
+    if(strncmp(command, "bind ", 5) == 0) {
+        /* Example: |bind show_hide 20+40| */
+        if(self->num_global_hotkeys >= MAX_GLOBAL_HOTKEYS) {
+            fprintf(stderr, "Error: can't add another hotkey. The maximum number of hotkeys (%d) has been reached\n", MAX_GLOBAL_HOTKEYS);
+            return;
+        }
+
+        const char *action_name_end = strchr(command + 5, ' ');
+        if(!action_name_end) {
+            fprintf(stderr, "Error: command \"%s\" is in invalid format\n", command);
+            return;
+        }
+
+        const char *action_name = command + 5;
+        const int action_name_size = action_name_end - action_name;
+
+        uint8_t key = 0;
+        uint32_t modifiers = 0;
+        const char *number_start = action_name_end + 1;
+        const char *end = command + command_size;
+        if(!keyboard_event_parse_bind_keys(number_start, end - number_start, &key, &modifiers))
+            return;
+
+        char *action = strndup(action_name, action_name_size);
+        if(!action) {
+            fprintf(stderr, "Error: failed to duplicate %.*s\n", action_name_size, action_name);
+            return;
+        }
+
+        self->global_hotkeys[self->num_global_hotkeys] = (global_hotkey) {
+            .action = action,
+            .key = key,
+            .modifiers = modifiers
+        };
+        ++self->num_global_hotkeys;
+        fprintf(stderr, "Info: bound hotkey: %s\n", action);
+    } else if(strncmp(command, "unbind_all", 10) == 0) {
+        for(int i = 0; i < self->num_global_hotkeys; ++i) {
+            free(self->global_hotkeys[i].action);
+        }
+        self->num_global_hotkeys = 0;
+        fprintf(stderr, "Info: unbound all hotkeys\n");
+    } else {
+        fprintf(stderr, "Warning: got invalid command: \"%s\", expected command to start with either \"bind\" or \"unbind_all\"\n", command);
     }
 }
 
-void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds, key_callback callback, void *userdata) {
-    /* TODO: Add the x11 connection to the below poll? */
-    keyboard_event_poll_x11_events(self);
+static void keyboard_event_process_stdin_command_data(keyboard_event *self, int fd) {
+    const int num_bytes_to_read = sizeof(self->stdin_command_data) - self->stdin_command_data_size;
+    if(num_bytes_to_read == 0) {
+        fprintf(stderr, "Error: failed to read data from stdin, buffer is full. Clearing buffer\n");
+        self->stdin_command_data_size = 0;
+        return;
+    }
 
+    const ssize_t bytes_read = read(fd, self->stdin_command_data + self->stdin_command_data_size, num_bytes_to_read);
+    if(bytes_read <= 0)
+        return;
+
+    const char *command_start = self->stdin_command_data;
+    const char *search = self->stdin_command_data + self->stdin_command_data_size;
+    const char *end = search + bytes_read;
+    self->stdin_command_data_size += bytes_read;
+
+    for(;;) {
+        char *next = memchr(search, '\n', end - search);
+        if(!next)
+            break;
+
+        *next = '\0';
+        keyboard_event_parse_stdin_command(self, command_start, next - command_start);
+        search = next + 1;
+        command_start = search;
+        if(next == end)
+            break;
+    }
+
+    const int bytes_parsed = command_start - self->stdin_command_data;
+    if(bytes_parsed > 0) {
+        self->stdin_command_data_size -= bytes_parsed;
+        memmove(self->stdin_command_data, command_start, self->stdin_command_data_size);
+    }
+}
+
+void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds) {
     if(poll(self->event_polls, self->num_event_polls, timeout_milliseconds) <= 0)
         return;
 
+    if(self->stdin_failed)
+        return;
+
     for(int i = 0; i < self->num_event_polls; ++i) {
-        if(i == self->stdout_event_index && (self->event_polls[i].revents & (POLLHUP|POLLERR)))
-            self->stdout_failed = true;
+        if(i == self->stdin_event_index && (self->event_polls[i].revents & (POLLHUP|POLLERR)))
+            self->stdin_failed = true;
 
         if(self->event_polls[i].revents & POLLHUP) { /* TODO: What if this is the hotplug fd? */
             keyboard_event_remove_event(self, i);
@@ -582,14 +710,14 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds, 
         if(i == self->hotplug_event_index) {
             /* Device is added to end of |event_polls| so it's ok to add while iterating it via index */
             hotplug_event_process_event_data(&self->hotplug_ev, self->event_polls[i].fd, on_device_added_callback, self);
-        } else if(i == self->stdout_event_index) {
-            /* Do nothing, this shouldn't happen anyways since we dont poll for input */
+        } else if(i == self->stdin_event_index) {
+            keyboard_event_process_stdin_command_data(self, self->event_polls[i].fd);
         } else {
-            keyboard_event_process_input_event_data(self, &self->event_extra_data[i], self->event_polls[i].fd, callback, userdata);
+            keyboard_event_process_input_event_data(self, &self->event_extra_data[i], self->event_polls[i].fd);
         }
     }
 }
 
-bool keyboard_event_stdout_has_failed(const keyboard_event *self) {
-    return self->stdout_failed;
+bool keyboard_event_stdin_has_failed(const keyboard_event *self) {
+    return self->stdin_failed;
 }

@@ -56,18 +56,7 @@ If you want to donate you can donate via bitcoin or monero.
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
 * Opening the UI when a game is fullscreened can mess up the game window a bit on Hyprland. I believe this is an issue with Hyprland.
-* Global hotkeys work incorrectly with different keyboard layouts in the flatpak version when using wayland (keys are not in their physical location). This seems to be a flatpak limitation.
 
 # FAQ
 ## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
-If you have previously used the flatpak version of GPU Screen Recorder with the new UI then non-flatpak version of the systemd service will conflict with that.
-Run these commands to first remove the flatpak version of the systemd service:
-```
-systemctl stop --user gpu-screen-recorder-ui
-rm ~/.local/share/systemd/user/gpu-screen-recorder-ui.service
-systemctl --user daemon-reload
-```
-and then start and enable the non-flatpak systemd service:
-```
-systemctl enable --now --user gpu-screen-recorder-ui`
-```
+If you have previously used the flatpak version of GPU Screen Recorder with the new UI then non-flatpak version of the systemd service will conflict with that. Run `gsr-ui` to fix that.

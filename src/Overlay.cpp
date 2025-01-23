@@ -336,6 +336,79 @@ namespace gsr {
         return true;
     }
 
+    static Hotkey config_hotkey_to_hotkey(ConfigHotkey config_hotkey) {
+        return {
+            (uint32_t)mgl::Keyboard::key_to_x11_keysym((mgl::Keyboard::Key)config_hotkey.key),
+            config_hotkey.modifiers
+        };
+    }
+
+    static void bind_linux_hotkeys(GlobalHotkeysLinux *global_hotkeys, Overlay *overlay) {
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().main_config.show_hide_hotkey),
+            "show_hide", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_show();
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().record_config.start_stop_hotkey),
+            "record", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_record();
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().record_config.pause_unpause_hotkey),
+            "pause", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_pause();
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().streaming_config.start_stop_hotkey),
+            "stream", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_stream();
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().replay_config.start_stop_hotkey),
+            "replay_start", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_replay();
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().replay_config.save_hotkey),
+            "replay_save", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->save_replay();
+            });
+    }
+
+    static std::unique_ptr<GlobalHotkeysLinux> register_linux_hotkeys(Overlay *overlay, GlobalHotkeysLinux::GrabType grab_type) {
+        auto global_hotkeys = std::make_unique<GlobalHotkeysLinux>(grab_type);
+        if(!global_hotkeys->start())
+            fprintf(stderr, "error: failed to start global hotkeys\n");
+
+        bind_linux_hotkeys(global_hotkeys.get(), overlay);
+        return global_hotkeys;
+    }
+
+    static std::unique_ptr<GlobalHotkeysJoystick> register_joystick_hotkeys(Overlay *overlay) {
+        auto global_hotkeys_js = std::make_unique<GlobalHotkeysJoystick>();
+        if(!global_hotkeys_js->start())
+            fprintf(stderr, "Warning: failed to start joystick hotkeys\n");
+
+        global_hotkeys_js->bind_action("save_replay", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->save_replay();
+        });
+
+        return global_hotkeys_js;
+    }
+
     Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
         gsr_info(std::move(gsr_info)),
@@ -366,6 +439,20 @@ namespace gsr {
 
         if(config.replay_config.turn_on_replay_automatically_mode == "turn_on_at_system_startup")
             on_press_start_replay(true);
+
+        if(config.main_config.hotkeys_enable_option == "enable_hotkeys")
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
+        else if(config.main_config.hotkeys_enable_option == "enable_hotkeys_virtual_devices")
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+
+        if(config.main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
+            global_hotkeys_js = register_joystick_hotkeys(this);
+
+        x11_mapping_display = XOpenDisplay(nullptr);
+        if(x11_mapping_display)
+            XKeysymToKeycode(x11_mapping_display, XK_F1); // If we dont call we will never get a MappingNotify
+        else
+            fprintf(stderr, "Warning: XOpenDisplay failed to mapping notify\n");
     }
 
     Overlay::~Overlay() {
@@ -393,6 +480,9 @@ namespace gsr {
 
         close_gpu_screen_recorder_output();
         deinit_color_theme();
+
+        if(x11_mapping_display)
+            XCloseDisplay(x11_mapping_display);
     }
 
     void Overlay::xi_setup() {
@@ -535,7 +625,32 @@ namespace gsr {
         }
     }
 
-    void Overlay::handle_events(gsr::GlobalHotkeys *global_hotkeys) {
+    void Overlay::handle_keyboard_mapping_event() {
+        if(!x11_mapping_display)
+            return;
+
+        bool mapping_updated = false;
+        while(XPending(x11_mapping_display)) {
+            XNextEvent(x11_mapping_display, &x11_mapping_xev);
+            if(x11_mapping_xev.type == MappingNotify) {
+                XRefreshKeyboardMapping(&x11_mapping_xev.xmapping);
+                mapping_updated = true;
+            }
+        }
+
+        if(mapping_updated)
+            rebind_all_keyboard_hotkeys();
+    }
+
+    void Overlay::handle_events() {
+        if(global_hotkeys)
+            global_hotkeys->poll_events();
+
+        if(global_hotkeys_js)
+            global_hotkeys_js->poll_events();
+
+        handle_keyboard_mapping_event();
+
         if(!visible || !window)
             return;
 
@@ -742,29 +857,30 @@ namespace gsr {
         const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
 
         const Monitor *focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
-        if(is_wlroots) {
-            window_pos = focused_monitor->position;
-            window_size = focused_monitor->size;
-        } else {
-            window_pos = {0, 0};
-            window_size = {32, 32};
-        }
 
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
-        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window;
+        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window || is_wlroots;
+
+        if(prevent_game_minimizing) {
+            window_pos = focused_monitor->position;
+            window_size = focused_monitor->size;
+        } else {
+            window_pos = {0, 0};
+            window_size = focused_monitor->size / 2;
+        }
 
         mgl::Window::CreateParams window_create_params;
         window_create_params.size = window_size;
-        if(is_wlroots || prevent_game_minimizing) {
+        if(prevent_game_minimizing) {
             window_create_params.min_size = window_size;
             window_create_params.max_size = window_size;
         }
-        window_create_params.position = window_pos;
+        window_create_params.position = focused_monitor->position + focused_monitor->size / 2 - window_size / 2;
         window_create_params.hidden = prevent_game_minimizing;
         window_create_params.override_redirect = prevent_game_minimizing;
-        window_create_params.background_color = bg_color;
+        window_create_params.background_color = mgl::Color(0, 0, 0, 0);
         window_create_params.support_alpha = true;
         window_create_params.hide_decorations = true;
         // MGL_WINDOW_TYPE_DIALOG is needed for kde plasma wayland in some cases, otherwise the window will pop up on another activity
@@ -786,6 +902,7 @@ namespace gsr {
         data = 1;
         XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
+        const auto original_window_size = window_size;
         window_pos = focused_monitor->position;
         window_size = focused_monitor->size;
         if(!init_theme(resources_path)) {
@@ -795,11 +912,11 @@ namespace gsr {
         }
         get_theme().set_window_size(window_size);
 
-        if(is_wlroots || prevent_game_minimizing) {
+        if(prevent_game_minimizing) {
             window->set_size(window_size);
             window->set_size_limits(window_size, window_size);
-            window->set_position(window_pos);
         }
+        window->set_position(focused_monitor->position + focused_monitor->size / 2 - original_window_size / 2);
 
         mgl_window *win = window->internal_window();
         win->cursor_position.x = cursor_position.x - window_pos.x;
@@ -927,7 +1044,8 @@ namespace gsr {
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().settings_small_texture);
             button->on_click = [&]() {
-                auto settings_page = std::make_unique<GlobalSettingsPage>(&gsr_info, config, &page_stack);
+                auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
+
                 settings_page->on_startup_changed = [&](bool enable, int exit_status) {
                     if(exit_status == 0)
                         return;
@@ -949,11 +1067,21 @@ namespace gsr {
                 };
 
                 settings_page->on_keyboard_hotkey_changed = [this](const char *hotkey_option) {
-                    on_keyboard_hotkey_changed(hotkey_option);
+                    global_hotkeys.reset();
+                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
+                    else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
+                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+                        global_hotkeys.reset();
                 };
 
                 settings_page->on_joystick_hotkey_changed = [this](const char *hotkey_option) {
-                    on_joystick_hotkey_changed(hotkey_option);
+                    global_hotkeys_js.reset();
+                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+                        global_hotkeys_js = register_joystick_hotkeys(this);
+                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+                        global_hotkeys_js.reset();
                 };
 
                 page_stack.push(std::move(settings_page));
@@ -990,7 +1118,8 @@ namespace gsr {
 
         // The focused application can be an xwayland application but the cursor can hover over a wayland application.
         // This is even the case when hovering over the titlebar of the xwayland application.
-        if(prevent_game_minimizing)
+        const bool fake_cursor = is_wlroots ? x11_cursor_window != None : prevent_game_minimizing;
+        if(fake_cursor)
             xi_setup();
 
         //window->set_fullscreen(true);
@@ -1047,6 +1176,8 @@ namespace gsr {
         if(paused)
             update_ui_recording_paused();
 
+        // Wayland compositors have retarded fullscreen animations that we cant disable in a proper way
+        // without messing up window position.
         show_overlay_timeout_seconds = prevent_game_minimizing ? 0.0 : 0.15;
         show_overlay_clock.restart();
         draw();
@@ -1231,6 +1362,18 @@ namespace gsr {
 
     const Config& Overlay::get_config() const {
         return config;
+    }
+
+    void Overlay::unbind_all_keyboard_hotkeys() {
+        if(global_hotkeys)
+            global_hotkeys->unbind_all_keys();
+    }
+
+    void Overlay::rebind_all_keyboard_hotkeys() {
+        unbind_all_keyboard_hotkeys();
+        // TODO: Check if type is GlobalHotkeysLinux
+        if(global_hotkeys)
+            bind_linux_hotkeys(static_cast<GlobalHotkeysLinux*>(global_hotkeys.get()), this);
     }
 
     void Overlay::update_notification_process_status() {

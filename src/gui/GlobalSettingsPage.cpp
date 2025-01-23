@@ -1,5 +1,7 @@
 #include "../../include/gui/GlobalSettingsPage.hpp"
 
+#include "../../include/Overlay.hpp"
+#include "../../include/GlobalHotkeys.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/Process.hpp"
 #include "../../include/gui/GsrPage.hpp"
@@ -10,6 +12,16 @@
 #include "../../include/gui/Label.hpp"
 #include "../../include/gui/RadioButton.hpp"
 #include "../../include/gui/LineSeparator.hpp"
+#include "../../include/gui/CustomRendererWidget.hpp"
+
+#include <assert.h>
+#include <X11/Xlib.h>
+extern "C" {
+#include <mgl/mgl.h>
+}
+#include <mglpp/window/Window.hpp>
+#include <mglpp/graphics/Rectangle.hpp>
+#include <mglpp/graphics/Text.hpp>
 
 #ifndef GSR_UI_VERSION
 #define GSR_UI_VERSION "unknown"
@@ -40,8 +52,64 @@ namespace gsr {
         return "unknown";
     }
 
-    GlobalSettingsPage::GlobalSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
+    static uint32_t mgl_modifier_to_hotkey_modifier(mgl::Keyboard::Key modifier_key) {
+        switch(modifier_key) {
+            case mgl::Keyboard::LControl:  return HOTKEY_MOD_LCTRL;
+            case mgl::Keyboard::LShift:    return HOTKEY_MOD_LSHIFT;
+            case mgl::Keyboard::LAlt:      return HOTKEY_MOD_LALT;
+            case mgl::Keyboard::LSystem:   return HOTKEY_MOD_LSUPER;
+            case mgl::Keyboard::RControl:  return HOTKEY_MOD_RCTRL;
+            case mgl::Keyboard::RShift:    return HOTKEY_MOD_RSHIFT;
+            case mgl::Keyboard::RAlt:      return HOTKEY_MOD_RALT;
+            case mgl::Keyboard::RSystem:   return HOTKEY_MOD_RSUPER;
+            default:                       return 0;
+        }
+        return 0;
+    }
+
+    static std::vector<mgl::Keyboard::Key> hotkey_modifiers_to_mgl_keys(uint32_t modifiers) {
+        std::vector<mgl::Keyboard::Key> result;
+        if(modifiers & HOTKEY_MOD_LCTRL)
+            result.push_back(mgl::Keyboard::LControl);
+        if(modifiers & HOTKEY_MOD_LSHIFT)
+            result.push_back(mgl::Keyboard::LShift);
+        if(modifiers & HOTKEY_MOD_LALT)
+            result.push_back(mgl::Keyboard::LAlt);
+        if(modifiers & HOTKEY_MOD_LSUPER)
+            result.push_back(mgl::Keyboard::LSystem);
+        if(modifiers & HOTKEY_MOD_RCTRL)
+            result.push_back(mgl::Keyboard::RControl);
+        if(modifiers & HOTKEY_MOD_RSHIFT)
+            result.push_back(mgl::Keyboard::RShift);
+        if(modifiers & HOTKEY_MOD_RALT)
+            result.push_back(mgl::Keyboard::RAlt);
+        if(modifiers & HOTKEY_MOD_RSUPER)
+            result.push_back(mgl::Keyboard::RSystem);
+        return result;
+    }
+
+    static std::string config_hotkey_to_string(ConfigHotkey config_hotkey) {
+        std::string result;
+
+        const std::vector<mgl::Keyboard::Key> modifier_keys = hotkey_modifiers_to_mgl_keys(config_hotkey.modifiers);
+        for(const mgl::Keyboard::Key modifier_key : modifier_keys) {
+            if(!result.empty())
+                result += " + ";
+            result += mgl::Keyboard::key_to_string(modifier_key);
+        }
+
+        if(config_hotkey.key != 0) {
+            if(!result.empty())
+                result += " + ";
+            result += mgl::Keyboard::key_to_string((mgl::Keyboard::Key)config_hotkey.key);
+        }
+
+        return result;
+    }
+
+    GlobalSettingsPage::GlobalSettingsPage(Overlay *overlay, const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
+        overlay(overlay),
         config(config),
         gsr_info(gsr_info),
         page_stack(page_stack)
@@ -57,6 +125,45 @@ namespace gsr {
 
         add_widgets();
         load();
+
+        auto hotkey_overlay = std::make_unique<CustomRendererWidget>(get_size());
+        hotkey_overlay->draw_handler = [this](mgl::Window &window, mgl::vec2f, mgl::vec2f) {
+            Button *configure_hotkey_button = configure_hotkey_get_button_by_active_type();
+            if(!configure_hotkey_button)
+                return;
+
+            mgl::Text title_text("Press a key combination to use for the hotkey \"Start/stop recording\":", get_theme().title_font);
+            mgl::Text hotkey_text(configure_hotkey_button->get_text(), get_theme().top_bar_font);
+            mgl::Text description_text("The hotkey has to contain one or more of these keys: Alt, Ctrl, Shift and Super. Press Esc to cancel.", get_theme().body_font);
+            const float text_max_width = std::max(title_text.get_bounds().size.x, std::max(hotkey_text.get_bounds().size.x, description_text.get_bounds().size.x));
+
+            const float padding_horizontal = int(get_theme().window_height * 0.01f);
+            const float padding_vertical = int(get_theme().window_height * 0.01f);
+
+            const mgl::vec2f bg_size = mgl::vec2f(text_max_width + padding_horizontal*2.0f, get_theme().window_height * 0.1f).floor();
+            mgl::Rectangle bg_rect(mgl::vec2f(get_theme().window_width*0.5f - bg_size.x*0.5f, get_theme().window_height*0.5f - bg_size.y*0.5f).floor(), bg_size);
+            bg_rect.set_color(get_color_theme().page_bg_color);
+            window.draw(bg_rect);
+
+            const mgl::vec2f tint_size = mgl::vec2f(bg_size.x, 0.004f * get_theme().window_height).floor();
+            mgl::Rectangle tint_rect(bg_rect.get_position() - mgl::vec2f(0.0f, tint_size.y), tint_size);
+            tint_rect.set_color(get_color_theme().tint_color);
+            window.draw(tint_rect);
+
+            title_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - title_text.get_bounds().size.x*0.5f, padding_vertical)).floor());
+            window.draw(title_text);
+
+            //const float description_bottom = description_text.get_position().y + description_text.get_bounds().size.y;
+            //const float remaining_height = (bg_rect.get_position().y + bg_rect.get_size().y) - description_bottom;
+            hotkey_text.set_position(mgl::vec2f(bg_rect.get_position() + bg_rect.get_size()*0.5f - hotkey_text.get_bounds().size*0.5f).floor());
+            window.draw(hotkey_text);
+
+            description_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - description_text.get_bounds().size.x*0.5f, bg_rect.get_size().y - description_text.get_bounds().size.y - padding_vertical)).floor());
+            window.draw(description_text);
+        };
+        hotkey_overlay->set_visible(false);
+        hotkey_overlay_ptr = hotkey_overlay.get();
+        add_widget(std::move(hotkey_overlay));
     }
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_appearance_subsection(ScrollablePage *parent_page) {
@@ -134,6 +241,117 @@ namespace gsr {
         return enable_hotkeys_radio_button;
     }
 
+    std::unique_ptr<List> GlobalSettingsPage::create_show_hide_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Show/hide UI:", get_color_theme().text_color));
+        auto show_hide_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        show_hide_button_ptr = show_hide_button.get();
+        list->add_widget(std::move(show_hide_button));
+
+        show_hide_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::SHOW_HIDE);
+        };
+
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_replay_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Turn replay on/off:", get_color_theme().text_color));
+        auto turn_replay_on_off_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        turn_replay_on_off_button_ptr = turn_replay_on_off_button.get();
+        list->add_widget(std::move(turn_replay_on_off_button));
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Save replay:", get_color_theme().text_color));
+        auto save_replay_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        save_replay_button_ptr = save_replay_button.get();
+        list->add_widget(std::move(save_replay_button));
+
+        turn_replay_on_off_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::REPLAY_START_STOP);
+        };
+
+        save_replay_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_record_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Start/stop recording:", get_color_theme().text_color));
+        auto start_stop_recording_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        start_stop_recording_button_ptr = start_stop_recording_button.get();
+        list->add_widget(std::move(start_stop_recording_button));
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Pause/unpause recording:", get_color_theme().text_color));
+        auto pause_unpause_recording_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        pause_unpause_recording_button_ptr = pause_unpause_recording_button.get();
+        list->add_widget(std::move(pause_unpause_recording_button));
+
+        start_stop_recording_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::RECORD_START_STOP);
+        };
+
+        pause_unpause_recording_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_stream_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Start/stop streaming:", get_color_theme().text_color));
+        auto start_stop_streaming_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        start_stop_streaming_button_ptr = start_stop_streaming_button.get();
+        list->add_widget(std::move(start_stop_streaming_button));
+
+        start_stop_streaming_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::STREAM_START_STOP);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_hotkey_control_buttons() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        // auto clear_hotkeys_button = std::make_unique<Button>(&get_theme().body_font, "Clear hotkeys", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        // clear_hotkeys_button->on_click = [this] {
+        //     config.streaming_config.start_stop_hotkey = {mgl::Keyboard::Unknown, 0};
+        //     config.record_config.start_stop_hotkey = {mgl::Keyboard::Unknown, 0};
+        //     config.record_config.pause_unpause_hotkey = {mgl::Keyboard::Unknown, 0};
+        //     config.replay_config.start_stop_hotkey = {mgl::Keyboard::Unknown, 0};
+        //     config.replay_config.save_hotkey = {mgl::Keyboard::Unknown, 0};
+        //     config.main_config.show_hide_hotkey = {mgl::Keyboard::Unknown, 0};
+        //     load_hotkeys();
+        //     overlay->rebind_all_keyboard_hotkeys();
+        // };
+        // list->add_widget(std::move(clear_hotkeys_button));
+
+        auto reset_hotkeys_button = std::make_unique<Button>(&get_theme().body_font, "Reset hotkeys to default", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        reset_hotkeys_button->on_click = [this] {
+            config.streaming_config.start_stop_hotkey = {mgl::Keyboard::F8, HOTKEY_MOD_LALT};
+            config.record_config.start_stop_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LALT};
+            config.record_config.pause_unpause_hotkey = {mgl::Keyboard::F7, HOTKEY_MOD_LALT};
+            config.replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
+            config.replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
+            config.main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
+            load_hotkeys();
+            overlay->rebind_all_keyboard_hotkeys();
+        };
+        list->add_widget(std::move(reset_hotkeys_button));
+
+        return list;
+    }
+
     std::unique_ptr<Subsection> GlobalSettingsPage::create_hotkey_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         List *list_ptr = list.get();
@@ -144,7 +362,12 @@ namespace gsr {
         list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable controller hotkeys?", get_color_theme().text_color));
         list_ptr->add_widget(create_enable_joystick_hotkeys_button());
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Double-click the share button to save a replay", get_color_theme().text_color));
+        list_ptr->add_widget(create_show_hide_hotkey_options());
+        list_ptr->add_widget(create_replay_hotkey_options());
+        list_ptr->add_widget(create_record_hotkey_options());
+        list_ptr->add_widget(create_stream_hotkey_options());
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Double-click the controller share button to save a replay", get_color_theme().text_color));
+        list_ptr->add_widget(create_hotkey_control_buttons());
         return subsection;
     }
 
@@ -168,32 +391,30 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->add_widget(create_exit_program_button());
+        if(inside_flatpak)
+            list->add_widget(create_go_back_to_old_ui_button());
+        return std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+    }
+
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_application_info_subsection(ScrollablePage *parent_page) {
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        List *list_ptr = list.get();
-        auto subsection = std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
 
-        {
-            auto buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-            buttons_list->add_widget(create_exit_program_button());
-            if(inside_flatpak)
-                buttons_list->add_widget(create_go_back_to_old_ui_button());
-            list_ptr->add_widget(std::move(buttons_list));
+        char str[128];
+        snprintf(str, sizeof(str), "UI version: %s", GSR_UI_VERSION);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+
+        if(inside_flatpak) {
+            snprintf(str, sizeof(str), "Flatpak version: %s", GSR_FLATPAK_VERSION);
+            list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
         }
-        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
-        {
-            char str[256];
-            snprintf(str, sizeof(str), "UI version: %s", GSR_UI_VERSION);
-            list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
 
-            if(inside_flatpak) {
-                snprintf(str, sizeof(str), "Flatpak version: %s", GSR_FLATPAK_VERSION);
-                list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
-            }
+        snprintf(str, sizeof(str), "GPU vendor: %s", gpu_vendor_to_string(gsr_info->gpu_info.vendor));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
 
-            snprintf(str, sizeof(str), "GPU vendor: %s", gpu_vendor_to_string(gsr_info->gpu_info.vendor));
-            list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
-        }
-        return subsection;
+        return std::make_unique<Subsection>("Application info", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
     void GlobalSettingsPage::add_widgets() {
@@ -205,6 +426,7 @@ namespace gsr {
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
         settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_application_info_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));
 
         content_page_ptr->add_widget(std::move(scrollable_page));
@@ -227,12 +449,174 @@ namespace gsr {
 
         enable_keyboard_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
         enable_joystick_hotkeys_radio_button_ptr->set_selected_item(config.main_config.joystick_hotkeys_enable_option, false, false);
+
+        load_hotkeys();
+    }
+
+    void GlobalSettingsPage::load_hotkeys() {
+        turn_replay_on_off_button_ptr->set_text(config_hotkey_to_string(config.replay_config.start_stop_hotkey));
+        save_replay_button_ptr->set_text(config_hotkey_to_string(config.replay_config.save_hotkey));
+
+        start_stop_recording_button_ptr->set_text(config_hotkey_to_string(config.record_config.start_stop_hotkey));
+        pause_unpause_recording_button_ptr->set_text(config_hotkey_to_string(config.record_config.pause_unpause_hotkey));
+
+        start_stop_streaming_button_ptr->set_text(config_hotkey_to_string(config.streaming_config.start_stop_hotkey));
+
+        show_hide_button_ptr->set_text(config_hotkey_to_string(config.main_config.show_hide_hotkey));
     }
 
     void GlobalSettingsPage::save() {
+        configure_hotkey_cancel();
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
         config.main_config.hotkeys_enable_option = enable_keyboard_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
         save_config(config);
+    }
+
+    bool GlobalSettingsPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) {
+        if(!StaticPage::on_event(event, window, offset))
+            return false;
+
+        if(configure_hotkey_type == ConfigureHotkeyType::NONE)
+            return true;
+
+        Button *configure_hotkey_button = configure_hotkey_get_button_by_active_type();
+        if(!configure_hotkey_button)
+            return true;
+
+        if(event.type == mgl::Event::KeyPressed) {
+            if(event.key.code == mgl::Keyboard::Escape)
+                return false;
+
+            if(mgl::Keyboard::key_is_modifier(event.key.code)) {
+                configure_config_hotkey.modifiers |= mgl_modifier_to_hotkey_modifier(event.key.code);
+                configure_hotkey_button->set_text(config_hotkey_to_string(configure_config_hotkey));
+            } else if(configure_config_hotkey.modifiers != 0) {
+                configure_config_hotkey.key = event.key.code;
+                configure_hotkey_button->set_text(config_hotkey_to_string(configure_config_hotkey));
+                configure_hotkey_stop_and_save();
+            }
+
+            return false;
+        } else if(event.type == mgl::Event::KeyReleased) {
+            if(event.key.code == mgl::Keyboard::Escape) {
+                configure_hotkey_cancel();
+                return false;
+            }
+
+            if(mgl::Keyboard::key_is_modifier(event.key.code)) {
+                configure_config_hotkey.modifiers &= ~mgl_modifier_to_hotkey_modifier(event.key.code);
+                configure_hotkey_button->set_text(config_hotkey_to_string(configure_config_hotkey));
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    Button* GlobalSettingsPage::configure_hotkey_get_button_by_active_type() {
+        switch(configure_hotkey_type) {
+            case ConfigureHotkeyType::NONE:
+                return nullptr;
+            case ConfigureHotkeyType::REPLAY_START_STOP:
+                return turn_replay_on_off_button_ptr;
+            case ConfigureHotkeyType::REPLAY_SAVE:
+                return save_replay_button_ptr;
+            case ConfigureHotkeyType::RECORD_START_STOP:
+                return start_stop_recording_button_ptr;
+            case ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE:
+                return pause_unpause_recording_button_ptr;
+            case ConfigureHotkeyType::STREAM_START_STOP:
+                return start_stop_streaming_button_ptr;
+            case ConfigureHotkeyType::SHOW_HIDE:
+                return show_hide_button_ptr;
+        }
+        return nullptr;
+    }
+
+    ConfigHotkey* GlobalSettingsPage::configure_hotkey_get_config_by_active_type() {
+        switch(configure_hotkey_type) {
+            case ConfigureHotkeyType::NONE:
+                return nullptr;
+            case ConfigureHotkeyType::REPLAY_START_STOP:
+                return &config.replay_config.start_stop_hotkey;
+            case ConfigureHotkeyType::REPLAY_SAVE:
+                return &config.replay_config.save_hotkey;
+            case ConfigureHotkeyType::RECORD_START_STOP:
+                return &config.record_config.start_stop_hotkey;
+            case ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE:
+                return &config.record_config.pause_unpause_hotkey;
+            case ConfigureHotkeyType::STREAM_START_STOP:
+                return &config.streaming_config.start_stop_hotkey;
+            case ConfigureHotkeyType::SHOW_HIDE:
+                return &config.main_config.show_hide_hotkey;
+        }
+        return nullptr;
+    }
+
+    void GlobalSettingsPage::for_each_config_hotkey(std::function<void(ConfigHotkey *config_hotkey)> callback) {
+        ConfigHotkey *config_hotkeys[] = {
+            &config.replay_config.start_stop_hotkey,
+            &config.replay_config.save_hotkey,
+            &config.record_config.start_stop_hotkey,
+            &config.record_config.pause_unpause_hotkey,
+            &config.streaming_config.start_stop_hotkey,
+            &config.main_config.show_hide_hotkey
+        };
+        for(ConfigHotkey *config_hotkey : config_hotkeys) {
+            callback(config_hotkey);
+        }
+    }
+
+    void GlobalSettingsPage::configure_hotkey_start(ConfigureHotkeyType hotkey_type) {
+        assert(hotkey_type != ConfigureHotkeyType::NONE);
+        configure_config_hotkey = {0, 0};
+        configure_hotkey_type = hotkey_type;
+
+        content_page_ptr->set_visible(false);
+        hotkey_overlay_ptr->set_visible(true);
+        overlay->unbind_all_keyboard_hotkeys();
+    }
+
+    void GlobalSettingsPage::configure_hotkey_cancel() {
+        Button *config_hotkey_button = configure_hotkey_get_button_by_active_type();
+        ConfigHotkey *config_hotkey = configure_hotkey_get_config_by_active_type();
+        if(config_hotkey_button && config_hotkey)
+            config_hotkey_button->set_text(config_hotkey_to_string(*config_hotkey));
+
+        configure_config_hotkey = {0, 0};
+        configure_hotkey_type = ConfigureHotkeyType::NONE;
+        content_page_ptr->set_visible(true);
+        hotkey_overlay_ptr->set_visible(false);
+        overlay->rebind_all_keyboard_hotkeys();
+    }
+
+    void GlobalSettingsPage::configure_hotkey_stop_and_save() {
+        Button *config_hotkey_button = configure_hotkey_get_button_by_active_type();
+        ConfigHotkey *config_hotkey = configure_hotkey_get_config_by_active_type();
+        if(config_hotkey_button && config_hotkey) {
+            bool hotkey_used_by_another_action = false;
+            for_each_config_hotkey([&](ConfigHotkey *config_hotkey_item) {
+                if(config_hotkey_item != config_hotkey && *config_hotkey_item == configure_config_hotkey)
+                    hotkey_used_by_another_action = true;
+            });
+
+            if(hotkey_used_by_another_action) {
+                const std::string error_msg = "The hotkey \"" + config_hotkey_to_string(configure_config_hotkey) + " is already used for something else";
+                overlay->show_notification(error_msg.c_str(), 3.0, mgl::Color(255, 0, 0, 255), mgl::Color(255, 0, 0, 255), NotificationType::NONE);
+                config_hotkey_button->set_text(config_hotkey_to_string(*config_hotkey));
+                configure_config_hotkey = {0, 0};
+                return;
+            }
+
+            *config_hotkey = configure_config_hotkey;
+        }
+
+        configure_config_hotkey = {0, 0};
+        configure_hotkey_type = ConfigureHotkeyType::NONE;
+        content_page_ptr->set_visible(true);
+        hotkey_overlay_ptr->set_visible(false);
+        overlay->rebind_all_keyboard_hotkeys();
     }
 }

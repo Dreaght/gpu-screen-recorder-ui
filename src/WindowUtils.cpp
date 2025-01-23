@@ -98,15 +98,16 @@ namespace gsr {
         return found_window;
     }
 
-    static Window get_window_at_cursor_position(Display *dpy) {
+    mgl::vec2i get_cursor_position(Display *dpy, Window *window) {
         Window root_window = None;
-        Window window = None;
+        *window = None;
         int dummy_i;
         unsigned int dummy_u;
-        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, &window, &dummy_i, &dummy_i, &dummy_i, &dummy_i, &dummy_u);
+        mgl::vec2i root_pos;
+        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, window, &root_pos.x, &root_pos.y, &dummy_i, &dummy_i, &dummy_u);
         if(window)
-            window = window_get_target_window_child(dpy, window);
-        return window;
+            *window = window_get_target_window_child(dpy, *window);
+        return root_pos;
     }
 
     Window get_focused_window(Display *dpy, WindowCaptureType cap_type) {
@@ -136,7 +137,7 @@ namespace gsr {
                 return focused_window;
         }
 
-        focused_window = get_window_at_cursor_position(dpy);
+        get_cursor_position(dpy, &focused_window);
         if(focused_window && focused_window != DefaultRootWindow(dpy))
             return focused_window;
 
@@ -235,35 +236,6 @@ namespace gsr {
         return result;
     }
 
-    mgl::vec2i get_cursor_position(Display *dpy, Window *window) {
-        Window root_window = None;
-        *window = None;
-        int dummy_i;
-        unsigned int dummy_u;
-        mgl::vec2i root_pos;
-        XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, window, &root_pos.x, &root_pos.y, &dummy_i, &dummy_i, &dummy_u);
-
-        // This dumb shit is done to satisfy gnome wayland. Only set |window| if a valid x11 window is focused
-        if(window) {
-            XWindowAttributes attr;
-            if(XGetWindowAttributes(dpy, *window, &attr) && attr.override_redirect)
-                *window = None;
-
-            int revert_to = 0;
-            Window input_focus_window = None;
-            if(XGetInputFocus(dpy, &input_focus_window, &revert_to)) {
-                if(input_focus_window) {
-                    if(XGetWindowAttributes(dpy, input_focus_window, &attr) && attr.override_redirect)
-                        *window = None;
-                } else {
-                    *window = None;
-                }
-            }
-        }
-
-        return root_pos;
-    }
-
     typedef struct {
         unsigned long flags;
         unsigned long functions;
@@ -334,7 +306,7 @@ namespace gsr {
             poll_fd.fd = x_fd;
             poll_fd.events = POLLIN;
             poll_fd.revents = 0;
-            const int fds_ready = poll(&poll_fd, 1, 1000);
+            const int fds_ready = poll(&poll_fd, 1, 200);
             if(fds_ready == 0) {
                 fprintf(stderr, "Error: timed out waiting for ConfigureNotify after XCreateWindow\n");
                 break;
@@ -342,15 +314,18 @@ namespace gsr {
                 continue;
             }
 
-            XNextEvent(display, &xev);
-            if(xev.type == ConfigureNotify && xev.xconfigure.window == window) {
-                got_data = xev.xconfigure.x > 0 && xev.xconfigure.y > 0;
-                position.x = xev.xconfigure.x + xev.xconfigure.width / 2;
-                position.y = xev.xconfigure.y + xev.xconfigure.height / 2;
-                break;
+            while(XPending(display)) {
+                XNextEvent(display, &xev);
+                if(xev.type == ConfigureNotify && xev.xconfigure.window == window) {
+                    got_data = xev.xconfigure.x > 0 && xev.xconfigure.y > 0;
+                    position.x = xev.xconfigure.x + xev.xconfigure.width / 2;
+                    position.y = xev.xconfigure.y + xev.xconfigure.height / 2;
+                    goto done;
+                }
             }
         }
 
+        done:
         XDestroyWindow(display, window);
         XFlush(display);
 
@@ -395,7 +370,7 @@ namespace gsr {
             poll_fd.fd = x_fd;
             poll_fd.events = POLLIN;
             poll_fd.revents = 0;
-            const int fds_ready = poll(&poll_fd, 1, 1000);
+            const int fds_ready = poll(&poll_fd, 1, 200);
             if(fds_ready == 0) {
                 fprintf(stderr, "Error: timed out waiting for MapNotify/ConfigureNotify after XCreateWindow\n");
                 break;
@@ -403,27 +378,30 @@ namespace gsr {
                 continue;
             }
 
-            XNextEvent(display, &xev);
-            if(xev.type == MapNotify && xev.xmap.window == window) {
-                int x = 0;
-                int y = 0;
-                Window w = None;
-                XTranslateCoordinates(display, window, DefaultRootWindow(display), 0, 0, &x, &y, &w);
+            while(XPending(display)) {
+                XNextEvent(display, &xev);
+                if(xev.type == MapNotify && xev.xmap.window == window) {
+                    int x = 0;
+                    int y = 0;
+                    Window w = None;
+                    XTranslateCoordinates(display, window, DefaultRootWindow(display), 0, 0, &x, &y, &w);
 
-                got_data = x > 0 && y > 0;
-                position.x = x + size / 2;
-                position.y = y + size / 2;
-                if(got_data)
-                    break;
-            } else if(xev.type == ConfigureNotify && xev.xconfigure.window == window) {
-                got_data = xev.xconfigure.x > 0 && xev.xconfigure.y > 0;
-                position.x = xev.xconfigure.x + xev.xconfigure.width / 2;
-                position.y = xev.xconfigure.y + xev.xconfigure.height / 2;
-                if(got_data)
-                    break;
+                    got_data = x > 0 && y > 0;
+                    position.x = x + size / 2;
+                    position.y = y + size / 2;
+                    if(got_data)
+                        goto done;
+                } else if(xev.type == ConfigureNotify && xev.xconfigure.window == window) {
+                    got_data = xev.xconfigure.x > 0 && xev.xconfigure.y > 0;
+                    position.x = xev.xconfigure.x + xev.xconfigure.width / 2;
+                    position.y = xev.xconfigure.y + xev.xconfigure.height / 2;
+                    if(got_data)
+                        goto done;
+                }
             }
         }
 
+        done:
         XDestroyWindow(display, window);
         XFlush(display);
 

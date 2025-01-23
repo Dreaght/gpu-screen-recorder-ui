@@ -6,6 +6,8 @@
 #include "Config.hpp"
 #include "window_texture.h"
 #include "WindowUtils.hpp"
+#include "GlobalHotkeysLinux.hpp"
+#include "GlobalHotkeysJoystick.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -42,8 +44,7 @@ namespace gsr {
         Overlay& operator=(const Overlay&) = delete;
         ~Overlay();
 
-        void handle_events(gsr::GlobalHotkeys *global_hotkeys);
-        void on_event(mgl::Event &event);
+        void handle_events();
         // Returns false if not visible
         bool draw();
 
@@ -62,9 +63,12 @@ namespace gsr {
 
         const Config& get_config() const;
 
-        std::function<void(const char *hotkey_option)> on_keyboard_hotkey_changed;
-        std::function<void(const char *hotkey_option)> on_joystick_hotkey_changed;
+        void unbind_all_keyboard_hotkeys();
+        void rebind_all_keyboard_hotkeys();
     private:
+        void handle_keyboard_mapping_event();
+        void on_event(mgl::Event &event);
+
         void xi_setup();
         void handle_xi_events();
         void process_key_bindings(mgl::Event &event);
@@ -176,5 +180,10 @@ namespace gsr {
 
         mgl::Clock show_overlay_clock;
         double show_overlay_timeout_seconds = 0.0;
+
+        std::unique_ptr<GlobalHotkeys> global_hotkeys = nullptr;
+        std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
+        Display *x11_mapping_display = nullptr;
+        XEvent x11_mapping_xev;
     };
 }

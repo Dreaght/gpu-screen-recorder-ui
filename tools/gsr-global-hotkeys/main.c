@@ -2,118 +2,17 @@
 
 /* C stdlib */
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
+#include <locale.h>
 
 /* POSIX */
 #include <unistd.h>
-#include <dlfcn.h>
-
-typedef struct {
-    uint32_t key;
-    uint32_t modifiers; /* keyboard_modkeys bitmask */
-    const char *action;
-} global_hotkey;
-
-#define NUM_GLOBAL_HOTKEYS 6
-static global_hotkey global_hotkeys[NUM_GLOBAL_HOTKEYS] = {
-    { .key = KEY_Z,   .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "show_hide"    },
-    { .key = KEY_F9,  .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "record"       },
-    { .key = KEY_F7,  .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "pause"        },
-    { .key = KEY_F8,  .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "stream"       },
-    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_LALT | KEYBOARD_MODKEY_SHIFT, .action = "replay_start" },
-    { .key = KEY_F10, .modifiers = KEYBOARD_MODKEY_LALT,                         .action = "replay_save"  }
-};
-
-static bool on_key_callback(uint32_t key, uint32_t modifiers, int press_status, void *userdata) {
-    (void)userdata;
-    for(int i = 0; i < NUM_GLOBAL_HOTKEYS; ++i) {
-        if(key == global_hotkeys[i].key && modifiers == global_hotkeys[i].modifiers) {
-            if(press_status == 1) { /* 1 == Pressed */
-                puts(global_hotkeys[i].action);
-                fflush(stdout);
-            }
-            return false;
-        }
-    }
-    return true;
-}
 
 static void usage(void) {
     fprintf(stderr, "usage: gsr-global-hotkeys [--all|--virtual]\n");
     fprintf(stderr, "OPTIONS:\n");
     fprintf(stderr, "  --all        Grab all devices.\n");
     fprintf(stderr, "  --virtual    Grab all virtual devices only.\n");
-}
-
-typedef void* (*XOpenDisplay_FUNC)(const char*);
-typedef int (*XErrorHandler_FUNC)(void *display, void* error_event);
-typedef XErrorHandler_FUNC (*XSetErrorHandler_FUNC)(XErrorHandler_FUNC handler);
-
-static int x_ignore_error(void *display, void *ee) {
-    (void)display;
-    (void)ee;
-    return 0;
-}
-
-static x11_context setup_x11_context(void) {
-    x11_context x_context = {0};
-    XSetErrorHandler_FUNC XSetErrorHandler = NULL;
-
-    void *x11_lib = dlopen("libX11.so.6", RTLD_LAZY);
-    if(!x11_lib) {
-        fprintf(stderr, "Warning: dlopen libX11.so.6 failed\n");
-        return x_context;
-    }
-
-    XOpenDisplay_FUNC XOpenDisplay = dlsym(x11_lib, "XOpenDisplay");
-    if(!XOpenDisplay) {
-        fprintf(stderr, "Warning: dlsym XOpenDisplay failed\n");
-        goto fail;
-    }
-
-    x_context.XKeycodeToKeysym = dlsym(x11_lib, "XKeycodeToKeysym");
-    if(!x_context.XKeycodeToKeysym) {
-        fprintf(stderr, "Warning: dlsym XKeycodeToKeysym failed\n");
-        goto fail;
-    }
-
-    x_context.XPending = dlsym(x11_lib, "XPending");
-    if(!x_context.XPending) {
-        fprintf(stderr, "Warning: dlsym XPending failed\n");
-        goto fail;
-    }
-
-    x_context.XNextEvent = dlsym(x11_lib, "XNextEvent");
-    if(!x_context.XNextEvent) {
-        fprintf(stderr, "Warning: dlsym XNextEvent failed\n");
-        goto fail;
-    }
-
-    x_context.XRefreshKeyboardMapping = dlsym(x11_lib, "XRefreshKeyboardMapping");
-    if(!x_context.XRefreshKeyboardMapping) {
-        fprintf(stderr, "Warning: dlsym XRefreshKeyboardMapping failed\n");
-        goto fail;
-    }
-
-    x_context.display = XOpenDisplay(NULL);
-    if(!x_context.display) {
-        fprintf(stderr, "Warning: XOpenDisplay failed\n");
-        goto fail;
-    }
-
-    XSetErrorHandler = dlsym(x11_lib, "XSetErrorHandler");
-    if(XSetErrorHandler)
-        XSetErrorHandler(x_ignore_error);
-    else
-        fprintf(stderr, "Warning: dlsym XSetErrorHandler failed\n");
-
-    return x_context;
-
-    fail:
-    memset(&x_context, 0, sizeof(x_context));
-    dlclose(x11_lib);
-    return x_context;
 }
 
 static bool is_gsr_global_hotkeys_already_running(void) {
@@ -135,6 +34,8 @@ static bool is_gsr_global_hotkeys_already_running(void) {
 }
 
 int main(int argc, char **argv) {
+    setlocale(LC_ALL, "C"); /* Sigh... stupid C */
+
     keyboard_grab_type grab_type = KEYBOARD_GRAB_TYPE_ALL;
     if(argc == 2) {
         const char *grab_type_arg = argv[1];
@@ -158,8 +59,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    x11_context x_context = setup_x11_context();
-
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
@@ -169,7 +68,7 @@ int main(int argc, char **argv) {
     }
 
     keyboard_event keyboard_ev;
-    if(!keyboard_event_init(&keyboard_ev, true, true, grab_type, x_context)) {
+    if(!keyboard_event_init(&keyboard_ev, true, grab_type)) {
         fprintf(stderr, "Error: failed to setup hotplugging and no keyboard input devices were found\n");
         setuid(user_id);
         return 1;
@@ -178,9 +77,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Info: global hotkeys setup, waiting for hotkeys to be pressed\n");
 
     for(;;) {
-        keyboard_event_poll_events(&keyboard_ev, -1, on_key_callback, NULL);
-        if(keyboard_event_stdout_has_failed(&keyboard_ev)) {
-            fprintf(stderr, "Info: stdout closed (parent process likely closed this process), exiting...\n");
+        keyboard_event_poll_events(&keyboard_ev, -1);
+        if(keyboard_event_stdin_has_failed(&keyboard_ev)) {
+            fprintf(stderr, "Info: stdin closed (parent process likely closed this process), exiting...\n");
             break;
         }
     }

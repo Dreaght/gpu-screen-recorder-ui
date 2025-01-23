@@ -9,9 +9,20 @@ namespace mgl {
 }
 
 namespace gsr {
+    enum HotkeyModifier : uint32_t {
+        HOTKEY_MOD_LSHIFT = 1 << 0,
+        HOTKEY_MOD_RSHIFT = 1 << 1,
+        HOTKEY_MOD_LCTRL  = 1 << 2,
+        HOTKEY_MOD_RCTRL  = 1 << 3,
+        HOTKEY_MOD_LALT   = 1 << 4,
+        HOTKEY_MOD_RALT   = 1 << 5,
+        HOTKEY_MOD_LSUPER = 1 << 6,
+        HOTKEY_MOD_RSUPER = 1 << 7
+    };
+
     struct Hotkey {
-        uint64_t key = 0;
-        uint32_t modifiers = 0;
+        uint32_t key = 0;       // X11 keysym
+        uint32_t modifiers = 0; // HotkeyModifier
     };
 
     using GlobalHotkeyCallback = std::function<void(const std::string &id)>;

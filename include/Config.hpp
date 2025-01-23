@@ -6,12 +6,14 @@
 #include <vector>
 #include <optional>
 
+#define GSR_CONFIG_FILE_VERSION 1
+
 namespace gsr {
     struct SupportedCaptureOptions;
 
     struct ConfigHotkey {
-        int64_t keysym = 0;
-        uint32_t modifiers = 0;
+        int64_t key = 0;        // Mgl key
+        uint32_t modifiers = 0; // HotkeyModifier
 
         bool operator==(const ConfigHotkey &other) const;
         bool operator!=(const ConfigHotkey &other) const;
@@ -41,11 +43,12 @@ namespace gsr {
     };
 
     struct MainConfig {
-        int32_t config_file_version = 0;
+        int32_t config_file_version = GSR_CONFIG_FILE_VERSION;
         bool software_encoding_warning_shown = false;
         std::string hotkeys_enable_option = "enable_hotkeys";
         std::string joystick_hotkeys_enable_option = "disable_hotkeys";
         std::string tint_color;
+        ConfigHotkey show_hide_hotkey;
     };
 
     struct YoutubeStreamConfig {
@@ -69,7 +72,7 @@ namespace gsr {
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
         CustomStreamConfig custom;
-        ConfigHotkey start_stop_recording_hotkey;
+        ConfigHotkey start_stop_hotkey;
     };
 
     struct RecordConfig {
@@ -79,8 +82,8 @@ namespace gsr {
         bool show_video_saved_notifications = true;
         std::string save_directory;
         std::string container = "mp4";
-        ConfigHotkey start_stop_recording_hotkey;
-        ConfigHotkey pause_unpause_recording_hotkey;
+        ConfigHotkey start_stop_hotkey;
+        ConfigHotkey pause_unpause_hotkey;
     };
 
     struct ReplayConfig {
@@ -93,8 +96,8 @@ namespace gsr {
         std::string save_directory;
         std::string container = "mp4";
         int32_t replay_time = 60;
-        ConfigHotkey start_stop_recording_hotkey;
-        ConfigHotkey save_recording_hotkey;
+        ConfigHotkey start_stop_hotkey;
+        ConfigHotkey save_hotkey;
     };
 
     struct Config {

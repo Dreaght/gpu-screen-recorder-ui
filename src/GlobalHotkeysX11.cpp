@@ -50,6 +50,27 @@ namespace gsr {
         return mask;
     }
 
+    static uint32_t modifiers_to_x11_modifiers(uint32_t modifiers) {
+        uint32_t result = 0;
+        if(modifiers & HOTKEY_MOD_LSHIFT)
+            result |= ShiftMask;
+        if(modifiers & HOTKEY_MOD_RSHIFT)
+            result |= ShiftMask;
+        if(modifiers & HOTKEY_MOD_LCTRL)
+            result |= ControlMask;
+        if(modifiers & HOTKEY_MOD_RCTRL)
+            result |= ControlMask;
+        if(modifiers & HOTKEY_MOD_LALT)
+            result |= Mod1Mask;
+        if(modifiers & HOTKEY_MOD_RALT)
+            result |= Mod5Mask;
+        if(modifiers & HOTKEY_MOD_LSUPER)
+            result |= Mod4Mask;
+        if(modifiers & HOTKEY_MOD_RSUPER)
+            result |= Mod4Mask;
+        return result;
+    }
+
     GlobalHotkeysX11::GlobalHotkeysX11() {
         dpy = XOpenDisplay(NULL);
         if(!dpy)
@@ -74,16 +95,17 @@ namespace gsr {
         x_failed = false;
         XErrorHandler prev_xerror = XSetErrorHandler(xerror_grab_error);
 
+        const uint32_t modifiers_x11 = modifiers_to_x11_modifiers(hotkey.modifiers);
         unsigned int numlock_mask = x11_get_numlock_mask(dpy);
         unsigned int modifiers[] = { 0, LockMask, numlock_mask, numlock_mask|LockMask };
         for(int i = 0; i < 4; ++i) {
-            XGrabKey(dpy, XKeysymToKeycode(dpy, hotkey.key), hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy), False, GrabModeAsync, GrabModeAsync);
+            XGrabKey(dpy, XKeysymToKeycode(dpy, hotkey.key), modifiers_x11 | modifiers[i], DefaultRootWindow(dpy), False, GrabModeAsync, GrabModeAsync);
         }
         XSync(dpy, False);
         
         if(x_failed) {
             for(int i = 0; i < 4; ++i) {
-                XUngrabKey(dpy, XKeysymToKeycode(dpy, hotkey.key), hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy));
+                XUngrabKey(dpy, XKeysymToKeycode(dpy, hotkey.key), modifiers_x11 | modifiers[i], DefaultRootWindow(dpy));
             }
             XSync(dpy, False);
             XSetErrorHandler(prev_xerror);
@@ -106,10 +128,11 @@ namespace gsr {
         x_failed = false;
         XErrorHandler prev_xerror = XSetErrorHandler(xerror_grab_error);
 
+        const uint32_t modifiers_x11 = modifiers_to_x11_modifiers(it->second.hotkey.modifiers);
         unsigned int numlock_mask = x11_get_numlock_mask(dpy);
         unsigned int modifiers[] = { 0, LockMask, numlock_mask, numlock_mask|LockMask };
         for(int i = 0; i < 4; ++i) {
-            XUngrabKey(dpy, XKeysymToKeycode(dpy, it->second.hotkey.key), it->second.hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy));
+            XUngrabKey(dpy, XKeysymToKeycode(dpy, it->second.hotkey.key), modifiers_x11 | modifiers[i], DefaultRootWindow(dpy));
         }
         XSync(dpy, False);
 
@@ -127,8 +150,9 @@ namespace gsr {
         unsigned int numlock_mask = x11_get_numlock_mask(dpy);
         unsigned int modifiers[] = { 0, LockMask, numlock_mask, numlock_mask|LockMask };
         for(auto it = bound_keys_by_id.begin(); it != bound_keys_by_id.end();) {
+            const uint32_t modifiers_x11 = modifiers_to_x11_modifiers(it->second.hotkey.modifiers);
             for(int i = 0; i < 4; ++i) {
-                XUngrabKey(dpy, XKeysymToKeycode(dpy, it->second.hotkey.key), it->second.hotkey.modifiers | modifiers[i], DefaultRootWindow(dpy));
+                XUngrabKey(dpy, XKeysymToKeycode(dpy, it->second.hotkey.key), modifiers_x11 | modifiers[i], DefaultRootWindow(dpy));
             }
         }
         bound_keys_by_id.clear();
@@ -145,7 +169,7 @@ namespace gsr {
             XNextEvent(dpy, &xev);
             if(xev.type == KeyPress) {
                 const KeySym key_sym = XLookupKeysym(&xev.xkey, 0);
-                call_hotkey_callback({ key_sym, xev.xkey.state });
+                call_hotkey_callback({ (uint32_t)key_sym, xev.xkey.state });
             }
         }
     }
@@ -157,7 +181,7 @@ namespace gsr {
         // Note: not all keys are mapped in mgl_key_to_key_sym. If more hotkeys are added or changed then add the key mapping there
         const KeySym key_sym = mgl_key_to_key_sym(event.key.code);
         const uint32_t modifiers = mgl_key_modifiers_to_x11_modifier_mask(event.key);
-        return !call_hotkey_callback(Hotkey{key_sym, modifiers});
+        return !call_hotkey_callback(Hotkey{(uint32_t)key_sym, modifiers});
     }
 
     static unsigned int key_state_without_locks(unsigned int key_state) {
@@ -165,8 +189,9 @@ namespace gsr {
     }
 
     bool GlobalHotkeysX11::call_hotkey_callback(Hotkey hotkey) const {
+        const uint32_t modifiers_x11 = modifiers_to_x11_modifiers(hotkey.modifiers);
         for(const auto &[key, val] : bound_keys_by_id) {
-            if(val.hotkey.key == hotkey.key && key_state_without_locks(val.hotkey.modifiers) == key_state_without_locks(hotkey.modifiers)) {
+            if(val.hotkey.key == hotkey.key && key_state_without_locks(modifiers_to_x11_modifiers(val.hotkey.modifiers)) == key_state_without_locks(modifiers_x11)) {
                 val.callback(key);
                 return true;
             }
