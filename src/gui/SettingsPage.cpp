@@ -699,7 +699,7 @@ namespace gsr {
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_start_replay_automatically());
         general_list->add_widget(create_save_replay_in_game_folder());
-        if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 2})
+        if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 3})
             general_list->add_widget(create_restart_replay_on_save());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
