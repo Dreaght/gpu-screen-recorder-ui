@@ -92,5 +92,6 @@ namespace gsr {
         ConfigureHotkeyType configure_hotkey_type = ConfigureHotkeyType::NONE;
 
         CustomRendererWidget *hotkey_overlay_ptr = nullptr;
+        std::string hotkey_configure_action_name;
     };
 }

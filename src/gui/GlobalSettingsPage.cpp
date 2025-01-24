@@ -132,7 +132,7 @@ namespace gsr {
             if(!configure_hotkey_button)
                 return;
 
-            mgl::Text title_text("Press a key combination to use for the hotkey \"Start/stop recording\":", get_theme().title_font);
+            mgl::Text title_text("Press a key combination to use for the hotkey \"" + hotkey_configure_action_name + "\":", get_theme().title_font);
             mgl::Text hotkey_text(configure_hotkey_button->get_text(), get_theme().top_bar_font);
             mgl::Text description_text("The hotkey has to contain one or more of these keys: Alt, Ctrl, Shift and Super. Press Esc to cancel.", get_theme().body_font);
             const float text_max_width = std::max(title_text.get_bounds().size.x, std::max(hotkey_text.get_bounds().size.x, description_text.get_bounds().size.x));
@@ -252,7 +252,6 @@ namespace gsr {
         show_hide_button_ptr->on_click = [this] {
             configure_hotkey_start(ConfigureHotkeyType::SHOW_HIDE);
         };
-
 
         return list;
     }
@@ -581,6 +580,30 @@ namespace gsr {
         content_page_ptr->set_visible(false);
         hotkey_overlay_ptr->set_visible(true);
         overlay->unbind_all_keyboard_hotkeys();
+
+        switch(hotkey_type) {
+            case ConfigureHotkeyType::NONE:
+                hotkey_configure_action_name = "";
+                break;
+            case ConfigureHotkeyType::REPLAY_START_STOP:
+                hotkey_configure_action_name = "Turn replay on/off";
+                break;
+            case ConfigureHotkeyType::REPLAY_SAVE:
+                hotkey_configure_action_name = "Save replay";
+                break;
+            case ConfigureHotkeyType::RECORD_START_STOP:
+                hotkey_configure_action_name = "Start/stop recording";
+                break;
+            case ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE:
+                hotkey_configure_action_name = "Pause/unpause recording";
+                break;
+            case ConfigureHotkeyType::STREAM_START_STOP:
+                hotkey_configure_action_name = "Start/stop streaming";
+                break;
+            case ConfigureHotkeyType::SHOW_HIDE:
+                hotkey_configure_action_name = "Show/hide UI";
+                break;
+        }
     }
 
     void GlobalSettingsPage::configure_hotkey_cancel() {
