@@ -153,10 +153,13 @@ namespace gsr {
             title_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - title_text.get_bounds().size.x*0.5f, padding_vertical)).floor());
             window.draw(title_text);
 
-            //const float description_bottom = description_text.get_position().y + description_text.get_bounds().size.y;
-            //const float remaining_height = (bg_rect.get_position().y + bg_rect.get_size().y) - description_bottom;
             hotkey_text.set_position(mgl::vec2f(bg_rect.get_position() + bg_rect.get_size()*0.5f - hotkey_text.get_bounds().size*0.5f).floor());
             window.draw(hotkey_text);
+
+            const float caret_padding_x = int(0.001f * get_theme().window_height);
+            const mgl::vec2f caret_size = mgl::vec2f(std::max(2.0f, 0.002f * get_theme().window_height), hotkey_text.get_bounds().size.y).floor();
+            mgl::Rectangle caret_rect(hotkey_text.get_position() + mgl::vec2f(hotkey_text.get_bounds().size.x + caret_padding_x, hotkey_text.get_bounds().size.y*0.5f - caret_size.y*0.5f).floor(), caret_size);
+            window.draw(caret_rect);
 
             description_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - description_text.get_bounds().size.x*0.5f, bg_rect.get_size().y - description_text.get_bounds().size.y - padding_vertical)).floor());
             window.draw(description_text);
@@ -580,6 +583,7 @@ namespace gsr {
         content_page_ptr->set_visible(false);
         hotkey_overlay_ptr->set_visible(true);
         overlay->unbind_all_keyboard_hotkeys();
+        configure_hotkey_get_button_by_active_type()->set_text("");
 
         switch(hotkey_type) {
             case ConfigureHotkeyType::NONE:
