@@ -20,7 +20,7 @@ namespace gsr {
     {
         if(icon_texture && icon_texture->is_valid()) {
             icon_sprite.set_texture(icon_texture);
-            icon_sprite.set_height((int)(size.y * 0.5f));
+            icon_sprite.set_height((int)(size.y * 0.45f));
         }
         this->description.set_color(mgl::Color(150, 150, 150));
     }
