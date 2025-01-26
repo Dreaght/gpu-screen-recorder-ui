@@ -6,7 +6,6 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <libgen.h>
-#include <iostream>
 #include <mglpp/window/Keyboard.hpp>
 
 #define FORMAT_I32 "%" PRIi32

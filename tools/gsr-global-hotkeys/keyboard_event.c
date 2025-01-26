@@ -286,18 +286,18 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
 
     unsigned long evbit = 0;
     ioctl(fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
-    const bool is_keyboard = evbit & (1 << EV_KEY);
+    const bool is_keyboard = (evbit & (1 << EV_SYN)) && (evbit & (1 << EV_KEY)) && (evbit & (1 << EV_MSC)) && (evbit & (1 << EV_REP));
 
     if(is_keyboard && strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0) {
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
         const bool supports_key_events      = key_bits[KEY_A/8]        & (1 << (KEY_A % 8));
-        const bool supports_mouse_events    = key_bits[BTN_MOUSE/8]    & (1 << (BTN_MOUSE % 8));
+        //const bool supports_mouse_events    = key_bits[BTN_MOUSE/8]    & (1 << (BTN_MOUSE % 8));
         //const bool supports_touch_events    = key_bits[BTN_TOUCH/8]    & (1 << (BTN_TOUCH % 8));
         const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
         const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
-        if(supports_key_events && !supports_mouse_events && !supports_joystick_events && !supports_wheel_events) {
+        if(supports_key_events && !supports_joystick_events && !supports_wheel_events) {
             unsigned char *key_states = calloc(1, KEY_STATES_SIZE);
             if(key_states && self->num_event_polls < MAX_EVENT_POLLS) {
                 //fprintf(stderr, "%s (%s) supports key inputs\n", dev_input_filepath, device_name);
@@ -389,14 +389,20 @@ static int setup_virtual_keyboard_input(const char *name) {
     success &= (ioctl(fd, UI_SET_EVBIT, EV_SYN) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_MSC) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_KEY) != -1);
+    success &= (ioctl(fd, UI_SET_EVBIT, EV_REP) != -1);
+    success &= (ioctl(fd, UI_SET_EVBIT, EV_REL) != -1);
+    success &= (ioctl(fd, UI_SET_EVBIT, EV_LED) != -1);
+
+    success &= (ioctl(fd, UI_SET_MSCBIT, MSC_SCAN) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
         success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }
-
-    success &= (ioctl(fd, UI_SET_EVBIT, EV_REL) != -1);
-    success &= (ioctl(fd, UI_SET_RELBIT, REL_X) != -1);
-    success &= (ioctl(fd, UI_SET_RELBIT, REL_Y) != -1);
-    success &= (ioctl(fd, UI_SET_RELBIT, REL_Z) != -1);
+    for(int i = 0; i < REL_MAX; ++i) {
+        success &= (ioctl(fd, UI_SET_RELBIT, i) != -1);
+    }
+    for(int i = 0; i < LED_MAX; ++i) {
+        success &= (ioctl(fd, UI_SET_LEDBIT, i) != -1);
+    }
 
     // success &= (ioctl(fd, UI_SET_EVBIT, EV_ABS) != -1);
     // success &= (ioctl(fd, UI_SET_ABSBIT, ABS_X) != -1);
