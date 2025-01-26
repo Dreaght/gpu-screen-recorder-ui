@@ -81,19 +81,19 @@ static void keyboard_event_fetch_update_key_states(keyboard_event *self, event_e
     }
 }
 
-static void keyboard_event_process_key_state_change(keyboard_event *self, struct input_event event, event_extra_data *extra_data, int fd) {
-    if(event.type != EV_KEY)
+static void keyboard_event_process_key_state_change(keyboard_event *self, const struct input_event *event, event_extra_data *extra_data, int fd) {
+    if(event->type != EV_KEY)
         return;
 
-    if(!extra_data->key_states || event.code >= KEY_STATES_SIZE * 8)
+    if(!extra_data->key_states || event->code >= KEY_STATES_SIZE * 8)
         return;
 
-    const unsigned int byte_index = event.code / 8;
-    const unsigned char bit_index = event.code % 8;
+    const unsigned int byte_index = event->code / 8;
+    const unsigned char bit_index = event->code % 8;
     unsigned char key_byte_state = extra_data->key_states[byte_index];
     const bool prev_key_pressed = (key_byte_state & (1 << bit_index)) != KEY_RELEASE;
 
-    if(event.value == KEY_RELEASE) {
+    if(event->value == KEY_RELEASE) {
         key_byte_state &= ~(1 << bit_index);
         if(prev_key_pressed)
             --extra_data->num_keys_pressed;
@@ -154,6 +154,12 @@ static uint32_t keycode_to_modifier_bit(uint32_t keycode) {
     return 0;
 }
 
+static bool key_is_mouse_button(uint32_t keycode) {
+    return (keycode >= BTN_MISC && keycode <= BTN_GEAR_UP)
+        || (keycode >= BTN_TRIGGER_HAPPY && keycode <= BTN_TRIGGER_HAPPY40)
+        || (keycode >= BTN_DPAD_UP && keycode <= BTN_DPAD_RIGHT);
+}
+
 static void keyboard_event_process_input_event_data(keyboard_event *self, event_extra_data *extra_data, int fd) {
     struct input_event event;
     if(read(fd, &event, sizeof(event)) != sizeof(event)) {
@@ -171,8 +177,8 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         //fprintf(stderr, "fd: %d, type: %d, pressed %d, value: %d\n", fd, event.type, event.code, event.value);
     //}
 
-    if(event.type == EV_KEY) {
-        keyboard_event_process_key_state_change(self, event, extra_data, fd);
+    if(event.type == EV_KEY && !key_is_mouse_button(event.code)) {
+        keyboard_event_process_key_state_change(self, &event, extra_data, fd);
         const uint32_t modifier_bit = keycode_to_modifier_bit(event.code);
         if(modifier_bit == 0) {
             if(keyboard_event_on_key_pressed(self, &event, self->modifier_button_states))
@@ -297,7 +303,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         //const bool supports_touch_events    = key_bits[BTN_TOUCH/8]    & (1 << (BTN_TOUCH % 8));
         const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
         const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
-        if(supports_key_events && !supports_mouse_events && !supports_joystick_events && !supports_wheel_events) {
+        if(supports_key_events && !supports_joystick_events && !supports_wheel_events) {
             unsigned char *key_states = calloc(1, KEY_STATES_SIZE);
             if(key_states && self->num_event_polls < MAX_EVENT_POLLS) {
                 //fprintf(stderr, "%s (%s) supports key inputs\n", dev_input_filepath, device_name);
@@ -314,9 +320,16 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
                     .num_keys_pressed = 0
                 };
 
-                keyboard_event_fetch_update_key_states(self, &self->event_extra_data[self->num_event_polls], fd);
-                if(self->event_extra_data[self->num_event_polls].num_keys_pressed > 0)
-                    fprintf(stderr, "Info: device not grabbed yet because some keys are still being pressed: /dev/input/event%d\n", dev_input_id);
+                if(supports_mouse_events) {
+                    fprintf(stderr, "Info: device not grabbed yet because it might be a mouse: /dev/input/event%d\n", dev_input_id);
+                    fsync(fd);
+                    if(ioctl(fd, EVIOCGKEY(KEY_STATES_SIZE), self->event_extra_data[self->num_event_polls].key_states) == -1)
+                        fprintf(stderr, "Warning: failed to fetch key states for device: /dev/input/event%d\n", dev_input_id);
+                } else {
+                    keyboard_event_fetch_update_key_states(self, &self->event_extra_data[self->num_event_polls], fd);
+                    if(self->event_extra_data[self->num_event_polls].num_keys_pressed > 0)
+                        fprintf(stderr, "Info: device not grabbed yet because some keys are still being pressed: /dev/input/event%d\n", dev_input_id);
+                }
 
                 ++self->num_event_polls;
                 return true;
