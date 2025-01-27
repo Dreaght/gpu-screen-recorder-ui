@@ -39,7 +39,7 @@ This program has to grab all keyboards and create a virtual keyboard (`gsr-ui vi
 This might cause issues for you if you use input remapping software. To workaround this you can go into settings and select "Only grab virtual devices"
 
 # License
-This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.
+This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`. `images/default.cur` it part of the [Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master) which is licensed under `Creative Commons Attribution-Share Alike 3.0`.
 
 # Demo
 [![Click here to watch a demo video on youtube](https://img.youtube.com/vi/SOqXusCTXXA/0.jpg)](https://www.youtube.com/watch?v=SOqXusCTXXA)

@@ -774,12 +774,23 @@ namespace gsr {
 
         XcursorImage *cursor_image = nullptr;
         for(int cursor_size_test : {cursor_size, 24}) {
-            for(const char *cursor_theme_test : {cursor_theme, "default"}) {
+            for(const char *cursor_theme_test : {cursor_theme, "default", "Adwaita"}) {
                 for(unsigned int shape : {XC_left_ptr, XC_arrow}) {
                     cursor_image = XcursorShapeLoadImage(shape, cursor_theme_test, cursor_size_test);
                     if(cursor_image)
-                        break;
+                        goto done;
                 }
+            }
+        }
+
+        done:
+        if(!cursor_image) {
+            fprintf(stderr, "Error: failed to get cursor, loading bundled default cursor instead\n");
+            const std::string default_cursor_path = resources_path + "images/default.cur";
+            for(int cursor_size_test : {cursor_size, 24}) {
+                cursor_image = XcursorFilenameLoadImage(default_cursor_path.c_str(), cursor_size_test);
+                if(cursor_image)
+                    break;
             }
         }
 
