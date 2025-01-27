@@ -773,12 +773,14 @@ namespace gsr {
             cursor_size = 24;
 
         XcursorImage *cursor_image = nullptr;
-        for(const char *cursor_theme_test : {cursor_theme, "default"}) {
-            //for(unsigned int shape : {XC_left_ptr, XC_right_ptr}) {
-            cursor_image = XcursorShapeLoadImage(XC_left_ptr, cursor_theme_test, cursor_size);
-            if(cursor_image)
-                break;
-            //}
+        for(int cursor_size_test : {cursor_size, 24}) {
+            for(unsigned int shape : {XC_left_ptr, XC_arrow}) {
+                for(const char *cursor_theme_test : {cursor_theme, "default"}) {
+                    cursor_image = XcursorShapeLoadImage(shape, cursor_theme_test, cursor_size_test);
+                    if(cursor_image)
+                        break;
+                }
+            }
         }
 
         if(!cursor_image) {
