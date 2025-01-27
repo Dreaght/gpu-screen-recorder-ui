@@ -108,3 +108,6 @@ When adding window capture only add it to recording and streaming and do the win
 Show an error that prime run will be disabled when using desktop portal capture option. This can cause issues as the user may have selected a video codec option that isn't available on their iGPU but is available on the prime-run dGPU.
 
 Is it possible to configure hotkey and the new hotkey to get triggered immediately?
+
+For keyboards that report supporting mice the keyboard grab will be delayed until any key has been pressed (and then released), see: https://github.com/dec05eba/gpu-screen-recorder-issues/issues/97
+    See if there is any way around this.
