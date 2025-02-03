@@ -113,3 +113,5 @@ For keyboards that report supporting mice the keyboard grab will be delayed unti
     See if there is any way around this.
 
 Instead of installing gsr-global-hotkeys in flatpak use kms-server-proxy to launch gsr-global-hotkeys inside the flatpak with root, just like gsr-kms-server. This removes the need to update gsr-global-hotkeys everytime there is an update.
+
+Check if "modprobe uinput" is needed on some systems (old fedora?).
