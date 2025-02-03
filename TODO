@@ -111,3 +111,5 @@ Is it possible to configure hotkey and the new hotkey to get triggered immediate
 
 For keyboards that report supporting mice the keyboard grab will be delayed until any key has been pressed (and then released), see: https://github.com/dec05eba/gpu-screen-recorder-issues/issues/97
     See if there is any way around this.
+
+Instead of installing gsr-global-hotkeys in flatpak use kms-server-proxy to launch gsr-global-hotkeys inside the flatpak with root, just like gsr-kms-server. This removes the need to update gsr-global-hotkeys everytime there is an update.
