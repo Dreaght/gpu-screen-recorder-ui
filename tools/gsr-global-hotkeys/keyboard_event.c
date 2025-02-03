@@ -1,4 +1,5 @@
 #include "keyboard_event.h"
+#include "keys.h"
 
 /* C stdlib */
 #include <stdio.h>
@@ -154,12 +155,6 @@ static uint32_t keycode_to_modifier_bit(uint32_t keycode) {
     return 0;
 }
 
-static bool key_is_mouse_button(uint32_t keycode) {
-    return (keycode >= BTN_MISC && keycode <= BTN_GEAR_UP)
-        || (keycode >= BTN_TRIGGER_HAPPY && keycode <= BTN_TRIGGER_HAPPY40)
-        || (keycode >= BTN_DPAD_UP && keycode <= BTN_DPAD_RIGHT);
-}
-
 static void keyboard_event_process_input_event_data(keyboard_event *self, event_extra_data *extra_data, int fd) {
     struct input_event event;
     if(read(fd, &event, sizeof(event)) != sizeof(event)) {
@@ -177,7 +172,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         //fprintf(stderr, "fd: %d, type: %d, pressed %d, value: %d\n", fd, event.type, event.code, event.value);
     //}
 
-    if(event.type == EV_KEY && !key_is_mouse_button(event.code)) {
+    if(event.type == EV_KEY && !is_mouse_button(event.code)) {
         keyboard_event_process_key_state_change(self, &event, extra_data, fd);
         const uint32_t modifier_bit = keycode_to_modifier_bit(event.code);
         if(modifier_bit == 0) {
@@ -408,7 +403,8 @@ static int setup_virtual_keyboard_input(const char *name) {
 
     success &= (ioctl(fd, UI_SET_MSCBIT, MSC_SCAN) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
-        success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
+        if(is_key_or_mouse_button(i))
+            success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }
     for(int i = 0; i < REL_MAX; ++i) {
         success &= (ioctl(fd, UI_SET_RELBIT, i) != -1);
