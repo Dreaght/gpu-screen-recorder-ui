@@ -172,7 +172,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         //fprintf(stderr, "fd: %d, type: %d, pressed %d, value: %d\n", fd, event.type, event.code, event.value);
     //}
 
-    if(event.type == EV_KEY && !is_mouse_button(event.code)) {
+    if(event.type == EV_KEY && is_keyboard_key(event.code)) {
         keyboard_event_process_key_state_change(self, &event, extra_data, fd);
         const uint32_t modifier_bit = keycode_to_modifier_bit(event.code);
         if(modifier_bit == 0) {
@@ -271,7 +271,8 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
     if(dev_input_id == -1)
         return false;
 
-    if(self->grab_type == KEYBOARD_GRAB_TYPE_VIRTUAL && !dev_input_is_virtual(dev_input_id))
+    const bool is_virtual_device = dev_input_is_virtual(dev_input_id);
+    if(self->grab_type == KEYBOARD_GRAB_TYPE_VIRTUAL && !is_virtual_device)
         return false;
 
     if(keyboard_event_has_event_with_dev_input_fd(self, dev_input_id))
@@ -287,7 +288,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
 
     unsigned long evbit = 0;
     ioctl(fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
-    const bool is_keyboard = (evbit & (1 << EV_SYN)) && (evbit & (1 << EV_KEY)) && (evbit & (1 << EV_MSC)) && (evbit & (1 << EV_REP));
+    const bool is_keyboard = (evbit & (1 << EV_SYN)) && (evbit & (1 << EV_KEY));
 
     if(is_keyboard && strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0) {
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
@@ -298,7 +299,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         //const bool supports_touch_events    = key_bits[BTN_TOUCH/8]    & (1 << (BTN_TOUCH % 8));
         const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
         const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
-        if(supports_key_events && !supports_joystick_events && !supports_wheel_events) {
+        if(supports_key_events && (is_virtual_device || (!supports_joystick_events && !supports_wheel_events))) {
             unsigned char *key_states = calloc(1, KEY_STATES_SIZE);
             if(key_states && self->num_event_polls < MAX_EVENT_POLLS) {
                 //fprintf(stderr, "%s (%s) supports key inputs\n", dev_input_filepath, device_name);
@@ -315,7 +316,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
                     .num_keys_pressed = 0
                 };
 
-                if(supports_mouse_events) {
+                if(supports_mouse_events || supports_joystick_events || supports_wheel_events) {
                     fprintf(stderr, "Info: device not grabbed yet because it might be a mouse: /dev/input/event%d\n", dev_input_id);
                     fsync(fd);
                     if(ioctl(fd, EVIOCGKEY(KEY_STATES_SIZE), self->event_extra_data[self->num_event_polls].key_states) == -1)
@@ -403,7 +404,7 @@ static int setup_virtual_keyboard_input(const char *name) {
 
     success &= (ioctl(fd, UI_SET_MSCBIT, MSC_SCAN) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
-        if(is_key_or_mouse_button(i))
+        if(is_keyboard_key(i) || is_mouse_button(i))
             success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }
     for(int i = 0; i < REL_MAX; ++i) {
