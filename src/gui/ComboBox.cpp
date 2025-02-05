@@ -26,16 +26,21 @@ namespace gsr {
             return true;
 
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
+            const int padding_top = padding_top_scale * get_theme().window_height;
+            const int padding_bottom = padding_bottom_scale * get_theme().window_height;
+
             const mgl::vec2f mouse_pos = { (float)event.mouse_button.x, (float)event.mouse_button.y };
-            const mgl::vec2f item_size = get_size();
+            mgl::vec2f item_size = get_size();
 
             if(show_dropdown) {
                 for(size_t i = 0; i < items.size(); ++i) {
                     Item &item = items[i];
+                    item_size.y = padding_top + item.text.get_bounds().size.y + padding_bottom;
                     if(mgl::FloatRect(item.position, item_size).contains(mouse_pos)) {
                         const size_t prev_selected_item = selected_item;
                         selected_item = i;
                         show_dropdown = false;
+                        dirty = true;
                         remove_widget_as_selected_in_parent();
 
                         if(selected_item != prev_selected_item && on_selection_changed)
@@ -47,6 +52,7 @@ namespace gsr {
             }
 
             const mgl::vec2f draw_pos = position + offset;
+            item_size = get_size();
             if(mgl::FloatRect(draw_pos, item_size).contains(mouse_pos)) {
                 show_dropdown = !show_dropdown;
                 if(show_dropdown)
@@ -66,9 +72,10 @@ namespace gsr {
         if(!visible)
             return;
 
+        //const mgl::Scissor scissor = window.get_scissor();
         update_if_dirty();
-
         const mgl::vec2f draw_pos = (position + offset).floor();
+        //max_size.x = std::min((scissor.position.x + scissor.size.x) - draw_pos.x, max_size.x);
 
         if(show_dropdown)
             draw_selected(window, draw_pos);
@@ -78,6 +85,8 @@ namespace gsr {
 
     void ComboBox::add_item(const std::string &text, const std::string &id) {
         items.push_back({mgl::Text(text, *font), id, {0.0f, 0.0f}});
+        items.back().text.set_max_width(font->get_character_size() * 22); // TODO: Make a proper solution
+        //items.back().text.set_max_rows(1);
         dirty = true;
     }
 
@@ -87,6 +96,7 @@ namespace gsr {
             if(item.id == id) {
                 const size_t prev_selected_item = selected_item;
                 selected_item = i;
+                dirty = true;
 
                 if(trigger_event && (trigger_event_even_if_selection_not_changed || selected_item != prev_selected_item) && on_selection_changed)
                     on_selection_changed(item.text.get_string(), item.id);
@@ -107,13 +117,13 @@ namespace gsr {
 
     void ComboBox::draw_selected(mgl::Window &window, mgl::vec2f draw_pos) {
         const int padding_top = padding_top_scale * get_theme().window_height;
+        const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
 
-        mgl_scissor scissor;
-        mgl_window_get_scissor(window.internal_window(), &scissor);
+        const mgl::Scissor scissor = window.get_scissor();
         const bool bottom_is_outside_scissor = draw_pos.y + max_size.y > scissor.position.y + scissor.size.y;
 
-        const mgl::vec2f item_size = get_size();
+        mgl::vec2f item_size = get_size();
         mgl::vec2f items_draw_pos = draw_pos + mgl::vec2f(0.0f, item_size.y);
 
         mgl::Rectangle background(draw_pos, item_size.floor());
@@ -137,6 +147,9 @@ namespace gsr {
         const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
 
         for(size_t i = 0; i < items.size(); ++i) {
+            Item &item = items[i];
+            item_size.y = padding_top + item.text.get_bounds().size.y + padding_bottom;
+
             if(!cursor_inside) {
                 cursor_inside = mgl::FloatRect(items_draw_pos, item_size).contains(mouse_pos);
                 if(cursor_inside) {
@@ -146,7 +159,6 @@ namespace gsr {
                 }
             }
 
-            Item &item = items[i];
             item.text.set_position((items_draw_pos + mgl::vec2f(padding_left, padding_top)).floor());
             window.draw(item.text);
 
@@ -160,7 +172,7 @@ namespace gsr {
         const int padding_left = padding_left_scale * get_theme().window_height;
         const int padding_right = padding_right_scale * get_theme().window_height;
 
-        const mgl::vec2f item_size = get_size();
+        mgl::vec2f item_size = get_size();
         mgl::Rectangle background(draw_pos.floor(), item_size.floor());
         background.set_color(mgl::Color(0, 0, 0, 120));
         window.draw(background);
@@ -197,11 +209,12 @@ namespace gsr {
         const int padding_left = padding_left_scale * get_theme().window_height;
         const int padding_right = padding_right_scale * get_theme().window_height;
 
-        max_size = { 0.0f, font->get_character_size() + (float)padding_top + (float)padding_bottom };
+        Item *selected_item_ptr = (selected_item < items.size()) ? &items[selected_item] : nullptr;
+        max_size = { 0.0f, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : 0.0f) };
         for(Item &item : items) {
             const mgl::vec2f bounds = item.text.get_bounds().size;
             max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
-            max_size.y += bounds.y + padding_top + padding_bottom;
+            max_size.y += padding_top + bounds.y + padding_bottom;
         }
 
         if(max_size.x <= 0.001f)
@@ -219,7 +232,8 @@ namespace gsr {
 
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
-        return { max_size.x, font->get_character_size() + (float)padding_top + (float)padding_bottom };
+        Item *selected_item_ptr = (selected_item < items.size()) ? &items[selected_item] : nullptr;
+        return { max_size.x, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : 0.0f) };
     }
 
     float ComboBox::get_dropdown_arrow_height() const {

@@ -89,8 +89,7 @@ namespace gsr {
 
         offset = position + offset;
 
-        mgl_scissor prev_scissor;
-        mgl_window_get_scissor(window.internal_window(), &prev_scissor);
+        const mgl::Scissor prev_scissor = window.get_scissor();
 
         const mgl::vec2f content_size = get_inner_size();
         const mgl_scissor new_scissor = {
@@ -150,7 +149,7 @@ namespace gsr {
         apply_animation();
         limit_scroll(child_height);
 
-        mgl_window_set_scissor(window.internal_window(), &prev_scissor);
+        window.set_scissor(prev_scissor);
 
         double scrollbar_height = 1.0;
         if(child_height > 0.001)

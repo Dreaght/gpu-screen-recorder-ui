@@ -102,15 +102,8 @@ namespace gsr {
     void GsrPage::draw_children(mgl::Window &window, mgl::vec2f position) {
         Widget *selected_widget = selected_child_widget;
 
-        mgl_scissor prev_scissor;
-        mgl_window_get_scissor(window.internal_window(), &prev_scissor);
-
-        const mgl::vec2f inner_size = get_inner_size();
-        const mgl_scissor new_scissor = {
-            mgl_vec2i{(int)position.x, (int)position.y},
-            mgl_vec2i{(int)inner_size.x, (int)inner_size.y}
-        };
-        mgl_window_set_scissor(window.internal_window(), &new_scissor);
+        const mgl::Scissor prev_scissor = window.get_scissor();
+        window.set_scissor({position.to_vec2i(), get_inner_size().to_vec2i()});
 
         for(size_t i = 0; i < widgets.size(); ++i) {
             auto &widget = widgets[i];
@@ -121,7 +114,7 @@ namespace gsr {
         if(selected_widget)
             selected_widget->draw(window, position);
 
-        mgl_window_set_scissor(window.internal_window(), &prev_scissor);
+        window.set_scissor(prev_scissor);
     }
 
     mgl::vec2f GsrPage::get_size() {

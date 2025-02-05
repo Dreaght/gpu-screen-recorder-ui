@@ -65,8 +65,7 @@ namespace gsr {
         if(!visible)
             return;
 
-        mgl_scissor scissor;
-        mgl_window_get_scissor(window.internal_window(), &scissor);
+        const mgl::Scissor scissor = window.get_scissor();
 
         const mgl::vec2f draw_pos = position + offset;
         const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();

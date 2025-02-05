@@ -17,19 +17,11 @@ namespace gsr {
 
         const mgl::vec2f draw_pos = position + offset;
 
-        mgl_scissor prev_scissor;
-        mgl_window_get_scissor(window.internal_window(), &prev_scissor);
-
-        const mgl_scissor new_scissor = {
-            mgl_vec2i{(int)draw_pos.x, (int)draw_pos.y},
-            mgl_vec2i{(int)size.x, (int)size.y}
-        };
-        mgl_window_set_scissor(window.internal_window(), &new_scissor);
-
+        const mgl::Scissor prev_scissor = window.get_scissor();
+        window.set_scissor({draw_pos.to_vec2i(), size.to_vec2i()});
         if(draw_handler)
             draw_handler(window, draw_pos, size);
-
-        mgl_window_set_scissor(window.internal_window(), &prev_scissor);
+        window.set_scissor(prev_scissor);
     }
 
     mgl::vec2f CustomRendererWidget::get_size() {
