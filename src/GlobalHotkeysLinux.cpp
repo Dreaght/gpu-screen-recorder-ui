@@ -91,15 +91,6 @@ namespace gsr {
         if(!user_homepath)
             user_homepath = "/tmp";
 
-        char gsr_global_hotkeys_flatpak[PATH_MAX];
-        snprintf(gsr_global_hotkeys_flatpak, sizeof(gsr_global_hotkeys_flatpak), "%s/.local/share/gpu-screen-recorder/gsr-global-hotkeys", user_homepath);
-
-        const char *display = getenv("DISPLAY");
-        if(!display)
-            display = ":0";
-        char env_arg[256];
-        snprintf(env_arg, sizeof(env_arg), "--env=DISPLAY=%s", display);
-
         if(process_id > 0)
             return false;
 
@@ -136,7 +127,7 @@ namespace gsr {
             }
 
             if(inside_flatpak) {
-                const char *args[] = { "flatpak-spawn", "--host", env_arg, "--", gsr_global_hotkeys_flatpak, grab_type_arg, nullptr };
+                const char *args[] = { "flatpak-spawn", "--host", "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/kms-server-proxy", "launch-gsr-global-hotkeys", user_homepath, grab_type_arg, nullptr };
                 execvp(args[0], (char* const*)args);
             } else {
                 const char *args[] = { "gsr-global-hotkeys", grab_type_arg, nullptr };
