@@ -629,16 +629,24 @@ namespace gsr {
         return container_list;
     }
 
-    std::unique_ptr<Entry> SettingsPage::create_replay_time_entry() {
+    std::unique_ptr<List> SettingsPage::create_replay_time_entry() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
         auto replay_time_entry = std::make_unique<Entry>(&get_theme().body_font, "60", get_theme().body_font.get_character_size() * 3);
-        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(1, 1200);
+        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(1, 10800);
         replay_time_entry_ptr = replay_time_entry.get();
-        return replay_time_entry;
+        list->add_widget(std::move(replay_time_entry));
+
+        auto replay_time_label = std::make_unique<Label>(&get_theme().body_font, "00h:00m:00s", get_color_theme().text_color);
+        replay_time_label_ptr = replay_time_label.get();
+        list->add_widget(std::move(replay_time_label));
+
+        return list;
     }
 
     std::unique_ptr<List> SettingsPage::create_replay_time() {
         auto replay_time_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Replay time in seconds:", get_color_theme().text_color));
+        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Replay duration in seconds:", get_color_theme().text_color));
         replay_time_list->add_widget(create_replay_time_entry());
         return replay_time_list;
     }
@@ -681,9 +689,23 @@ namespace gsr {
         const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
         const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
-        char buffer[512];
-        snprintf(buffer, sizeof(buffer), "Estimated video max file size in RAM: %.2fMB", video_filesize_mb);
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "Estimated video max file size in RAM: %.2fMB.\nChange video bitrate or replay duration to change file size.", video_filesize_mb);
         estimated_file_size_ptr->set_text(buffer);
+    }
+
+    void SettingsPage::update_replay_time_text() {
+        int seconds = atoi(replay_time_entry_ptr->get_text().c_str());
+
+        const int hours = seconds / 60 / 60;
+        seconds -= (hours * 60 * 60);
+
+        const int minutes = seconds / 60;
+        seconds -= (minutes * 60);
+
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "%02dh:%02dm:%02ds", hours, minutes, seconds);
+        replay_time_label_ptr->set_text(buffer);
     }
 
     void SettingsPage::add_replay_widgets() {
@@ -739,6 +761,7 @@ namespace gsr {
 
         replay_time_entry_ptr->on_changed = [this](const std::string&) {
             update_estimated_replay_file_size();
+            update_replay_time_text();
         };
 
         video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
@@ -1081,8 +1104,10 @@ namespace gsr {
         save_directory_button_ptr->set_text(config.replay_config.save_directory);
         container_box_ptr->set_selected_item(config.replay_config.container);
 
-        if(config.replay_config.replay_time < 5)
-            config.replay_config.replay_time = 5;
+        if(config.replay_config.replay_time < 2)
+            config.replay_config.replay_time = 2;
+        if(config.replay_config.replay_time > 10800)
+            config.replay_config.replay_time = 10800;
         replay_time_entry_ptr->set_text(std::to_string(config.replay_config.replay_time));
     }
 

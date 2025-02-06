@@ -93,13 +93,14 @@ namespace gsr {
         std::unique_ptr<List> create_save_directory(const char *label);
         std::unique_ptr<ComboBox> create_container_box();
         std::unique_ptr<List> create_container_section();
-        std::unique_ptr<Entry> create_replay_time_entry();
+        std::unique_ptr<List> create_replay_time_entry();
         std::unique_ptr<List> create_replay_time();
         std::unique_ptr<RadioButton> create_start_replay_automatically();
         std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
         std::unique_ptr<CheckBox> create_restart_replay_on_save();
         std::unique_ptr<Label> create_estimated_replay_file_size();
         void update_estimated_replay_file_size();
+        void update_replay_time_text();
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
         std::unique_ptr<Label> create_estimated_record_file_size();
         void update_estimated_record_file_size();
@@ -186,6 +187,7 @@ namespace gsr {
         Entry *youtube_stream_key_entry_ptr = nullptr;
         Entry *stream_url_entry_ptr = nullptr;
         Entry *replay_time_entry_ptr = nullptr;
+        Label *replay_time_label_ptr = nullptr;
         RadioButton *turn_on_replay_automatically_mode_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
