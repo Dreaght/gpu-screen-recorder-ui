@@ -41,6 +41,7 @@ namespace gsr {
     static const mgl::Color bg_color(0, 0, 0, 100);
     static const double force_window_on_top_timeout_seconds = 1.0;
     static const double replay_status_update_check_timeout_seconds = 1.0;
+    static const double replay_saving_notification_timeout_seconds = 0.5;
 
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
@@ -1484,6 +1485,11 @@ namespace gsr {
     }
 
     void Overlay::update_gsr_replay_save() {
+        if(replay_save_show_notification && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
+            replay_save_show_notification = false;
+            show_notification("Saving replay, this might take some time", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+        }
+
         if(gpu_screen_recorder_process_output_file) {
             char buffer[1024];
             char *replay_saved_filepath = fgets(buffer, sizeof(buffer), gpu_screen_recorder_process_output_file);
@@ -1803,6 +1809,8 @@ namespace gsr {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
             return;
 
+        replay_save_show_notification = true;
+        replay_save_clock.restart();
         kill(gpu_screen_recorder_process, SIGUSR1);
     }
 
@@ -1820,6 +1828,7 @@ namespace gsr {
         }
 
         paused = false;
+        replay_save_show_notification = false;
 
         // window->close();
         // usleep(1000 * 50); // 50 milliseconds

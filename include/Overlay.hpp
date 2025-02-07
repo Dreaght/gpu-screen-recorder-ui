@@ -185,5 +185,8 @@ namespace gsr {
         std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
         Display *x11_mapping_display = nullptr;
         XEvent x11_mapping_xev;
+
+        mgl::Clock replay_save_clock;
+        bool replay_save_show_notification = false;
     };
 }

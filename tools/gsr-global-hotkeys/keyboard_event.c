@@ -523,6 +523,7 @@ void keyboard_event_deinit(keyboard_event *self) {
     self->num_global_hotkeys = 0;
 
     if(self->uinput_fd > 0) {
+        ioctl(self->uinput_fd, UI_DEV_DESTROY);
         close(self->uinput_fd);
         self->uinput_fd = -1;
     }
