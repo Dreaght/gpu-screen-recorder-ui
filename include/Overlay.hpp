@@ -80,6 +80,7 @@ namespace gsr {
 
         void update_notification_process_status();
         void save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type);
+        void on_replay_saved(const char *replay_saved_filepath);
         void update_gsr_replay_save();
         void update_gsr_process_status();
 

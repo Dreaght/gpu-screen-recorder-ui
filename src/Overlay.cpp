@@ -1484,6 +1484,16 @@ namespace gsr {
         show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type);
     }
 
+    void Overlay::on_replay_saved(const char *replay_saved_filepath) {
+        replay_save_show_notification = false;
+        if(config.replay_config.save_video_in_game_folder) {
+            save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
+        } else {
+            const std::string text = "Saved replay to '" + filepath_get_filename(replay_saved_filepath) + "'";
+            show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+        }
+    }
+
     void Overlay::update_gsr_replay_save() {
         if(replay_save_show_notification && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
             replay_save_show_notification = false;
@@ -1500,12 +1510,7 @@ namespace gsr {
             if(replay_saved_filepath[line_len - 1] == '\n')
                 replay_saved_filepath[line_len - 1] = '\0';
 
-            if(config.replay_config.save_video_in_game_folder) {
-                save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
-            } else {
-                const std::string text = "Saved replay to '" + filepath_get_filename(replay_saved_filepath) + "'";
-                show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
-            }
+            on_replay_saved(replay_saved_filepath);
         } else if(gpu_screen_recorder_process_output_fd > 0) {
             char buffer[1024];
             read(gpu_screen_recorder_process_output_fd, buffer, sizeof(buffer));
