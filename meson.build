@@ -39,6 +39,7 @@ src = [
     'src/GlobalHotkeysX11.cpp',
     'src/GlobalHotkeysLinux.cpp',
     'src/GlobalHotkeysJoystick.cpp',
+    'src/AudioPlayer.cpp',
     'src/Hotplug.cpp',
     'src/Rpc.cpp',
     'src/main.cpp',
@@ -65,6 +66,7 @@ executable(
         dependency('xfixes'),
         dependency('xi'),
         dependency('xcursor'),
+        dependency('libpulse-simple'),
     ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )

@@ -27,6 +27,7 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * libxcursor
 * libglvnd (which provides libgl, libglx and libegl)
 * linux-api-headers
+* libpulse (libpulse-simple)
 
 ## Runtime dependencies
 There are also additional dependencies needed at runtime:

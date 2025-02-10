@@ -105,8 +105,7 @@ namespace gsr {
         unsigned int dummy_u;
         mgl::vec2i root_pos;
         XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, window, &root_pos.x, &root_pos.y, &dummy_i, &dummy_i, &dummy_u);
-        if(window)
-            *window = window_get_target_window_child(dpy, *window);
+        *window = window_get_target_window_child(dpy, *window);
         return root_pos;
     }
 
@@ -234,6 +233,44 @@ namespace gsr {
         }
 
         return result;
+    }
+
+    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, Window ignore_window) {
+        std::string result;
+
+        Window root;
+        Window parent;
+        Window *children = nullptr;
+        unsigned int num_children = 0;
+        if(!XQueryTree(dpy, DefaultRootWindow(dpy), &root, &parent, &children, &num_children) || !children)
+            return result;
+
+        for(int i = (int)num_children - 1; i >= 0; --i) {
+            if(children[i] == ignore_window)
+                continue;
+
+            XWindowAttributes attr;
+            memset(&attr, 0, sizeof(attr));
+            XGetWindowAttributes(dpy, children[i], &attr);
+            if(attr.override_redirect || attr.c_class != InputOutput)
+                continue;
+
+            if(position.x >= attr.x && position.x <= attr.x + attr.width && position.y >= attr.y && position.y <= attr.y + attr.height && window_is_user_program(dpy, children[i])) {
+                const std::optional<std::string> window_title = get_window_title(dpy, children[i]);
+                if(window_title)
+                    result = strip(window_title.value());
+                break;
+            }
+        }
+
+        XFree(children);
+        return result;
+    }
+
+    std::string get_window_name_at_cursor_position(Display *dpy, Window ignore_window) {
+        Window cursor_window;
+        const mgl::vec2i cursor_position = get_cursor_position(dpy, &cursor_window);
+        return get_window_name_at_position(dpy, cursor_position, ignore_window);
     }
 
     typedef struct {

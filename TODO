@@ -117,3 +117,6 @@ Instead of installing gsr-global-hotkeys in flatpak use kms-server-proxy to laun
 Check if "modprobe uinput" is needed on some systems (old fedora?).
 
 Add recording timer to see duration of recording/streaming.
+
+Saving video into a folder with the name of the game doesn't always work on wayland. This happens when trying to save a video with the ui open and the ui opens without override redirect.
+    Maybe a solution would be to query all windows (top to bottom) and check which window the cursor is inside, ignoring the gsr-ui window

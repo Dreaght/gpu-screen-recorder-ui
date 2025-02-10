@@ -8,6 +8,7 @@
 #include "WindowUtils.hpp"
 #include "GlobalHotkeysLinux.hpp"
 #include "GlobalHotkeysJoystick.hpp"
+#include "AudioPlayer.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -189,5 +190,7 @@ namespace gsr {
 
         mgl::Clock replay_save_clock;
         bool replay_save_show_notification = false;
+
+        AudioPlayer audio_player;
     };
 }
