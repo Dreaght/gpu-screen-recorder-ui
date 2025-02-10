@@ -118,5 +118,4 @@ Check if "modprobe uinput" is needed on some systems (old fedora?).
 
 Add recording timer to see duration of recording/streaming.
 
-Saving video into a folder with the name of the game doesn't always work on wayland. This happens when trying to save a video with the ui open and the ui opens without override redirect.
-    Maybe a solution would be to query all windows (top to bottom) and check which window the cursor is inside, ignoring the gsr-ui window
+Make folder with window name work when using gamescope. Gamescope runs x11 itself so to get the window name inside that we have to connect to the gamescope X11 server (DISPLAY=:1 on x11 and DISPLAY=:2 on wayland, but not always).

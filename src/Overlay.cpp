@@ -1453,6 +1453,8 @@ namespace gsr {
         const Window gsr_ui_window = window ? window->get_system_handle() : None;
         std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
         if(focused_window_name.empty())
+            focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED);
+        if(focused_window_name.empty())
             focused_window_name = "Game";
 
         string_replace_characters(focused_window_name.data(), "/\\", '_');

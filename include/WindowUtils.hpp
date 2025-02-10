@@ -3,6 +3,7 @@
 #include <mglpp/system/vec.hpp>
 #include <string>
 #include <vector>
+#include <optional>
 #include <X11/Xlib.h>
 
 namespace gsr {
@@ -16,6 +17,7 @@ namespace gsr {
         mgl::vec2i size;
     };
 
+    std::optional<std::string> get_window_title(Display *dpy, Window window);
     Window get_focused_window(Display *dpy, WindowCaptureType cap_type);
     std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type);
     std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, Window ignore_window);

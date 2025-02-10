@@ -16,8 +16,6 @@ extern "C" {
 #include <string.h>
 #include <poll.h>
 
-#include <optional>
-
 #define MAX_PROPERTY_VALUE_LEN 4096
 
 namespace gsr {
@@ -105,7 +103,17 @@ namespace gsr {
         unsigned int dummy_u;
         mgl::vec2i root_pos;
         XQueryPointer(dpy, DefaultRootWindow(dpy), &root_window, window, &root_pos.x, &root_pos.y, &dummy_i, &dummy_i, &dummy_u);
+
+        const Window direct_window = *window;
         *window = window_get_target_window_child(dpy, *window);
+        // HACK: Count some other x11 windows as having an x11 window focused. Some games seem to create an Input window and that gets focused.
+        if(!*window) {
+            XWindowAttributes attr;
+            memset(&attr, 0, sizeof(attr));
+            XGetWindowAttributes(dpy, direct_window, &attr);
+            if(attr.c_class == InputOnly && !get_window_title(dpy, direct_window))
+                *window = direct_window;
+        }
         return root_pos;
     }
 
@@ -162,7 +170,7 @@ namespace gsr {
         return result;
     }
 
-    static std::optional<std::string> get_window_title(Display *dpy, Window window) {
+    std::optional<std::string> get_window_title(Display *dpy, Window window) {
         const Atom net_wm_name_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
         const Atom wm_name_atom = XInternAtom(dpy, "WM_NAME", False);
         const Atom utf8_string_atom = XInternAtom(dpy, "UTF8_STRING", False);
@@ -252,13 +260,18 @@ namespace gsr {
             XWindowAttributes attr;
             memset(&attr, 0, sizeof(attr));
             XGetWindowAttributes(dpy, children[i], &attr);
-            if(attr.override_redirect || attr.c_class != InputOutput)
+            if(attr.override_redirect || attr.c_class != InputOutput || attr.map_state != IsViewable)
                 continue;
 
-            if(position.x >= attr.x && position.x <= attr.x + attr.width && position.y >= attr.y && position.y <= attr.y + attr.height && window_is_user_program(dpy, children[i])) {
-                const std::optional<std::string> window_title = get_window_title(dpy, children[i]);
+            if(position.x >= attr.x && position.x <= attr.x + attr.width && position.y >= attr.y && position.y <= attr.y + attr.height) {
+                const Window real_window = window_get_target_window_child(dpy, children[i]);
+                if(!real_window || real_window == ignore_window)
+                    continue;
+
+                const std::optional<std::string> window_title = get_window_title(dpy, real_window);
                 if(window_title)
                     result = strip(window_title.value());
+
                 break;
             }
         }
