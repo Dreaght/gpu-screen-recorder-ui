@@ -33,11 +33,10 @@ namespace gsr {
             return false;
 
         thread = std::thread([this]() {
-            const pa_sample_spec ss = {
-                .format = PA_SAMPLE_S16LE,
-                .rate = 48000,
-                .channels = 2
-            };
+            pa_sample_spec ss;
+            ss.format = PA_SAMPLE_S16LE;
+            ss.rate = 48000;
+            ss.channels = 2;
 
             pa_simple *s = NULL;
             int error;

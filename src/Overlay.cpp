@@ -229,15 +229,6 @@ namespace gsr {
         return is_fullscreen;
     }
 
-    static void set_focused_window(Display *dpy, Window window) {
-        XSetInputFocus(dpy, window, RevertToPointerRoot, CurrentTime);
-
-        const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-        XChangeProperty(dpy, DefaultRootWindow(dpy), net_active_window_atom, XA_WINDOW, 32, PropModeReplace, (const unsigned char*)&window, 1);
-
-        XFlush(dpy);
-    }
-
     #define _NET_WM_STATE_REMOVE  0
     #define _NET_WM_STATE_ADD     1
     #define _NET_WM_STATE_TOGGLE  2
@@ -1170,11 +1161,6 @@ namespace gsr {
         // We want to grab all devices to prevent any other application below the UI from receiving events.
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
         xi_grab_all_mouse_devices();
-
-        // if(gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
-        //     set_focused_window(display, window->get_system_handle());
-        //     XFlush(display);
-        // }
 
         if(!is_wlroots)
             window->set_fullscreen(true);

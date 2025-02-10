@@ -171,6 +171,7 @@ namespace gsr {
     }
 
     std::optional<std::string> get_window_title(Display *dpy, Window window) {
+        std::optional<std::string> result;
         const Atom net_wm_name_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
         const Atom wm_name_atom = XInternAtom(dpy, "WM_NAME", False);
         const Atom utf8_string_atom = XInternAtom(dpy, "UTF8_STRING", False);
@@ -182,8 +183,13 @@ namespace gsr {
         unsigned char *data = NULL;
         XGetWindowProperty(dpy, window, net_wm_name_atom, 0, 1024, False, utf8_string_atom, &type, &format, &num_items, &bytes_left, &data);
 
-        if(type == utf8_string_atom && format == 8 && data)
-            return utf8_sanitize(data, num_items);
+        if(type == utf8_string_atom && format == 8 && data) {
+            result = utf8_sanitize(data, num_items);
+            goto done;
+        }
+
+        if(data)
+            XFree(data);
 
         type = None;
         format = 0;
@@ -192,10 +198,15 @@ namespace gsr {
         data = NULL;
         XGetWindowProperty(dpy, window, wm_name_atom, 0, 1024, False, 0, &type, &format, &num_items, &bytes_left, &data);
 
-        if((type == XA_STRING || type == utf8_string_atom) && data)
-            return utf8_sanitize(data, num_items);
+        if((type == XA_STRING || type == utf8_string_atom) && data) {
+            result = utf8_sanitize(data, num_items);
+            goto done;
+        }
 
-        return std::nullopt;
+        done:
+        if(data)
+            XFree(data);
+        return result;
     }
 
     static std::string strip(const std::string &str) {
