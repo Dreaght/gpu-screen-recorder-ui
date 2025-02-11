@@ -119,3 +119,5 @@ Check if "modprobe uinput" is needed on some systems (old fedora?).
 Add recording timer to see duration of recording/streaming.
 
 Make folder with window name work when using gamescope. Gamescope runs x11 itself so to get the window name inside that we have to connect to the gamescope X11 server (DISPLAY=:1 on x11 and DISPLAY=:2 on wayland, but not always).
+
+When clicking on current directory in file manager show a dropdown menu where you can select common directories (HOME, Videos, Downloads and mounted drives) for quick navigation. Maybe even button to search.

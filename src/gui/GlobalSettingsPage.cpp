@@ -171,7 +171,7 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_appearance_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Tint color", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Accent color", get_color_theme().text_color));
         auto tint_color_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
         tint_color_radio_button_ptr = tint_color_radio_button.get();
         tint_color_radio_button->add_item("Red", "amd");
