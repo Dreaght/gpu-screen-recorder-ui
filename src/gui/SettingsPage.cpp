@@ -8,11 +8,6 @@
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Utils.hpp"
 
-#include <mglpp/graphics/Rectangle.hpp>
-#include <mglpp/graphics/Sprite.hpp>
-#include <mglpp/graphics/Text.hpp>
-#include <mglpp/window/Window.hpp>
-
 #include <string.h>
 
 namespace gsr {
@@ -21,6 +16,15 @@ namespace gsr {
         APPLICATION,
         APPLICATION_CUSTOM
     };
+
+    static const char* settings_page_type_to_title_text(SettingsPage::Type type) {
+        switch(type) {
+            case SettingsPage::Type::REPLAY: return "Instant Replay";
+            case SettingsPage::Type::RECORD: return "Record";
+            case SettingsPage::Type::STREAM: return "Livestream";
+        }
+        return "";
+    }
 
     SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
@@ -33,7 +37,7 @@ namespace gsr {
         application_audio = get_application_audio();
         capture_options = get_supported_capture_options(*gsr_info);
 
-        auto content_page = std::make_unique<GsrPage>();
+        auto content_page = std::make_unique<GsrPage>(settings_page_type_to_title_text(type), "Settings");
         content_page->add_button("Back", "back", get_color_theme().page_bg_color);
         content_page->on_click = [page_stack](const std::string &id) {
             if(id == "back")
@@ -171,7 +175,7 @@ namespace gsr {
         return checkbox;
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_capture_target() {
+    std::unique_ptr<Widget> SettingsPage::create_capture_target_section() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
 
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
@@ -512,7 +516,7 @@ namespace gsr {
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
-        settings_list->add_widget(create_capture_target());
+        settings_list->add_widget(create_capture_target_section());
         settings_list->add_widget(create_audio_section());
         settings_list->add_widget(create_video_section());
         settings_list_ptr = settings_list.get();
@@ -589,7 +593,7 @@ namespace gsr {
         auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
-            auto select_directory_page = std::make_unique<GsrPage>();
+            auto select_directory_page = std::make_unique<GsrPage>("File", "Settings");
             select_directory_page->add_button("Save", "save", get_color_theme().tint_color);
             select_directory_page->add_button("Cancel", "cancel", get_color_theme().page_bg_color);
             
@@ -801,9 +805,7 @@ namespace gsr {
         file_info_list->add_widget(create_estimated_record_file_size());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_save_recording_in_game_folder());
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", create_save_recording_in_game_folder(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
 

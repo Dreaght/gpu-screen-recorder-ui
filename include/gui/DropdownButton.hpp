@@ -20,6 +20,7 @@ namespace gsr {
         void add_item(const std::string &text, const std::string &id, const std::string &description = "");
         void set_item_label(const std::string &id, const std::string &new_label);
         void set_item_icon(const std::string &id, mgl::Texture *texture);
+        void set_item_description(const std::string &id, const std::string &new_description);
 
         void set_description(std::string description_text);
         void set_activated(bool activated);

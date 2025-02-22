@@ -156,7 +156,7 @@ namespace gsr {
         std::string result;
         for(int i = 0; i < size;) {
             // Some games such as the finals has utf8-bom between each character, wtf?
-            if(i + 3 < size && memcmp(str + i, "\xEF\xBB\xBF", 3) == 0) {
+            if(i + 3 <= size && memcmp(str + i, "\xEF\xBB\xBF", 3) == 0) {
                 i += 3;
                 continue;
             }
@@ -246,10 +246,14 @@ namespace gsr {
 
         XClassHint class_hint = {nullptr, nullptr};
         XGetClassHint(dpy, focused_window, &class_hint);
-        if(class_hint.res_class) {
+        if(class_hint.res_class)
             result = strip(class_hint.res_class);
-            return result;
-        }
+
+        if(class_hint.res_name)
+            XFree(class_hint.res_name);
+
+        if(class_hint.res_class)
+            XFree(class_hint.res_class);
 
         return result;
     }

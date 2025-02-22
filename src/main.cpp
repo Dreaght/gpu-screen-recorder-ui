@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <string.h>
 #include <limits.h>
+#include <malloc.h>
 
 #include <mglpp/mglpp.hpp>
 #include <mglpp/system/Clock.hpp>
@@ -71,6 +72,11 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
     rpc->add_handler("replay-save", [overlay](const std::string &name) {
         fprintf(stderr, "rpc command executed: %s\n", name.c_str());
         overlay->save_replay();
+    });
+
+    rpc->add_handler("take-screenshot", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->take_screenshot();
     });
 }
 
@@ -150,6 +156,7 @@ enum class LaunchAction {
 
 int main(int argc, char **argv) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
+    mallopt(M_MMAP_THRESHOLD, 65536);
 
     if(geteuid() == 0) {
         fprintf(stderr, "Error: don't run gsr-ui as the root user\n");

@@ -108,6 +108,9 @@ namespace gsr {
         if(!theme->save_texture.load_from_file((resources_path + "images/save.png").c_str()))
             goto error;
 
+        if(!theme->screenshot_texture.load_from_file((resources_path + "images/screenshot.png").c_str()))
+            goto error;
+
         return true;
 
         error:

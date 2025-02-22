@@ -25,6 +25,7 @@ namespace gsr {
         RECORD_START_STOP,
         RECORD_PAUSE_UNPAUSE,
         STREAM_START_STOP,
+        TAKE_SCREENSHOT,
         SHOW_HIDE
     };
 
@@ -44,6 +45,7 @@ namespace gsr {
         std::function<void(const char *reason)> on_click_exit_program_button;
         std::function<void(const char *hotkey_option)> on_keyboard_hotkey_changed;
         std::function<void(const char *hotkey_option)> on_joystick_hotkey_changed;
+        std::function<void()> on_page_closed;
     private:
         void load_hotkeys();
 
@@ -55,6 +57,7 @@ namespace gsr {
         std::unique_ptr<List> create_replay_hotkey_options();
         std::unique_ptr<List> create_record_hotkey_options();
         std::unique_ptr<List> create_stream_hotkey_options();
+        std::unique_ptr<List> create_screenshot_hotkey_options();
         std::unique_ptr<List> create_hotkey_control_buttons();
         std::unique_ptr<Subsection> create_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Button> create_exit_program_button();
@@ -86,6 +89,7 @@ namespace gsr {
         Button *start_stop_recording_button_ptr = nullptr;
         Button *pause_unpause_recording_button_ptr = nullptr;
         Button *start_stop_streaming_button_ptr = nullptr;
+        Button *take_screenshot_button_ptr = nullptr;
         Button *show_hide_button_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;

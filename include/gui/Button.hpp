@@ -30,6 +30,7 @@ namespace gsr {
         std::function<void()> on_click;
     private:
         void scale_sprite_to_button_size();
+        float get_button_height();
     private:
         mgl::vec2f size;
         mgl::Color bg_color;

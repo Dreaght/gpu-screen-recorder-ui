@@ -7,10 +7,10 @@
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/CustomRendererWidget.hpp"
 #include "../include/gui/SettingsPage.hpp"
+#include "../include/gui/ScreenshotSettingsPage.hpp"
 #include "../include/gui/GlobalSettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/gui/PageStack.hpp"
-#include "../include/gui/GsrPage.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys.hpp"
 
@@ -20,6 +20,7 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <malloc.h>
 #include <stdexcept>
 
 #include <X11/Xlib.h>
@@ -377,6 +378,13 @@ namespace gsr {
                 fprintf(stderr, "pressed %s\n", id.c_str());
                 overlay->save_replay();
             });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().screenshot_config.take_screenshot_hotkey),
+            "take_screenshot", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->take_screenshot();
+            });
     }
 
     static std::unique_ptr<GlobalHotkeysLinux> register_linux_hotkeys(Overlay *overlay, GlobalHotkeysLinux::GrabType grab_type) {
@@ -468,6 +476,16 @@ namespace gsr {
                 /* Ignore... */
             }
             gpu_screen_recorder_process = -1;
+        }
+
+        if(gpu_screen_recorder_screenshot_process > 0) {
+            kill(gpu_screen_recorder_screenshot_process, SIGINT);
+            int status;
+            if(waitpid(gpu_screen_recorder_screenshot_process, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+            gpu_screen_recorder_screenshot_process = -1;
         }
 
         close_gpu_screen_recorder_output();
@@ -674,6 +692,7 @@ namespace gsr {
         update_notification_process_status();
         update_gsr_replay_save();
         update_gsr_process_status();
+        update_gsr_screenshot_process_status();
         replay_status_update_status();
 
         if(!visible)
@@ -939,197 +958,7 @@ namespace gsr {
 
         update_compositor_texture(*focused_monitor);
 
-        bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
-        top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
-        top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
-        logo_sprite = mgl::Sprite(&get_theme().logo_texture);
-        close_button_widget.set_size(mgl::vec2f(top_bar_background.get_size().y * 0.35f, top_bar_background.get_size().y * 0.35f).floor());
-
-        bg_screenshot_overlay.set_color(bg_color);
-        top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
-        //top_bar_text.set_color(get_color_theme().tint_color);
-        top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
-
-        logo_sprite.set_height((int)(top_bar_background.get_size().y * 0.65f));
-        logo_sprite.set_position(mgl::vec2f(
-            (top_bar_background.get_size().y - logo_sprite.get_size().y) * 0.5f,
-            top_bar_background.get_size().y * 0.5f - logo_sprite.get_size().y * 0.5f
-        ).floor());
-
-        close_button_widget.set_position(mgl::vec2f(get_theme().window_width - close_button_widget.get_size().x - logo_sprite.get_position().x, top_bar_background.get_size().y * 0.5f - close_button_widget.get_size().y * 0.5f).floor());
-
-        while(!page_stack.empty()) {
-            page_stack.pop();
-        }
-
-        auto front_page = std::make_unique<StaticPage>(window_size.to_vec2f());
-        StaticPage *front_page_ptr = front_page.get();
-        page_stack.push(std::move(front_page));
-
-        const int button_height = window_size.y / 5.0f;
-        const int button_width = button_height;
-
-        auto main_buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        List * main_buttons_list_ptr = main_buttons_list.get();
-        main_buttons_list->set_spacing(0.0f);
-        {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "Off", &get_theme().replay_button_texture,
-                mgl::vec2f(button_width, button_height));
-            replay_dropdown_button_ptr = button.get();
-            button->add_item("Turn on", "start", "Alt+Shift+F10");
-            button->add_item("Save", "save", "Alt+F10");
-            button->add_item("Settings", "settings");
-            button->set_item_icon("start", &get_theme().play_texture);
-            button->set_item_icon("save", &get_theme().save_texture);
-            button->set_item_icon("settings", &get_theme().settings_small_texture);
-            button->on_click = [this](const std::string &id) {
-                if(id == "settings") {
-                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
-                    replay_settings_page->on_config_changed = [this]() {
-                        if(recording_status == RecordingStatus::REPLAY)
-                            show_notification("Replay settings have been modified.\nYou may need to restart replay to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
-                    };
-                    page_stack.push(std::move(replay_settings_page));
-                } else if(id == "save") {
-                    on_press_save_replay();
-                } else if(id == "start") {
-                    on_press_start_replay(false);
-                }
-            };
-            main_buttons_list->add_widget(std::move(button));
-        }
-        {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Record", "Not recording", &get_theme().record_button_texture,
-                mgl::vec2f(button_width, button_height));
-            record_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start", "Alt+F9");
-            button->add_item("Pause", "pause", "Alt+F7");
-            button->add_item("Settings", "settings");
-            button->set_item_icon("start", &get_theme().play_texture);
-            button->set_item_icon("pause", &get_theme().pause_texture);
-            button->set_item_icon("settings", &get_theme().settings_small_texture);
-            button->on_click = [this](const std::string &id) {
-                if(id == "settings") {
-                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack);
-                    record_settings_page->on_config_changed = [this]() {
-                        if(recording_status == RecordingStatus::RECORD)
-                            show_notification("Recording settings have been modified.\nYou may need to restart recording to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
-                    };
-                    page_stack.push(std::move(record_settings_page));
-                } else if(id == "pause") {
-                    toggle_pause();
-                } else if(id == "start") {
-                    on_press_start_record();
-                }
-            };
-            main_buttons_list->add_widget(std::move(button));
-        }
-        {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Livestream", "Not streaming", &get_theme().stream_button_texture,
-                mgl::vec2f(button_width, button_height));
-            stream_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start", "Alt+F8");
-            button->add_item("Settings", "settings");
-            button->set_item_icon("start", &get_theme().play_texture);
-            button->set_item_icon("settings", &get_theme().settings_small_texture);
-            button->on_click = [this](const std::string &id) {
-                if(id == "settings") {
-                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack);
-                    stream_settings_page->on_config_changed = [this]() {
-                        if(recording_status == RecordingStatus::STREAM)
-                            show_notification("Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
-                    };
-                    page_stack.push(std::move(stream_settings_page));
-                } else if(id == "start") {
-                    on_press_start_stream();
-                }
-            };
-            main_buttons_list->add_widget(std::move(button));
-        }
-
-        const mgl::vec2f main_buttons_list_size = main_buttons_list->get_size();
-        main_buttons_list->set_position((mgl::vec2f(window_size.x * 0.5f, window_size.y * 0.25f) - main_buttons_list_size * 0.5f).floor());
-        front_page_ptr->add_widget(std::move(main_buttons_list));
-
-        {
-            const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
-            const int settings_button_size = main_buttons_size.y * 0.2f;
-            auto button = std::make_unique<Button>(&get_theme().title_font, "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
-            button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
-            button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
-            button->set_icon(&get_theme().settings_small_texture);
-            button->on_click = [&]() {
-                auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
-
-                settings_page->on_startup_changed = [&](bool enable, int exit_status) {
-                    if(exit_status == 0)
-                        return;
-
-                    if(exit_status == 127) {
-                        if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
-                    } else {
-                        if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
-                        else
-                            show_notification("Failed to remove GPU Screen Recorder from system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
-                    }
-                };
-
-                settings_page->on_click_exit_program_button = [this](const char *reason) {
-                    do_exit = true;
-                    exit_reason = reason;
-                };
-
-                settings_page->on_keyboard_hotkey_changed = [this](const char *hotkey_option) {
-                    global_hotkeys.reset();
-                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
-                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
-                    else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
-                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
-                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
-                        global_hotkeys.reset();
-                };
-
-                settings_page->on_joystick_hotkey_changed = [this](const char *hotkey_option) {
-                    global_hotkeys_js.reset();
-                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
-                        global_hotkeys_js = register_joystick_hotkeys(this);
-                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
-                        global_hotkeys_js.reset();
-                };
-
-                page_stack.push(std::move(settings_page));
-            };
-            front_page_ptr->add_widget(std::move(button));
-        }
-
-        close_button_widget.draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
-            const int border_size = std::max(1.0f, 0.0015f * get_theme().window_height);
-            const float padding_size = std::max(1.0f, 0.003f * get_theme().window_height);
-            const mgl::vec2f padding(padding_size, padding_size);
-            if(mgl::FloatRect(pos, size).contains(window.get_mouse_position().to_vec2f()))
-                draw_rectangle_outline(window, pos.floor(), size.floor(), get_color_theme().tint_color, border_size);
-
-            mgl::Sprite close_sprite(&get_theme().close_texture);
-            close_sprite.set_position(pos + padding);
-            close_sprite.set_size(size - padding * 2.0f);
-            window.draw(close_sprite);
-        };
-
-        close_button_widget.event_handler = [&](mgl::Event &event, mgl::Window&, mgl::vec2f pos, mgl::vec2f size) {
-            if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
-                close_button_pressed_inside = mgl::FloatRect(pos, size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y));
-            } else if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && close_button_pressed_inside) {
-                if(mgl::FloatRect(pos, size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
-                    while(!page_stack.empty()) {
-                        page_stack.pop();
-                    }
-                    return false;
-                }
-            }
-            return true;
-        };
+        create_frontpage_ui_components();
 
         // The focused application can be an xwayland application but the cursor can hover over a wayland application.
         // This is even the case when hovering over the titlebar of the xwayland application.
@@ -1191,6 +1020,234 @@ namespace gsr {
         show_overlay_timeout_seconds = prevent_game_minimizing ? 0.0 : 0.15;
         show_overlay_clock.restart();
         draw();
+    }
+
+    void Overlay::create_frontpage_ui_components() {
+        bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
+        top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
+        top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
+        logo_sprite = mgl::Sprite(&get_theme().logo_texture);
+        close_button_widget.set_size(mgl::vec2f(top_bar_background.get_size().y * 0.35f, top_bar_background.get_size().y * 0.35f).floor());
+
+        bg_screenshot_overlay.set_color(bg_color);
+        top_bar_background.set_color(mgl::Color(0, 0, 0, 180));
+        //top_bar_text.set_color(get_color_theme().tint_color);
+        top_bar_text.set_position((top_bar_background.get_position() + top_bar_background.get_size()*0.5f - top_bar_text.get_bounds().size*0.5f).floor());
+
+        logo_sprite.set_height((int)(top_bar_background.get_size().y * 0.65f));
+        logo_sprite.set_position(mgl::vec2f(
+            (top_bar_background.get_size().y - logo_sprite.get_size().y) * 0.5f,
+            top_bar_background.get_size().y * 0.5f - logo_sprite.get_size().y * 0.5f
+        ).floor());
+
+        close_button_widget.set_position(mgl::vec2f(get_theme().window_width - close_button_widget.get_size().x - logo_sprite.get_position().x, top_bar_background.get_size().y * 0.5f - close_button_widget.get_size().y * 0.5f).floor());
+
+        while(!page_stack.empty()) {
+            page_stack.pop();
+        }
+
+        auto front_page = std::make_unique<StaticPage>(window_size.to_vec2f());
+        StaticPage *front_page_ptr = front_page.get();
+        page_stack.push(std::move(front_page));
+
+        const int button_height = window_size.y / 5.0f;
+        const int button_width = button_height;
+
+        auto main_buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        List * main_buttons_list_ptr = main_buttons_list.get();
+        main_buttons_list->set_spacing(0.0f);
+        {
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "Off", &get_theme().replay_button_texture,
+                mgl::vec2f(button_width, button_height));
+            replay_dropdown_button_ptr = button.get();
+            button->add_item("Turn on", "start", config.replay_config.start_stop_hotkey.to_string(false, false));
+            button->add_item("Save", "save", config.replay_config.save_hotkey.to_string(false, false));
+            button->add_item("Settings", "settings");
+            button->set_item_icon("start", &get_theme().play_texture);
+            button->set_item_icon("save", &get_theme().save_texture);
+            button->set_item_icon("settings", &get_theme().settings_small_texture);
+            button->on_click = [this](const std::string &id) {
+                if(id == "settings") {
+                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
+                    replay_settings_page->on_config_changed = [this]() {
+                        if(recording_status == RecordingStatus::REPLAY)
+                            show_notification("Replay settings have been modified.\nYou may need to restart replay to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                    };
+                    page_stack.push(std::move(replay_settings_page));
+                } else if(id == "save") {
+                    on_press_save_replay();
+                } else if(id == "start") {
+                    on_press_start_replay(false);
+                }
+            };
+            main_buttons_list->add_widget(std::move(button));
+        }
+        {
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Record", "Not recording", &get_theme().record_button_texture,
+                mgl::vec2f(button_width, button_height));
+            record_dropdown_button_ptr = button.get();
+            button->add_item("Start", "start", config.record_config.start_stop_hotkey.to_string(false, false));
+            button->add_item("Pause", "pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
+            button->add_item("Settings", "settings");
+            button->set_item_icon("start", &get_theme().play_texture);
+            button->set_item_icon("pause", &get_theme().pause_texture);
+            button->set_item_icon("settings", &get_theme().settings_small_texture);
+            button->on_click = [this](const std::string &id) {
+                if(id == "settings") {
+                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack);
+                    record_settings_page->on_config_changed = [this]() {
+                        if(recording_status == RecordingStatus::RECORD)
+                            show_notification("Recording settings have been modified.\nYou may need to restart recording to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                    };
+                    page_stack.push(std::move(record_settings_page));
+                } else if(id == "pause") {
+                    toggle_pause();
+                } else if(id == "start") {
+                    on_press_start_record();
+                }
+            };
+            main_buttons_list->add_widget(std::move(button));
+        }
+        {
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Livestream", "Not streaming", &get_theme().stream_button_texture,
+                mgl::vec2f(button_width, button_height));
+            stream_dropdown_button_ptr = button.get();
+            button->add_item("Start", "start", config.streaming_config.start_stop_hotkey.to_string(false, false));
+            button->add_item("Settings", "settings");
+            button->set_item_icon("start", &get_theme().play_texture);
+            button->set_item_icon("settings", &get_theme().settings_small_texture);
+            button->on_click = [this](const std::string &id) {
+                if(id == "settings") {
+                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack);
+                    stream_settings_page->on_config_changed = [this]() {
+                        if(recording_status == RecordingStatus::STREAM)
+                            show_notification("Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                    };
+                    page_stack.push(std::move(stream_settings_page));
+                } else if(id == "start") {
+                    on_press_start_stream();
+                }
+            };
+            main_buttons_list->add_widget(std::move(button));
+        }
+
+        const mgl::vec2f main_buttons_list_size = main_buttons_list->get_size();
+        main_buttons_list->set_position((mgl::vec2f(window_size.x * 0.5f, window_size.y * 0.25f) - main_buttons_list_size * 0.5f).floor());
+        front_page_ptr->add_widget(std::move(main_buttons_list));
+
+        {
+            const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
+            const int settings_button_size = main_buttons_size.y * 0.33f;
+            auto button = std::make_unique<Button>(&get_theme().title_font, "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
+            button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
+            button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
+            button->set_icon(&get_theme().settings_small_texture);
+            button->on_click = [&]() {
+                auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
+
+                settings_page->on_startup_changed = [&](bool enable, int exit_status) {
+                    if(exit_status == 0)
+                        return;
+
+                    if(exit_status == 127) {
+                        if(enable)
+                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                    } else {
+                        if(enable)
+                            show_notification("Failed to add GPU Screen Recorder to system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                        else
+                            show_notification("Failed to remove GPU Screen Recorder from system startup", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                    }
+                };
+
+                settings_page->on_click_exit_program_button = [this](const char *reason) {
+                    do_exit = true;
+                    exit_reason = reason;
+                };
+
+                settings_page->on_keyboard_hotkey_changed = [this](const char *hotkey_option) {
+                    global_hotkeys.reset();
+                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
+                    else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
+                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+                        global_hotkeys.reset();
+                };
+
+                settings_page->on_joystick_hotkey_changed = [this](const char *hotkey_option) {
+                    global_hotkeys_js.reset();
+                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+                        global_hotkeys_js = register_joystick_hotkeys(this);
+                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+                        global_hotkeys_js.reset();
+                };
+
+                settings_page->on_page_closed = [this]() {
+                    if(global_hotkeys) {
+                        replay_dropdown_button_ptr->set_item_description("start", config.replay_config.start_stop_hotkey.to_string(false, false));
+                        replay_dropdown_button_ptr->set_item_description("save", config.replay_config.save_hotkey.to_string(false, false));
+
+                        record_dropdown_button_ptr->set_item_description("start", config.record_config.start_stop_hotkey.to_string(false, false));
+                        record_dropdown_button_ptr->set_item_description("pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
+
+                        stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
+                    } else {
+                        replay_dropdown_button_ptr->set_item_description("start", "");
+                        replay_dropdown_button_ptr->set_item_description("save", "");
+
+                        record_dropdown_button_ptr->set_item_description("start", "");
+                        record_dropdown_button_ptr->set_item_description("pause", "");
+
+                        stream_dropdown_button_ptr->set_item_description("start", "");
+                    }
+                };
+
+                page_stack.push(std::move(settings_page));
+            };
+            front_page_ptr->add_widget(std::move(button));
+        }
+
+        {
+            const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
+            const int settings_button_size = main_buttons_size.y * 0.33f;
+            auto button = std::make_unique<Button>(&get_theme().title_font, "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
+            button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size*2) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
+            button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
+            button->set_icon(&get_theme().screenshot_texture);
+            button->on_click = [&]() {
+                auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack);
+                page_stack.push(std::move(screenshot_settings_page));
+            };
+            front_page_ptr->add_widget(std::move(button));
+        }
+
+        close_button_widget.draw_handler = [&](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+            const int border_size = std::max(1.0f, 0.0015f * get_theme().window_height);
+            const float padding_size = std::max(1.0f, 0.003f * get_theme().window_height);
+            const mgl::vec2f padding(padding_size, padding_size);
+            if(mgl::FloatRect(pos, size).contains(window.get_mouse_position().to_vec2f()))
+                draw_rectangle_outline(window, pos.floor(), size.floor(), get_color_theme().tint_color, border_size);
+
+            mgl::Sprite close_sprite(&get_theme().close_texture);
+            close_sprite.set_position(pos + padding);
+            close_sprite.set_size(size - padding * 2.0f);
+            window.draw(close_sprite);
+        };
+
+        close_button_widget.event_handler = [&](mgl::Event &event, mgl::Window&, mgl::vec2f pos, mgl::vec2f size) {
+            if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
+                close_button_pressed_inside = mgl::FloatRect(pos, size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y));
+            } else if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && close_button_pressed_inside) {
+                if(mgl::FloatRect(pos, size).contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
+                    while(!page_stack.empty()) {
+                        page_stack.pop();
+                    }
+                    return false;
+                }
+            }
+            return true;
+        };
     }
 
     void Overlay::hide() {
@@ -1269,6 +1326,7 @@ namespace gsr {
         }
 
         deinit_theme();
+        malloc_trim(0);
     }
 
     void Overlay::toggle_show() {
@@ -1316,12 +1374,17 @@ namespace gsr {
         on_press_save_replay();
     }
 
+    void Overlay::take_screenshot() {
+        on_press_take_screenshot();
+    }
+
     static const char* notification_type_to_string(NotificationType notification_type) {
         switch(notification_type) {
-            case NotificationType::NONE:   return nullptr;
-            case NotificationType::RECORD: return "record";
-            case NotificationType::REPLAY: return "replay";
-            case NotificationType::STREAM: return "stream";
+            case NotificationType::NONE:       return nullptr;
+            case NotificationType::RECORD:     return "record";
+            case NotificationType::REPLAY:     return "replay";
+            case NotificationType::STREAM:     return "stream";
+            case NotificationType::SCREENSHOT: return "screenshot";
         }
         return nullptr;
     }
@@ -1466,6 +1529,12 @@ namespace gsr {
                 text = "Saved replay to '" + focused_window_name + "/" + video_filename + "'";
                 break;
             }
+            case NotificationType::SCREENSHOT: {
+                if(!config.screenshot_config.show_screenshot_saved_notifications)
+                    return;
+                text = "Saved screenshot to '" + focused_window_name + "/" + video_filename + "'";
+                break;
+            }
             case NotificationType::NONE:
             case NotificationType::STREAM:
                 break;
@@ -1556,6 +1625,35 @@ namespace gsr {
 
         gpu_screen_recorder_process = -1;
         recording_status = RecordingStatus::NONE;
+    }
+
+    void Overlay::update_gsr_screenshot_process_status() {
+        if(gpu_screen_recorder_screenshot_process <= 0)
+            return;
+
+        int status;
+        if(waitpid(gpu_screen_recorder_screenshot_process, &status, WNOHANG) == 0) {
+            // Still running
+            return;
+        }
+
+        int exit_code = -1;
+        if(WIFEXITED(status))
+            exit_code = WEXITSTATUS(status);
+
+        if(exit_code == 0) {
+            if(config.screenshot_config.save_screenshot_in_game_folder) {
+                save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
+            } else {
+                const std::string text = "Saved screenshot to '" + filepath_get_filename(screenshot_filepath.c_str()) + "'";
+                show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT);
+            }
+        } else {
+            fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+            show_notification("Failed to take a screenshot. Verify if settings are correct", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
+        }
+
+        gpu_screen_recorder_screenshot_process = -1;
     }
 
     void Overlay::replay_status_update_status() {
@@ -2173,6 +2271,52 @@ namespace gsr {
         // to see when the program has exit.
         if(config.streaming_config.show_streaming_started_notifications)
             show_notification("Streaming has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
+    }
+
+    void Overlay::on_press_take_screenshot() {
+        if(gpu_screen_recorder_screenshot_process > 0) {
+            fprintf(stderr, "Error: failed to take screenshot, another screenshot is currently being saved\n");
+            return;
+        }
+
+        if(!validate_capture_target(gsr_info, config.screenshot_config.record_area_option)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", config.screenshot_config.record_area_option.c_str());
+            show_notification(err_msg, 3.0, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::SCREENSHOT);
+            return;
+        }
+
+        // TODO: Validate input, fallback to valid values
+        const std::string output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
+
+        std::vector<const char*> args = {
+            "gpu-screen-recorder", "-w", config.screenshot_config.record_area_option.c_str(),
+            "-cursor", config.screenshot_config.record_cursor ? "yes" : "no",
+            "-v", "no",
+            "-q", config.screenshot_config.image_quality.c_str(),
+            "-o", output_file.c_str()
+        };
+
+        char region[64];
+        region[0] = '\0';
+        if(config.screenshot_config.change_image_resolution) {
+            snprintf(region, sizeof(region), "%dx%d", (int)config.screenshot_config.image_width, (int)config.screenshot_config.image_height);
+            args.push_back("-s");
+            args.push_back(region);
+        }
+
+        if(config.screenshot_config.restore_portal_session) {
+            args.push_back("-restore-portal-session");
+            args.push_back("yes");
+        }
+
+        args.push_back(nullptr);
+
+        screenshot_filepath = output_file;
+        gpu_screen_recorder_screenshot_process = exec_program(args.data(), nullptr);
+        if(gpu_screen_recorder_screenshot_process == -1) {
+            // TODO: Show notification failed to start
+        }
     }
 
     bool Overlay::update_compositor_texture(const Monitor &monitor) {

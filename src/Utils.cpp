@@ -114,6 +114,14 @@ namespace gsr {
         return xdg_videos_dir;
     }
 
+     std::string get_pictures_dir() {
+        auto xdg_vars = get_xdg_variables();
+        std::string xdg_videos_dir = xdg_vars["XDG_PICTURES_DIR"];
+        if(xdg_videos_dir.empty())
+            xdg_videos_dir = get_home_dir() + "/Pictures";
+        return xdg_videos_dir;
+    }
+
     int create_directory_recursive(char *path) {
         int path_len = strlen(path);
         char *p = path;

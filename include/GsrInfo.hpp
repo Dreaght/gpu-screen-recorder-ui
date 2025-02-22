@@ -20,6 +20,11 @@ namespace gsr {
         bool vp9 = false;
     };
 
+    struct SupportedImageFormats {
+        bool jpeg = false;
+        bool png = false;
+    };
+
     struct GsrMonitor {
         std::string name;
         mgl::vec2i size;
@@ -75,6 +80,7 @@ namespace gsr {
         SystemInfo system_info;
         GpuInfo gpu_info;
         SupportedVideoCodecs supported_video_codecs;
+        SupportedImageFormats supported_image_formats;
     };
 
     enum class GsrInfoExitStatus {

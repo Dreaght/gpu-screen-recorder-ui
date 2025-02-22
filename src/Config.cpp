@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <libgen.h>
+#include <assert.h>
 #include <mglpp/window/Keyboard.hpp>
 
 #define FORMAT_I32 "%" PRIi32
@@ -13,6 +14,37 @@
 #define FORMAT_U32 "%" PRIu32
 
 namespace gsr {
+    static std::vector<mgl::Keyboard::Key> hotkey_modifiers_to_mgl_keys(uint32_t modifiers) {
+        std::vector<mgl::Keyboard::Key> result;
+        if(modifiers & HOTKEY_MOD_LCTRL)
+            result.push_back(mgl::Keyboard::LControl);
+        if(modifiers & HOTKEY_MOD_LSHIFT)
+            result.push_back(mgl::Keyboard::LShift);
+        if(modifiers & HOTKEY_MOD_LALT)
+            result.push_back(mgl::Keyboard::LAlt);
+        if(modifiers & HOTKEY_MOD_LSUPER)
+            result.push_back(mgl::Keyboard::LSystem);
+        if(modifiers & HOTKEY_MOD_RCTRL)
+            result.push_back(mgl::Keyboard::RControl);
+        if(modifiers & HOTKEY_MOD_RSHIFT)
+            result.push_back(mgl::Keyboard::RShift);
+        if(modifiers & HOTKEY_MOD_RALT)
+            result.push_back(mgl::Keyboard::RAlt);
+        if(modifiers & HOTKEY_MOD_RSUPER)
+            result.push_back(mgl::Keyboard::RSystem);
+        return result;
+    }
+
+    static void string_remove_all(std::string &str, const std::string &substr) {
+        size_t index = 0;
+        while(true) {
+            index = str.find(substr, index);
+            if(index == std::string::npos)
+                break;
+            str.erase(index, substr.size());
+        }
+    }
+
     bool ConfigHotkey::operator==(const ConfigHotkey &other) const {
         return key == other.key && modifiers == other.modifiers;
     }
@@ -21,34 +53,81 @@ namespace gsr {
         return !operator==(other);
     }
 
-    Config::Config(const SupportedCaptureOptions &capture_options) {
-        const std::string default_save_directory = get_videos_dir();
+    std::string ConfigHotkey::to_string(bool spaces, bool modifier_side) const {
+        std::string result;
 
-        streaming_config.start_stop_hotkey = {mgl::Keyboard::F8, HOTKEY_MOD_LALT};
+        const std::vector<mgl::Keyboard::Key> modifier_keys = hotkey_modifiers_to_mgl_keys(modifiers);
+        std::string modifier_str;
+        for(const mgl::Keyboard::Key modifier_key : modifier_keys) {
+            if(!result.empty()) {
+                if(spaces)
+                    result += " + ";
+                else
+                    result += "+";
+            }
+
+            modifier_str = mgl::Keyboard::key_to_string(modifier_key);
+            if(!modifier_side) {
+                string_remove_all(modifier_str, "Left");
+                string_remove_all(modifier_str, "Right");
+            }
+            result += modifier_str;
+        }
+
+        if(key != 0) {
+            if(!result.empty()) {
+                if(spaces)
+                    result += " + ";
+                else
+                    result += "+";
+            }
+            result += mgl::Keyboard::key_to_string((mgl::Keyboard::Key)key);
+        }
+
+        return result;
+    }
+
+    Config::Config(const SupportedCaptureOptions &capture_options) {
+        const std::string default_videos_save_directory = get_videos_dir();
+        const std::string default_pictures_save_directory = get_pictures_dir();
+
+        set_hotkeys_to_default();
+
         streaming_config.record_options.video_quality = "custom";
         streaming_config.record_options.audio_tracks.push_back("default_output");
         streaming_config.record_options.video_bitrate = 15000;
 
-        record_config.start_stop_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LALT};
-        record_config.pause_unpause_hotkey = {mgl::Keyboard::F7, HOTKEY_MOD_LALT};
-        record_config.save_directory = default_save_directory;
+        record_config.save_directory = default_videos_save_directory;
         record_config.record_options.audio_tracks.push_back("default_output");
         record_config.record_options.video_bitrate = 45000;
 
-        replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
-        replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
         replay_config.record_options.video_quality = "custom";
-        replay_config.save_directory = default_save_directory;
+        replay_config.save_directory = default_videos_save_directory;
         replay_config.record_options.audio_tracks.push_back("default_output");
         replay_config.record_options.video_bitrate = 45000;
 
-        main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
+        screenshot_config.save_directory = default_pictures_save_directory;
 
         if(!capture_options.monitors.empty()) {
             streaming_config.record_options.record_area_option = capture_options.monitors.front().name;
             record_config.record_options.record_area_option = capture_options.monitors.front().name;
             replay_config.record_options.record_area_option = capture_options.monitors.front().name;
+            screenshot_config.record_area_option = capture_options.monitors.front().name;
         }
+    }
+
+    void Config::set_hotkeys_to_default() {
+        streaming_config.start_stop_hotkey = {mgl::Keyboard::F8, HOTKEY_MOD_LALT};
+
+        record_config.start_stop_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LALT};
+        record_config.pause_unpause_hotkey = {mgl::Keyboard::F7, HOTKEY_MOD_LALT};
+
+        replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
+        replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
+
+        screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::F1, HOTKEY_MOD_LALT};
+
+        main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
     }
 
     static std::optional<KeyValue> parse_key_value(std::string_view line) {
@@ -156,7 +235,20 @@ namespace gsr {
             {"replay.container", &config.replay_config.container},
             {"replay.time", &config.replay_config.replay_time},
             {"replay.start_stop_hotkey", &config.replay_config.start_stop_hotkey},
-            {"replay.save_hotkey", &config.replay_config.save_hotkey}
+            {"replay.save_hotkey", &config.replay_config.save_hotkey},
+
+            {"screenshot.record_area_option", &config.screenshot_config.record_area_option},
+            {"screenshot.image_width", &config.screenshot_config.image_width},
+            {"screenshot.image_height", &config.screenshot_config.image_height},
+            {"screenshot.change_image_resolution", &config.screenshot_config.change_image_resolution},
+            {"screenshot.image_quality", &config.screenshot_config.image_quality},
+            {"screenshot.image_format", &config.screenshot_config.image_format},
+            {"screenshot.record_cursor", &config.screenshot_config.record_cursor},
+            {"screenshot.restore_portal_session", &config.screenshot_config.restore_portal_session},
+            {"screenshot.save_screenshot_in_game_folder", &config.screenshot_config.save_screenshot_in_game_folder},
+            {"screenshot.show_screenshot_saved_notifications", &config.screenshot_config.show_screenshot_saved_notifications},
+            {"screenshot.save_directory", &config.screenshot_config.save_directory},
+            {"screenshot.take_screenshot_hotkey", &config.screenshot_config.take_screenshot_hotkey}
         };
     }
 
@@ -183,6 +275,8 @@ namespace gsr {
             } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
                 if(*std::get<std::vector<std::string>*>(it.second) != *std::get<std::vector<std::string>*>(it_other->second))
                     return false;
+            } else {
+                assert(false);
             }
         }
         return true;
@@ -245,6 +339,8 @@ namespace gsr {
             } else if(std::holds_alternative<std::vector<std::string>*>(it->second)) {
                 std::string array_value(key_value->value);
                 std::get<std::vector<std::string>*>(it->second)->push_back(std::move(array_value));
+            } else {
+                assert(false);
             }
 
             return true;
@@ -294,6 +390,8 @@ namespace gsr {
                 for(const std::string &value : *array) {
                     fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), value.c_str());
                 }
+            } else {
+                assert(false);
             }
         }
 

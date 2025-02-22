@@ -8,8 +8,9 @@
 namespace gsr {
     static const float button_spacing_scale = 0.015f;
 
-    GsrPage::GsrPage() :
-        label_text("Settings", get_theme().title_font)
+    GsrPage::GsrPage(const char *top_text, const char *bottom_text) :
+        top_text(top_text, get_theme().title_font),
+        bottom_text(bottom_text, get_theme().title_font)
     {
         const float margin = 0.02f;
         set_margins(margin, margin, margin, margin);
@@ -80,13 +81,17 @@ namespace gsr {
         window.draw(background);
 
         const int text_margin = background.get_size().y * 0.085;
-        label_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - label_text.get_bounds().size.x * 0.5f, text_margin)).floor());
-        window.draw(label_text);
+
+        top_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - top_text.get_bounds().size.x * 0.5f, text_margin)).floor());
+        window.draw(top_text);
 
         mgl::Sprite icon(&get_theme().settings_texture);
         icon.set_height((int)(background.get_size().y * 0.5f));
         icon.set_position((background.get_position() + background.get_size() * 0.5f - icon.get_size() * 0.5f).floor());
         window.draw(icon);
+
+        bottom_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - bottom_text.get_bounds().size.x * 0.5f, background.get_size().y - bottom_text.get_bounds().size.y - text_margin)).floor());
+        window.draw(bottom_text);
     }
 
     void GsrPage::draw_buttons(mgl::Window &window, mgl::vec2f body_pos, mgl::vec2f body_size) {

@@ -157,11 +157,19 @@ namespace gsr {
             gsr_info->supported_video_codecs.vp9 = true;
     }
 
+    static void parse_image_formats_line(GsrInfo *gsr_info, std::string_view line) {
+        if(line == "jpeg")
+            gsr_info->supported_image_formats.jpeg = true;
+        else if(line == "png")
+            gsr_info->supported_image_formats.png = true;
+    }
+
     enum class GsrInfoSection {
         UNKNOWN,
         SYSTEM_INFO,
         GPU_INFO,
         VIDEO_CODECS,
+        IMAGE_FORMATS,
         CAPTURE_OPTIONS
     };
 
@@ -194,6 +202,8 @@ namespace gsr {
                     section = GsrInfoSection::GPU_INFO;
                 else if(section_name == "video_codecs")
                     section = GsrInfoSection::VIDEO_CODECS;
+                else if(section_name == "image_formats")
+                    section = GsrInfoSection::IMAGE_FORMATS;
                 else if(section_name == "capture_options")
                     section = GsrInfoSection::CAPTURE_OPTIONS;
                 else
@@ -215,6 +225,10 @@ namespace gsr {
                 }
                 case GsrInfoSection::VIDEO_CODECS: {
                     parse_video_codecs_line(gsr_info, line);
+                    break;
+                }
+                case GsrInfoSection::IMAGE_FORMATS: {
+                    parse_image_formats_line(gsr_info, line);
                     break;
                 }
                 case GsrInfoSection::CAPTURE_OPTIONS: {

@@ -9,7 +9,7 @@
 namespace gsr {
     class GsrPage : public Page {
     public:
-        GsrPage();
+        GsrPage(const char *top_text, const char *bottom_text);
         GsrPage(const GsrPage&) = delete;
         GsrPage& operator=(const GsrPage&) = delete;
 
@@ -42,7 +42,8 @@ namespace gsr {
         float margin_bottom_scale = 0.0f;
         float margin_left_scale = 0.0f;
         float margin_right_scale = 0.0f;
-        mgl::Text label_text;
+        mgl::Text top_text;
+        mgl::Text bottom_text;
         std::vector<ButtonItem> buttons;
     };
 }

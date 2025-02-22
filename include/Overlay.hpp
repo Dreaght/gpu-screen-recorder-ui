@@ -35,7 +35,8 @@ namespace gsr {
         NONE,
         RECORD,
         REPLAY,
-        STREAM
+        STREAM,
+        SCREENSHOT
     };
 
     class Overlay {
@@ -57,6 +58,7 @@ namespace gsr {
         void toggle_stream();
         void toggle_replay();
         void save_replay();
+        void take_screenshot();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
         bool is_open() const;
         bool should_exit(std::string &reason) const;
@@ -70,6 +72,7 @@ namespace gsr {
         void handle_keyboard_mapping_event();
         void on_event(mgl::Event &event);
 
+        void create_frontpage_ui_components();
         void xi_setup();
         void handle_xi_events();
         void process_key_bindings(mgl::Event &event);
@@ -84,6 +87,7 @@ namespace gsr {
         void on_replay_saved(const char *replay_saved_filepath);
         void update_gsr_replay_save();
         void update_gsr_process_status();
+        void update_gsr_screenshot_process_status();
 
         void replay_status_update_status();
         void update_focused_fullscreen_status();
@@ -107,6 +111,7 @@ namespace gsr {
         void on_press_start_replay(bool disable_notification);
         void on_press_start_record();
         void on_press_start_stream();
+        void on_press_take_screenshot();
         bool update_compositor_texture(const Monitor &monitor);
 
         void force_window_on_top();
@@ -149,6 +154,7 @@ namespace gsr {
         pid_t notification_process = -1;
         int gpu_screen_recorder_process_output_fd = -1;
         FILE *gpu_screen_recorder_process_output_file = nullptr;
+        pid_t gpu_screen_recorder_screenshot_process = -1;
 
         DropdownButton *replay_dropdown_button_ptr = nullptr;
         DropdownButton *record_dropdown_button_ptr = nullptr;
@@ -165,6 +171,7 @@ namespace gsr {
         bool focused_window_is_fullscreen = false;
 
         std::string record_filepath;
+        std::string screenshot_filepath;
 
         Display *xi_display = nullptr;
         int xi_opcode = 0;

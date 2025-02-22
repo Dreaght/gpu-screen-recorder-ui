@@ -78,8 +78,6 @@ Dont allow autostart of replay if capture option is window recording (when windo
 
 Use global shortcuts desktop portal protocol on wayland when available.
 
-When support for window capture is enabled on x11 then make sure to not save the window except temporary while the program is open.
-
 Support CJK.
 
 Move ui hover code from ::draw to ::on_event, to properly handle widget event stack.
@@ -121,3 +119,10 @@ Add recording timer to see duration of recording/streaming.
 Make folder with window name work when using gamescope. Gamescope runs x11 itself so to get the window name inside that we have to connect to the gamescope X11 server (DISPLAY=:1 on x11 and DISPLAY=:2 on wayland, but not always).
 
 When clicking on current directory in file manager show a dropdown menu where you can select common directories (HOME, Videos, Downloads and mounted drives) for quick navigation. Maybe even button to search.
+
+Maybe change gsr-ui startup retry time in the systemd service, from 5 seconds to 2 seconds.
+
+Add support for window capture. This should not prompt for window selection directly but instead prompt for window selection when recording starts and hide the ui first.
+    For screenshots window capture should exist but "follow focused" option should not exist.
+
+Improve audio design. It should have a button to add/remove audio tracks and button to add audio into each audio track separately and "record audio from all applications except the selected ones" for each audio track. Then also remove the "merge audio tracks" option.

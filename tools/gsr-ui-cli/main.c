@@ -50,6 +50,7 @@ static void usage(void) {
     printf("  toggle-stream    Start/stop streaming.\n");
     printf("  toggle-replay    Start/stop replay.\n");
     printf("  replay-save      Save replay.\n");
+    printf("  take-screenshot  Take a screenshot.\n");
     printf("\n");
     printf("EXAMPLES:\n");
     printf("  gsr-ui-cli toggle-show\n");
@@ -65,6 +66,7 @@ static bool is_valid_command(const char *command) {
         "toggle-stream",
         "toggle-replay",
         "replay-save",
+        "take-screenshot",
         NULL
     };
 

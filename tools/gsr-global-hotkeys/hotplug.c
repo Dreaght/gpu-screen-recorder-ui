@@ -65,9 +65,10 @@ static void hotplug_event_parse_netlink_data(hotplug_event *self, const char *li
 
 /* Netlink uevent structure is documented here: https://web.archive.org/web/20160127215232/https://www.kernel.org/doc/pending/hotplug.txt */
 void hotplug_event_process_event_data(hotplug_event *self, int fd, hotplug_device_added_callback callback, void *userdata) {
-    const int bytes_read = read(fd, self->event_data, sizeof(self->event_data));
+    const int bytes_read = read(fd, self->event_data, sizeof(self->event_data) - 1);
     if(bytes_read <= 0)
         return;
+    self->event_data[bytes_read] = '\0';
 
     /* Hotplug data ends with a newline and a null terminator */
     int data_index = 0;

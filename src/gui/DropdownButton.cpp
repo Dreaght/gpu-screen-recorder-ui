@@ -201,6 +201,15 @@ namespace gsr {
         }
     }
 
+    void DropdownButton::set_item_description(const std::string &id, const std::string &new_description) {
+        for(auto &item : items) {
+            if(item.id == id) {
+                item.description_text.set_string(new_description);
+                return;
+            }
+        }
+    }
+
     void DropdownButton::set_description(std::string description_text) {
         description.set_string(std::move(description_text));
     }

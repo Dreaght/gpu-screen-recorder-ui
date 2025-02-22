@@ -52,7 +52,7 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_restore_portal_session_checkbox();
         std::unique_ptr<List> create_restore_portal_session_section();
         std::unique_ptr<Widget> create_change_video_resolution_section();
-        std::unique_ptr<Widget> create_capture_target();
+        std::unique_ptr<Widget> create_capture_target_section();
         std::unique_ptr<ComboBox> create_audio_device_selection_combobox();
         std::unique_ptr<Button> create_remove_audio_device_button(List *audio_device_list_ptr);
         std::unique_ptr<List> create_audio_device();

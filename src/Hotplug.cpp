@@ -44,9 +44,10 @@ namespace gsr {
     }
 
     void Hotplug::process_event_data(int fd, const HotplugEventCallback &callback) {
-        const int bytes_read = read(fd, event_data, sizeof(event_data));
+        const int bytes_read = read(fd, event_data, sizeof(event_data) - 1);
         if(bytes_read <= 0)
             return;
+        event_data[bytes_read] = '\0';
 
         /* Hotplug data ends with a newline and a null terminator */
         int data_index = 0;

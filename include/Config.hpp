@@ -17,6 +17,8 @@ namespace gsr {
 
         bool operator==(const ConfigHotkey &other) const;
         bool operator!=(const ConfigHotkey &other) const;
+
+        std::string to_string(bool spaces = true, bool modifier_side = true) const;
     };
 
     struct RecordOptions {
@@ -101,15 +103,34 @@ namespace gsr {
         ConfigHotkey save_hotkey;
     };
 
+    struct ScreenshotConfig {
+        std::string record_area_option = "screen";
+        int32_t image_width = 0;
+        int32_t image_height = 0;
+        bool change_image_resolution = false;
+        std::string image_quality = "very_high";
+        std::string image_format = "jpg";
+        bool record_cursor = true;
+        bool restore_portal_session = true;
+
+        bool save_screenshot_in_game_folder = false;
+        bool show_screenshot_saved_notifications = true;
+        std::string save_directory;
+        ConfigHotkey take_screenshot_hotkey;
+    };
+
     struct Config {
         Config(const SupportedCaptureOptions &capture_options);
         bool operator==(const Config &other);
         bool operator!=(const Config &other);
 
+        void set_hotkeys_to_default();
+
         MainConfig main_config;
         StreamingConfig streaming_config;
         RecordConfig record_config;
         ReplayConfig replay_config;
+        ScreenshotConfig screenshot_config;
     };
 
     std::optional<Config> read_config(const SupportedCaptureOptions &capture_options);

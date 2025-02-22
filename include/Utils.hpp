@@ -24,6 +24,8 @@ namespace gsr {
     std::map<std::string, std::string> get_xdg_variables();
 
     std::string get_videos_dir();
+    std::string get_pictures_dir();
+
     // Returns 0 on success
     int create_directory_recursive(char *path);
     bool file_get_content(const char *filepath, std::string &file_content);
