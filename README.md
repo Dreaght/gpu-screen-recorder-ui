@@ -2,9 +2,7 @@
 
 # GPU Screen Recorder UI
 A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.\
-The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.\
-Note: This software is still in early alpha. Expect bugs, and please report any if you experience them. Some are already known, but it doesn't hurt to report them anyways.\
-You can report an issue by emailing the issue to dec05eba@protonmail.com.
+The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.
 
 # Usage
 Run `gsr-ui` and press `Left Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
@@ -42,17 +40,15 @@ This might cause issues for you if you use input remapping software. To workarou
 # License
 This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`. `images/default.cur` it part of the [Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master) which is licensed under `Creative Commons Attribution-Share Alike 3.0`.
 
+# Reporting bugs, contributing patches, questions or donation
+See [https://git.dec05eba.com/?p=about](https://git.dec05eba.com/?p=about).
+
 # Demo
 [![Click here to watch a demo video on youtube](https://img.youtube.com/vi/SOqXusCTXXA/0.jpg)](https://www.youtube.com/watch?v=SOqXusCTXXA)
 
 # Screenshots
 ![](https://dec05eba.com/images/front_page.jpg)
 ![](https://dec05eba.com/images/settings_page.jpg)
-
-# Donations
-If you want to donate you can donate via bitcoin or monero.
-* Bitcoin: bc1qqvuqnwrdyppf707ge27fqz2n9y9gu7lf5ypyuf
-* Monero: 4An9kp2qW1C9Gah7ewv4JzcNFQ5TAX7ineGCqXWK6vQnhsGGcRpNgcn8r9EC3tMcgY7vqCKs3nSRXhejMHBaGvFdN2egYet
 
 # Known issues
 * When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
