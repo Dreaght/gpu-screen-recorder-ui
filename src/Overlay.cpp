@@ -1649,7 +1649,7 @@ namespace gsr {
                 show_notification(text.c_str(), 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT);
             }
         } else {
-            fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+            fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
             show_notification("Failed to take a screenshot. Verify if settings are correct", 3.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
         }
 
