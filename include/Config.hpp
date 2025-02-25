@@ -11,6 +11,15 @@
 namespace gsr {
     struct SupportedCaptureOptions;
 
+    enum class ReplayStartupMode {
+        DONT_TURN_ON_AUTOMATICALLY,
+        TURN_ON_AT_SYSTEM_STARTUP,
+        TURN_ON_AT_FULLSCREEN,
+        TURN_ON_AT_POWER_SUPPLY_CONNECTED
+    };
+
+    ReplayStartupMode replay_startup_string_to_type(const char *startup_mode_str);
+
     struct ConfigHotkey {
         int64_t key = 0;        // Mgl key
         uint32_t modifiers = 0; // HotkeyModifier

@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <libgen.h>
+#include <string.h>
 #include <assert.h>
 #include <mglpp/window/Keyboard.hpp>
 
@@ -43,6 +44,19 @@ namespace gsr {
                 break;
             str.erase(index, substr.size());
         }
+    }
+
+    ReplayStartupMode replay_startup_string_to_type(const char *startup_mode_str) {
+        if(strcmp(startup_mode_str, "dont_turn_on_automatically") == 0)
+            return ReplayStartupMode::DONT_TURN_ON_AUTOMATICALLY;
+        else if(strcmp(startup_mode_str, "turn_on_at_system_startup") == 0)
+            return ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
+        else if(strcmp(startup_mode_str, "turn_on_at_fullscreen") == 0)
+            return ReplayStartupMode::TURN_ON_AT_FULLSCREEN;
+        else if(strcmp(startup_mode_str, "turn_on_at_power_supply_connected") == 0)
+            return ReplayStartupMode::TURN_ON_AT_POWER_SUPPLY_CONNECTED;
+        else
+            return ReplayStartupMode::DONT_TURN_ON_AUTOMATICALLY;
     }
 
     bool ConfigHotkey::operator==(const ConfigHotkey &other) const {

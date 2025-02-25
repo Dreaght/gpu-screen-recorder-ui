@@ -191,8 +191,10 @@ namespace gsr {
 
     std::unique_ptr<ComboBox> ScreenshotSettingsPage::create_image_format_box() {
         auto box = std::make_unique<ComboBox>(&get_theme().body_font);
-        box->add_item("jpg", "jpg");
-        box->add_item("png", "png");
+        if(gsr_info->supported_image_formats.jpeg)
+            box->add_item("jpg", "jpg");
+        if(gsr_info->supported_image_formats.png)
+            box->add_item("png", "png");
         image_format_box_ptr = box.get();
         return box;
     }

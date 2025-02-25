@@ -40,12 +40,13 @@ namespace gsr {
         return num_args;
     }
 
-    bool exec_program_daemonized(const char **args) {
+    bool exec_program_daemonized(const char **args, bool debug) {
         /* 1 argument */
         if(args[0] == nullptr)
             return false;
 
-        debug_print_args(args);
+        if(debug)
+            debug_print_args(args);
 
         const pid_t pid = vfork();
         if(pid == -1) {
@@ -72,7 +73,7 @@ namespace gsr {
         return true;
     }
 
-    pid_t exec_program(const char **args, int *read_fd) {
+    pid_t exec_program(const char **args, int *read_fd, bool debug) {
         if(read_fd)
             *read_fd = -1;
 
@@ -84,7 +85,8 @@ namespace gsr {
         if(pipe(fds) == -1)
             return -1;
 
-        debug_print_args(args);
+        if(debug)
+            debug_print_args(args);
 
         const pid_t pid = vfork();
         if(pid == -1) {
@@ -110,10 +112,10 @@ namespace gsr {
         }
     }
 
-    int exec_program_get_stdout(const char **args, std::string &result) {
+    int exec_program_get_stdout(const char **args, std::string &result, bool debug) {
         result.clear();
         int read_fd = -1;
-        const pid_t process_id = exec_program(args, &read_fd);
+        const pid_t process_id = exec_program(args, &read_fd, debug);
         if(process_id == -1)
             return -1;
 
@@ -152,7 +154,7 @@ namespace gsr {
         return exit_status;
     }
 
-    int exec_program_on_host_get_stdout(const char **args, std::string &result) {
+    int exec_program_on_host_get_stdout(const char **args, std::string &result, bool debug) {
         if(count_num_args(args) > 64 - 3) {
             fprintf(stderr, "Error: too many arguments when trying to launch \"%s\"\n", args[0]);
             return -1;
@@ -170,9 +172,9 @@ namespace gsr {
                 }
                 modified_args[i] = arg;
             }
-            return exec_program_get_stdout(modified_args, result);
+            return exec_program_get_stdout(modified_args, result, debug);
         } else {
-            return exec_program_get_stdout(args, result);
+            return exec_program_get_stdout(args, result, debug);
         }
     }
 

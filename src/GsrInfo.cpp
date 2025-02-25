@@ -258,7 +258,7 @@ namespace gsr {
 
         std::string stdout_str;
         const char *args[] = { "gpu-screen-recorder", "--list-audio-devices", nullptr };
-        if(exec_program_get_stdout(args, stdout_str) != 0) {
+        if(exec_program_get_stdout(args, stdout_str, false) != 0) {
             fprintf(stderr, "error: 'gpu-screen-recorder --list-audio-devices' failed\n");
             return audio_devices;
         }

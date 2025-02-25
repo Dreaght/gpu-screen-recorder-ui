@@ -22,6 +22,7 @@
 #include <poll.h>
 #include <malloc.h>
 #include <stdexcept>
+#include <algorithm>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -41,7 +42,7 @@ extern "C" {
 namespace gsr {
     static const mgl::Color bg_color(0, 0, 0, 100);
     static const double force_window_on_top_timeout_seconds = 1.0;
-    static const double replay_status_update_check_timeout_seconds = 1.0;
+    static const double replay_status_update_check_timeout_seconds = 1.5;
     static const double replay_saving_notification_timeout_seconds = 0.5;
 
     static mgl::Texture texture_from_ximage(XImage *img) {
@@ -436,9 +437,7 @@ namespace gsr {
         init_color_theme(config, this->gsr_info);
 
         power_supply_online_filepath = get_power_supply_online_filepath();
-
-        if(config.replay_config.turn_on_replay_automatically_mode == "turn_on_at_system_startup")
-            on_press_start_replay(true);
+        replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
 
         if(config.main_config.hotkeys_enable_option == "enable_hotkeys")
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
@@ -1070,6 +1069,7 @@ namespace gsr {
                 if(id == "settings") {
                     auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
                     replay_settings_page->on_config_changed = [this]() {
+                        replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
                         if(recording_status == RecordingStatus::REPLAY)
                             show_notification("Replay settings have been modified.\nYou may need to restart replay to apply the changes.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                     };
@@ -1656,6 +1656,33 @@ namespace gsr {
         gpu_screen_recorder_screenshot_process = -1;
     }
 
+    static bool starts_with(std::string_view str, const char *substr) {
+        size_t len = strlen(substr);
+        return str.size() >= len && memcmp(str.data(), substr, len) == 0;
+    }
+
+    static bool are_all_audio_tracks_available_to_capture(const std::vector<std::string> &audio_tracks) {
+        const auto audio_devices = get_audio_devices();
+        for(const std::string &audio_track : audio_tracks) {
+            std::string_view audio_track_name(audio_track.c_str());
+            const bool is_app_audio = starts_with(audio_track_name, "app:");
+            if(is_app_audio)
+                continue;
+
+            if(starts_with(audio_track_name, "device:"))
+                audio_track_name.remove_prefix(7);
+
+            auto it = std::find_if(audio_devices.begin(), audio_devices.end(), [&](const auto &audio_device) {
+                return audio_device.name == audio_track_name;
+            });
+            if(it == audio_devices.end()) {
+                //fprintf(stderr, "Audio not ready\n");
+                return false;
+            }
+        }
+        return true;
+    }
+
     void Overlay::replay_status_update_status() {
         if(replay_status_update_clock.get_elapsed_time_seconds() < replay_status_update_check_timeout_seconds)
             return;
@@ -1663,10 +1690,11 @@ namespace gsr {
         replay_status_update_clock.restart();
         update_focused_fullscreen_status();
         update_power_supply_status();
+        update_system_startup_status();
     }
 
     void Overlay::update_focused_fullscreen_status() {
-        if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_fullscreen")
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_FULLSCREEN)
             return;
 
         mgl_context *context = mgl_get_context();
@@ -1679,26 +1707,38 @@ namespace gsr {
         const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
         focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
-            if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen)
-                on_press_start_replay(false);
-            else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen)
+            if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
+                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
+                    on_press_start_replay(false);
+            } else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen) {
                 on_press_start_replay(true);
+            }
         }
     }
 
     // TODO: Instead of checking power supply status periodically listen to power supply event
     void Overlay::update_power_supply_status() {
-        if(config.replay_config.turn_on_replay_automatically_mode != "turn_on_at_power_supply_connected")
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_POWER_SUPPLY_CONNECTED)
             return;
 
         const bool prev_power_supply_status = power_supply_connected;
         power_supply_connected = power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str());
         if(power_supply_connected != prev_power_supply_status) {
-            if(recording_status == RecordingStatus::NONE && power_supply_connected)
+            if(recording_status == RecordingStatus::NONE && power_supply_connected) {
+                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
+                    on_press_start_replay(false);
+            } else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected) {
                 on_press_start_replay(false);
-            else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected)
-                on_press_start_replay(false);
+            }
         }
+    }
+
+    void Overlay::update_system_startup_status() {
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || recording_status != RecordingStatus::NONE || !try_replay_startup)
+            return;
+
+        if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
+            on_press_start_replay(true);
     }
 
     void Overlay::on_stop_recording(int exit_code) {
@@ -1816,11 +1856,6 @@ namespace gsr {
             return container;
     }
 
-    static bool starts_with(std::string_view str, const char *substr) {
-        size_t len = strlen(substr);
-        return str.size() >= len && memcmp(str.data(), substr, len) == 0;
-    }
-
     static std::vector<std::string> create_audio_tracks_real_names(const std::vector<std::string> &audio_tracks, bool application_audio_invert, const GsrInfo &gsr_info) {
         std::vector<std::string> result;
         for(const std::string &audio_track : audio_tracks) {
@@ -1906,21 +1941,22 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGUSR1);
     }
 
-    void Overlay::on_press_start_replay(bool disable_notification) {
+    bool Overlay::on_press_start_replay(bool disable_notification) {
         switch(recording_status) {
             case RecordingStatus::NONE:
             case RecordingStatus::REPLAY:
                 break;
             case RecordingStatus::RECORD:
                 show_notification("Unable to start replay when recording.\nStop recording before starting replay.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
-                return;
+                return false;
             case RecordingStatus::STREAM:
                 show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
-                return;
+                return false;
         }
 
         paused = false;
         replay_save_show_notification = false;
+        try_replay_startup = false;
 
         // window->close();
         // usleep(1000 * 50); // 50 milliseconds
@@ -1942,14 +1978,15 @@ namespace gsr {
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(!disable_notification && config.replay_config.show_replay_stopped_notifications)
                 show_notification("Replay stopped", 3.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
-            return;
+
+            return true;
         }
 
         if(!validate_capture_target(gsr_info, config.replay_config.record_options.record_area_option)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", config.replay_config.record_options.record_area_option.c_str());
             show_notification(err_msg, 3.0, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::REPLAY);
-            return;
+            return false;
         }
 
         // TODO: Validate input, fallback to valid values
@@ -2024,6 +2061,8 @@ namespace gsr {
         // to see when the program has exit.
         if(!disable_notification && config.replay_config.show_replay_started_notifications)
             show_notification("Replay has started", 3.0, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY);
+
+        return true;
     }
 
     void Overlay::on_press_start_record() {

@@ -92,6 +92,7 @@ namespace gsr {
         void replay_status_update_status();
         void update_focused_fullscreen_status();
         void update_power_supply_status();
+        void update_system_startup_status();
 
         void on_stop_recording(int exit_code);
 
@@ -108,7 +109,7 @@ namespace gsr {
         void update_ui_replay_stopped();
 
         void on_press_save_replay();
-        void on_press_start_replay(bool disable_notification);
+        bool on_press_start_replay(bool disable_notification);
         void on_press_start_record();
         void on_press_start_stream();
         void on_press_take_screenshot();
@@ -197,6 +198,8 @@ namespace gsr {
 
         mgl::Clock replay_save_clock;
         bool replay_save_show_notification = false;
+        ReplayStartupMode replay_startup_mode = ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
+        bool try_replay_startup = true;
 
         AudioPlayer audio_player;
     };
