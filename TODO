@@ -126,3 +126,13 @@ Add support for window capture. This should not prompt for window selection dire
     For screenshots window capture should exist but "follow focused" option should not exist.
 
 Improve audio design. It should have a button to add/remove audio tracks and button to add audio into each audio track separately and "record audio from all applications except the selected ones" for each audio track. Then also remove the "merge audio tracks" option.
+
+Make it possible to take a screenshot through a button in the ui instead of having to use hotkey.
+
+Handle failing to save a replay. gsr should output "failed to save replay, or something like that" to make it possible to detect that.
+
+Dont allow saving replay while a replay save is in progress.
+
+Make input work with cjk input systems (such as fcitx).
+
+System startup option should also support runit and some other init systems, not only soystemd.

@@ -94,7 +94,7 @@ namespace gsr {
 
             mgl::Text title_text("Press a key combination to use for the hotkey \"" + hotkey_configure_action_name + "\":", get_theme().title_font);
             mgl::Text hotkey_text(configure_hotkey_button->get_text(), get_theme().top_bar_font);
-            mgl::Text description_text("The hotkey has to contain one or more of these keys: Alt, Ctrl, Shift and Super. Press Esc to cancel.", get_theme().body_font);
+            mgl::Text description_text("The hotkey has to contain one or more of these keys: Alt, Ctrl, Shift and Super. Press Esc to cancel or Backspace to remove the hotkey.", get_theme().body_font);
             const float text_max_width = std::max(title_text.get_bounds().size.x, std::max(hotkey_text.get_bounds().size.x, description_text.get_bounds().size.x));
 
             const float padding_horizontal = int(get_theme().window_height * 0.01f);
@@ -470,6 +470,13 @@ namespace gsr {
             if(event.key.code == mgl::Keyboard::Escape)
                 return false;
 
+            if(event.key.code == mgl::Keyboard::Backspace) {
+                configure_config_hotkey = {mgl::Keyboard::Unknown, 0};
+                configure_hotkey_button->set_text("");
+                configure_hotkey_stop_and_save();
+                return false;
+            }
+
             if(mgl::Keyboard::key_is_modifier(event.key.code)) {
                 configure_config_hotkey.modifiers |= mgl_modifier_to_hotkey_modifier(event.key.code);
                 configure_hotkey_button->set_text(configure_config_hotkey.to_string());
@@ -612,10 +619,12 @@ namespace gsr {
         ConfigHotkey *config_hotkey = configure_hotkey_get_config_by_active_type();
         if(config_hotkey_button && config_hotkey) {
             bool hotkey_used_by_another_action = false;
-            for_each_config_hotkey([&](ConfigHotkey *config_hotkey_item) {
-                if(config_hotkey_item != config_hotkey && *config_hotkey_item == configure_config_hotkey)
-                    hotkey_used_by_another_action = true;
-            });
+            if(configure_config_hotkey.key != mgl::Keyboard::Unknown) {
+                for_each_config_hotkey([&](ConfigHotkey *config_hotkey_item) {
+                    if(config_hotkey_item != config_hotkey && *config_hotkey_item == configure_config_hotkey)
+                        hotkey_used_by_another_action = true;
+                });
+            }
 
             if(hotkey_used_by_another_action) {
                 const std::string error_msg = "The hotkey \"" + configure_config_hotkey.to_string() + " is already used for something else";
