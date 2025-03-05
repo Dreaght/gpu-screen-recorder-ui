@@ -137,4 +137,4 @@ Make input work with cjk input systems (such as fcitx).
 
 System startup option should also support runit and some other init systems, not only soystemd.
 
-
+Allow using a hotkey such as printscreen or any other non-alphanumeric key without a modifier. Allow that in gsr-ui and gsr-global-hotkeys. Update the ui to match that.
