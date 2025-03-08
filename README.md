@@ -13,7 +13,7 @@ A program called `gsr-ui-cli` is also installed when installing this software. T
 # Installation
 If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
 If you are running another distro then you can run `sudo ./install.sh`, but you need to manually install the dependencies, as described below.\
-You can also install gpu screen recorder (the gtk gui version) from [flathub](https://flathub.org/apps/details/com.dec05eba.gpu_screen_recorder). This flatpak includes both this UI and gpu-screen-recorder so no need to install that first.
+You can also install gpu screen recorder from [flathub](https://flathub.org/apps/details/com.dec05eba.gpu_screen_recorder). This flatpak includes both this UI and gpu-screen-recorder so no need to install that first.
 
 # Dependencies
 GPU Screen Recorder UI uses meson build system so you need to install `meson` to build GPU Screen Recorder UI.
@@ -56,4 +56,4 @@ See [https://git.dec05eba.com/?p=about](https://git.dec05eba.com/?p=about).
 
 # FAQ
 ## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
-If you have previously used the flatpak version of GPU Screen Recorder with the new UI then non-flatpak version of the systemd service will conflict with that. Run `gsr-ui` to fix that.
+If you have previously used the flatpak version of GPU Screen Recorder with the new UI then the non-flatpak version of the systemd service will conflict with that. Run `gsr-ui` to fix that.
