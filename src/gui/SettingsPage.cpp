@@ -351,14 +351,14 @@ namespace gsr {
         list->add_widget(std::move(video_bitrate_entry));
 
         if(type == Type::STREAM) {
-            auto size_mb_label = std::make_unique<Label>(&get_theme().body_font, "1.92MB", get_color_theme().text_color);
+            auto size_mb_label = std::make_unique<Label>(&get_theme().body_font, "1.64MB", get_color_theme().text_color);
             Label *size_mb_label_ptr = size_mb_label.get();
             list->add_widget(std::move(size_mb_label));
 
             video_bitrate_entry_ptr->on_changed = [size_mb_label_ptr](const std::string &text) {
-                const double video_bitrate_mb_per_seconds = (double)atoi(text.c_str()) / 1000LL / 8LL * 1.024;
+                const double video_bitrate_mbits_per_seconds = (double)atoi(text.c_str()) / 1024.0;
                 char buffer[32];
-                snprintf(buffer, sizeof(buffer), "%.2fMB", video_bitrate_mb_per_seconds);
+                snprintf(buffer, sizeof(buffer), "%.2fMbps", video_bitrate_mbits_per_seconds);
                 size_mb_label_ptr->set_text(buffer);
             };
         }

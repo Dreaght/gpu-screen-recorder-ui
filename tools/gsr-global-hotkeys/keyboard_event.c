@@ -294,7 +294,11 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
-        const bool supports_key_events      = key_bits[KEY_A/8]        & (1 << (KEY_A % 8));
+        const bool supports_key_a           = key_bits[KEY_A/8]        & (1 << (KEY_A % 8));
+        const bool supports_key_esc         = key_bits[KEY_ESC/8]      & (1 << (KEY_ESC % 8));
+        const bool supports_key_volume_up   = key_bits[KEY_VOLUMEUP/8] & (1 << (KEY_VOLUMEUP % 8));
+        const bool supports_key_events = supports_key_a || supports_key_esc || supports_key_volume_up;
+
         const bool supports_mouse_events    = key_bits[BTN_MOUSE/8]    & (1 << (BTN_MOUSE % 8));
         //const bool supports_touch_events    = key_bits[BTN_TOUCH/8]    & (1 << (BTN_TOUCH % 8));
         const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
