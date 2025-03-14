@@ -139,11 +139,6 @@ System startup option should also support runit and some other init systems, not
 
 Allow using a hotkey such as printscreen or any other non-alphanumeric key without a modifier. Allow that in gsr-ui and gsr-global-hotkeys. Update the ui to match that.
 
-Implement region capture by adding it as a capture target. The region selection should be done in the same way as the gsr-ui overlay works, by doing xi grab and displaying a fullscreen semi-transparent window.
-    The window however should covert all monitors combined (use XWidthOfScreen/XHeightOfScreen) and selecting a region should make that region fully transparent to make it clear which region is selected.
-    Clicking instead of dragging should select that monitor (by passing region 0x0+X+Y).
-    Hide gsr-ui overlay before showing the region capture (the region capture should start when you start recording/screenshot).
-
 Use x11 shm instead of XGetImage (https://stackoverflow.com/questions/43442675/how-to-use-xshmgetimage-and-xshmputimage).
 
 Add a hotkey to record/stream/replay/screenshot region.

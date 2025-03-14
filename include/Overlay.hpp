@@ -6,9 +6,9 @@
 #include "Config.hpp"
 #include "window_texture.h"
 #include "WindowUtils.hpp"
-#include "GlobalHotkeysLinux.hpp"
 #include "GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
+#include "RegionSelector.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -78,7 +78,6 @@ namespace gsr {
         void process_key_bindings(mgl::Event &event);
         void grab_mouse_and_keyboard();
         void xi_setup_fake_cursor();
-        void xi_grab_all_mouse_devices();
 
         void close_gpu_screen_recorder_output();
 
@@ -109,10 +108,10 @@ namespace gsr {
         void update_ui_replay_stopped();
 
         void on_press_save_replay();
-        bool on_press_start_replay(bool disable_notification);
-        void on_press_start_record();
-        void on_press_start_stream();
-        void on_press_take_screenshot();
+        bool on_press_start_replay(bool disable_notification, bool finished_region_selection);
+        void on_press_start_record(bool finished_region_selection);
+        void on_press_start_stream(bool finished_region_selection);
+        void on_press_take_screenshot(bool finished_region_selection);
         bool update_compositor_texture(const Monitor &monitor);
 
         void force_window_on_top();
@@ -202,5 +201,8 @@ namespace gsr {
         bool try_replay_startup = true;
 
         AudioPlayer audio_player;
+        RegionSelector region_selector;
+        bool start_region_capture = false;
+        std::function<void()> on_region_selected;
     };
 }

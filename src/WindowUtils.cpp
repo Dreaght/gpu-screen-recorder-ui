@@ -1,8 +1,10 @@
 #include "../include/WindowUtils.hpp"
 
-#include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/XInput2.h>
+#include <X11/extensions/Xfixes.h>
+#include <X11/extensions/shapeconst.h>
 
 #include <mglpp/system/Utf8.hpp>
 
@@ -301,6 +303,21 @@ namespace gsr {
         return get_window_name_at_position(dpy, cursor_position, ignore_window);
     }
 
+    void set_window_size_not_resizable(Display *dpy, Window window, int width, int height) {
+        XSizeHints *size_hints = XAllocSizeHints();
+        if(size_hints) {
+            size_hints->width = width;
+            size_hints->height = height;
+            size_hints->min_width = width;
+            size_hints->min_height = height;
+            size_hints->max_width = width;
+            size_hints->max_height = height;
+            size_hints->flags = PSize | PMinSize | PMaxSize;
+            XSetWMNormalHints(dpy, window, size_hints);
+            XFree(size_hints);
+        }
+    }
+
     typedef struct {
         unsigned long flags;
         unsigned long functions;
@@ -348,17 +365,7 @@ namespace gsr {
         XChangeProperty(display, window, net_wm_window_opacity, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&opacity, 1L);
 
         window_set_decorations_visible(display, window, false);
-
-        XSizeHints *size_hints = XAllocSizeHints();
-        size_hints->width = size;
-        size_hints->height = size;
-        size_hints->min_width = size;
-        size_hints->min_height = size;
-        size_hints->max_width = size;
-        size_hints->max_height = size;
-        size_hints->flags = PSize | PMinSize | PMaxSize;
-        XSetWMNormalHints(display, window, size_hints);
-        XFree(size_hints);
+        set_window_size_not_resizable(display, window, size, size);
 
         XMapWindow(display, window);
         XFlush(display);
@@ -412,17 +419,7 @@ namespace gsr {
         XChangeProperty(display, window, net_wm_window_opacity, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&opacity, 1L);
 
         window_set_decorations_visible(display, window, false);
-
-        XSizeHints *size_hints = XAllocSizeHints();
-        size_hints->width = size;
-        size_hints->height = size;
-        size_hints->min_width = size;
-        size_hints->min_height = size;
-        size_hints->max_width = size;
-        size_hints->max_height = size;
-        size_hints->flags = PSize | PMinSize | PMaxSize;
-        XSetWMNormalHints(display, window, size_hints);
-        XFree(size_hints);
+        set_window_size_not_resizable(display, window, size, size);
 
         XMapWindow(display, window);
         XFlush(display);
@@ -530,5 +527,173 @@ namespace gsr {
         std::vector<Monitor> monitors;
         mgl_for_each_active_monitor_output(dpy, get_monitors_callback, &monitors);
         return monitors;
+    }
+
+    static bool device_is_mouse(const XIDeviceInfo *dev) {
+        for(int i = 0; i < dev->num_classes; ++i) {
+            if(dev->classes[i]->type == XIMasterPointer || dev->classes[i]->type == XISlavePointer)
+                return true;
+        }
+        return false;
+    }
+
+    static void xi_grab_all_mouse_devices(Display *dpy, bool grab) {
+        if(!dpy)
+            return;
+
+        int num_devices = 0;
+        XIDeviceInfo *info = XIQueryDevice(dpy, XIAllDevices, &num_devices);
+        if(!info)
+            return;
+
+        unsigned char mask[XIMaskLen(XI_LASTEVENT)];
+        memset(mask, 0, sizeof(mask));
+        XISetMask(mask, XI_Motion);
+        //XISetMask(mask, XI_RawMotion);
+        XISetMask(mask, XI_ButtonPress);
+        XISetMask(mask, XI_ButtonRelease);
+        XISetMask(mask, XI_KeyPress);
+        XISetMask(mask, XI_KeyRelease);
+
+        for (int i = 0; i < num_devices; ++i) {
+            const XIDeviceInfo *dev = &info[i];
+            if(!device_is_mouse(dev))
+                continue;
+
+            XIEventMask xi_masks;
+            xi_masks.deviceid = dev->deviceid;
+            xi_masks.mask_len = sizeof(mask);
+            xi_masks.mask = mask;
+            if(grab)
+                XIGrabDevice(dpy, dev->deviceid, DefaultRootWindow(dpy), CurrentTime, None, XIGrabModeAsync, XIGrabModeAsync, XIOwnerEvents, &xi_masks);
+            else
+                XIUngrabDevice(dpy, dev->deviceid, CurrentTime);
+        }
+
+        XFlush(dpy);
+        XIFreeDeviceInfo(info);
+    }
+
+    void xi_grab_all_mouse_devices(Display *dpy) {
+        xi_grab_all_mouse_devices(dpy, true);
+    }
+
+    void xi_ungrab_all_mouse_devices(Display *dpy) {
+        xi_grab_all_mouse_devices(dpy, false);
+    }
+
+    void xi_warp_all_mouse_devices(Display *dpy, mgl::vec2i position) {
+        if(!dpy)
+            return;
+
+        int num_devices = 0;
+        XIDeviceInfo *info = XIQueryDevice(dpy, XIAllDevices, &num_devices);
+        if(!info)
+            return;
+
+        for (int i = 0; i < num_devices; ++i) {
+            const XIDeviceInfo *dev = &info[i];
+            if(!device_is_mouse(dev))
+                continue;
+
+            XIWarpPointer(dpy, dev->deviceid, DefaultRootWindow(dpy), DefaultRootWindow(dpy), 0, 0, 0, 0, position.x, position.y);
+        }
+
+        XFlush(dpy);
+        XIFreeDeviceInfo(info);
+    }
+
+    void window_set_fullscreen(Display *dpy, Window window, bool fullscreen) {
+        const Atom net_wm_state_atom = XInternAtom(dpy, "_NET_WM_STATE", False);
+        const Atom net_wm_state_fullscreen_atom = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+
+        XEvent xev;
+        xev.type = ClientMessage;
+        xev.xclient.window = window;
+        xev.xclient.message_type = net_wm_state_atom;
+        xev.xclient.format = 32;
+        xev.xclient.data.l[0] = fullscreen ? 1 : 0;
+        xev.xclient.data.l[1] = net_wm_state_fullscreen_atom;
+        xev.xclient.data.l[2] = 0;
+        xev.xclient.data.l[3] = 1;
+        xev.xclient.data.l[4] = 0;
+
+        if(!XSendEvent(dpy, DefaultRootWindow(dpy), 0, SubstructureRedirectMask | SubstructureNotifyMask, &xev)) {
+            fprintf(stderr, "mgl warning: failed to change window fullscreen state\n");
+            return;
+        }
+
+        XFlush(dpy);
+    }
+
+    bool window_is_fullscreen(Display *display, Window window) {
+        const Atom wm_state_atom = XInternAtom(display, "_NET_WM_STATE", False);
+        const Atom wm_state_fullscreen_atom = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
+
+        Atom type = None;
+        int format = 0;
+        unsigned long num_items = 0;
+        unsigned long bytes_after = 0;
+        unsigned char *properties = nullptr;
+        if(XGetWindowProperty(display, window, wm_state_atom, 0, 1024, False, XA_ATOM, &type, &format, &num_items, &bytes_after, &properties) < Success) {
+            fprintf(stderr, "Failed to get window wm state property\n");
+            return false;
+        }
+
+        if(!properties)
+            return false;
+
+        bool is_fullscreen = false;
+        Atom *atoms = (Atom*)properties;
+        for(unsigned long i = 0; i < num_items; ++i) {
+            if(atoms[i] == wm_state_fullscreen_atom) {
+                is_fullscreen = true;
+                break;
+            }
+        }
+
+        XFree(properties);
+        return is_fullscreen;
+    }
+
+    #define _NET_WM_STATE_REMOVE  0
+    #define _NET_WM_STATE_ADD     1
+    #define _NET_WM_STATE_TOGGLE  2
+
+    bool set_window_wm_state(Display *dpy, Window window, Atom atom) {
+        const Atom net_wm_state_atom = XInternAtom(dpy, "_NET_WM_STATE", False);
+
+        XClientMessageEvent xclient;
+        memset(&xclient, 0, sizeof(xclient));
+
+        xclient.type = ClientMessage;
+        xclient.window = window;
+        xclient.message_type = net_wm_state_atom;
+        xclient.format = 32;
+        xclient.data.l[0] = _NET_WM_STATE_ADD;
+        xclient.data.l[1] = atom;
+        xclient.data.l[2] = 0;
+        xclient.data.l[3] = 0;
+        xclient.data.l[4] = 0;
+
+        XSendEvent(dpy, DefaultRootWindow(dpy), False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&xclient);
+        XFlush(dpy);
+        return true;
+    }
+
+    void make_window_click_through(Display *display, Window window) {
+        XRectangle rect;
+        memset(&rect, 0, sizeof(rect));
+        XserverRegion region = XFixesCreateRegion(display, &rect, 1);
+        XFixesSetWindowShapeRegion(display, window, ShapeInput, 0, 0, region);
+        XFixesDestroyRegion(display, region);
+    }
+
+    bool make_window_sticky(Display *dpy, Window window) {
+        return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_STICKY", False));
+    }
+
+    bool hide_window_from_taskbar(Display *dpy, Window window) {
+        return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_SKIP_TASKBAR", False));
     }
 }

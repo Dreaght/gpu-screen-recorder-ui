@@ -13,6 +13,7 @@
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys.hpp"
+#include "../include/GlobalHotkeysLinux.hpp"
 
 #include <string.h>
 #include <assert.h>
@@ -30,7 +31,7 @@
 #include <X11/cursorfont.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/XInput2.h>
-#include <X11/extensions/shape.h>
+#include <X11/extensions/shapeconst.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
@@ -202,77 +203,6 @@ namespace gsr {
 
         return false;
     }*/
-
-    static bool window_is_fullscreen(Display *display, Window window) {
-        const Atom wm_state_atom = XInternAtom(display, "_NET_WM_STATE", False);
-        const Atom wm_state_fullscreen_atom = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
-
-        Atom type = None;
-        int format = 0;
-        unsigned long num_items = 0;
-        unsigned long bytes_after = 0;
-        unsigned char *properties = nullptr;
-        if(XGetWindowProperty(display, window, wm_state_atom, 0, 1024, False, XA_ATOM, &type, &format, &num_items, &bytes_after, &properties) < Success) {
-            fprintf(stderr, "Failed to get window wm state property\n");
-            return false;
-        }
-
-        if(!properties)
-            return false;
-
-        bool is_fullscreen = false;
-        Atom *atoms = (Atom*)properties;
-        for(unsigned long i = 0; i < num_items; ++i) {
-            if(atoms[i] == wm_state_fullscreen_atom) {
-                is_fullscreen = true;
-                break;
-            }
-        }
-
-        XFree(properties);
-        return is_fullscreen;
-    }
-
-    #define _NET_WM_STATE_REMOVE  0
-    #define _NET_WM_STATE_ADD     1
-    #define _NET_WM_STATE_TOGGLE  2
-
-    static Bool set_window_wm_state(Display *dpy, Window window, Atom atom) {
-        const Atom net_wm_state_atom = XInternAtom(dpy, "_NET_WM_STATE", False);
-
-        XClientMessageEvent xclient;
-        memset(&xclient, 0, sizeof(xclient));
-
-        xclient.type = ClientMessage;
-        xclient.window = window;
-        xclient.message_type = net_wm_state_atom;
-        xclient.format = 32;
-        xclient.data.l[0] = _NET_WM_STATE_ADD;
-        xclient.data.l[1] = atom;
-        xclient.data.l[2] = 0;
-        xclient.data.l[3] = 0;
-        xclient.data.l[4] = 0;
-
-        XSendEvent(dpy, DefaultRootWindow(dpy), False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&xclient);
-        XFlush(dpy);
-        return True;
-    }
-
-    static void make_window_click_through(Display *display, Window window) {
-        XRectangle rect;
-        memset(&rect, 0, sizeof(rect));
-        XserverRegion region = XFixesCreateRegion(display, &rect, 1);
-        XFixesSetWindowShapeRegion(display, window, ShapeInput, 0, 0, region);
-        XFixesDestroyRegion(display, region);
-    }
-
-    static Bool make_window_sticky(Display *dpy, Window window) {
-        return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_STICKY", False));
-    }
-
-    static Bool hide_window_from_taskbar(Display *dpy, Window window) {
-        return set_window_wm_state(dpy, window, XInternAtom(dpy, "_NET_WM_STATE_SKIP_TASKBAR", False));
-    }
 
     // Returns the first monitor if not found. Assumes there is at least one monitor connected.
     static const Monitor* find_monitor_at_position(const std::vector<Monitor> &monitors, mgl::vec2i pos) {
@@ -661,6 +591,11 @@ namespace gsr {
             global_hotkeys_js->poll_events();
 
         handle_keyboard_mapping_event();
+        region_selector.poll_events();
+        if(region_selector.take_selection() && on_region_selected) {
+            on_region_selected();
+            on_region_selected = nullptr;
+        }
 
         if(!visible || !window)
             return;
@@ -695,6 +630,20 @@ namespace gsr {
         update_gsr_process_status();
         update_gsr_screenshot_process_status();
         replay_status_update_status();
+
+        if(start_region_capture) {
+            start_region_capture = false;
+            hide();
+            if(!region_selector.start(get_color_theme().tint_color)) {
+                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::RECORD);
+                on_region_selected = nullptr;
+            }
+        }
+
+        if(region_selector.is_started()) {
+            usleep(5 * 1000); // 5 ms
+            return true;
+        }
 
         if(!visible)
             return false;
@@ -821,50 +770,11 @@ namespace gsr {
         XcursorImageDestroy(cursor_image);
     }
 
-    static bool device_is_mouse(const XIDeviceInfo *dev) {
-        for(int i = 0; i < dev->num_classes; ++i) {
-            if(dev->classes[i]->type == XIMasterPointer || dev->classes[i]->type == XISlavePointer)
-                return true;
-        }
-        return false;
-    }
-
-    void Overlay::xi_grab_all_mouse_devices() {
-        if(!xi_display)
-            return;
-
-        int num_devices = 0;
-        XIDeviceInfo *info = XIQueryDevice(xi_display, XIAllDevices, &num_devices);
-        if(!info)
-            return;
-
-        unsigned char mask[XIMaskLen(XI_LASTEVENT)];
-        memset(mask, 0, sizeof(mask));
-        XISetMask(mask, XI_Motion);
-        //XISetMask(mask, XI_RawMotion);
-        XISetMask(mask, XI_ButtonPress);
-        XISetMask(mask, XI_ButtonRelease);
-        XISetMask(mask, XI_KeyPress);
-        XISetMask(mask, XI_KeyRelease);
-
-        for (int i = 0; i < num_devices; ++i) {
-            const XIDeviceInfo *dev = &info[i];
-            if(!device_is_mouse(dev))
-                continue;
-
-            XIEventMask xi_masks;
-            xi_masks.deviceid = dev->deviceid;
-            xi_masks.mask_len = sizeof(mask);
-            xi_masks.mask = mask;
-            XIGrabDevice(xi_display, dev->deviceid, window->get_system_handle(), CurrentTime, None, XIGrabModeAsync, XIGrabModeAsync, XIOwnerEvents, &xi_masks);
-        }
-
-        XFlush(xi_display);
-        XIFreeDeviceInfo(info);
-    }
-
     void Overlay::show() {
         if(visible)
+            return;
+
+        if(region_selector.is_started())
             return;
 
         drawn_first_frame = false;
@@ -990,7 +900,7 @@ namespace gsr {
 
         // We want to grab all devices to prevent any other application below the UI from receiving events.
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
-        xi_grab_all_mouse_devices();
+        xi_grab_all_mouse_devices(xi_display);
 
         if(!is_wlroots)
             window->set_fullscreen(true);
@@ -1079,7 +989,7 @@ namespace gsr {
                 } else if(id == "save") {
                     on_press_save_replay();
                 } else if(id == "start") {
-                    on_press_start_replay(false);
+                    on_press_start_replay(false, false);
                 }
             };
             main_buttons_list->add_widget(std::move(button));
@@ -1105,7 +1015,7 @@ namespace gsr {
                 } else if(id == "pause") {
                     toggle_pause();
                 } else if(id == "start") {
-                    on_press_start_record();
+                    on_press_start_record(false);
                 }
             };
             main_buttons_list->add_widget(std::move(button));
@@ -1127,7 +1037,7 @@ namespace gsr {
                     };
                     page_stack.push(std::move(stream_settings_page));
                 } else if(id == "start") {
-                    on_press_start_stream();
+                    on_press_start_stream(false);
                 }
             };
             main_buttons_list->add_widget(std::move(button));
@@ -1284,6 +1194,7 @@ namespace gsr {
 
         visible = false;
         drawn_first_frame = false;
+        start_region_capture = false;
 
         if(xi_input_xev) {
             free(xi_input_xev);
@@ -1296,20 +1207,21 @@ namespace gsr {
         }
 
         if(xi_display) {
-            XCloseDisplay(xi_display);
-            xi_display = nullptr;
-
             if(window) {
                 mgl_context *context = mgl_get_context();
                 Display *display = (Display*)context->connection;
 
                 const mgl::vec2i new_cursor_position = mgl::vec2i(window->internal_window()->pos.x, window->internal_window()->pos.y) + window->get_mouse_position();
                 XWarpPointer(display, DefaultRootWindow(display), DefaultRootWindow(display), 0, 0, 0, 0, new_cursor_position.x, new_cursor_position.y);
+                xi_warp_all_mouse_devices(xi_display, new_cursor_position);
                 XFlush(display);
 
                 XFixesShowCursor(display, DefaultRootWindow(display));
                 XFlush(display);
             }
+
+            XCloseDisplay(xi_display);
+            xi_display = nullptr;
         }
 
         if(window) {
@@ -1345,7 +1257,7 @@ namespace gsr {
     }
 
     void Overlay::toggle_record() {
-        on_press_start_record();
+        on_press_start_record(false);
     }
 
     void Overlay::toggle_pause() {
@@ -1365,11 +1277,11 @@ namespace gsr {
     }
 
     void Overlay::toggle_stream() {
-        on_press_start_stream();
+        on_press_start_stream(false);
     }
 
     void Overlay::toggle_replay() {
-        on_press_start_replay(false);
+        on_press_start_replay(false, false);
     }
 
     void Overlay::save_replay() {
@@ -1377,7 +1289,7 @@ namespace gsr {
     }
 
     void Overlay::take_screenshot() {
-        on_press_take_screenshot();
+        on_press_take_screenshot(false);
     }
 
     static const char* notification_type_to_string(NotificationType notification_type) {
@@ -1711,9 +1623,9 @@ namespace gsr {
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
             if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
                 if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
-                    on_press_start_replay(false);
+                    on_press_start_replay(false, false);
             } else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen) {
-                on_press_start_replay(true);
+                on_press_start_replay(true, false);
             }
         }
     }
@@ -1728,9 +1640,9 @@ namespace gsr {
         if(power_supply_connected != prev_power_supply_status) {
             if(recording_status == RecordingStatus::NONE && power_supply_connected) {
                 if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
-                    on_press_start_replay(false);
+                    on_press_start_replay(false, false);
             } else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected) {
-                on_press_start_replay(false);
+                on_press_start_replay(false, false);
             }
         }
     }
@@ -1740,7 +1652,7 @@ namespace gsr {
             return;
 
         if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
-            on_press_start_replay(true);
+            on_press_start_replay(true, false);
     }
 
     void Overlay::on_stop_recording(int exit_code) {
@@ -1884,7 +1796,18 @@ namespace gsr {
         return result;
     }
 
-    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged) {
+    static void add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size, const RegionSelector &region_selector) {
+        Region region = region_selector.get_selection();
+        if(region.size.x <= 32 && region.size.y <= 32) {
+            region.size.x = 0;
+            region.size.y = 0;
+        }
+        snprintf(region_str, region_str_size, "%dx%d+%d+%d", region.size.x, region.size.y, region.pos.x, region.pos.y);
+        args.push_back("-region");
+        args.push_back(region_str);
+    }
+
+    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, char *region_str, int region_str_size, const RegionSelector &region_selector) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -1916,12 +1839,17 @@ namespace gsr {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }
+
+        if(record_options.record_area_option == "region")
+            add_region_command(args, region_str, region_str_size, region_selector);
     }
 
     static bool validate_capture_target(const GsrInfo &gsr_info, const std::string &capture_target) {
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
         // TODO: Also check x11 window when enabled (check if capture_target is a decminal/hex number)
-        if(capture_target == "focused") {
+        if(capture_target == "region") {
+            return capture_options.region;
+        } else if(capture_target == "focused") {
             return capture_options.focused;
         } else if(capture_target == "portal") {
             return capture_options.portal;
@@ -1943,7 +1871,10 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGUSR1);
     }
 
-    bool Overlay::on_press_start_replay(bool disable_notification) {
+    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_region_selection) {
+        if(region_selector.is_started())
+            return false;
+
         switch(recording_status) {
             case RecordingStatus::NONE:
             case RecordingStatus::REPLAY:
@@ -1991,6 +1922,14 @@ namespace gsr {
             return false;
         }
 
+        if(config.replay_config.record_options.record_area_option == "region" && !finished_region_selection) {
+            start_region_capture = true;
+            on_region_selected = [disable_notification, this]() {
+                on_press_start_replay(disable_notification, true);
+            };
+            return false;
+        }
+
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.replay_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.replay_config.record_options.video_bitrate);
@@ -2006,13 +1945,13 @@ namespace gsr {
             encoder = "cpu";
         }
 
-        char region[64];
-        region[0] = '\0';
+        char size[64];
+        size[0] = '\0';
         if(config.replay_config.record_options.record_area_option == "focused")
-            snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.record_area_width, (int)config.replay_config.record_options.record_area_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.replay_config.record_options.record_area_width, (int)config.replay_config.record_options.record_area_height);
 
         if(config.replay_config.record_options.record_area_option != "focused" && config.replay_config.record_options.change_video_resolution)
-            snprintf(region, sizeof(region), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", config.replay_config.record_options.record_area_option.c_str(),
@@ -2034,7 +1973,8 @@ namespace gsr {
             args.push_back("yes");
         }
 
-        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
+        char region_str[128];
+        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, audio_tracks_merged, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 
@@ -2067,7 +2007,10 @@ namespace gsr {
         return true;
     }
 
-    void Overlay::on_press_start_record() {
+    void Overlay::on_press_start_record(bool finished_region_selection) {
+        if(region_selector.is_started())
+            return;
+
         switch(recording_status) {
             case RecordingStatus::NONE:
             case RecordingStatus::RECORD:
@@ -2112,6 +2055,14 @@ namespace gsr {
             return;
         }
 
+        if(config.record_config.record_options.record_area_option == "region" && !finished_region_selection) {
+            start_region_capture = true;
+            on_region_selected = [this]() {
+                on_press_start_record(true);
+            };
+            return;
+        }
+
         record_filepath.clear();
 
         // TODO: Validate input, fallback to valid values
@@ -2128,13 +2079,13 @@ namespace gsr {
             encoder = "cpu";
         }
 
-        char region[64];
-        region[0] = '\0';
+        char size[64];
+        size[0] = '\0';
         if(config.record_config.record_options.record_area_option == "focused")
-            snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
 
         if(config.record_config.record_options.record_area_option != "focused" && config.record_config.record_options.change_video_resolution)
-            snprintf(region, sizeof(region), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", config.record_config.record_options.record_area_option.c_str(),
@@ -2150,7 +2101,8 @@ namespace gsr {
             "-o", output_file.c_str()
         };
 
-        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
+        char region_str[128];
+        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, audio_tracks_merged, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 
@@ -2205,7 +2157,10 @@ namespace gsr {
         return url;
     }
 
-    void Overlay::on_press_start_stream() {
+    void Overlay::on_press_start_stream(bool finished_region_selection) {
+        if(region_selector.is_started())
+            return;
+
         switch(recording_status) {
             case RecordingStatus::NONE:
             case RecordingStatus::STREAM:
@@ -2248,6 +2203,14 @@ namespace gsr {
             return;
         }
 
+        if(config.streaming_config.record_options.record_area_option == "region" && !finished_region_selection) {
+            start_region_capture = true;
+            on_region_selected = [this]() {
+                on_press_start_stream(true);
+            };
+            return;
+        }
+
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.streaming_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
@@ -2267,13 +2230,13 @@ namespace gsr {
 
         const std::string url = streaming_get_url(config);
 
-        char region[64];
-        region[0] = '\0';
+        char size[64];
+        size[0] = '\0';
         if(config.record_config.record_options.record_area_option == "focused")
-            snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.record_area_width, (int)config.streaming_config.record_options.record_area_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.streaming_config.record_options.record_area_width, (int)config.streaming_config.record_options.record_area_height);
 
         if(config.record_config.record_options.record_area_option != "focused" && config.streaming_config.record_options.change_video_resolution)
-            snprintf(region, sizeof(region), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", config.streaming_config.record_options.record_area_option.c_str(),
@@ -2289,7 +2252,8 @@ namespace gsr {
         };
 
         config.streaming_config.record_options.merge_audio_tracks = true;
-        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, region, audio_tracks_merged);
+        char region_str[128];
+        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, audio_tracks_merged, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 
@@ -2314,7 +2278,10 @@ namespace gsr {
             show_notification("Streaming has started", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
     }
 
-    void Overlay::on_press_take_screenshot() {
+    void Overlay::on_press_take_screenshot(bool finished_region_selection) {
+        if(region_selector.is_started())
+            return;
+
         if(gpu_screen_recorder_screenshot_process > 0) {
             fprintf(stderr, "Error: failed to take screenshot, another screenshot is currently being saved\n");
             return;
@@ -2324,6 +2291,15 @@ namespace gsr {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", config.screenshot_config.record_area_option.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::SCREENSHOT);
+            return;
+        }
+
+        if(config.screenshot_config.record_area_option == "region" && !finished_region_selection) {
+            start_region_capture = true;
+            on_region_selected = [this]() {
+                usleep(200 * 1000); // Hack: wait 0.2 seconds before taking a screenshot to allow user to move cursor away. TODO: Remove this
+                on_press_take_screenshot(true);
+            };
             return;
         }
 
@@ -2338,18 +2314,22 @@ namespace gsr {
             "-o", output_file.c_str()
         };
 
-        char region[64];
-        region[0] = '\0';
+        char size[64];
+        size[0] = '\0';
         if(config.screenshot_config.change_image_resolution) {
-            snprintf(region, sizeof(region), "%dx%d", (int)config.screenshot_config.image_width, (int)config.screenshot_config.image_height);
+            snprintf(size, sizeof(size), "%dx%d", (int)config.screenshot_config.image_width, (int)config.screenshot_config.image_height);
             args.push_back("-s");
-            args.push_back(region);
+            args.push_back(size);
         }
 
         if(config.screenshot_config.restore_portal_session) {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }
+
+        char region_str[128];
+        if(config.screenshot_config.record_area_option == "region")
+            add_region_command(args, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 

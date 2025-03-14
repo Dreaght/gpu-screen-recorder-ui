@@ -38,6 +38,8 @@ namespace gsr {
         // TODO: Enable this
         //if(capture_options.window)
         //    record_area_box->add_item("Window", "window");
+        if(capture_options.region)
+            record_area_box->add_item("Region", "region");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
             snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);

@@ -66,6 +66,8 @@ namespace gsr {
         // TODO: Enable this
         //if(capture_options.window)
         //    record_area_box->add_item("Window", "window");
+        if(capture_options.region)
+            record_area_box->add_item("Region", "region");
         if(capture_options.focused)
             record_area_box->add_item("Follow focused window", "focused");
         for(const auto &monitor : capture_options.monitors) {

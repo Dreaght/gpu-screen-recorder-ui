@@ -310,6 +310,8 @@ namespace gsr {
     static void parse_capture_options_line(SupportedCaptureOptions &capture_options, std::string_view line) {
         if(line == "window")
             capture_options.window = true;
+        else if(line == "region")
+            capture_options.region = true;
         else if(line == "focused")
             capture_options.focused = true;
         else if(line == "portal")
