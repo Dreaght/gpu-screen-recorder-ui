@@ -210,7 +210,7 @@ namespace gsr {
         const int padding_right = padding_right_scale * get_theme().window_height;
 
         Item *selected_item_ptr = (selected_item < items.size()) ? &items[selected_item] : nullptr;
-        max_size = { 0.0f, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : 0.0f) };
+        max_size = { 0.0f, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : font->get_character_size()) };
         for(Item &item : items) {
             const mgl::vec2f bounds = item.text.get_bounds().size;
             max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
@@ -233,7 +233,7 @@ namespace gsr {
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         Item *selected_item_ptr = (selected_item < items.size()) ? &items[selected_item] : nullptr;
-        return { max_size.x, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : 0.0f) };
+        return { max_size.x, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : font->get_character_size()) };
     }
 
     float ComboBox::get_dropdown_arrow_height() const {
