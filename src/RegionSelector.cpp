@@ -108,7 +108,7 @@ namespace gsr {
         const Window window = XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0, width, height, 0, vinfo->depth, InputOutput, vinfo->visual, CWBackPixel | CWBorderPixel | CWOverrideRedirect | CWEventMask | CWColormap, &window_attr);
         if(window) {
             set_window_size_not_resizable(dpy, window, width, height);
-            set_window_shape_cross(dpy, window, width, height, 5);
+            set_window_shape_cross(dpy, window, width, height, cursor_thickness);
             make_window_click_through(dpy, window);
         }
         return window;
@@ -148,7 +148,7 @@ namespace gsr {
             const int y = cursor_y - cursor_window_size / 2;
             XFillRectangle(dpy, window, cursor_gc, x + cursor_window_size / 2 - thickness / 2 , y,                                          thickness,          cursor_window_size);
             XFillRectangle(dpy, window, cursor_gc, x,                                           y + cursor_window_size / 2 - thickness / 2, cursor_window_size, thickness);
-        } else {
+        } else if(cursor_window) {
             XMoveWindow(dpy, cursor_window, cursor_x - cursor_window_size / 2, cursor_y - cursor_window_size / 2);
         }
         XFlush(dpy);
@@ -253,6 +253,7 @@ namespace gsr {
         hide_window_from_taskbar(dpy, region_window);
         XFixesHideCursor(dpy, region_window);
         XGrabPointer(dpy, DefaultRootWindow(dpy), True, ButtonPressMask | ButtonReleaseMask | ButtonMotionMask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
+        XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime);
         xi_grab_all_mouse_devices(dpy);
         XFlush(dpy);
 
@@ -271,6 +272,7 @@ namespace gsr {
 
         XFlush(dpy);
         selected = false;
+        canceled = false;
         return true;
     }
 
@@ -283,6 +285,7 @@ namespace gsr {
         XFixesShowCursor(dpy, region_window);
 
         XUngrabPointer(dpy, CurrentTime);
+        XUngrabKeyboard(dpy, CurrentTime);
         xi_ungrab_all_mouse_devices(dpy);
         XFlush(dpy);
 
@@ -326,6 +329,14 @@ namespace gsr {
         XEvent xev;
         while(XPending(dpy)) {
             XNextEvent(dpy, &xev);
+
+            if(xev.type == KeyRelease && XKeycodeToKeysym(dpy, xev.xkey.keycode, 0) == XK_Escape) {
+                canceled = true;
+                selected = false;
+                stop();
+                break;
+            }
+
             XGenericEventCookie *cookie = &xev.xcookie;
             if(cookie->type != GenericEvent || cookie->extension != xi_opcode || !XGetEventData(dpy, cookie))
                 continue;
@@ -362,6 +373,12 @@ namespace gsr {
     bool RegionSelector::take_selection() {
         const bool result = selected;
         selected = false;
+        return result;
+    }
+
+    bool RegionSelector::take_canceled() {
+        const bool result = canceled;
+        canceled = false;
         return result;
     }
 

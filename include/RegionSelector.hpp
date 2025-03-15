@@ -28,6 +28,7 @@ namespace gsr {
         bool poll_events();
         bool is_selected() const;
         bool take_selection();
+        bool take_canceled();
         Region get_selection() const;
     private:
         void on_button_press(const void *de);
@@ -45,6 +46,7 @@ namespace gsr {
         Region region;
         bool selecting_region = false;
         bool selected = false;
+        bool canceled = false;
         bool is_wayland = false;
         std::vector<Monitor> monitors;
         mgl::vec2i cursor_pos;

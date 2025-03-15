@@ -592,7 +592,9 @@ namespace gsr {
 
         handle_keyboard_mapping_event();
         region_selector.poll_events();
-        if(region_selector.take_selection() && on_region_selected) {
+        if(region_selector.take_canceled()) {
+            on_region_selected = nullptr;
+        } else if(region_selector.take_selection() && on_region_selected) {
             on_region_selected();
             on_region_selected = nullptr;
         }
@@ -635,7 +637,7 @@ namespace gsr {
             start_region_capture = false;
             hide();
             if(!region_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::RECORD);
+                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::NONE);
                 on_region_selected = nullptr;
             }
         }
