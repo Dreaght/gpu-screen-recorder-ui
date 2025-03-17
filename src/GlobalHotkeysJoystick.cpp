@@ -6,7 +6,12 @@
 #include <sys/eventfd.h>
 
 namespace gsr {
-    static constexpr double double_click_timeout_seconds = 0.33;
+    static constexpr int button_pressed = 1;
+    static constexpr int playstation_button = 10;
+    static constexpr int x_button = 0;
+    static constexpr int circle_button = 1;
+    static constexpr int triangle_button = 2;
+    static constexpr int square_button = 3;
 
     // Returns -1 on error
     static int get_js_dev_input_id_from_filepath(const char *dev_input_filepath) {
@@ -99,6 +104,27 @@ namespace gsr {
             if(it != bound_actions_by_id.end())
                 it->second("save_replay");
         }
+
+        if(take_screenshot) {
+            take_screenshot = false;
+            auto it = bound_actions_by_id.find("take_screenshot");
+            if(it != bound_actions_by_id.end())
+                it->second("take_screenshot");
+        }
+
+        if(toggle_record) {
+            toggle_record = false;
+            auto it = bound_actions_by_id.find("toggle_record");
+            if(it != bound_actions_by_id.end())
+                it->second("toggle_record");
+        }
+
+        if(toggle_replay) {
+            toggle_replay = false;
+            auto it = bound_actions_by_id.find("toggle_replay");
+            if(it != bound_actions_by_id.end())
+                it->second("toggle_replay");
+        }
     }
 
     void GlobalHotkeysJoystick::read_events() {
@@ -156,22 +182,17 @@ namespace gsr {
         if((event.type & JS_EVENT_BUTTON) == 0)
             return;
 
-        if(event.number == 8 && event.value == 1) {
-            const double now = double_click_clock.get_elapsed_time_seconds();
-            if(!prev_time_clicked.has_value()) {
-                prev_time_clicked = now;
-                return;
-            }
-
-            if(prev_time_clicked.has_value()) {
-                const bool double_clicked = (now - prev_time_clicked.value()) < double_click_timeout_seconds;
-                if(double_clicked) {
-                    save_replay = true;
-                    prev_time_clicked.reset();
-                } else {
-                    prev_time_clicked = now;
-                }
-            }
+        if(event.number == playstation_button) {
+            playstation_button_pressed = event.value == button_pressed;
+        } else if(playstation_button_pressed && event.value == button_pressed) {
+            if(event.number == circle_button)
+                save_replay = true;
+            else if(event.number == triangle_button)
+                take_screenshot = true;
+            else if(event.number == square_button)
+                toggle_record = true;
+            else if(event.number == x_button)
+                toggle_replay = true;
         }
     }
 

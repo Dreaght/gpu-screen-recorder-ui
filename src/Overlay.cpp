@@ -339,6 +339,21 @@ namespace gsr {
             overlay->save_replay();
         });
 
+        global_hotkeys_js->bind_action("take_screenshot", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->take_screenshot();
+        });
+
+        global_hotkeys_js->bind_action("toggle_record", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->toggle_record();
+        });
+
+        global_hotkeys_js->bind_action("toggle_replay", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->toggle_replay();
+        });
+
         return global_hotkeys_js;
     }
 

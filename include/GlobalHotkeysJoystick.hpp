@@ -3,10 +3,8 @@
 #include "GlobalHotkeys.hpp"
 #include "Hotplug.hpp"
 #include <unordered_map>
-#include <optional>
 #include <thread>
 #include <poll.h>
-#include <mglpp/system/Clock.hpp>
 #include <linux/joystick.h>
 
 namespace gsr {
@@ -21,6 +19,11 @@ namespace gsr {
         ~GlobalHotkeysJoystick() override;
 
         bool start();
+        // Currently valid ids:
+        // save_replay
+        // take_screenshot
+        // toggle_record
+        // toggle_replay
         bool bind_action(const std::string &id, GlobalHotkeyCallback callback) override;
         void poll_events() override;
     private:
@@ -45,9 +48,12 @@ namespace gsr {
         int event_fd = -1;
         int event_index = -1;
 
-        mgl::Clock double_click_clock;
-        std::optional<double> prev_time_clicked;
+        bool playstation_button_pressed = false;
+
         bool save_replay = false;
+        bool take_screenshot = false;
+        bool toggle_record = false;
+        bool toggle_replay = false;
         int hotplug_poll_index = -1;
         Hotplug hotplug;
     };
