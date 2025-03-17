@@ -64,7 +64,7 @@ namespace gsr {
         std::unique_ptr<Button> create_add_custom_application_audio_button();
         std::unique_ptr<List> create_add_audio_buttons();
         std::unique_ptr<List> create_audio_track_track_section();
-        std::unique_ptr<CheckBox> create_merge_audio_tracks_checkbox();
+        std::unique_ptr<CheckBox> create_split_audio_checkbox();
         std::unique_ptr<CheckBox> create_application_audio_invert_checkbox();
         std::unique_ptr<Widget> create_audio_track_section();
         std::unique_ptr<Widget> create_audio_section();
@@ -155,7 +155,7 @@ namespace gsr {
         List *audio_track_list_ptr = nullptr;
         Button *add_application_audio_button_ptr = nullptr;
         Button *add_custom_application_audio_button_ptr = nullptr;
-        CheckBox *merge_audio_tracks_checkbox_ptr = nullptr;
+        CheckBox *split_audio_checkbox_ptr = nullptr;
         CheckBox *application_audio_invert_checkbox_ptr = nullptr;
         CheckBox *change_video_resolution_checkbox_ptr = nullptr;
         ComboBox *color_range_box_ptr = nullptr;

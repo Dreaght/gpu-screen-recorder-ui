@@ -286,11 +286,11 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_merge_audio_tracks_checkbox() {
-        auto merge_audio_tracks_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Merge audio tracks");
-        merge_audio_tracks_checkbox->set_checked(true);
-        merge_audio_tracks_checkbox_ptr = merge_audio_tracks_checkbox.get();
-        return merge_audio_tracks_checkbox;
+    std::unique_ptr<CheckBox> SettingsPage::create_split_audio_checkbox() {
+        auto split_audio_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Split each device/app audio into separate audio tracks");
+        split_audio_checkbox->set_checked(false);
+        split_audio_checkbox_ptr = split_audio_checkbox.get();
+        return split_audio_checkbox;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_application_audio_invert_checkbox() {
@@ -311,7 +311,7 @@ namespace gsr {
         auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_device_section_list->add_widget(create_audio_track_section());
         if(type != Type::STREAM)
-            audio_device_section_list->add_widget(create_merge_audio_tracks_checkbox());
+            audio_device_section_list->add_widget(create_split_audio_checkbox());
         audio_device_section_list->add_widget(create_application_audio_invert_checkbox());
         audio_device_section_list->add_widget(create_audio_codec());
         return std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
@@ -760,6 +760,7 @@ namespace gsr {
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
             notifications_subsection_ptr->set_visible(advanced_view);
+            split_audio_checkbox_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
             return true;
         };
@@ -833,6 +834,7 @@ namespace gsr {
             video_codec_ptr->set_visible(advanced_view);
             framerate_mode_list_ptr->set_visible(advanced_view);
             notifications_subsection_ptr->set_visible(advanced_view);
+            split_audio_checkbox_ptr->set_visible(advanced_view);
             settings_scrollable_page_ptr->reset_scroll();
             return true;
         };
@@ -1043,8 +1045,8 @@ namespace gsr {
 
     void SettingsPage::load_common(RecordOptions &record_options) {
         record_area_box_ptr->set_selected_item(record_options.record_area_option);
-        if(merge_audio_tracks_checkbox_ptr)
-            merge_audio_tracks_checkbox_ptr->set_checked(record_options.merge_audio_tracks);
+        if(split_audio_checkbox_ptr)
+            split_audio_checkbox_ptr->set_checked(!record_options.merge_audio_tracks);
         application_audio_invert_checkbox_ptr->set_checked(record_options.application_audio_invert);
         change_video_resolution_checkbox_ptr->set_checked(record_options.change_video_resolution);
         load_audio_tracks(record_options);
@@ -1169,8 +1171,8 @@ namespace gsr {
         record_options.video_height = atoi(video_height_entry_ptr->get_text().c_str());
         record_options.fps = atoi(framerate_entry_ptr->get_text().c_str());
         record_options.video_bitrate = atoi(video_bitrate_entry_ptr->get_text().c_str());
-        if(merge_audio_tracks_checkbox_ptr)
-            record_options.merge_audio_tracks = merge_audio_tracks_checkbox_ptr->is_checked();
+        if(split_audio_checkbox_ptr)
+            record_options.merge_audio_tracks = !split_audio_checkbox_ptr->is_checked();
         record_options.application_audio_invert = application_audio_invert_checkbox_ptr->is_checked();
         record_options.change_video_resolution = change_video_resolution_checkbox_ptr->is_checked();
         save_audio_tracks(record_options.audio_tracks, audio_track_list_ptr);
