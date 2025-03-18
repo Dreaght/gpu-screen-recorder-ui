@@ -59,7 +59,8 @@ namespace gsr {
         std::unique_ptr<List> create_stream_hotkey_options();
         std::unique_ptr<List> create_screenshot_hotkey_options();
         std::unique_ptr<List> create_hotkey_control_buttons();
-        std::unique_ptr<Subsection> create_hotkey_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<Subsection> create_keyboard_hotkey_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<Subsection> create_controller_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Button> create_exit_program_button();
         std::unique_ptr<Button> create_go_back_to_old_ui_button();
         std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);

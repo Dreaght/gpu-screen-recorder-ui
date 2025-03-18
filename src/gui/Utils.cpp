@@ -67,4 +67,11 @@ namespace gsr {
 
         return from;
     }
+
+    mgl::vec2f clamp_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to) {
+        if(from.x > to.x || from.y > to.y)
+            return scale_keep_aspect_ratio(from, to);
+        else
+            return from;
+    }
 }

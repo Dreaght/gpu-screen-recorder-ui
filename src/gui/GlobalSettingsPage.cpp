@@ -10,6 +10,7 @@
 #include "../../include/gui/Subsection.hpp"
 #include "../../include/gui/List.hpp"
 #include "../../include/gui/Label.hpp"
+#include "../../include/gui/Image.hpp"
 #include "../../include/gui/RadioButton.hpp"
 #include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
@@ -325,26 +326,45 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<Subsection> GlobalSettingsPage::create_hotkey_subsection(ScrollablePage *parent_page) {
+    static std::unique_ptr<List> create_joystick_hotkey_text(mgl::Texture *image1, mgl::Texture *image2, float max_height, const char *suffix) {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Image>(image1, mgl::vec2f{max_height, 1000.0f}, Image::ScaleBehavior::SCALE));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "and", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Image>(image2, mgl::vec2f{max_height, 1000.0f}, Image::ScaleBehavior::SCALE));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, suffix, get_color_theme().text_color));
+        return list;
+    }
+
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_keyboard_hotkey_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         List *list_ptr = list.get();
-        auto subsection = std::make_unique<Subsection>("Hotkeys", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+        auto subsection = std::make_unique<Subsection>("Keyboard hotkeys", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
 
         list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable keyboard hotkeys?", get_color_theme().text_color));
         list_ptr->add_widget(create_enable_keyboard_hotkeys_button());
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable controller hotkeys?", get_color_theme().text_color));
-        list_ptr->add_widget(create_enable_joystick_hotkeys_button());
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
         list_ptr->add_widget(create_show_hide_hotkey_options());
         list_ptr->add_widget(create_replay_hotkey_options());
         list_ptr->add_widget(create_record_hotkey_options());
         list_ptr->add_widget(create_stream_hotkey_options());
         list_ptr->add_widget(create_screenshot_hotkey_options());
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad up to take a screenshot", get_color_theme().text_color));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad down to save a replay", get_color_theme().text_color));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad left to start/stop recording", get_color_theme().text_color));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad right to start/stop replay", get_color_theme().text_color));
         list_ptr->add_widget(create_hotkey_control_buttons());
+        return subsection;
+    }
+
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_controller_hotkey_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        List *list_ptr = list.get();
+        auto subsection = std::make_unique<Subsection>("Controller hotkeys", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable controller hotkeys?", get_color_theme().text_color));
+        list_ptr->add_widget(create_enable_joystick_hotkeys_button());
+        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_up_texture, get_theme().body_font.get_character_size(), "to take a screenshot"));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_down_texture, get_theme().body_font.get_character_size(), "to save a replay"));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_left_texture, get_theme().body_font.get_character_size(), "to start/stop recording"));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_right_texture, get_theme().body_font.get_character_size(), "to turn replay on/off"));
         return subsection;
     }
 
@@ -405,7 +425,8 @@ namespace gsr {
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
-        settings_list->add_widget(create_hotkey_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_keyboard_hotkey_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_controller_hotkey_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_info_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));

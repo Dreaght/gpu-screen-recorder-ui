@@ -111,6 +111,21 @@ namespace gsr {
         if(!theme->screenshot_texture.load_from_file((resources_path + "images/screenshot.png").c_str()))
             goto error;
 
+        if(!theme->ps4_home_texture.load_from_file((resources_path + "images/ps4_home.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+            goto error;
+
+        if(!theme->ps4_dpad_up_texture.load_from_file((resources_path + "images/ps4_dpad_up.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+            goto error;
+
+        if(!theme->ps4_dpad_down_texture.load_from_file((resources_path + "images/ps4_dpad_down.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+            goto error;
+        
+        if(!theme->ps4_dpad_left_texture.load_from_file((resources_path + "images/ps4_dpad_left.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+            goto error;
+
+        if(!theme->ps4_dpad_right_texture.load_from_file((resources_path + "images/ps4_dpad_right.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+            goto error;
+
         return true;
 
         error:

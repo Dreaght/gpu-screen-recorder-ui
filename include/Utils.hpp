@@ -4,7 +4,6 @@
 #include <string_view>
 #include <map>
 #include <string>
-#include <optional>
 
 namespace gsr {
     struct KeyValue {

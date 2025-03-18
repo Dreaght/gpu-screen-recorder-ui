@@ -3,9 +3,6 @@
 #include <mglpp/system/vec.hpp>
 #include <mglpp/graphics/Color.hpp>
 
-#include <functional>
-#include <string_view>
-
 namespace mgl {
     class Window;
 }
@@ -16,4 +13,5 @@ namespace gsr {
     double get_frame_delta_seconds();
     void set_frame_delta_seconds(double frame_delta);
     mgl::vec2f scale_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to);
+    mgl::vec2f clamp_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to);
 }

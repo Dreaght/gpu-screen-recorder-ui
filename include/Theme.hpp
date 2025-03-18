@@ -43,6 +43,12 @@ namespace gsr {
         mgl::Texture save_texture;
         mgl::Texture screenshot_texture;
 
+        mgl::Texture ps4_home_texture;
+        mgl::Texture ps4_dpad_up_texture;
+        mgl::Texture ps4_dpad_down_texture;
+        mgl::Texture ps4_dpad_left_texture;
+        mgl::Texture ps4_dpad_right_texture;
+
         double double_click_timeout_seconds = 0.4;
 
         // Reloads fonts

@@ -38,7 +38,10 @@ This program has to grab all keyboards and create a virtual keyboard (`gsr-ui vi
 This might cause issues for you if you use input remapping software. To workaround this you can go into settings and select "Only grab virtual devices"
 
 # License
-This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`. `images/default.cur` it part of the [Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master) which is licensed under `Creative Commons Attribution-Share Alike 3.0`.
+This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.\
+`images/default.cur` it part of the [Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master) which is licensed under `CC BY-SA 3.0`.\
+The D-Pad images under `images/` were created by [Julio Cacko](https://juliocacko.itch.io/free-input-prompts) and they are licensed under `CC0 1.0 Universal`.\
+The PlayStation logo under `images/` was created by [ArksDigital](https://arks.itch.io/ps4-buttons) and it's are licensed under `CC BY 4.0`.
 
 # Reporting bugs, contributing patches, questions or donation
 See [https://git.dec05eba.com/?p=about](https://git.dec05eba.com/?p=about).
