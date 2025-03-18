@@ -49,6 +49,10 @@ namespace gsr {
         int event_index = -1;
 
         bool playstation_button_pressed = false;
+        bool up_pressed = false;
+        bool down_pressed = false;
+        bool left_pressed = false;
+        bool right_pressed = false;
 
         bool save_replay = false;
         bool take_screenshot = false;

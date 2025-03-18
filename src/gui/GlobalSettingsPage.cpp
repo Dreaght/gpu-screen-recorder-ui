@@ -340,10 +340,10 @@ namespace gsr {
         list_ptr->add_widget(create_record_hotkey_options());
         list_ptr->add_widget(create_stream_hotkey_options());
         list_ptr->add_widget(create_screenshot_hotkey_options());
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and square to start/stop recording", get_color_theme().text_color));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and X to start/stop replay", get_color_theme().text_color));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and circle to save a replay", get_color_theme().text_color));
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and triangle to take a screenshot", get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad up to take a screenshot", get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad down to save a replay", get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad left to start/stop recording", get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Press the PlayStation button and d-pad right to start/stop replay", get_color_theme().text_color));
         list_ptr->add_widget(create_hotkey_control_buttons());
         return subsection;
     }

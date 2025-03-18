@@ -8,10 +8,8 @@
 namespace gsr {
     static constexpr int button_pressed = 1;
     static constexpr int playstation_button = 10;
-    static constexpr int x_button = 0;
-    static constexpr int circle_button = 1;
-    static constexpr int triangle_button = 2;
-    static constexpr int square_button = 3;
+    static constexpr int axis_up_down = 7;
+    static constexpr int axis_left_right = 6;
 
     // Returns -1 on error
     static int get_js_dev_input_id_from_filepath(const char *dev_input_filepath) {
@@ -179,19 +177,30 @@ namespace gsr {
         if(read(fd, &event, sizeof(event)) != sizeof(event))
             return;
 
-        if((event.type & JS_EVENT_BUTTON) == 0)
-            return;
+        if((event.type & JS_EVENT_BUTTON) == JS_EVENT_BUTTON) {
+            if(event.number == playstation_button)
+                playstation_button_pressed = event.value == button_pressed;
+        } else if((event.type & JS_EVENT_AXIS) == JS_EVENT_AXIS && playstation_button_pressed) {
+            const int trigger_threshold = 16383;
+            const bool prev_up_pressed = up_pressed;
+            const bool prev_down_pressed = down_pressed;
+            const bool prev_left_pressed = left_pressed;
+            const bool prev_right_pressed = right_pressed;
+            if(event.number == axis_up_down) {
+                up_pressed = event.value <= -trigger_threshold;
+                down_pressed = event.value >= trigger_threshold;
+            } else if(event.number == axis_left_right) {
+                left_pressed = event.value <= -trigger_threshold;
+                right_pressed = event.value >= trigger_threshold;
+            }
 
-        if(event.number == playstation_button) {
-            playstation_button_pressed = event.value == button_pressed;
-        } else if(playstation_button_pressed && event.value == button_pressed) {
-            if(event.number == circle_button)
-                save_replay = true;
-            else if(event.number == triangle_button)
+            if(up_pressed && !prev_up_pressed)
                 take_screenshot = true;
-            else if(event.number == square_button)
+            else if(down_pressed && !prev_down_pressed)
+                save_replay = true;
+            else if(left_pressed && !prev_left_pressed)
                 toggle_record = true;
-            else if(event.number == x_button)
+            else if(right_pressed && !prev_right_pressed)
                 toggle_replay = true;
         }
     }
