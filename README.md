@@ -44,7 +44,8 @@ The D-Pad images under `images/` were created by [Julio Cacko](https://juliocack
 The PlayStation logo under `images/` was created by [ArksDigital](https://arks.itch.io/ps4-buttons) and it's are licensed under `CC BY 4.0`.
 
 # Reporting bugs, contributing patches, questions or donation
-See [https://git.dec05eba.com/?p=about](https://git.dec05eba.com/?p=about).
+See [https://git.dec05eba.com/?p=about](https://git.dec05eba.com/?p=about).\
+I'm looking for somebody that can create sound effects for the notifications.
 
 # Demo
 [![Click here to watch a demo video on youtube](https://img.youtube.com/vi/SOqXusCTXXA/0.jpg)](https://www.youtube.com/watch?v=SOqXusCTXXA)
