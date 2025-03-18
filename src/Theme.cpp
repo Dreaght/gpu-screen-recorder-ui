@@ -10,10 +10,11 @@ namespace gsr {
 
     static mgl::Color gpu_vendor_to_color(GpuVendor vendor) {
         switch(vendor) {
-            case GpuVendor::UNKNOWN: return mgl::Color(221, 0, 49);
-            case GpuVendor::AMD:     return mgl::Color(221, 0, 49);
-            case GpuVendor::INTEL:   return mgl::Color(8, 109, 183);
-            case GpuVendor::NVIDIA:  return mgl::Color(118, 185, 0);
+            case GpuVendor::UNKNOWN:  return mgl::Color(221, 0, 49);
+            case GpuVendor::AMD:      return mgl::Color(221, 0, 49);
+            case GpuVendor::INTEL:    return mgl::Color(8, 109, 183);
+            case GpuVendor::NVIDIA:   return mgl::Color(118, 185, 0);
+            case GpuVendor::BROADCOM: return mgl::Color(221, 0, 49);
         }
         return mgl::Color(221, 0, 49);
     }
@@ -26,6 +27,8 @@ namespace gsr {
             vendor = GpuVendor::INTEL;
         else if(color_name == "nvidia")
             vendor = GpuVendor::NVIDIA;
+        else if(color_name == "broadcom")
+            vendor = GpuVendor::BROADCOM;
         return gpu_vendor_to_color(vendor);
     }
 

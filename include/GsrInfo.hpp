@@ -69,7 +69,8 @@ namespace gsr {
         UNKNOWN,
         AMD,
         INTEL,
-        NVIDIA
+        NVIDIA,
+        BROADCOM
     };
 
     struct GpuInfo {

@@ -35,20 +35,22 @@ extern "C" {
 namespace gsr {
     static const char* gpu_vendor_to_color_name(GpuVendor vendor) {
         switch(vendor) {
-            case GpuVendor::UNKNOWN: return "amd";
-            case GpuVendor::AMD:     return "amd";
-            case GpuVendor::INTEL:   return "intel";
-            case GpuVendor::NVIDIA:  return "nvidia";
+            case GpuVendor::UNKNOWN:  return "amd";
+            case GpuVendor::AMD:      return "amd";
+            case GpuVendor::INTEL:    return "intel";
+            case GpuVendor::NVIDIA:   return "nvidia";
+            case GpuVendor::BROADCOM: return "broadcom";
         }
         return "amd";
     }
 
     static const char* gpu_vendor_to_string(GpuVendor vendor) {
         switch(vendor) {
-            case GpuVendor::UNKNOWN: return "Unknown";
-            case GpuVendor::AMD:     return "AMD";
-            case GpuVendor::INTEL:   return "Intel";
-            case GpuVendor::NVIDIA:  return "NVIDIA";
+            case GpuVendor::UNKNOWN:  return "Unknown";
+            case GpuVendor::AMD:      return "AMD";
+            case GpuVendor::INTEL:    return "Intel";
+            case GpuVendor::NVIDIA:   return "NVIDIA";
+            case GpuVendor::BROADCOM: return "Broadcom";
         }
         return "unknown";
     }

@@ -129,6 +129,8 @@ namespace gsr {
                 gsr_info->gpu_info.vendor = GpuVendor::INTEL;
             else if(key_value->value == "nvidia")
                 gsr_info->gpu_info.vendor = GpuVendor::NVIDIA;
+            else if(key_value->value == "broadcom")
+                gsr_info->gpu_info.vendor = GpuVendor::BROADCOM;
         } else if(key_value->key == "card_path") {
             gsr_info->gpu_info.card_path = key_value->value;
         }
@@ -325,10 +327,11 @@ namespace gsr {
 
     static const char* gpu_vendor_to_string(GpuVendor vendor) {
         switch(vendor) {
-            case GpuVendor::UNKNOWN: return "unknown";
-            case GpuVendor::AMD:     return "amd";
-            case GpuVendor::INTEL:   return "intel";
-            case GpuVendor::NVIDIA:  return "nvidia";
+            case GpuVendor::UNKNOWN:  return "unknown";
+            case GpuVendor::AMD:      return "amd";
+            case GpuVendor::INTEL:    return "intel";
+            case GpuVendor::NVIDIA:   return "nvidia";
+            case GpuVendor::BROADCOM: return "broadcom";
         }
         return "unknown";
     }
