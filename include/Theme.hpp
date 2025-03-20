@@ -44,6 +44,7 @@ namespace gsr {
         mgl::Texture screenshot_texture;
 
         mgl::Texture ps4_home_texture;
+        mgl::Texture ps4_options_texture;
         mgl::Texture ps4_dpad_up_texture;
         mgl::Texture ps4_dpad_down_texture;
         mgl::Texture ps4_dpad_left_texture;

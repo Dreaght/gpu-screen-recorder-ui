@@ -7,6 +7,7 @@
 
 namespace gsr {
     static constexpr int button_pressed = 1;
+    static constexpr int options_button = 9;
     static constexpr int playstation_button = 10;
     static constexpr int axis_up_down = 7;
     static constexpr int axis_left_right = 6;
@@ -123,6 +124,13 @@ namespace gsr {
             if(it != bound_actions_by_id.end())
                 it->second("toggle_replay");
         }
+
+        if(toggle_show) {
+            toggle_show = false;
+            auto it = bound_actions_by_id.find("toggle_show");
+            if(it != bound_actions_by_id.end())
+                it->second("toggle_show");
+        }
     }
 
     void GlobalHotkeysJoystick::read_events() {
@@ -180,12 +188,15 @@ namespace gsr {
         if((event.type & JS_EVENT_BUTTON) == JS_EVENT_BUTTON) {
             if(event.number == playstation_button)
                 playstation_button_pressed = event.value == button_pressed;
+            else if(event.number == options_button && event.value == button_pressed)
+                toggle_show = true;
         } else if((event.type & JS_EVENT_AXIS) == JS_EVENT_AXIS && playstation_button_pressed) {
             const int trigger_threshold = 16383;
             const bool prev_up_pressed = up_pressed;
             const bool prev_down_pressed = down_pressed;
             const bool prev_left_pressed = left_pressed;
             const bool prev_right_pressed = right_pressed;
+
             if(event.number == axis_up_down) {
                 up_pressed = event.value <= -trigger_threshold;
                 down_pressed = event.value >= trigger_threshold;

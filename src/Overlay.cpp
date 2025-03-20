@@ -272,7 +272,7 @@ namespace gsr {
     static void bind_linux_hotkeys(GlobalHotkeysLinux *global_hotkeys, Overlay *overlay) {
         global_hotkeys->bind_key_press(
             config_hotkey_to_hotkey(overlay->get_config().main_config.show_hide_hotkey),
-            "show_hide", [overlay](const std::string &id) {
+            "toggle_show", [overlay](const std::string &id) {
                 fprintf(stderr, "pressed %s\n", id.c_str());
                 overlay->toggle_show();
             });
@@ -333,6 +333,11 @@ namespace gsr {
         auto global_hotkeys_js = std::make_unique<GlobalHotkeysJoystick>();
         if(!global_hotkeys_js->start())
             fprintf(stderr, "Warning: failed to start joystick hotkeys\n");
+
+        global_hotkeys_js->bind_action("toggle_show", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->toggle_show();
+        });
 
         global_hotkeys_js->bind_action("save_replay", [overlay](const std::string &id) {
             fprintf(stderr, "pressed %s\n", id.c_str());

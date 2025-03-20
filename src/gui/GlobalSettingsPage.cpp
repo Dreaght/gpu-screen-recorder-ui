@@ -363,6 +363,7 @@ namespace gsr {
         list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, "Enable controller hotkeys?", get_color_theme().text_color));
         list_ptr->add_widget(create_enable_joystick_hotkeys_button());
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_options_texture, get_theme().body_font.get_character_size(), "to show/hide the UI"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_up_texture, get_theme().body_font.get_character_size(), "to take a screenshot"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_down_texture, get_theme().body_font.get_character_size(), "to save a replay"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_left_texture, get_theme().body_font.get_character_size(), "to start/stop recording"));

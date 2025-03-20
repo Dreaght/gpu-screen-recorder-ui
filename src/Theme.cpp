@@ -117,6 +117,9 @@ namespace gsr {
         if(!theme->ps4_home_texture.load_from_file((resources_path + "images/ps4_home.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
             goto error;
 
+        if(!theme->ps4_options_texture.load_from_file((resources_path + "images/ps4_options.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+            goto error;
+
         if(!theme->ps4_dpad_up_texture.load_from_file((resources_path + "images/ps4_dpad_up.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
             goto error;
 

@@ -24,6 +24,7 @@ namespace gsr {
         // take_screenshot
         // toggle_record
         // toggle_replay
+        // toggle_show
         bool bind_action(const std::string &id, GlobalHotkeyCallback callback) override;
         void poll_events() override;
     private:
@@ -58,6 +59,7 @@ namespace gsr {
         bool take_screenshot = false;
         bool toggle_record = false;
         bool toggle_replay = false;
+        bool toggle_show = false;
         int hotplug_poll_index = -1;
         Hotplug hotplug;
     };
