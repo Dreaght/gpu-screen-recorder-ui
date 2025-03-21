@@ -126,6 +126,7 @@ namespace gsr {
         bool show_screenshot_saved_notifications = true;
         std::string save_directory;
         ConfigHotkey take_screenshot_hotkey;
+        ConfigHotkey take_screenshot_region_hotkey;
     };
 
     struct Config {

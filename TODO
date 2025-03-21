@@ -141,7 +141,7 @@ Allow using a hotkey such as printscreen or any other non-alphanumeric key witho
 
 Use x11 shm instead of XGetImage (https://stackoverflow.com/questions/43442675/how-to-use-xshmgetimage-and-xshmputimage).
 
-Add a hotkey to record/stream/replay/screenshot region.
+Add a hotkey to record/stream/replay region.
 
 Do xi grab for keys as well. Otherwise the ui cant be used for keyboard input if a program has grabbed the keyboard, and there could possibly be a game that grabs the keyboard as well.
 

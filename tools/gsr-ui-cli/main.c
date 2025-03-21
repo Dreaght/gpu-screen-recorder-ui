@@ -44,13 +44,22 @@ static void usage(void) {
     printf("Run commands on the running gsr-ui instance.\n");
     printf("\n");
     printf("COMMANDS:\n");
-    printf("  toggle-show      Show/hide the UI.\n");
-    printf("  toggle-record    Start/stop recording.\n");
-    printf("  toggle-pause     Pause/unpause recording. Only applies to regular recording.\n");
-    printf("  toggle-stream    Start/stop streaming.\n");
-    printf("  toggle-replay    Start/stop replay.\n");
-    printf("  replay-save      Save replay.\n");
-    printf("  take-screenshot  Take a screenshot.\n");
+    printf("  toggle-show\n");
+    printf("      Show/hide the UI.\n");
+    printf("  toggle-record\n");
+    printf("      Start/stop recording.\n");
+    printf("  toggle-pause\n");
+    printf("      Pause/unpause recording. Only applies to regular recording.\n");
+    printf("  toggle-stream\n");
+    printf("      Start/stop streaming.\n");
+    printf("  toggle-replay\n");
+    printf("      Start/stop replay.\n");
+    printf("  replay-save\n");
+    printf("      Save replay.\n");
+    printf("  take-screenshot\n");
+    printf("      Take a screenshot.\n");
+    printf("  take-screenshot-region\n");
+    printf("      Take a screenshot of a region.\n");
     printf("\n");
     printf("EXAMPLES:\n");
     printf("  gsr-ui-cli toggle-show\n");
@@ -67,6 +76,7 @@ static bool is_valid_command(const char *command) {
         "toggle-replay",
         "replay-save",
         "take-screenshot",
+        "take-screenshot-region",
         NULL
     };
 

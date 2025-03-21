@@ -300,6 +300,21 @@ namespace gsr {
         return list;
     }
 
+    std::unique_ptr<List> GlobalSettingsPage::create_screenshot_region_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Take a screenshot of a region:", get_color_theme().text_color));
+        auto take_screenshot_region_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        take_screenshot_region_button_ptr = take_screenshot_region_button.get();
+        list->add_widget(std::move(take_screenshot_region_button));
+
+        take_screenshot_region_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::TAKE_SCREENSHOT_REGION);
+        };
+
+        return list;
+    }
+
     std::unique_ptr<List> GlobalSettingsPage::create_hotkey_control_buttons() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
@@ -311,6 +326,7 @@ namespace gsr {
             config.replay_config.start_stop_hotkey = {mgl::Keyboard::Unknown, 0};
             config.replay_config.save_hotkey = {mgl::Keyboard::Unknown, 0};
             config.screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::Unknown, 0};
+            config.screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::Unknown, 0};
             config.main_config.show_hide_hotkey = {mgl::Keyboard::Unknown, 0};
             load_hotkeys();
             overlay->rebind_all_keyboard_hotkeys();
@@ -351,6 +367,7 @@ namespace gsr {
         list_ptr->add_widget(create_record_hotkey_options());
         list_ptr->add_widget(create_stream_hotkey_options());
         list_ptr->add_widget(create_screenshot_hotkey_options());
+        list_ptr->add_widget(create_screenshot_region_hotkey_options());
         list_ptr->add_widget(create_hotkey_control_buttons());
         return subsection;
     }
@@ -470,6 +487,7 @@ namespace gsr {
         start_stop_streaming_button_ptr->set_text(config.streaming_config.start_stop_hotkey.to_string());
 
         take_screenshot_button_ptr->set_text(config.screenshot_config.take_screenshot_hotkey.to_string());
+        take_screenshot_region_button_ptr->set_text(config.screenshot_config.take_screenshot_region_hotkey.to_string());
 
         show_hide_button_ptr->set_text(config.main_config.show_hide_hotkey.to_string());
     }
@@ -547,6 +565,8 @@ namespace gsr {
                 return start_stop_streaming_button_ptr;
             case ConfigureHotkeyType::TAKE_SCREENSHOT:
                 return take_screenshot_button_ptr;
+            case ConfigureHotkeyType::TAKE_SCREENSHOT_REGION:
+                return take_screenshot_region_button_ptr;
             case ConfigureHotkeyType::SHOW_HIDE:
                 return show_hide_button_ptr;
         }
@@ -569,6 +589,8 @@ namespace gsr {
                 return &config.streaming_config.start_stop_hotkey;
             case ConfigureHotkeyType::TAKE_SCREENSHOT:
                 return &config.screenshot_config.take_screenshot_hotkey;
+            case ConfigureHotkeyType::TAKE_SCREENSHOT_REGION:
+                return &config.screenshot_config.take_screenshot_region_hotkey;
             case ConfigureHotkeyType::SHOW_HIDE:
                 return &config.main_config.show_hide_hotkey;
         }
@@ -583,6 +605,7 @@ namespace gsr {
             &config.record_config.pause_unpause_hotkey,
             &config.streaming_config.start_stop_hotkey,
             &config.screenshot_config.take_screenshot_hotkey,
+            &config.screenshot_config.take_screenshot_region_hotkey,
             &config.main_config.show_hide_hotkey
         };
         for(ConfigHotkey *config_hotkey : config_hotkeys) {
@@ -621,6 +644,9 @@ namespace gsr {
                 break;
             case ConfigureHotkeyType::TAKE_SCREENSHOT:
                 hotkey_configure_action_name = "Take a screenshot";
+                break;
+            case ConfigureHotkeyType::TAKE_SCREENSHOT_REGION:
+                hotkey_configure_action_name = "Take a screenshot of a region";
                 break;
             case ConfigureHotkeyType::SHOW_HIDE:
                 hotkey_configure_action_name = "Show/hide UI";

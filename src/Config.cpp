@@ -140,6 +140,7 @@ namespace gsr {
         replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
 
         screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::F1, HOTKEY_MOD_LALT};
+        screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::F2, HOTKEY_MOD_LALT};
 
         main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
     }
@@ -262,7 +263,8 @@ namespace gsr {
             {"screenshot.save_screenshot_in_game_folder", &config.screenshot_config.save_screenshot_in_game_folder},
             {"screenshot.show_screenshot_saved_notifications", &config.screenshot_config.show_screenshot_saved_notifications},
             {"screenshot.save_directory", &config.screenshot_config.save_directory},
-            {"screenshot.take_screenshot_hotkey", &config.screenshot_config.take_screenshot_hotkey}
+            {"screenshot.take_screenshot_hotkey", &config.screenshot_config.take_screenshot_hotkey},
+            {"screenshot.take_screenshot_region_hotkey", &config.screenshot_config.take_screenshot_region_hotkey}
         };
     }
 

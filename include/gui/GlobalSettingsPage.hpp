@@ -26,6 +26,7 @@ namespace gsr {
         RECORD_PAUSE_UNPAUSE,
         STREAM_START_STOP,
         TAKE_SCREENSHOT,
+        TAKE_SCREENSHOT_REGION,
         SHOW_HIDE
     };
 
@@ -58,6 +59,7 @@ namespace gsr {
         std::unique_ptr<List> create_record_hotkey_options();
         std::unique_ptr<List> create_stream_hotkey_options();
         std::unique_ptr<List> create_screenshot_hotkey_options();
+        std::unique_ptr<List> create_screenshot_region_hotkey_options();
         std::unique_ptr<List> create_hotkey_control_buttons();
         std::unique_ptr<Subsection> create_keyboard_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_controller_hotkey_subsection(ScrollablePage *parent_page);
@@ -91,6 +93,7 @@ namespace gsr {
         Button *pause_unpause_recording_button_ptr = nullptr;
         Button *start_stop_streaming_button_ptr = nullptr;
         Button *take_screenshot_button_ptr = nullptr;
+        Button *take_screenshot_region_button_ptr = nullptr;
         Button *show_hide_button_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;

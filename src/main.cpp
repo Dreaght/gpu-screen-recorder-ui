@@ -78,6 +78,11 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
         fprintf(stderr, "rpc command executed: %s\n", name.c_str());
         overlay->take_screenshot();
     });
+
+    rpc->add_handler("take-screenshot-region", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->take_screenshot_region();
+    });
 }
 
 static bool is_gsr_ui_virtual_keyboard_running() {

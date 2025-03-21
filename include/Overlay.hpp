@@ -59,6 +59,7 @@ namespace gsr {
         void toggle_replay();
         void save_replay();
         void take_screenshot();
+        void take_screenshot_region();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
         bool is_open() const;
         bool should_exit(std::string &reason) const;
@@ -111,7 +112,7 @@ namespace gsr {
         bool on_press_start_replay(bool disable_notification, bool finished_region_selection);
         void on_press_start_record(bool finished_region_selection);
         void on_press_start_stream(bool finished_region_selection);
-        void on_press_take_screenshot(bool finished_region_selection);
+        void on_press_take_screenshot(bool finished_region_selection, bool force_region_capture);
         bool update_compositor_texture(const Monitor &monitor);
 
         void force_window_on_top();

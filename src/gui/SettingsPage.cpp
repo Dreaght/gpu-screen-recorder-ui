@@ -370,7 +370,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate() {
         auto video_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video bitrate (kbps):", get_color_theme().text_color));
+        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video bitrate (Kbps):", get_color_theme().text_color));
         video_bitrate_list->add_widget(create_video_bitrate_entry());
         video_bitrate_list_ptr = video_bitrate_list.get();
         return video_bitrate_list;

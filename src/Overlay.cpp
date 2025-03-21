@@ -318,6 +318,13 @@ namespace gsr {
                 fprintf(stderr, "pressed %s\n", id.c_str());
                 overlay->take_screenshot();
             });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().screenshot_config.take_screenshot_region_hotkey),
+            "take_screenshot_region", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->take_screenshot_region();
+            });
     }
 
     static std::unique_ptr<GlobalHotkeysLinux> register_linux_hotkeys(Overlay *overlay, GlobalHotkeysLinux::GrabType grab_type) {
@@ -1311,7 +1318,11 @@ namespace gsr {
     }
 
     void Overlay::take_screenshot() {
-        on_press_take_screenshot(false);
+        on_press_take_screenshot(false, false);
+    }
+
+    void Overlay::take_screenshot_region() {
+        on_press_take_screenshot(false, true);
     }
 
     static const char* notification_type_to_string(NotificationType notification_type) {
@@ -2300,7 +2311,7 @@ namespace gsr {
             show_notification("Streaming has started", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
     }
 
-    void Overlay::on_press_take_screenshot(bool finished_region_selection) {
+    void Overlay::on_press_take_screenshot(bool finished_region_selection, bool force_region_capture) {
         if(region_selector.is_started())
             return;
 
@@ -2309,18 +2320,20 @@ namespace gsr {
             return;
         }
 
-        if(!validate_capture_target(gsr_info, config.screenshot_config.record_area_option)) {
+        const bool region_capture = config.screenshot_config.record_area_option == "region" || force_region_capture;
+        const char *record_area_option = region_capture ? "region" : config.screenshot_config.record_area_option.c_str();
+        if(!validate_capture_target(gsr_info, record_area_option)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", config.screenshot_config.record_area_option.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", record_area_option);
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::SCREENSHOT);
             return;
         }
 
-        if(config.screenshot_config.record_area_option == "region" && !finished_region_selection) {
+        if(region_capture && !finished_region_selection) {
             start_region_capture = true;
-            on_region_selected = [this]() {
+            on_region_selected = [this, force_region_capture]() {
                 usleep(200 * 1000); // Hack: wait 0.2 seconds before taking a screenshot to allow user to move cursor away. TODO: Remove this
-                on_press_take_screenshot(true);
+                on_press_take_screenshot(true, force_region_capture);
             };
             return;
         }
@@ -2329,7 +2342,7 @@ namespace gsr {
         const std::string output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", config.screenshot_config.record_area_option.c_str(),
+            "gpu-screen-recorder", "-w", record_area_option,
             "-cursor", config.screenshot_config.record_cursor ? "yes" : "no",
             "-v", "no",
             "-q", config.screenshot_config.image_quality.c_str(),
@@ -2350,7 +2363,7 @@ namespace gsr {
         }
 
         char region_str[128];
-        if(config.screenshot_config.record_area_option == "region")
+        if(region_capture)
             add_region_command(args, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
