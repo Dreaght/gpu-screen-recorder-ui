@@ -105,12 +105,8 @@ When adding window capture only add it to recording and streaming and do the win
 
 Show an error that prime run will be disabled when using desktop portal capture option. This can cause issues as the user may have selected a video codec option that isn't available on their iGPU but is available on the prime-run dGPU.
 
-Is it possible to configure hotkey and the new hotkey to get triggered immediately?
-
 For keyboards that report supporting mice the keyboard grab will be delayed until any key has been pressed (and then released), see: https://github.com/dec05eba/gpu-screen-recorder-issues/issues/97
     See if there is any way around this.
-
-Instead of installing gsr-global-hotkeys in flatpak use kms-server-proxy to launch gsr-global-hotkeys inside the flatpak with root, just like gsr-kms-server. This removes the need to update gsr-global-hotkeys everytime there is an update.
 
 Check if "modprobe uinput" is needed on some systems (old fedora?).
 
@@ -136,8 +132,6 @@ Dont allow saving replay while a replay save is in progress.
 Make input work with cjk input systems (such as fcitx).
 
 System startup option should also support runit and some other init systems, not only soystemd.
-
-Allow using a hotkey such as printscreen or any other non-alphanumeric key without a modifier. Allow that in gsr-ui and gsr-global-hotkeys. Update the ui to match that.
 
 Use x11 shm instead of XGetImage (https://stackoverflow.com/questions/43442675/how-to-use-xshmgetimage-and-xshmputimage).
 
