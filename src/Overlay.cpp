@@ -1156,6 +1156,7 @@ namespace gsr {
             button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size*2) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().screenshot_texture);
+            button->set_icon_padding_scale(1.2f);
             button->on_click = [&]() {
                 auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack);
                 page_stack.push(std::move(screenshot_settings_page));

@@ -21,6 +21,7 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
         void set_border_scale(float scale);
+        void set_icon_padding_scale(float scale);
         void set_bg_hover_color(mgl::Color color);
         void set_icon(mgl::Texture *texture);
 
@@ -38,5 +39,6 @@ namespace gsr {
         mgl::Text text;
         mgl::Sprite sprite;
         float border_scale = 0.0015f;
+        float icon_padding_scale = 1.0f;
     };
 }

@@ -105,6 +105,10 @@ namespace gsr {
         border_scale = scale;
     }
 
+    void Button::set_icon_padding_scale(float scale) {
+        icon_padding_scale = scale;
+    }
+
     void Button::set_bg_hover_color(mgl::Color color) {
         bg_hover_color = color;
     }
@@ -127,8 +131,8 @@ namespace gsr {
 
         const float widget_height = get_button_height();
 
-        const int padding_icon_top = padding_top_icon_scale * widget_height;
-        const int padding_icon_bottom = padding_bottom_icon_scale * widget_height;
+        const int padding_icon_top = padding_top_icon_scale * icon_padding_scale * widget_height;
+        const int padding_icon_bottom = padding_bottom_icon_scale * icon_padding_scale * widget_height;
 
         const float desired_height = widget_height - (padding_icon_top + padding_icon_bottom);
         sprite.set_height((int)desired_height);
