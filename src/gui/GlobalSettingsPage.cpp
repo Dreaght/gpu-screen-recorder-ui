@@ -70,6 +70,10 @@ namespace gsr {
         return 0;
     }
 
+    static bool key_is_alpha_numerical(mgl::Keyboard::Key key) {
+        return key >= mgl::Keyboard::A && key <= mgl::Keyboard::Num9;
+    }
+
     GlobalSettingsPage::GlobalSettingsPage(Overlay *overlay, const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         overlay(overlay),
@@ -97,13 +101,13 @@ namespace gsr {
 
             mgl::Text title_text("Press a key combination to use for the hotkey \"" + hotkey_configure_action_name + "\":", get_theme().title_font);
             mgl::Text hotkey_text(configure_hotkey_button->get_text(), get_theme().top_bar_font);
-            mgl::Text description_text("The hotkey has to contain one or more of these keys: Alt, Ctrl, Shift and Super. Press Esc to cancel or Backspace to remove the hotkey.", get_theme().body_font);
+            mgl::Text description_text("Alpha-numerical keys can't be used alone in hotkeys, they have to be used one or more of these keys: Alt, Ctrl, Shift and Super.\nPress Esc to cancel or Backspace to remove the hotkey.", get_theme().body_font);
             const float text_max_width = std::max(title_text.get_bounds().size.x, std::max(hotkey_text.get_bounds().size.x, description_text.get_bounds().size.x));
 
             const float padding_horizontal = int(get_theme().window_height * 0.01f);
             const float padding_vertical = int(get_theme().window_height * 0.01f);
 
-            const mgl::vec2f bg_size = mgl::vec2f(text_max_width + padding_horizontal*2.0f, get_theme().window_height * 0.1f).floor();
+            const mgl::vec2f bg_size = mgl::vec2f(text_max_width + padding_horizontal*2.0f, get_theme().window_height * 0.13f).floor();
             mgl::Rectangle bg_rect(mgl::vec2f(get_theme().window_width*0.5f - bg_size.x*0.5f, get_theme().window_height*0.5f - bg_size.y*0.5f).floor(), bg_size);
             bg_rect.set_color(get_color_theme().page_bg_color);
             window.draw(bg_rect);
@@ -114,9 +118,16 @@ namespace gsr {
             window.draw(tint_rect);
 
             title_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - title_text.get_bounds().size.x*0.5f, padding_vertical)).floor());
+            description_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - description_text.get_bounds().size.x*0.5f, bg_rect.get_size().y - description_text.get_bounds().size.y - padding_vertical)).floor());
+
             window.draw(title_text);
 
-            hotkey_text.set_position(mgl::vec2f(bg_rect.get_position() + bg_rect.get_size()*0.5f - hotkey_text.get_bounds().size*0.5f).floor());
+            const float title_text_bottom = title_text.get_position().y + title_text.get_bounds().size.y;
+            hotkey_text.set_position(
+                mgl::vec2f(
+                    bg_rect.get_position().x + bg_rect.get_size().x*0.5f - hotkey_text.get_bounds().size.x*0.5f,
+                    title_text_bottom + (description_text.get_position().y - title_text_bottom) * 0.5f - hotkey_text.get_bounds().size.y*0.5f
+                ).floor());
             window.draw(hotkey_text);
 
             const float caret_padding_x = int(0.001f * get_theme().window_height);
@@ -124,7 +135,6 @@ namespace gsr {
             mgl::Rectangle caret_rect(hotkey_text.get_position() + mgl::vec2f(hotkey_text.get_bounds().size.x + caret_padding_x, hotkey_text.get_bounds().size.y*0.5f - caret_size.y*0.5f).floor(), caret_size);
             window.draw(caret_rect);
 
-            description_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - description_text.get_bounds().size.x*0.5f, bg_rect.get_size().y - description_text.get_bounds().size.y - padding_vertical)).floor());
             window.draw(description_text);
         };
         hotkey_overlay->set_visible(false);
@@ -525,7 +535,7 @@ namespace gsr {
             if(mgl::Keyboard::key_is_modifier(event.key.code)) {
                 configure_config_hotkey.modifiers |= mgl_modifier_to_hotkey_modifier(event.key.code);
                 configure_hotkey_button->set_text(configure_config_hotkey.to_string());
-            } else if(configure_config_hotkey.modifiers != 0) {
+            } else if(configure_config_hotkey.modifiers != 0 || !key_is_alpha_numerical(event.key.code)) {
                 configure_config_hotkey.key = event.key.code;
                 configure_hotkey_button->set_text(configure_config_hotkey.to_string());
                 configure_hotkey_stop_and_save();

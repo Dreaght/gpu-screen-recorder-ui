@@ -9,6 +9,7 @@ extern "C" {
 #include <mgl/mgl.h>
 }
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
 #include <linux/input-event-codes.h>
 
 #define PIPE_READ 0
@@ -56,6 +57,10 @@ namespace gsr {
             result += std::to_string(keys[i]);
         }
         return result;
+    }
+
+    static bool x11_key_is_alpha_numerical(KeySym keysym) {
+        return (keysym >= XK_A && keysym <= XK_Z) || (keysym >= XK_a && keysym <= XK_z) || (keysym >= XK_0 && keysym <= XK_9);
     }
 
     GlobalHotkeysLinux::GlobalHotkeysLinux(GrabType grab_type) : grab_type(grab_type) {
@@ -173,7 +178,7 @@ namespace gsr {
             return false;
         }
 
-        if(hotkey.modifiers == 0) {
+        if(hotkey.modifiers == 0 && x11_key_is_alpha_numerical(hotkey.key)) {
             //fprintf(stderr, "Error: GlobalHotkeysLinux::bind_key_press: hotkey requires a modifier\n");
             return false;
         }
@@ -185,7 +190,12 @@ namespace gsr {
         const std::string modifiers_command = linux_keys_to_command_string(modifiers.data(), modifiers.size());
 
         char command[256];
-        const int command_size = snprintf(command, sizeof(command), "bind %s %d+%s\n", id.c_str(), (int)keycode, modifiers_command.c_str());
+        int command_size = 0;
+        if(modifiers_command.empty())
+            command_size = snprintf(command, sizeof(command), "bind %s %d\n", id.c_str(), (int)keycode);
+        else
+            command_size = snprintf(command, sizeof(command), "bind %s %d+%s\n", id.c_str(), (int)keycode, modifiers_command.c_str());
+
         if(write(write_pipes[PIPE_WRITE], command, command_size) != command_size) {
             fprintf(stderr, "Error: GlobalHotkeysLinux::bind_key_press: failed to write command to gsr-global-hotkeys, error: %s\n", strerror(errno));
             return false;

@@ -139,8 +139,8 @@ namespace gsr {
         replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
         replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
 
-        screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::F1, HOTKEY_MOD_LALT};
-        screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::F2, HOTKEY_MOD_LALT};
+        screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::Printscreen, 0};
+        screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::Printscreen, HOTKEY_MOD_LCTRL};
 
         main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
     }

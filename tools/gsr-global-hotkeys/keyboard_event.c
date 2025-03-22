@@ -575,6 +575,13 @@ static int parse_u8(const char *str, int size) {
     return result;
 }
 
+static bool is_key_alpha_numerical(uint8_t key) {
+    return (key >= KEY_1 && key <= KEY_0)
+        || (key >= KEY_Q && key <= KEY_P)
+        || (key >= KEY_A && key <= KEY_L)
+        || (key >= KEY_Z && key <= KEY_M);
+}
+
 static bool keyboard_event_parse_bind_keys(const char *str, int size, uint8_t *key, uint32_t *modifiers) {
     *key = 0;
     *modifiers = 0;
@@ -609,13 +616,13 @@ static bool keyboard_event_parse_bind_keys(const char *str, int size, uint8_t *k
             break;
     }
 
-    if(key == 0) {
+    if(*key == 0) {
         fprintf(stderr, "Error: can't bind hotkey without a non-modifier key\n");
         return false;
     }
 
-    if(modifiers == 0) {
-        fprintf(stderr, "Error: can't bind hotkey without a modifier\n");
+    if(*modifiers == 0 && is_key_alpha_numerical(*key)) {
+        fprintf(stderr, "Error: can't bind hotkey without a modifier unless the key is a non alpha-numerical key\n");
         return false;
     }
 
