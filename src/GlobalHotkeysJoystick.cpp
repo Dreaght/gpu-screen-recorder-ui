@@ -188,7 +188,7 @@ namespace gsr {
         if((event.type & JS_EVENT_BUTTON) == JS_EVENT_BUTTON) {
             if(event.number == playstation_button)
                 playstation_button_pressed = event.value == button_pressed;
-            else if(event.number == options_button && event.value == button_pressed)
+            else if(playstation_button_pressed && event.number == options_button && event.value == button_pressed)
                 toggle_show = true;
         } else if((event.type & JS_EVENT_AXIS) == JS_EVENT_AXIS && playstation_button_pressed) {
             const int trigger_threshold = 16383;
