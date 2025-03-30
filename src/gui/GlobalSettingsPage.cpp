@@ -14,7 +14,6 @@
 #include "../../include/gui/RadioButton.hpp"
 #include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
-#include "../../include/gui/CheckBox.hpp"
 
 #include <assert.h>
 #include <X11/Xlib.h>
@@ -399,13 +398,6 @@ namespace gsr {
         return subsection;
     }
 
-    std::unique_ptr<CheckBox> GlobalSettingsPage::create_high_performance_encoding_option() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "High performance encoding mode (Experimental, may cause performance issues)");
-        high_performance_encoding_checkbox_ptr = checkbox.get();
-        checkbox->set_visible(gsr_info->gpu_info.vendor != GpuVendor::NVIDIA && gsr_info->system_info.gsr_version >= GsrVersion{5, 3, 4});
-        return checkbox;
-    }
-
     std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
         auto exit_program_button = std::make_unique<Button>(&get_theme().body_font, "Exit program", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         exit_program_button->on_click = [&]() {
@@ -426,16 +418,10 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-
-        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(create_high_performance_encoding_option());
-
-        auto buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        buttons_list->add_widget(create_exit_program_button());
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->add_widget(create_exit_program_button());
         if(inside_flatpak)
-            buttons_list->add_widget(create_go_back_to_old_ui_button());
-        list->add_widget(std::move(buttons_list));
-
+            list->add_widget(create_go_back_to_old_ui_button());
         return std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
@@ -497,7 +483,6 @@ namespace gsr {
 
         enable_keyboard_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
         enable_joystick_hotkeys_radio_button_ptr->set_selected_item(config.main_config.joystick_hotkeys_enable_option, false, false);
-        high_performance_encoding_checkbox_ptr->set_checked(config.main_config.high_performance_encoding);
 
         load_hotkeys();
     }
@@ -522,7 +507,6 @@ namespace gsr {
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
         config.main_config.hotkeys_enable_option = enable_keyboard_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
-        config.main_config.high_performance_encoding = high_performance_encoding_checkbox_ptr->is_checked();
         save_config(config);
     }
 

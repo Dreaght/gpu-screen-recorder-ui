@@ -1841,7 +1841,7 @@ namespace gsr {
         args.push_back(region_str);
     }
 
-    void Overlay::add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, char *region_str, int region_str_size, const RegionSelector &region_selector) {
+    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, char *region_str, int region_str_size, const RegionSelector &region_selector) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -1876,11 +1876,6 @@ namespace gsr {
 
         if(record_options.record_area_option == "region")
             add_region_command(args, region_str, region_str_size, region_selector);
-
-        if(config.main_config.high_performance_encoding && gsr_info.gpu_info.vendor != GpuVendor::NVIDIA && gsr_info.system_info.gsr_version >= GsrVersion{5, 3, 4}) {
-            args.push_back("-high-performance-encoding");
-            args.push_back("yes");
-        }
     }
 
     static bool validate_capture_target(const GsrInfo &gsr_info, const std::string &capture_target) {

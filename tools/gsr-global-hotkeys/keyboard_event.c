@@ -120,13 +120,14 @@ static void keyboard_event_process_key_state_change(keyboard_event *self, const 
 
 /* Return true if a global hotkey is assigned to the key combination */
 static bool keyboard_event_on_key_pressed(keyboard_event *self, const struct input_event *event, uint32_t modifiers) {
+    if(event->value != KEYBOARD_BUTTON_PRESSED)
+        return false;
+
     bool global_hotkey_match = false;
     for(int i = 0; i < self->num_global_hotkeys; ++i) {
         if(event->code == self->global_hotkeys[i].key && modifiers == self->global_hotkeys[i].modifiers) {
-            if(event->value == KEYBOARD_BUTTON_PRESSED) {
-                puts(self->global_hotkeys[i].action);
-                fflush(stdout);
-            }
+            puts(self->global_hotkeys[i].action);
+            fflush(stdout);
             global_hotkey_match = true;
         }
     }

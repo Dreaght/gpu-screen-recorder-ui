@@ -116,8 +116,6 @@ namespace gsr {
         bool update_compositor_texture(const Monitor &monitor);
 
         void force_window_on_top();
-
-        void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, char *region_str, int region_str_size, const RegionSelector &region_selector);
     private:
         using KeyBindingCallback = std::function<void()>;
         struct KeyBinding {
