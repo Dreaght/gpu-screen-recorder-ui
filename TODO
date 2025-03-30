@@ -140,3 +140,6 @@ Add a hotkey to record/stream/replay region.
 Do xi grab for keys as well. Otherwise the ui cant be used for keyboard input if a program has grabbed the keyboard, and there could possibly be a game that grabs the keyboard as well.
 
 Make inactive buttons gray (in dropdown boxes and in the front page with save, etc when replay is not running).
+
+Implement focused monitor capture. On nvidia x11 just use the x11 monitor name. On wayland get monitor name from drm cursor. We can get x11 monitor by combining all drm monitors together (with either x11 or wayland monitor position info) and then calculating the x11 monitor at that position.
+    To get the drm monitor from x11 cursor we can get the x11 monitor then get the CONNECTOR_ID property and get the monitor that matches that. Then copy the drm monitor name code from gsr and use that in gsr-ui to get the same name to use as monitor.

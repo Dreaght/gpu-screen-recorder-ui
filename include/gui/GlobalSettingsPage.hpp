@@ -17,6 +17,7 @@ namespace gsr {
     class Button;
     class List;
     class CustomRendererWidget;
+    class CheckBox;
 
     enum ConfigureHotkeyType {
         NONE,
@@ -63,6 +64,7 @@ namespace gsr {
         std::unique_ptr<List> create_hotkey_control_buttons();
         std::unique_ptr<Subsection> create_keyboard_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_controller_hotkey_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<CheckBox> create_high_performance_encoding_option();
         std::unique_ptr<Button> create_exit_program_button();
         std::unique_ptr<Button> create_go_back_to_old_ui_button();
         std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);
@@ -95,6 +97,7 @@ namespace gsr {
         Button *take_screenshot_button_ptr = nullptr;
         Button *take_screenshot_region_button_ptr = nullptr;
         Button *show_hide_button_ptr = nullptr;
+        CheckBox *high_performance_encoding_checkbox_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;
         ConfigureHotkeyType configure_hotkey_type = ConfigureHotkeyType::NONE;

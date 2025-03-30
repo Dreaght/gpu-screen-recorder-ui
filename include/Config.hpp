@@ -60,6 +60,7 @@ namespace gsr {
         std::string joystick_hotkeys_enable_option = "disable_hotkeys";
         std::string tint_color;
         ConfigHotkey show_hide_hotkey;
+        bool high_performance_encoding = false;
     };
 
     struct YoutubeStreamConfig {

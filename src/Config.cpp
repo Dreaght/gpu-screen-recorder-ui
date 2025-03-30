@@ -158,6 +158,7 @@ namespace gsr {
         return {
             {"main.config_file_version", &config.main_config.config_file_version},
             {"main.software_encoding_warning_shown", &config.main_config.software_encoding_warning_shown},
+            {"main.high_performance_encoding", &config.main_config.high_performance_encoding},
             {"main.hotkeys_enable_option", &config.main_config.hotkeys_enable_option},
             {"main.joystick_hotkeys_enable_option", &config.main_config.joystick_hotkeys_enable_option},
             {"main.tint_color", &config.main_config.tint_color},
