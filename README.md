@@ -5,9 +5,10 @@ A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-s
 The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.
 
 # Usage
-Run `gsr-ui` and press `Left Alt+Z` to show/hide the UI. You can start the overlay UI at system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
-There is also an option in the settings to enable/disable starting the program on system startup. This option only works on systems that use systemd.
-You have to manually add `gsr-ui` to system startup on systems that uses another init system.\
+You can start the overlay UI and make it start automatically on system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
+Alternatively you can run `gsr-ui` and go into settings and enable start on system startup setting.\
+Press `Left Alt+Z` to show/hide the UI. Go into settings to view all of the different hotkeys configured.\
+If you use a non-systemd distro and want to start the UI on system startup then you have to manually add `gsr-ui` to your system startup script.\
 A program called `gsr-ui-cli` is also installed when installing this software. This can be used to remotely control the UI. Run `gsr-ui-cli --help` to list the available commands.
 
 # Installation
