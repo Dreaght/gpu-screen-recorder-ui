@@ -149,3 +149,5 @@ Add option to do screen-direct recording. But make it clear that it should not b
 Add window capture.
 
 Add systray for recording status.
+
+Add a desktop icon when gsr-ui has a window mode option (which should be the default launch option).

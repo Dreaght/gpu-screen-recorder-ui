@@ -154,6 +154,28 @@ static uint32_t keycode_to_modifier_bit(uint32_t keycode) {
     return 0;
 }
 
+/* Returns true if the state changed */
+static bool keyboard_event_set_key_presses_grabbed(const struct input_event *event, event_extra_data *extra_data) {
+    if(event->type != EV_KEY)
+        return false;
+
+    if(!extra_data->key_presses_grabbed || event->code >= KEY_STATES_SIZE * 8)
+        return false;
+
+    const unsigned int byte_index = event->code / 8;
+    const unsigned char bit_index = event->code % 8;
+    unsigned char key_byte_state = extra_data->key_presses_grabbed[byte_index];
+    const bool prev_key_pressed = (key_byte_state & (1 << bit_index)) != KEY_RELEASE;
+    extra_data->key_presses_grabbed[byte_index] = set_bit(key_byte_state, bit_index, event->value >= 1);
+
+    if(event->value == KEY_PRESS)
+        return !prev_key_pressed;
+    else if(event->value == KEY_RELEASE || event->value == KEY_REPEAT)
+        return prev_key_pressed;
+
+    return false;
+}
+
 static void keyboard_event_process_input_event_data(keyboard_event *self, event_extra_data *extra_data, int fd) {
     struct input_event event;
     if(read(fd, &event, sizeof(event)) != sizeof(event)) {
@@ -175,8 +197,13 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         keyboard_event_process_key_state_change(self, &event, extra_data, fd);
         const uint32_t modifier_bit = keycode_to_modifier_bit(event.code);
         if(modifier_bit == 0) {
-            if(keyboard_event_on_key_pressed(self, &event, self->modifier_button_states))
-                return;
+            if(keyboard_event_on_key_pressed(self, &event, self->modifier_button_states)) {
+                if(keyboard_event_set_key_presses_grabbed(&event, extra_data))
+                    return;
+            } else if(event.value == KEY_RELEASE) {
+                if(keyboard_event_set_key_presses_grabbed(&event, extra_data))
+                    return;
+            }
         } else {
             self->modifier_button_states = set_bit(self->modifier_button_states, modifier_bit, event.value >= 1);
         }
@@ -304,7 +331,8 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
         if(supports_key_events && (is_virtual_device || (!supports_joystick_events && !supports_wheel_events))) {
             unsigned char *key_states = calloc(1, KEY_STATES_SIZE);
-            if(key_states && self->num_event_polls < MAX_EVENT_POLLS) {
+            unsigned char *key_presses_grabbed = calloc(1, KEY_STATES_SIZE);
+            if(key_states && key_presses_grabbed && self->num_event_polls < MAX_EVENT_POLLS) {
                 //fprintf(stderr, "%s (%s) supports key inputs\n", dev_input_filepath, device_name);
                 self->event_polls[self->num_event_polls] = (struct pollfd) {
                     .fd = fd,
@@ -316,6 +344,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
                     .dev_input_id = dev_input_id,
                     .grabbed = false,
                     .key_states = key_states,
+                    .key_presses_grabbed = key_presses_grabbed,
                     .num_keys_pressed = 0
                 };
 
@@ -334,6 +363,8 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
                 return true;
             } else {
                 fprintf(stderr, "Warning: the maximum number of keyboard devices have been registered. The newly added keyboard will be ignored\n");
+                free(key_states);
+                free(key_presses_grabbed);
             }
         }
     }
@@ -376,6 +407,7 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
     ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
     close(self->event_polls[index].fd);
     free(self->event_extra_data[index].key_states);
+    free(self->event_extra_data[index].key_presses_grabbed);
 
     for(int i = index + 1; i < self->num_event_polls; ++i) {
         self->event_polls[i - 1] = self->event_polls[i];
@@ -480,6 +512,7 @@ bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_gra
         .dev_input_id = -1,
         .grabbed = false,
         .key_states = NULL,
+        .key_presses_grabbed = NULL,
         .num_keys_pressed = 0
     };
 
@@ -497,6 +530,7 @@ bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_gra
             .dev_input_id = -1,
             .grabbed = false,
             .key_states = NULL,
+            .key_presses_grabbed = NULL,
             .num_keys_pressed = 0
         };
 
@@ -535,6 +569,7 @@ void keyboard_event_deinit(keyboard_event *self) {
         ioctl(self->event_polls[i].fd, EVIOCGRAB, 0);
         close(self->event_polls[i].fd);
         free(self->event_extra_data[i].key_states);
+        free(self->event_extra_data[i].key_presses_grabbed);
     }
     self->num_event_polls = 0;
 

@@ -40,6 +40,7 @@ typedef struct {
     int dev_input_id;
     bool grabbed;
     unsigned char *key_states;
+    unsigned char *key_presses_grabbed;
     int num_keys_pressed;
 } event_extra_data;
 

@@ -535,7 +535,7 @@ namespace gsr {
             if(mgl::Keyboard::key_is_modifier(event.key.code)) {
                 configure_config_hotkey.modifiers |= mgl_modifier_to_hotkey_modifier(event.key.code);
                 configure_hotkey_button->set_text(configure_config_hotkey.to_string());
-            } else if(configure_config_hotkey.modifiers != 0 || !key_is_alpha_numerical(event.key.code)) {
+            } else if(event.key.code != mgl::Keyboard::Unknown && (configure_config_hotkey.modifiers != 0 || !key_is_alpha_numerical(event.key.code))) {
                 configure_config_hotkey.key = event.key.code;
                 configure_hotkey_button->set_text(configure_config_hotkey.to_string());
                 configure_hotkey_stop_and_save();
