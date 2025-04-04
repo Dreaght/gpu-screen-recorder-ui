@@ -399,24 +399,39 @@ namespace gsr {
             return;
 
         for(uint32_t i = 0; i < planes->count_planes; ++i) {
+            drmModePlanePtr plane = nullptr;
+            const drm_connector *connector = nullptr;
             int crtc_x = 0;
             int crtc_y = 0;
             int crtc_id = 0;
             bool is_cursor = false;
-            const uint32_t property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_id, &is_cursor);
-            if(property_mask != plane_property_all || crtc_id <= 0)
-                continue;
+            uint32_t property_mask = 0;
 
-            const drm_connector *connector = get_drm_connector_by_crtc_id(&connectors, crtc_id);
+            plane = drmModeGetPlane(drm_fd, planes->planes[i]);
+            if(!plane)
+                goto next;
+
+            if(!plane->fb_id)
+                goto next;
+
+            property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_id, &is_cursor);
+            if(property_mask != plane_property_all || crtc_id <= 0)
+                goto next;
+
+            connector = get_drm_connector_by_crtc_id(&connectors, crtc_id);
             if(!connector)
-                continue;
+                goto next;
 
             if(crtc_x >= 0 && crtc_x <= connector->size.x && crtc_y >= 0 && crtc_y <= connector->size.y) {
                 latest_cursor_position.x = crtc_x;
                 latest_cursor_position.y = crtc_y;
                 latest_crtc_id = crtc_id;
+                drmModeFreePlane(plane);
                 break;
             }
+
+            next:
+            drmModeFreePlane(plane);
         }
 
         drmModeFreePlaneResources(planes);

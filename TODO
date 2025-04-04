@@ -153,4 +153,4 @@ Use /dev/input/eventN (or /dev/hidrawN) instead of /dev/input/jsN for joystick i
 
 Verify if cursor tracker monitor name is always correct. It uses the wayland monitor name for recording, but gpu screen recorder uses a custom name created from the drm connector name.
 
-Notification with the focused monitor (with CursorTrackerWayland) assumes that the x11 monitor name is the same as the drm monitor name.
+Notification with the focused monitor (with CursorTrackerWayland) assumes that the x11 monitor name is the same as the drm monitor name. Same for find_monitor_by_name.

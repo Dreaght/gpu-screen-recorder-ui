@@ -216,6 +216,16 @@ namespace gsr {
         return &monitors.front();
     }
 
+    // Returns the first monitor if not found. Assumes there is at least one monitor connected.
+    static const Monitor* find_monitor_by_name(const std::vector<Monitor> &monitors, const std::string &name) {
+        assert(!monitors.empty());
+        for(const Monitor &monitor : monitors) {
+            if(monitor.name == name)
+                return &monitor;
+        }
+        return &monitors.front();
+    }
+
     static std::string get_power_supply_online_filepath() {
         std::string result;
         const char *paths[] = {
@@ -846,7 +856,7 @@ namespace gsr {
         mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
         const Monitor *focused_monitor = nullptr;
         if(cursor_info) {
-            focused_monitor = find_monitor_at_position(monitors, cursor_info->position);
+            focused_monitor = find_monitor_by_name(monitors, cursor_info->monitor_name);
             cursor_position = cursor_info->position;
         } else {
             const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
