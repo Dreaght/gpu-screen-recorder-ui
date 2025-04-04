@@ -123,10 +123,10 @@ namespace gsr {
         screenshot_config.save_directory = default_pictures_save_directory;
 
         if(!capture_options.monitors.empty()) {
-            streaming_config.record_options.record_area_option = capture_options.monitors.front().name;
-            record_config.record_options.record_area_option = capture_options.monitors.front().name;
-            replay_config.record_options.record_area_option = capture_options.monitors.front().name;
-            screenshot_config.record_area_option = capture_options.monitors.front().name;
+            streaming_config.record_options.record_area_option = "focused_monitor";
+            record_config.record_options.record_area_option = "focused_monitor";
+            replay_config.record_options.record_area_option = "focused_monitor";
+            screenshot_config.record_area_option = "focused_monitor";
         }
     }
 

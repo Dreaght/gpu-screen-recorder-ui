@@ -42,11 +42,16 @@ src = [
     'src/GlobalHotkeysX11.cpp',
     'src/GlobalHotkeysLinux.cpp',
     'src/GlobalHotkeysJoystick.cpp',
+    'src/CursorTrackerX11.cpp',
+    'src/CursorTrackerWayland.cpp',
     'src/AudioPlayer.cpp',
     'src/Hotplug.cpp',
     'src/Rpc.cpp',
     'src/main.cpp',
 ]
+
+subdir('protocol')
+src += protocol_src
 
 mglpp_proj = subproject('mglpp')
 mglpp_dep = mglpp_proj.get_variable('mglpp_dep')
@@ -71,6 +76,8 @@ executable(
         dependency('xi'),
         dependency('xcursor'),
         dependency('libpulse-simple'),
+        dependency('libdrm'),
+        dependency('wayland-client'),
     ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )

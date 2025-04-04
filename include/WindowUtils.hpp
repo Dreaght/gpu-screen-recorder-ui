@@ -15,6 +15,7 @@ namespace gsr {
     struct Monitor {
         mgl::vec2i position;
         mgl::vec2i size;
+        std::string name;
     };
 
     std::optional<std::string> get_window_title(Display *dpy, Window window);

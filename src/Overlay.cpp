@@ -14,6 +14,8 @@
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys.hpp"
 #include "../include/GlobalHotkeysLinux.hpp"
+#include "../include/CursorTrackerX11.hpp"
+#include "../include/CursorTrackerWayland.hpp"
 
 #include <string.h>
 #include <assert.h>
@@ -411,6 +413,11 @@ namespace gsr {
             XKeysymToKeycode(x11_mapping_display, XK_F1); // If we dont call we will never get a MappingNotify
         else
             fprintf(stderr, "Warning: XOpenDisplay failed to mapping notify\n");
+
+        if(this->gsr_info.system_info.display_server == DisplayServer::X11)
+            cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
+        else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND && !this->gsr_info.gpu_info.card_path.empty())
+            cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str());
     }
 
     Overlay::~Overlay() {
@@ -616,6 +623,9 @@ namespace gsr {
 
         if(global_hotkeys_js)
             global_hotkeys_js->poll_events();
+
+        if(cursor_tracker)
+            cursor_tracker->update();
 
         handle_keyboard_mapping_event();
         region_selector.poll_events();
@@ -825,12 +835,23 @@ namespace gsr {
         const bool is_kwin = wm_name == "KWin";
         const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
 
+        std::optional<CursorInfo> cursor_info;
+        if(cursor_tracker) {
+            cursor_tracker->update();
+            cursor_info = cursor_tracker->get_latest_cursor_info();
+        }
+
         // The cursor position is wrong on wayland if an x11 window is not focused. On wayland we instead create a window and get the position where the wayland compositor puts it
         Window x11_cursor_window = None;
-        const mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
-        const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
-
-        const Monitor *focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
+        mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
+        const Monitor *focused_monitor = nullptr;
+        if(cursor_info) {
+            focused_monitor = find_monitor_at_position(monitors, cursor_info->position);
+            cursor_position = cursor_info->position;
+        } else {
+            const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
+            focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
+        }
 
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
@@ -925,7 +946,12 @@ namespace gsr {
         grab_mouse_and_keyboard();
 
         // The real cursor doesn't move when all devices are grabbed, so we create our own cursor and diplay that while grabbed
+        cursor_hotspot = {0, 0};
         xi_setup_fake_cursor();
+        if(cursor_info) {
+            win->cursor_position.x += cursor_hotspot.x;
+            win->cursor_position.y += cursor_hotspot.y;
+        }
 
         // We want to grab all devices to prevent any other application below the UI from receiving events.
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
@@ -1343,19 +1369,30 @@ namespace gsr {
 
         const std::string icon_color_str = color_to_hex_str(icon_color);
         const std::string bg_color_str = color_to_hex_str(bg_color);
-        const char *notification_args[12] = {
+        const char *notification_args[14] = {
             "gsr-notify", "--text", str, "--timeout", timeout_seconds_str,
             "--icon-color", icon_color_str.c_str(), "--bg-color", bg_color_str.c_str(),
         };
 
+        int arg_index = 9;
         const char *notification_type_str = notification_type_to_string(notification_type);
         if(notification_type_str) {
-            notification_args[9] = "--icon";
-            notification_args[10] = notification_type_str;
-            notification_args[11] = nullptr;
-        } else {
-            notification_args[9] = nullptr;
+            notification_args[arg_index++] = "--icon";
+            notification_args[arg_index++] = notification_type_str;
         }
+
+        std::optional<CursorInfo> cursor_info;
+        if(cursor_tracker) {
+            cursor_tracker->update();
+            cursor_info = cursor_tracker->get_latest_cursor_info();
+        }
+
+        if(cursor_info) {
+            notification_args[arg_index++] = "--monitor";
+            notification_args[arg_index++] = cursor_info->monitor_name.c_str();
+        }
+
+        notification_args[arg_index++] = nullptr;
 
         if(notification_process > 0) {
             kill(notification_process, SIGKILL);
@@ -1878,8 +1915,7 @@ namespace gsr {
             add_region_command(args, region_str, region_str_size, region_selector);
     }
 
-    static bool validate_capture_target(const GsrInfo &gsr_info, const std::string &capture_target) {
-        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+    static bool validate_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
         // TODO: Also check x11 window when enabled (check if capture_target is a decminal/hex number)
         if(capture_target == "region") {
             return capture_options.region;
@@ -1887,12 +1923,33 @@ namespace gsr {
             return capture_options.focused;
         } else if(capture_target == "portal") {
             return capture_options.portal;
+        } else if(capture_target == "focused_monitor") {
+            return !capture_options.monitors.empty();
         } else {
             for(const GsrMonitor &monitor : capture_options.monitors) {
                 if(capture_target == monitor.name)
                     return true;
             }
             return false;
+        }
+    }
+
+    std::string Overlay::get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
+        if(capture_target == "focused_monitor") {
+            std::optional<CursorInfo> cursor_info;
+            if(cursor_tracker) {
+                cursor_tracker->update();
+                cursor_info = cursor_tracker->get_latest_cursor_info();
+            }
+
+            if(cursor_info)
+                return cursor_info->monitor_name;
+            else if(!capture_options.monitors.empty())
+                return capture_options.monitors.front().name;
+            else
+                return "";
+        } else {
+            return capture_target;
         }
     }
 
@@ -1949,9 +2006,11 @@ namespace gsr {
             return true;
         }
 
-        if(!validate_capture_target(gsr_info, config.replay_config.record_options.record_area_option)) {
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        const std::string capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
+        if(!validate_capture_target(capture_target, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", config.replay_config.record_options.record_area_option.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::REPLAY);
             return false;
         }
@@ -1988,7 +2047,7 @@ namespace gsr {
             snprintf(size, sizeof(size), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", config.replay_config.record_options.record_area_option.c_str(),
+            "gpu-screen-recorder", "-w", capture_target.c_str(),
             "-c", config.replay_config.container.c_str(),
             "-ac", config.replay_config.record_options.audio_codec.c_str(),
             "-cursor", config.replay_config.record_options.record_cursor ? "yes" : "no",
@@ -2082,9 +2141,11 @@ namespace gsr {
             return;
         }
 
-        if(!validate_capture_target(gsr_info, config.record_config.record_options.record_area_option)) {
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        const std::string capture_target = get_capture_target(config.record_config.record_options.record_area_option, capture_options);
+        if(!validate_capture_target(config.record_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid. Please change capture target in settings", config.record_config.record_options.record_area_option.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::RECORD);
             return;
         }
@@ -2122,7 +2183,7 @@ namespace gsr {
             snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", config.record_config.record_options.record_area_option.c_str(),
+            "gpu-screen-recorder", "-w", capture_target.c_str(),
             "-c", config.record_config.container.c_str(),
             "-ac", config.record_config.record_options.audio_codec.c_str(),
             "-cursor", config.record_config.record_options.record_cursor ? "yes" : "no",
@@ -2230,9 +2291,11 @@ namespace gsr {
             return;
         }
 
-        if(!validate_capture_target(gsr_info, config.streaming_config.record_options.record_area_option)) {
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        const std::string capture_target = get_capture_target(config.streaming_config.record_options.record_area_option, capture_options);
+        if(!validate_capture_target(config.streaming_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid. Please change capture target in settings", config.streaming_config.record_options.record_area_option.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::STREAM);
             return;
         }
@@ -2273,7 +2336,7 @@ namespace gsr {
             snprintf(size, sizeof(size), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", config.streaming_config.record_options.record_area_option.c_str(),
+            "gpu-screen-recorder", "-w", capture_target.c_str(),
             "-c", container.c_str(),
             "-ac", config.streaming_config.record_options.audio_codec.c_str(),
             "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
@@ -2323,9 +2386,11 @@ namespace gsr {
 
         const bool region_capture = config.screenshot_config.record_area_option == "region" || force_region_capture;
         const char *record_area_option = region_capture ? "region" : config.screenshot_config.record_area_option.c_str();
-        if(!validate_capture_target(gsr_info, record_area_option)) {
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        const std::string capture_target = get_capture_target(record_area_option, capture_options);
+        if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", record_area_option);
+            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::SCREENSHOT);
             return;
         }
@@ -2343,7 +2408,7 @@ namespace gsr {
         const std::string output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", record_area_option,
+            "gpu-screen-recorder", "-w", capture_target.c_str(),
             "-cursor", config.screenshot_config.record_cursor ? "yes" : "no",
             "-v", "no",
             "-q", config.screenshot_config.image_quality.c_str(),

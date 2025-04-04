@@ -9,6 +9,7 @@
 #include "GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
 #include "RegionSelector.hpp"
+#include "CursorTracker.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -115,6 +116,8 @@ namespace gsr {
         void on_press_take_screenshot(bool finished_region_selection, bool force_region_capture);
         bool update_compositor_texture(const Monitor &monitor);
 
+        std::string get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options);
+
         void force_window_on_top();
     private:
         using KeyBindingCallback = std::function<void()>;
@@ -205,5 +208,7 @@ namespace gsr {
         RegionSelector region_selector;
         bool start_region_capture = false;
         std::function<void()> on_region_selected;
+
+        std::unique_ptr<CursorTracker> cursor_tracker;
     };
 }

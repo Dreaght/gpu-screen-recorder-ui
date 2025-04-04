@@ -40,6 +40,8 @@ namespace gsr {
         //    record_area_box->add_item("Window", "window");
         if(capture_options.region)
             record_area_box->add_item("Region", "region");
+        if(!capture_options.monitors.empty())
+            record_area_box->add_item(gsr_info->system_info.display_server == DisplayServer::WAYLAND ? "Focused monitor (Experimental on Wayland)" : "Focused monitor", "focused_monitor");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
             snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
@@ -270,7 +272,7 @@ namespace gsr {
         };
 
         if(!capture_options.monitors.empty())
-            record_area_box_ptr->set_selected_item(capture_options.monitors.front().name);
+            record_area_box_ptr->set_selected_item("focused_monitor");
         else if(capture_options.portal)
             record_area_box_ptr->set_selected_item("portal");
         else if(capture_options.window)

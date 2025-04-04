@@ -2,5 +2,5 @@
 sibs-build/
 compile_commands.json
 
-gpu-screen-recorder-overlay-daemon/sibs-build/
-gpu-screen-recorder-overlay-daemon/compile_commands.json
+**/xdg-output-unstable-v1-client-protocol.h
+**/xdg-output-unstable-v1-protocol.c

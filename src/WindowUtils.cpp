@@ -520,7 +520,7 @@ namespace gsr {
 
     static void get_monitors_callback(const mgl_monitor *monitor, void *userdata) {
         std::vector<Monitor> *monitors = (std::vector<Monitor>*)userdata;
-        monitors->push_back({mgl::vec2i(monitor->pos.x, monitor->pos.y), mgl::vec2i(monitor->size.x, monitor->size.y)});
+        monitors->push_back({mgl::vec2i(monitor->pos.x, monitor->pos.y), mgl::vec2i(monitor->size.x, monitor->size.y), std::string(monitor->name)});
     }
 
     std::vector<Monitor> get_monitors(Display *dpy) {

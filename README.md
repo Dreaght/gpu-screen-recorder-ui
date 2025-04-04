@@ -27,6 +27,9 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * libglvnd (which provides libgl, libglx and libegl)
 * linux-api-headers
 * libpulse (libpulse-simple)
+* libdrm
+* wayland-client
+* wayland-scanner
 
 ## Runtime dependencies
 There are also additional dependencies needed at runtime:
