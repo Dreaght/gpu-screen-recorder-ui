@@ -49,6 +49,7 @@ namespace gsr {
     static const double replay_saving_notification_timeout_seconds = 0.5;
     static const double notification_timeout_seconds = 2.0;
     static const double notification_error_timeout_seconds = 5.0;
+    static const double cursor_tracker_update_timeout_sec = 0.1;
 
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
@@ -634,8 +635,11 @@ namespace gsr {
         if(global_hotkeys_js)
             global_hotkeys_js->poll_events();
 
-        if(cursor_tracker)
-            cursor_tracker->update();
+        if(cursor_tracker_update_clock.get_elapsed_time_seconds() >= cursor_tracker_update_timeout_sec) {
+            cursor_tracker_update_clock.restart();
+            if(cursor_tracker)
+                cursor_tracker->update();
+        }
 
         handle_keyboard_mapping_event();
         region_selector.poll_events();
@@ -958,7 +962,7 @@ namespace gsr {
         // The real cursor doesn't move when all devices are grabbed, so we create our own cursor and diplay that while grabbed
         cursor_hotspot = {0, 0};
         xi_setup_fake_cursor();
-        if(cursor_info) {
+        if(cursor_info && gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             win->cursor_position.x += cursor_hotspot.x;
             win->cursor_position.y += cursor_hotspot.y;
         }
