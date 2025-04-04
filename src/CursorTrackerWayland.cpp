@@ -8,12 +8,14 @@
 #include "xdg-output-unstable-v1-client-protocol.h"
 
 namespace gsr {
+    static const int MAX_CONNECTORS = 32;
+    static const int CONNECTOR_TYPE_COUNTS = 32;
+    static const uint32_t plane_property_all = 0xF;
+
     typedef struct {
         int type;
         int count;
     } drm_connector_type_count;
-
-    static const int CONNECTOR_TYPE_COUNTS = 32;
 
     typedef enum {
         PLANE_PROPERTY_CRTC_X      = 1 << 0,
@@ -22,7 +24,15 @@ namespace gsr {
         PLANE_PROPERTY_TYPE_CURSOR = 1 << 3,
     } plane_property_mask;
 
-    static const uint32_t plane_property_all = 0xF;
+    typedef struct {
+        uint64_t crtc_id;
+        mgl::vec2i size;
+    } drm_connector;
+
+    typedef struct {
+        drm_connector connectors[MAX_CONNECTORS];
+        int num_connectors;
+    } drm_connectors;
 
     /* Returns plane_property_mask */
     static uint32_t plane_get_properties(int drm_fd, uint32_t plane_id, int *crtc_x, int *crtc_y, int *crtc_id, bool *is_cursor) {
@@ -314,6 +324,52 @@ namespace gsr {
         xdg_output_handle_description,
     };
 
+    /* Returns nullptr if not found */
+    static const drm_connector* get_drm_connector_by_crtc_id(const drm_connectors *connectors, uint32_t crtc_id) {
+        for(int i = 0; i < connectors->num_connectors; ++i) {
+            if(connectors->connectors[i].crtc_id == crtc_id)
+                return &connectors->connectors[i];
+        }
+        return nullptr;
+    }
+
+    static void get_drm_connectors(int drm_fd, drm_connectors *drm_connectors) {
+        drm_connectors->num_connectors = 0;
+        drmModeResPtr resources = drmModeGetResources(drm_fd);
+        if(!resources)
+            return;
+
+        for(int i = 0; i < resources->count_connectors && drm_connectors->num_connectors < MAX_CONNECTORS; ++i) {
+            drmModeConnectorPtr connector = nullptr;
+            drmModeCrtcPtr crtc = nullptr;
+
+            connector = drmModeGetConnectorCurrent(drm_fd, resources->connectors[i]);
+            if(!connector)
+                continue;
+
+            uint64_t crtc_id = 0;
+            connector_get_property_by_name(drm_fd, connector, "CRTC_ID", &crtc_id);
+            if(crtc_id == 0)
+                goto next;
+
+            crtc = drmModeGetCrtc(drm_fd, crtc_id);
+            if(!crtc)
+                goto next;
+
+            drm_connectors->connectors[drm_connectors->num_connectors].crtc_id = crtc_id;
+            drm_connectors->connectors[drm_connectors->num_connectors].size = mgl::vec2i{(int)crtc->width, (int)crtc->height};
+            ++drm_connectors->num_connectors;
+
+            next:
+            if(crtc)
+                drmModeFreeCrtc(crtc);
+
+            if(connector)
+                drmModeFreeConnector(connector);
+        }
+        drmModeFreeResources(resources);
+    }
+
     CursorTrackerWayland::CursorTrackerWayland(const char *card_path) {
         drm_fd = open(card_path, O_RDONLY);
         if(drm_fd <= 0) {
@@ -334,6 +390,10 @@ namespace gsr {
         if(drm_fd <= 0)
             return;
 
+        drm_connectors connectors;
+        connectors.num_connectors = 0;
+        get_drm_connectors(drm_fd, &connectors);
+
         drmModePlaneResPtr planes = drmModeGetPlaneResources(drm_fd);
         if(!planes)
             return;
@@ -344,7 +404,14 @@ namespace gsr {
             int crtc_id = 0;
             bool is_cursor = false;
             const uint32_t property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_id, &is_cursor);
-            if(property_mask == plane_property_all && crtc_id > 0) {
+            if(property_mask != plane_property_all || crtc_id <= 0)
+                continue;
+
+            const drm_connector *connector = get_drm_connector_by_crtc_id(&connectors, crtc_id);
+            if(!connector)
+                continue;
+
+            if(crtc_x >= 0 && crtc_x <= connector->size.x && crtc_y >= 0 && crtc_y <= connector->size.y) {
                 latest_cursor_position.x = crtc_x;
                 latest_cursor_position.y = crtc_y;
                 latest_crtc_id = crtc_id;
