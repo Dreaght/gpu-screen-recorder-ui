@@ -1377,7 +1377,38 @@ namespace gsr {
         return nullptr;
     }
 
-    void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type) {
+    static bool is_hex_num(char c) {
+        return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
+    }
+
+    static bool contains_non_hex_number(const char *str) {
+        bool hex_start = false;
+        size_t len = strlen(str);
+        if(len >= 2 && memcmp(str, "0x", 2) == 0) {
+            str += 2;
+            len -= 2;
+            hex_start = true;
+        }
+
+        bool is_hex = false;
+        for(size_t i = 0; i < len; ++i) {
+            char c = str[i];
+            if(c == '\0')
+                return false;
+            if(!is_hex_num(c))
+                return true;
+            if((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+                is_hex = true;
+        }
+
+        return is_hex && !hex_start;
+    }
+
+    static bool is_capture_target_monitor(const char *capture_target) {
+        return strcmp(capture_target, "focused") != 0 && strcmp(capture_target, "region") != 0 && strcmp(capture_target, "portal") != 0 && contains_non_hex_number(capture_target);
+    }
+
+    void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target) {
         char timeout_seconds_str[32];
         snprintf(timeout_seconds_str, sizeof(timeout_seconds_str), "%f", timeout_seconds);
 
@@ -1395,15 +1426,20 @@ namespace gsr {
             notification_args[arg_index++] = notification_type_str;
         }
 
-        std::optional<CursorInfo> cursor_info;
-        if(cursor_tracker) {
-            cursor_tracker->update();
-            cursor_info = cursor_tracker->get_latest_cursor_info();
-        }
-
-        if(cursor_info) {
+        if(capture_target && is_capture_target_monitor(capture_target)) {
             notification_args[arg_index++] = "--monitor";
-            notification_args[arg_index++] = cursor_info->monitor_name.c_str();
+            notification_args[arg_index++] = capture_target;
+        } else {
+            std::optional<CursorInfo> cursor_info;
+            if(cursor_tracker) {
+                cursor_tracker->update();
+                cursor_info = cursor_tracker->get_latest_cursor_info();
+            }
+
+            if(cursor_info) {
+                notification_args[arg_index++] = "--monitor";
+                notification_args[arg_index++] = cursor_info->monitor_name.c_str();
+            }
         }
 
         notification_args[arg_index++] = nullptr;
@@ -1514,31 +1550,52 @@ namespace gsr {
         rename(video_filepath, new_video_filepath.c_str());
 
         truncate_string(focused_window_name, 20);
-        std::string text;
+        const char *capture_target = nullptr;
+        char msg[512];
+        const std::string filename = focused_window_name + "/" + video_filename;
+
         switch(notification_type) {
             case NotificationType::RECORD: {
                 if(!config.record_config.show_video_saved_notifications)
                     return;
-                text = "Saved recording to '" + focused_window_name + "/" + video_filename + "'";
+
+                if(is_capture_target_monitor(recording_capture_target.c_str()))
+                    snprintf(msg, sizeof(msg), "Saved recording of this monitor to '%s'", filename.c_str());
+                else
+                    snprintf(msg, sizeof(msg), "Saved recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+
+                capture_target = recording_capture_target.c_str();
                 break;
             }
             case NotificationType::REPLAY: {
                 if(!config.replay_config.show_replay_saved_notifications)
                     return;
-                text = "Saved replay to '" + focused_window_name + "/" + video_filename + "'";
+
+                if(is_capture_target_monitor(replay_capture_target.c_str()))
+                    snprintf(msg, sizeof(msg), "Saved replay of this monitor to '%s'", filename.c_str());
+                else
+                    snprintf(msg, sizeof(msg), "Saved replay of %s to '%s'", replay_capture_target.c_str(), filename.c_str());
+
+                capture_target = replay_capture_target.c_str();
                 break;
             }
             case NotificationType::SCREENSHOT: {
                 if(!config.screenshot_config.show_screenshot_saved_notifications)
                     return;
-                text = "Saved screenshot to '" + focused_window_name + "/" + video_filename + "'";
+
+                if(is_capture_target_monitor(screenshot_capture_target.c_str()))
+                    snprintf(msg, sizeof(msg), "Saved screenshot of this monitor to '%s'", filename.c_str());
+                else
+                    snprintf(msg, sizeof(msg), "Saved screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
+
+                capture_target = screenshot_capture_target.c_str();
                 break;
             }
             case NotificationType::NONE:
             case NotificationType::STREAM:
                 break;
         }
-        show_notification(text.c_str(), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type);
+        show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type, capture_target);
     }
 
     void Overlay::on_replay_saved(const char *replay_saved_filepath) {
@@ -1546,8 +1603,13 @@ namespace gsr {
         if(config.replay_config.save_video_in_game_folder) {
             save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
         } else {
-            const std::string text = "Saved replay to '" + filepath_get_filename(replay_saved_filepath) + "'";
-            show_notification(text.c_str(), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+            const std::string filename = filepath_get_filename(replay_saved_filepath);
+            char msg[512];
+            if(is_capture_target_monitor(replay_capture_target.c_str()))
+                snprintf(msg, sizeof(msg), "Saved replay of this monitor to '%s'", filename.c_str());
+            else
+                snprintf(msg, sizeof(msg), "Saved replay of %s to '%s'", replay_capture_target.c_str(), filename.c_str());
+            show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, replay_capture_target.c_str());
         }
     }
 
@@ -1644,8 +1706,13 @@ namespace gsr {
             if(config.screenshot_config.save_screenshot_in_game_folder) {
                 save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
             } else {
-                const std::string text = "Saved screenshot of " + screenshot_capture_target + " to '" + filepath_get_filename(screenshot_filepath.c_str()) + "'";
-                show_notification(text.c_str(), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT);
+                const std::string filename = filepath_get_filename(screenshot_filepath.c_str());
+                char msg[512];
+                if(is_capture_target_monitor(screenshot_capture_target.c_str()))
+                    snprintf(msg, sizeof(msg), "Saved screenshot of this monitor to '%s'", filename.c_str());
+                else
+                    snprintf(msg, sizeof(msg), "Saved screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
+                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
@@ -1745,8 +1812,13 @@ namespace gsr {
             if(config.record_config.save_video_in_game_folder) {
                 save_video_in_current_game_directory(record_filepath.c_str(), NotificationType::RECORD);
             } else {
-                const std::string text = "Saved recording to '" + filepath_get_filename(record_filepath.c_str()) + "'";
-                show_notification(text.c_str(), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                const std::string filename = filepath_get_filename(record_filepath.c_str());
+                char msg[512];
+                if(is_capture_target_monitor(recording_capture_target.c_str()))
+                    snprintf(msg, sizeof(msg), "Saved recording of this monitor to '%s'", filename.c_str());
+                else
+                    snprintf(msg, sizeof(msg), "Saved recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
@@ -2021,10 +2093,10 @@ namespace gsr {
         }
 
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        const std::string capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
-        if(!validate_capture_target(capture_target, capture_options)) {
+        replay_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
+        if(!validate_capture_target(replay_capture_target, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", replay_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::REPLAY);
             return false;
         }
@@ -2061,7 +2133,7 @@ namespace gsr {
             snprintf(size, sizeof(size), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", capture_target.c_str(),
+            "gpu-screen-recorder", "-w", replay_capture_target.c_str(),
             "-c", config.replay_config.container.c_str(),
             "-ac", config.replay_config.record_options.audio_codec.c_str(),
             "-cursor", config.replay_config.record_options.record_cursor ? "yes" : "no",
@@ -2110,8 +2182,11 @@ namespace gsr {
         // to see when the program has exit.
         if(!disable_notification && config.replay_config.show_replay_started_notifications) {
             char msg[256];
-            snprintf(msg, sizeof(msg), "Started replay with %s as target", capture_target.c_str());
-            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY);
+            if(is_capture_target_monitor(replay_capture_target.c_str()))
+                snprintf(msg, sizeof(msg), "Started replaying this monitor");
+            else
+                snprintf(msg, sizeof(msg), "Started replaying %s", replay_capture_target.c_str());
+            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, replay_capture_target.c_str());
         }
 
         return true;
@@ -2159,10 +2234,10 @@ namespace gsr {
         }
 
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        const std::string capture_target = get_capture_target(config.record_config.record_options.record_area_option, capture_options);
+        recording_capture_target = get_capture_target(config.record_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.record_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid. Please change capture target in settings", recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::RECORD);
             return;
         }
@@ -2200,7 +2275,7 @@ namespace gsr {
             snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", capture_target.c_str(),
+            "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
             "-c", config.record_config.container.c_str(),
             "-ac", config.record_config.record_options.audio_codec.c_str(),
             "-cursor", config.record_config.record_options.record_cursor ? "yes" : "no",
@@ -2235,8 +2310,11 @@ namespace gsr {
         // 1...
         if(config.record_config.show_recording_started_notifications) {
             char msg[256];
-            snprintf(msg, sizeof(msg), "Started recording %s", capture_target.c_str());
-            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+            if(is_capture_target_monitor(recording_capture_target.c_str()))
+                snprintf(msg, sizeof(msg), "Started recording this monitor");
+            else
+                snprintf(msg, sizeof(msg), "Started recording %s", recording_capture_target.c_str());
+            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
     }
 
@@ -2393,8 +2471,11 @@ namespace gsr {
         // to see when the program has exit.
         if(config.streaming_config.show_streaming_started_notifications) {
             char msg[256];
-            snprintf(msg, sizeof(msg), "Started streaming %s", capture_target.c_str());
-            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
+            if(is_capture_target_monitor(capture_target.c_str()))
+                snprintf(msg, sizeof(msg), "Started streaming this monitor");
+            else
+                snprintf(msg, sizeof(msg), "Started streaming %s", capture_target.c_str());
+            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, capture_target.c_str());
         }
     }
 

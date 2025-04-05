@@ -61,7 +61,7 @@ namespace gsr {
         void save_replay();
         void take_screenshot();
         void take_screenshot_region();
-        void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type);
+        void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target = nullptr);
         bool is_open() const;
         bool should_exit(std::string &reason) const;
         void exit();
@@ -208,6 +208,9 @@ namespace gsr {
         RegionSelector region_selector;
         bool start_region_capture = false;
         std::function<void()> on_region_selected;
+
+        std::string recording_capture_target;
+        std::string replay_capture_target;
         std::string screenshot_capture_target;
 
         std::unique_ptr<CursorTracker> cursor_tracker;
