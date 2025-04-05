@@ -1644,7 +1644,7 @@ namespace gsr {
             if(config.screenshot_config.save_screenshot_in_game_folder) {
                 save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
             } else {
-                const std::string text = "Saved screenshot to '" + filepath_get_filename(screenshot_filepath.c_str()) + "'";
+                const std::string text = "Saved screenshot of " + screenshot_capture_target + " to '" + filepath_get_filename(screenshot_filepath.c_str()) + "'";
                 show_notification(text.c_str(), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT);
             }
         } else {
@@ -2108,8 +2108,11 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(!disable_notification && config.replay_config.show_replay_started_notifications)
-            show_notification("Replay has started", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY);
+        if(!disable_notification && config.replay_config.show_replay_started_notifications) {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Started replay with %s as target", capture_target.c_str());
+            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY);
+        }
 
         return true;
     }
@@ -2230,8 +2233,11 @@ namespace gsr {
         // Starting recording in 3...
         // 2...
         // 1...
-        if(config.record_config.show_recording_started_notifications)
-            show_notification("Recording has started", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+        if(config.record_config.show_recording_started_notifications) {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Started recording %s", capture_target.c_str());
+            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+        }
     }
 
     static std::string streaming_get_url(const Config &config) {
@@ -2385,8 +2391,11 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(config.streaming_config.show_streaming_started_notifications)
-            show_notification("Streaming has started", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
+        if(config.streaming_config.show_streaming_started_notifications) {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Started streaming %s", capture_target.c_str());
+            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM);
+        }
     }
 
     void Overlay::on_press_take_screenshot(bool finished_region_selection, bool force_region_capture) {
@@ -2401,10 +2410,10 @@ namespace gsr {
         const bool region_capture = config.screenshot_config.record_area_option == "region" || force_region_capture;
         const char *record_area_option = region_capture ? "region" : config.screenshot_config.record_area_option.c_str();
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        const std::string capture_target = get_capture_target(record_area_option, capture_options);
+        screenshot_capture_target = get_capture_target(record_area_option, capture_options);
         if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", screenshot_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0, 0), mgl::Color(255, 0, 0, 0), NotificationType::SCREENSHOT);
             return;
         }
@@ -2422,7 +2431,7 @@ namespace gsr {
         const std::string output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
 
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", capture_target.c_str(),
+            "gpu-screen-recorder", "-w", screenshot_capture_target.c_str(),
             "-cursor", config.screenshot_config.record_cursor ? "yes" : "no",
             "-v", "no",
             "-q", config.screenshot_config.image_quality.c_str(),

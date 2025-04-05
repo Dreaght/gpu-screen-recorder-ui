@@ -208,6 +208,7 @@ namespace gsr {
         RegionSelector region_selector;
         bool start_region_capture = false;
         std::function<void()> on_region_selected;
+        std::string screenshot_capture_target;
 
         std::unique_ptr<CursorTracker> cursor_tracker;
         mgl::Clock cursor_tracker_update_clock;
