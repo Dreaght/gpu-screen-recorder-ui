@@ -303,9 +303,6 @@ int main(int argc, char **argv) {
     if(exit_reason == "back-to-old-ui") {
         const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };
         execvp(args[0], (char* const*)args);
-    } else if(exit_reason == "restart") {
-        const char *args[] = { "gsr-ui", "launch-show", nullptr };
-        execvp(args[0], (char* const*)args);
     }
 
     return 0;

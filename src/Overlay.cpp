@@ -338,6 +338,13 @@ namespace gsr {
                 fprintf(stderr, "pressed %s\n", id.c_str());
                 overlay->take_screenshot_region();
             });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(ConfigHotkey{ mgl::Keyboard::Key::Escape, HOTKEY_MOD_LCTRL | HOTKEY_MOD_LSHIFT | HOTKEY_MOD_LALT }),
+            "exit", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->go_back_to_old_ui();
+            });
     }
 
     static std::unique_ptr<GlobalHotkeysLinux> register_linux_hotkeys(Overlay *overlay, GlobalHotkeysLinux::GrabType grab_type) {
@@ -1466,6 +1473,19 @@ namespace gsr {
 
     void Overlay::exit() {
         do_exit = true;
+    }
+
+    void Overlay::go_back_to_old_ui() {
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+        if(inside_flatpak)
+            exit_reason = "back-to-old-ui";
+        else
+            exit_reason = "exit";
+
+        const char *args[] = { "systemctl", "disable", "--user", "gpu-screen-recorder-ui", nullptr };
+        std::string stdout_str;
+        exec_program_on_host_get_stdout(args, stdout_str);
+        exit();
     }
 
     const Config& Overlay::get_config() const {

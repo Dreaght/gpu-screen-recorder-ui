@@ -113,6 +113,8 @@ Check if "modprobe uinput" is needed on some systems (old fedora?).
 Add recording timer to see duration of recording/streaming.
 
 Make folder with window name work when using gamescope. Gamescope runs x11 itself so to get the window name inside that we have to connect to the gamescope X11 server (DISPLAY=:1 on x11 and DISPLAY=:2 on wayland, but not always).
+    Detect if the window is gamescope automatically (WM_CLASS = "gamescope") and get the x11 display automatically and connect to it to get the application its running.
+    This seems to only be an issue on wayland? the window title of the gamescope/steam bigpicture mode is the title of the game on x11, so it works automatically on x11.
 
 When clicking on current directory in file manager show a dropdown menu where you can select common directories (HOME, Videos, Downloads and mounted drives) for quick navigation. Maybe even button to search.
 
@@ -158,3 +160,5 @@ Notification with the focused monitor (with CursorTrackerWayland) assumes that t
 If CursorTrackerWayland fails then fallback to getting focused monitor by window creation trick. Need to take into consideration prime laptop with dGPU that controls external monitors which cant be captured (different /dev/dri/card device).
     Maybe automatically switch to recording with the device that controls the monitor.
     In that case also add all monitors available to capture in the capture list and automatically choose the gpu that controls the monitor.
+
+Support cjk font. Use fc-match to find the location of the font. This also works in flatpak, in which case the fonts are in /run/host/..., where it lists system fonts.

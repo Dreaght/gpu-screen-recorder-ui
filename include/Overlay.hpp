@@ -65,6 +65,7 @@ namespace gsr {
         bool is_open() const;
         bool should_exit(std::string &reason) const;
         void exit();
+        void go_back_to_old_ui();
 
         const Config& get_config() const;
 
