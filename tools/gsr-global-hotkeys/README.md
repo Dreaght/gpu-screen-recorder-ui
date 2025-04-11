@@ -19,3 +19,9 @@ To unbind all keys send `unbind_all<newline>` to the programs stdin, for example
 unbind_all
 
 ```
+## Exit
+To close gsr-global-hotkeys send `exit<newline>` to the programs stdin, for example:
+```
+exit
+
+```

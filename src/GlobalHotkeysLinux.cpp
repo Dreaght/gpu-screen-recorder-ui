@@ -1,5 +1,4 @@
 #include "../include/GlobalHotkeysLinux.hpp"
-#include <signal.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -71,21 +70,39 @@ namespace gsr {
     }
 
     GlobalHotkeysLinux::~GlobalHotkeysLinux() {
-        for(int i = 0; i < 2; ++i) {
-            if(read_pipes[i] > 0)
-                close(read_pipes[i]);
-
-            if(write_pipes[i] > 0)
-                close(write_pipes[i]);
+        if(write_pipes[PIPE_WRITE] > 0) {
+            char command[32];
+            const int command_size = snprintf(command, sizeof(command), "exit\n");
+            if(write(write_pipes[PIPE_WRITE], command, command_size) != command_size) {
+                fprintf(stderr, "Error: GlobalHotkeysLinux::~GlobalHotkeysLinux: failed to write command to gsr-global-hotkeys, error: %s\n", strerror(errno));
+                close_fds();
+            }
         }
 
-        if(read_file)
-            fclose(read_file);
-
         if(process_id > 0) {
-            kill(process_id, SIGKILL);
             int status;
             waitpid(process_id, &status, 0);
+        }
+
+        close_fds();
+    }
+
+    void GlobalHotkeysLinux::close_fds() {
+        for(int i = 0; i < 2; ++i) {
+            if(read_pipes[i] > 0) {
+                close(read_pipes[i]);
+                read_pipes[i] = -1;
+            }
+
+            if(write_pipes[i] > 0) {
+                close(write_pipes[i]);
+                write_pipes[i] = -1;
+            }
+        }
+
+        if(read_file) {
+            fclose(read_file);
+            read_file = nullptr;
         }
     }
 

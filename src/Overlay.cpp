@@ -1580,9 +1580,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved recording of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to '%s'", filename.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
 
                 capture_target = recording_capture_target.c_str();
                 break;
@@ -1592,9 +1592,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(replay_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved replay of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a replay of this monitor to '%s'", filename.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved replay of %s to '%s'", replay_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a replay of %s to '%s'", replay_capture_target.c_str(), filename.c_str());
 
                 capture_target = replay_capture_target.c_str();
                 break;
@@ -1604,9 +1604,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved screenshot of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to '%s'", filename.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
 
                 capture_target = screenshot_capture_target.c_str();
                 break;
@@ -1626,9 +1626,9 @@ namespace gsr {
             const std::string filename = filepath_get_filename(replay_saved_filepath);
             char msg[512];
             if(is_capture_target_monitor(replay_capture_target.c_str()))
-                snprintf(msg, sizeof(msg), "Saved replay of this monitor to '%s'", filename.c_str());
+                snprintf(msg, sizeof(msg), "Saved a replay of this monitor to '%s'", filename.c_str());
             else
-                snprintf(msg, sizeof(msg), "Saved replay of %s to '%s'", replay_capture_target.c_str(), filename.c_str());
+                snprintf(msg, sizeof(msg), "Saved a replay of %s to '%s'", replay_capture_target.c_str(), filename.c_str());
             show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, replay_capture_target.c_str());
         }
     }
@@ -1729,9 +1729,9 @@ namespace gsr {
                 const std::string filename = filepath_get_filename(screenshot_filepath.c_str());
                 char msg[512];
                 if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved screenshot of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to '%s'", filename.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
         } else {
@@ -1835,9 +1835,9 @@ namespace gsr {
                 const std::string filename = filepath_get_filename(record_filepath.c_str());
                 char msg[512];
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved recording of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to '%s'", filename.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
             }
         } else {

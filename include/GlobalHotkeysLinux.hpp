@@ -22,6 +22,8 @@ namespace gsr {
         void unbind_all_keys() override;
         void poll_events() override;
     private:
+        void close_fds();
+    private:
         pid_t process_id = 0;
         int read_pipes[2];
         int write_pipes[2];

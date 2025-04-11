@@ -707,8 +707,11 @@ static void keyboard_event_parse_stdin_command(keyboard_event *self, const char 
         }
         self->num_global_hotkeys = 0;
         fprintf(stderr, "Info: unbinded all hotkeys\n");
+    } else if(strncmp(command, "exit", 4) == 0) {
+        self->stdin_failed = true;
+        fprintf(stderr, "Info: received exit command\n");
     } else {
-        fprintf(stderr, "Warning: got invalid command: \"%s\", expected command to start with either \"bind\" or \"unbind_all\"\n", command);
+        fprintf(stderr, "Warning: got invalid command: \"%s\", expected command to start with either \"bind\", \"unbind_all\" or \"exit\"\n", command);
     }
 }
 
