@@ -75,7 +75,7 @@ namespace gsr {
         if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str()))
             goto error;
 
-        if(!theme->up_arrow_texture.load_from_file((resources_path + "images/up_arrow.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->up_arrow_texture.load_from_file((resources_path + "images/up_arrow.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->replay_button_texture.load_from_file((resources_path + "images/replay.png").c_str()))
@@ -93,10 +93,10 @@ namespace gsr {
         if(!theme->logo_texture.load_from_file((resources_path + "images/gpu_screen_recorder_logo.png").c_str()))
             goto error;
 
-        if(!theme->checkbox_circle_texture.load_from_file((resources_path + "images/checkbox_circle.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->checkbox_circle_texture.load_from_file((resources_path + "images/checkbox_circle.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->play_texture.load_from_file((resources_path + "images/play.png").c_str()))
@@ -114,25 +114,25 @@ namespace gsr {
         if(!theme->screenshot_texture.load_from_file((resources_path + "images/screenshot.png").c_str()))
             goto error;
 
-        if(!theme->trash_texture.load_from_file((resources_path + "images/trash.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->delete_texture.load_from_file((resources_path + "images/delete.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->ps4_home_texture.load_from_file((resources_path + "images/ps4_home.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->ps4_home_texture.load_from_file((resources_path + "images/ps4_home.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->ps4_options_texture.load_from_file((resources_path + "images/ps4_options.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->ps4_options_texture.load_from_file((resources_path + "images/ps4_options.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->ps4_dpad_up_texture.load_from_file((resources_path + "images/ps4_dpad_up.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->ps4_dpad_up_texture.load_from_file((resources_path + "images/ps4_dpad_up.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->ps4_dpad_down_texture.load_from_file((resources_path + "images/ps4_dpad_down.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->ps4_dpad_down_texture.load_from_file((resources_path + "images/ps4_dpad_down.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
         
-        if(!theme->ps4_dpad_left_texture.load_from_file((resources_path + "images/ps4_dpad_left.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->ps4_dpad_left_texture.load_from_file((resources_path + "images/ps4_dpad_left.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->ps4_dpad_right_texture.load_from_file((resources_path + "images/ps4_dpad_right.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
+        if(!theme->ps4_dpad_right_texture.load_from_file((resources_path + "images/ps4_dpad_right.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         return true;

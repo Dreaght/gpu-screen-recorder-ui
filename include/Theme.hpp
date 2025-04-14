@@ -42,7 +42,7 @@ namespace gsr {
         mgl::Texture pause_texture;
         mgl::Texture save_texture;
         mgl::Texture screenshot_texture;
-        mgl::Texture trash_texture;
+        mgl::Texture delete_texture;
 
         mgl::Texture ps4_home_texture;
         mgl::Texture ps4_options_texture;

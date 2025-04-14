@@ -227,8 +227,9 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> SettingsPage::create_remove_audio_device_button(List *audio_input_list_ptr, List *audio_device_list_ptr) {
-        auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(35, 40, 44));
-        remove_audio_track_button->set_icon(&get_theme().trash_texture);
+        auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Delete", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        remove_audio_track_button->set_icon(&get_theme().delete_texture);
+        remove_audio_track_button->set_icon_padding_scale(1.0f);
         remove_audio_track_button->on_click = [audio_input_list_ptr, audio_device_list_ptr]() {
             audio_input_list_ptr->remove_widget(audio_device_list_ptr);
         };
@@ -349,8 +350,9 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         list->add_widget(std::make_unique<Label>(&get_theme().title_font, title, get_color_theme().text_color));
 
-        auto remove_track_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(35, 40, 44));
-        remove_track_button->set_icon(&get_theme().trash_texture);
+        auto remove_track_button = std::make_unique<Button>(&get_theme().body_font, "Delete", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        remove_track_button->set_icon(&get_theme().delete_texture);
+        remove_track_button->set_icon_padding_scale(1.0f);
         remove_track_button->on_click = [this, audio_track_subsection]() {
             audio_track_section_list_ptr->remove_widget(audio_track_subsection);
             update_audio_track_titles(audio_track_section_list_ptr);

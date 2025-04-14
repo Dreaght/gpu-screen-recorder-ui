@@ -63,7 +63,7 @@ namespace gsr {
             window.draw(sprite);
 
             const int padding_icon_right = padding_right_icon_scale * get_button_height();
-            text.set_position((sprite.get_position() + mgl::vec2f(sprite.get_size().x + padding_icon_right, sprite.get_size().y * 0.5f - text.get_bounds().size.y * 0.5f)).floor());
+            text.set_position((sprite.get_position() + mgl::vec2f(sprite.get_size().x + padding_icon_right, sprite.get_size().y * 0.5f - text.get_bounds().size.y * 0.52f)).floor());
             window.draw(text);
         } else {
             text.set_position((draw_pos + item_size * 0.5f - text.get_bounds().size * 0.5f).floor());
