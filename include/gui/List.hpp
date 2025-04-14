@@ -21,19 +21,20 @@ namespace gsr {
         List(Orientation orientation, Alignment content_alignment = Alignment::START);
         List(const List&) = delete;
         List& operator=(const List&) = delete;
+        virtual ~List() override;
 
         bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
-        //void remove_child_widget(Widget *widget) override;
-
         void add_widget(std::unique_ptr<Widget> widget);
         void remove_widget(Widget *widget);
+        void replace_widget(Widget *widget, std::unique_ptr<Widget> new_widget);
         void clear();
         // Return true from |callback| to continue
         void for_each_child_widget(std::function<bool(std::unique_ptr<Widget> &widget)> callback);
         // Returns nullptr if index is invalid
         Widget* get_child_widget_by_index(size_t index) const;
+        size_t get_num_children() const;
 
         void set_spacing(float spacing);
 

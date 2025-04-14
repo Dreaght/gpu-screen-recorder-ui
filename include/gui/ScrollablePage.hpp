@@ -12,6 +12,7 @@ namespace gsr {
         ScrollablePage(mgl::vec2f size);
         ScrollablePage(const ScrollablePage&) = delete;
         ScrollablePage& operator=(const ScrollablePage&) = delete;
+        virtual ~ScrollablePage() override;
 
         bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
         void draw(mgl::Window &window, mgl::vec2f offset) override;

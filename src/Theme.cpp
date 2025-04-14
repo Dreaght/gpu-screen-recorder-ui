@@ -75,7 +75,7 @@ namespace gsr {
         if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str()))
             goto error;
 
-        if(!theme->up_arrow_texture.load_from_file((resources_path + "images/up_arrow.png").c_str()))
+        if(!theme->up_arrow_texture.load_from_file((resources_path + "images/up_arrow.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
             goto error;
 
         if(!theme->replay_button_texture.load_from_file((resources_path + "images/replay.png").c_str()))
@@ -93,10 +93,10 @@ namespace gsr {
         if(!theme->logo_texture.load_from_file((resources_path + "images/gpu_screen_recorder_logo.png").c_str()))
             goto error;
 
-        if(!theme->checkbox_circle_texture.load_from_file((resources_path + "images/checkbox_circle.png").c_str()))
+        if(!theme->checkbox_circle_texture.load_from_file((resources_path + "images/checkbox_circle.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
             goto error;
 
-        if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str()))
+        if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
             goto error;
 
         if(!theme->play_texture.load_from_file((resources_path + "images/play.png").c_str()))
@@ -112,6 +112,9 @@ namespace gsr {
             goto error;
 
         if(!theme->screenshot_texture.load_from_file((resources_path + "images/screenshot.png").c_str()))
+            goto error;
+
+        if(!theme->trash_texture.load_from_file((resources_path + "images/trash.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))
             goto error;
 
         if(!theme->ps4_home_texture.load_from_file((resources_path + "images/ps4_home.png").c_str(), mgl::Texture::LoadOptions{false, false, true}))

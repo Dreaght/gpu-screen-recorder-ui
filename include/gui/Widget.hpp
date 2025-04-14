@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mglpp/system/vec.hpp>
+#include <memory>
 
 namespace mgl {
     class Event;
@@ -31,8 +32,6 @@ namespace gsr {
         virtual void draw(mgl::Window &window, mgl::vec2f offset) = 0;
         virtual void set_position(mgl::vec2f position);
 
-        //virtual void remove_child_widget(Widget *widget) { (void)widget; }
-
         virtual mgl::vec2f get_position() const;
         virtual mgl::vec2f get_size() = 0;
         // This can be different from get_size, for example with ScrollablePage this excludes the margins
@@ -61,4 +60,7 @@ namespace gsr {
 
         bool visible = true;
     };
+
+    void add_widget_to_remove(std::unique_ptr<Widget> widget);
+    void remove_widgets_to_be_removed();
 }

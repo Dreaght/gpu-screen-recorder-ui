@@ -6,7 +6,7 @@
 #include <vector>
 #include <optional>
 
-#define GSR_CONFIG_FILE_VERSION 1
+#define GSR_CONFIG_FILE_VERSION 2
 
 namespace gsr {
     struct SupportedCaptureOptions;
@@ -30,6 +30,14 @@ namespace gsr {
         std::string to_string(bool spaces = true, bool modifier_side = true) const;
     };
 
+    struct AudioTrack {
+        std::vector<std::string> audio_inputs; // ids
+        bool application_audio_invert = false;
+
+        bool operator==(const AudioTrack &other) const;
+        bool operator!=(const AudioTrack &other) const;
+    };
+
     struct RecordOptions {
         std::string record_area_option = "screen";
         int32_t record_area_width = 0;
@@ -38,10 +46,11 @@ namespace gsr {
         int32_t video_height = 0;
         int32_t fps = 60;
         int32_t video_bitrate = 15000;
-        bool merge_audio_tracks = true; // Currently unused for streaming because all known streaming sites only support 1 audio track
-        bool application_audio_invert = false;
+        bool merge_audio_tracks = true; // TODO: Remove in the future
+        bool application_audio_invert = false; // TODO: Remove in the future
         bool change_video_resolution = false;
-        std::vector<std::string> audio_tracks;
+        std::vector<std::string> audio_tracks; // ids, TODO: Remove in the future
+        std::vector<AudioTrack> audio_tracks_list;
         std::string color_range = "limited";
         std::string video_quality = "very_high";
         std::string video_codec = "auto";

@@ -257,8 +257,7 @@ namespace gsr {
     void ScreenshotSettingsPage::add_widgets() {
         content_page_ptr->add_widget(create_settings());
 
-        record_area_box_ptr->on_selection_changed = [this](const std::string &text, const std::string &id) {
-            (void)text;
+        record_area_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             const bool window_selected = id == "window";
             const bool portal_selected = id == "portal";
             select_window_list_ptr->set_visible(window_selected);

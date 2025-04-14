@@ -15,6 +15,8 @@
 #define FORMAT_U32 "%" PRIu32
 
 namespace gsr {
+    static const std::string_view add_audio_track_tag = "[add_audio_track]";
+
     static std::vector<mgl::Keyboard::Key> hotkey_modifiers_to_mgl_keys(uint32_t modifiers) {
         std::vector<mgl::Keyboard::Key> result;
         if(modifiers & HOTKEY_MOD_LCTRL)
@@ -101,6 +103,14 @@ namespace gsr {
         return result;
     }
 
+    bool AudioTrack::operator==(const AudioTrack &other) const {
+        return audio_inputs == other.audio_inputs && application_audio_invert == other.application_audio_invert;
+    }
+
+    bool AudioTrack::operator!=(const AudioTrack &other) const {
+        return !operator==(other);
+    }
+
     Config::Config(const SupportedCaptureOptions &capture_options) {
         const std::string default_videos_save_directory = get_videos_dir();
         const std::string default_pictures_save_directory = get_pictures_dir();
@@ -108,16 +118,16 @@ namespace gsr {
         set_hotkeys_to_default();
 
         streaming_config.record_options.video_quality = "custom";
-        streaming_config.record_options.audio_tracks.push_back("default_output");
+        streaming_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
         streaming_config.record_options.video_bitrate = 15000;
 
         record_config.save_directory = default_videos_save_directory;
-        record_config.record_options.audio_tracks.push_back("default_output");
+        record_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
         record_config.record_options.video_bitrate = 45000;
 
         replay_config.record_options.video_quality = "custom";
         replay_config.save_directory = default_videos_save_directory;
-        replay_config.record_options.audio_tracks.push_back("default_output");
+        replay_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
         replay_config.record_options.video_bitrate = 45000;
 
         screenshot_config.save_directory = default_pictures_save_directory;
@@ -152,7 +162,7 @@ namespace gsr {
         return KeyValue{line.substr(0, space_index), line.substr(space_index + 1)};
     }
 
-    using ConfigValue = std::variant<bool*, std::string*, int32_t*, ConfigHotkey*, std::vector<std::string>*>;
+    using ConfigValue = std::variant<bool*, std::string*, int32_t*, ConfigHotkey*, std::vector<std::string>*, std::vector<AudioTrack>*>;
 
     static std::map<std::string_view, ConfigValue> get_config_options(Config &config) {
         return {
@@ -174,6 +184,7 @@ namespace gsr {
             {"streaming.record_options.application_audio_invert", &config.streaming_config.record_options.application_audio_invert},
             {"streaming.record_options.change_video_resolution", &config.streaming_config.record_options.change_video_resolution},
             {"streaming.record_options.audio_track", &config.streaming_config.record_options.audio_tracks},
+            {"streaming.record_options.audio_track_item", &config.streaming_config.record_options.audio_tracks_list},
             {"streaming.record_options.color_range", &config.streaming_config.record_options.color_range},
             {"streaming.record_options.video_quality", &config.streaming_config.record_options.video_quality},
             {"streaming.record_options.codec", &config.streaming_config.record_options.video_codec},
@@ -203,6 +214,7 @@ namespace gsr {
             {"record.record_options.application_audio_invert", &config.record_config.record_options.application_audio_invert},
             {"record.record_options.change_video_resolution", &config.record_config.record_options.change_video_resolution},
             {"record.record_options.audio_track", &config.record_config.record_options.audio_tracks},
+            {"record.record_options.audio_track_item", &config.record_config.record_options.audio_tracks_list},
             {"record.record_options.color_range", &config.record_config.record_options.color_range},
             {"record.record_options.video_quality", &config.record_config.record_options.video_quality},
             {"record.record_options.codec", &config.record_config.record_options.video_codec},
@@ -231,6 +243,7 @@ namespace gsr {
             {"replay.record_options.application_audio_invert", &config.replay_config.record_options.application_audio_invert},
             {"replay.record_options.change_video_resolution", &config.replay_config.record_options.change_video_resolution},
             {"replay.record_options.audio_track", &config.replay_config.record_options.audio_tracks},
+            {"replay.record_options.audio_track_item", &config.replay_config.record_options.audio_tracks_list},
             {"replay.record_options.color_range", &config.replay_config.record_options.color_range},
             {"replay.record_options.video_quality", &config.replay_config.record_options.video_quality},
             {"replay.record_options.codec", &config.replay_config.record_options.video_codec},
@@ -291,6 +304,9 @@ namespace gsr {
             } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
                 if(*std::get<std::vector<std::string>*>(it.second) != *std::get<std::vector<std::string>*>(it_other->second))
                     return false;
+            } else if(std::holds_alternative<std::vector<AudioTrack>*>(it.second)) {
+                if(*std::get<std::vector<AudioTrack>*>(it.second) != *std::get<std::vector<AudioTrack>*>(it_other->second))
+                    return false;
             } else {
                 assert(false);
             }
@@ -300,6 +316,17 @@ namespace gsr {
 
     bool Config::operator!=(const Config &other) {
         return !operator==(other);
+    }
+
+    static void populate_new_audio_track_from_old(RecordOptions &record_options) {
+        if(record_options.merge_audio_tracks) {
+            record_options.audio_tracks_list.push_back({std::move(record_options.audio_tracks), record_options.application_audio_invert});
+        } else {
+            for(const std::string &audio_input : record_options.audio_tracks) {
+                record_options.audio_tracks_list.push_back({std::vector<std::string>{audio_input}, record_options.application_audio_invert});
+            }
+        }
+        record_options.audio_tracks.clear();
     }
 
     std::optional<Config> read_config(const SupportedCaptureOptions &capture_options) {
@@ -313,9 +340,14 @@ namespace gsr {
         }
 
         config = Config(capture_options);
+
         config->streaming_config.record_options.audio_tracks.clear();
         config->record_config.record_options.audio_tracks.clear();
         config->replay_config.record_options.audio_tracks.clear();
+
+        config->streaming_config.record_options.audio_tracks_list.clear();
+        config->record_config.record_options.audio_tracks_list.clear();
+        config->replay_config.record_options.audio_tracks_list.clear();
 
         auto config_options = get_config_options(config.value());
 
@@ -355,6 +387,23 @@ namespace gsr {
             } else if(std::holds_alternative<std::vector<std::string>*>(it->second)) {
                 std::string array_value(key_value->value);
                 std::get<std::vector<std::string>*>(it->second)->push_back(std::move(array_value));
+            } else if(std::holds_alternative<std::vector<AudioTrack>*>(it->second)) {
+                const size_t space_index = key_value->value.find(' ');
+                if(space_index == std::string_view::npos) {
+                    fprintf(stderr, "Warning: Invalid config option value for %.*s\n", (int)key_value->key.size(), key_value->key.data());
+                    return true;
+                }
+
+                const bool application_audio_invert = key_value->value.substr(0, space_index) == "true";
+                const std::string_view audio_input = key_value->value.substr(space_index + 1);
+                std::vector<AudioTrack> &audio_tracks = *std::get<std::vector<AudioTrack>*>(it->second);
+
+                if(audio_input == add_audio_track_tag) {
+                    audio_tracks.push_back({std::vector<std::string>{}, application_audio_invert});
+                } else if(!audio_tracks.empty()) {
+                    audio_tracks.back().application_audio_invert = application_audio_invert;
+                    audio_tracks.back().audio_inputs.emplace_back(audio_input);
+                }
             } else {
                 assert(false);
             }
@@ -362,10 +411,15 @@ namespace gsr {
             return true;
         });
 
-        if(config->main_config.config_file_version != GSR_CONFIG_FILE_VERSION) {
-            fprintf(stderr, "Info: the config file is outdated, resetting it\n");
-            config = std::nullopt;
+        if(config->main_config.config_file_version == 1) {
+            populate_new_audio_track_from_old(config->streaming_config.record_options);
+            populate_new_audio_track_from_old(config->record_config.record_options);
+            populate_new_audio_track_from_old(config->replay_config.record_options);
         }
+
+        config->streaming_config.record_options.audio_tracks.clear();
+        config->record_config.record_options.audio_tracks.clear();
+        config->replay_config.record_options.audio_tracks.clear();
 
         return config;
     }
@@ -402,9 +456,17 @@ namespace gsr {
                 const ConfigHotkey *config_hotkey = std::get<ConfigHotkey*>(it.second);
                     fprintf(file, "%.*s " FORMAT_I64 " " FORMAT_U32 "\n", (int)it.first.size(), it.first.data(), config_hotkey->key, config_hotkey->modifiers);
             } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
-                std::vector<std::string> *array = std::get<std::vector<std::string>*>(it.second);
-                for(const std::string &value : *array) {
-                    fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), value.c_str());
+                std::vector<std::string> *audio_inputs = std::get<std::vector<std::string>*>(it.second);
+                for(const std::string &audio_input : *audio_inputs) {
+                    fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), audio_input.c_str());
+                }
+            } else if(std::holds_alternative<std::vector<AudioTrack>*>(it.second)) {
+                std::vector<AudioTrack> *audio_tracks = std::get<std::vector<AudioTrack>*>(it.second);
+                for(const AudioTrack &audio_track : *audio_tracks) {
+                    fprintf(file, "%.*s %s %.*s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data());
+                    for(const std::string &audio_input : audio_track.audio_inputs) {
+                        fprintf(file, "%.*s %s %s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", audio_input.c_str());
+                    }
                 }
             } else {
                 assert(false);

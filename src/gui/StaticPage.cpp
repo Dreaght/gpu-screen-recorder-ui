@@ -20,8 +20,9 @@ namespace gsr {
 
         // Process widgets by visibility (backwards)
         return widgets.for_each_reverse([selected_widget, &window, &event, offset](std::unique_ptr<Widget> &widget) {
-            if(widget.get() != selected_widget) {
-                if(!widget->on_event(event, window, offset))
+            Widget *p = widget.get();
+            if(p != selected_widget) {
+                if(!p->on_event(event, window, offset))
                     return false;
             }
             return true;

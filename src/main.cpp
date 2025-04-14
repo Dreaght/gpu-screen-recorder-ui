@@ -303,7 +303,10 @@ int main(int argc, char **argv) {
     if(exit_reason == "back-to-old-ui") {
         const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };
         execvp(args[0], (char* const*)args);
+        return 0;
+    } else if(exit_reason == "exit") {
+        return 0;
     }
 
-    return 0;
+    return mgl_is_connected_to_display_server() ? 0 : 1;
 }

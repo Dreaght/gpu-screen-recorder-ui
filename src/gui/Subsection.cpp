@@ -12,11 +12,16 @@ namespace gsr {
     static const float title_spacing_scale = 0.010f;
 
     Subsection::Subsection(const char *title, std::unique_ptr<Widget> inner_widget, mgl::vec2f size) :
-        label(&get_theme().title_font, title, get_color_theme().text_color),
+        label(&get_theme().title_font, title ? title : "", get_color_theme().text_color),
         inner_widget(std::move(inner_widget)),
         size(size)
     {
         this->inner_widget->parent_widget = this;
+    }
+
+    Subsection::~Subsection() {
+        if(inner_widget->parent_widget == this)
+            inner_widget->parent_widget = nullptr;
     }
     
     bool Subsection::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
@@ -32,7 +37,7 @@ namespace gsr {
 
         mgl::vec2f draw_pos = position + offset;
         mgl::Rectangle background(draw_pos.floor(), get_size().floor());
-        background.set_color(mgl::Color(25, 30, 34));
+        background.set_color(bg_color);
         window.draw(background);
 
         draw_pos += mgl::vec2f(margin_left_scale, margin_top_scale) * mgl::vec2f(get_theme().window_height, get_theme().window_height);
@@ -68,5 +73,13 @@ namespace gsr {
 
         const mgl::vec2f margin_size = mgl::vec2f(margin_left_scale + margin_right_scale, margin_top_scale + margin_bottom_scale) * mgl::vec2f(get_theme().window_height, get_theme().window_height);
         return get_size() - margin_size;
+    }
+
+    Widget* Subsection::get_inner_widget() {
+        return inner_widget.get();
+    }
+
+    void Subsection::set_bg_color(mgl::Color color) {
+        bg_color = color;
     }
 }

@@ -24,12 +24,21 @@ namespace gsr {
         // Process widgets by visibility (backwards)
         return widgets.for_each_reverse([selected_widget, &event, &window](std::unique_ptr<Widget> &widget) {
             // Ignore offset because widgets are positioned with offset in ::draw, this solution is simpler
-            if(widget.get() != selected_widget) {
-                if(!widget->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
+            Widget *p = widget.get();
+            if(p != selected_widget) {
+                if(!p->on_event(event, window, mgl::vec2f(0.0f, 0.0f)))
                     return false;
             }
             return true;
         });
+    }
+
+    List::~List() {
+        widgets.for_each([this](std::unique_ptr<Widget> &widget) {
+            if(widget->parent_widget == this)
+                widget->parent_widget = nullptr;
+            return true;
+        }, true);
     }
 
     void List::draw(mgl::Window &window, mgl::vec2f offset) {
@@ -104,15 +113,6 @@ namespace gsr {
             selected_widget->draw(window, mgl::vec2f(0.0f, 0.0f));
     }
 
-    // void List::remove_child_widget(Widget *widget) {
-    //     for(auto it = widgets.begin(), end = widgets.end(); it != end; ++it) {
-    //         if(it->get() == widget) {
-    //             widgets.erase(it);
-    //             return;
-    //         }
-    //     }
-    // }
-
     void List::add_widget(std::unique_ptr<Widget> widget) {
         widget->parent_widget = this;
         widgets.push_back(std::move(widget));
@@ -120,6 +120,10 @@ namespace gsr {
 
     void List::remove_widget(Widget *widget) {
         widgets.remove(widget);
+    }
+
+    void List::replace_widget(Widget *widget, std::unique_ptr<Widget> new_widget) {
+        widgets.replace_item(widget, std::move(new_widget));
     }
 
     void List::clear() {
@@ -135,6 +139,10 @@ namespace gsr {
             return widgets[index].get();
         else
             return nullptr;
+    }
+
+    size_t List::get_num_children() const {
+        return widgets.size();
     }
 
     void List::set_spacing(float spacing) {

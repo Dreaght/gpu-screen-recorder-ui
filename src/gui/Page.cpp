@@ -1,14 +1,13 @@
 #include "../../include/gui/Page.hpp"
 
 namespace gsr {
-    // void Page::remove_child_widget(Widget *widget) {
-    //     for(auto it = widgets.begin(), end = widgets.end(); it != end; ++it) {
-    //         if(it->get() == widget) {
-    //             widgets.erase(it);
-    //             return;
-    //         }
-    //     }
-    // }
+    Page::~Page() {
+        widgets.for_each([this](std::unique_ptr<Widget> &widget) {
+            if(widget->parent_widget == this)
+                widget->parent_widget = nullptr;
+            return true;
+        }, true);
+    }
 
     void Page::add_widget(std::unique_ptr<Widget> widget) {
         widget->parent_widget = this;

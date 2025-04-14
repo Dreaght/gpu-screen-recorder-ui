@@ -1,14 +1,15 @@
 #include "../../include/gui/Widget.hpp"
+#include <vector>
 
 namespace gsr {
+    static std::vector<std::unique_ptr<Widget>> widgets_to_remove;
+
     Widget::Widget() {
         
     }
 
     Widget::~Widget() {
         remove_widget_as_selected_in_parent();
-        // if(parent_widget)
-        //     parent_widget->remove_child_widget(this);
     }
 
     void Widget::set_position(mgl::vec2f position) {
@@ -61,5 +62,16 @@ namespace gsr {
 
     void Widget::set_visible(bool visible) {
         this->visible = visible;
+    }
+
+    void add_widget_to_remove(std::unique_ptr<Widget> widget) {
+        widgets_to_remove.push_back(std::move(widget));
+    }
+
+    void remove_widgets_to_be_removed() {
+        for(size_t i = 0; i < widgets_to_remove.size(); ++i) {
+            widgets_to_remove[i].reset();
+        }
+        widgets_to_remove.clear();
     }
 }

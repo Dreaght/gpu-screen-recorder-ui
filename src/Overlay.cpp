@@ -685,6 +685,8 @@ namespace gsr {
     }
 
     bool Overlay::draw() {
+        remove_widgets_to_be_removed();
+
         update_notification_process_status();
         update_gsr_replay_save();
         update_gsr_process_status();
@@ -1249,6 +1251,7 @@ namespace gsr {
         while(!page_stack.empty()) {
             page_stack.pop();
         }
+        remove_widgets_to_be_removed();
 
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
@@ -1742,28 +1745,25 @@ namespace gsr {
         gpu_screen_recorder_screenshot_process = -1;
     }
 
-    static bool starts_with(std::string_view str, const char *substr) {
-        size_t len = strlen(substr);
-        return str.size() >= len && memcmp(str.data(), substr, len) == 0;
-    }
-
-    static bool are_all_audio_tracks_available_to_capture(const std::vector<std::string> &audio_tracks) {
+    static bool are_all_audio_tracks_available_to_capture(const std::vector<AudioTrack> &audio_tracks) {
         const auto audio_devices = get_audio_devices();
-        for(const std::string &audio_track : audio_tracks) {
-            std::string_view audio_track_name(audio_track.c_str());
-            const bool is_app_audio = starts_with(audio_track_name, "app:");
-            if(is_app_audio)
-                continue;
+        for(const AudioTrack &audio_track : audio_tracks) {
+            for(const std::string &audio_input : audio_track.audio_inputs) {
+                std::string_view audio_track_name(audio_input.c_str());
+                const bool is_app_audio = starts_with(audio_track_name, "app:");
+                if(is_app_audio)
+                    continue;
 
-            if(starts_with(audio_track_name, "device:"))
-                audio_track_name.remove_prefix(7);
+                if(starts_with(audio_track_name, "device:"))
+                    audio_track_name.remove_prefix(7);
 
-            auto it = std::find_if(audio_devices.begin(), audio_devices.end(), [&](const auto &audio_device) {
-                return audio_device.name == audio_track_name;
-            });
-            if(it == audio_devices.end()) {
-                //fprintf(stderr, "Audio not ready\n");
-                return false;
+                auto it = std::find_if(audio_devices.begin(), audio_devices.end(), [&](const auto &audio_device) {
+                    return audio_device.name == audio_track_name;
+                });
+                if(it == audio_devices.end()) {
+                    //fprintf(stderr, "Audio not ready\n");
+                    return false;
+                }
             }
         }
         return true;
@@ -1794,7 +1794,7 @@ namespace gsr {
         focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
             if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
-                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
+                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list))
                     on_press_start_replay(false, false);
             } else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen) {
                 on_press_start_replay(true, false);
@@ -1811,7 +1811,7 @@ namespace gsr {
         power_supply_connected = power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str());
         if(power_supply_connected != prev_power_supply_status) {
             if(recording_status == RecordingStatus::NONE && power_supply_connected) {
-                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
+                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list))
                     on_press_start_replay(false, false);
             } else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected) {
                 on_press_start_replay(false, false);
@@ -1823,7 +1823,7 @@ namespace gsr {
         if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || recording_status != RecordingStatus::NONE || !try_replay_startup)
             return;
 
-        if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks))
+        if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list))
             on_press_start_replay(true, false);
     }
 
@@ -1947,29 +1947,31 @@ namespace gsr {
             return container;
     }
 
-    static std::vector<std::string> create_audio_tracks_real_names(const std::vector<std::string> &audio_tracks, bool application_audio_invert, const GsrInfo &gsr_info) {
+    static std::vector<std::string> create_audio_tracks_cli_args(const std::vector<AudioTrack> &audio_tracks, const GsrInfo &gsr_info) {
         std::vector<std::string> result;
-        for(const std::string &audio_track : audio_tracks) {
-            std::string audio_track_name = audio_track;
-            const bool is_app_audio = starts_with(audio_track_name, "app:");
-            if(is_app_audio && !gsr_info.system_info.supports_app_audio)
-                continue;
+        result.reserve(audio_tracks.size());
 
-            if(is_app_audio && application_audio_invert)
-                audio_track_name.replace(0, 4, "app-inverse:");
+        for(const AudioTrack &audio_track : audio_tracks) {
+            std::string audio_track_merged;
+            for(const std::string &audio_input_name : audio_track.audio_inputs) {
+                std::string new_audio_input_name = audio_input_name;
+                const bool is_app_audio = starts_with(new_audio_input_name, "app:");
+                if(is_app_audio && !gsr_info.system_info.supports_app_audio)
+                    continue;
 
-            result.push_back(std::move(audio_track_name));
+                if(is_app_audio && audio_track.application_audio_invert)
+                    new_audio_input_name.replace(0, 4, "app-inverse:");
+
+                if(!audio_track_merged.empty())
+                    audio_track_merged += "|";
+
+                audio_track_merged += new_audio_input_name;
+            }
+
+            if(!audio_track_merged.empty())
+                result.push_back(std::move(audio_track_merged));
         }
-        return result;
-    }
 
-    static std::string merge_audio_tracks(const std::vector<std::string> &audio_tracks) {
-        std::string result;
-        for(size_t i = 0; i < audio_tracks.size(); ++i) {
-            if(i > 0)
-                result += "|";
-            result += audio_tracks[i];
-        }
         return result;
     }
 
@@ -1984,7 +1986,7 @@ namespace gsr {
         args.push_back(region_str);
     }
 
-    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, const std::string &audio_devices_merged, char *region_str, int region_str_size, const RegionSelector &region_selector) {
+    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const RegionSelector &region_selector) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -2000,16 +2002,9 @@ namespace gsr {
             args.push_back(region);
         }
 
-        if(record_options.merge_audio_tracks) {
-            if(!audio_devices_merged.empty()) {
-                args.push_back("-a");
-                args.push_back(audio_devices_merged.c_str());
-            }
-        } else {
-            for(const std::string &audio_track : audio_tracks) {
-                args.push_back("-a");
-                args.push_back(audio_track.c_str());
-            }
+        for(const std::string &audio_track : audio_tracks) {
+            args.push_back("-a");
+            args.push_back(audio_track.c_str());
         }
 
         if(record_options.restore_portal_session) {
@@ -2133,8 +2128,7 @@ namespace gsr {
         const std::string fps = std::to_string(config.replay_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.replay_config.record_options.video_bitrate);
         const std::string output_directory = config.replay_config.save_directory;
-        const std::vector<std::string> audio_tracks = create_audio_tracks_real_names(config.replay_config.record_options.audio_tracks, config.replay_config.record_options.application_audio_invert, gsr_info);
-        const std::string audio_tracks_merged = merge_audio_tracks(audio_tracks);
+        const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.replay_config.record_options.audio_tracks_list, gsr_info);
         const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
         const std::string replay_time = std::to_string(config.replay_config.replay_time);
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
@@ -2173,7 +2167,7 @@ namespace gsr {
         }
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, audio_tracks_merged, region_str, sizeof(region_str), region_selector);
+        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 
@@ -2276,8 +2270,7 @@ namespace gsr {
         const std::string fps = std::to_string(config.record_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.record_config.record_options.video_bitrate);
         const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
-        const std::vector<std::string> audio_tracks = create_audio_tracks_real_names(config.record_config.record_options.audio_tracks, config.record_config.record_options.application_audio_invert, gsr_info);
-        const std::string audio_tracks_merged = merge_audio_tracks(audio_tracks);
+        const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.record_config.record_options.audio_tracks_list, gsr_info);
         const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -2309,7 +2302,7 @@ namespace gsr {
         };
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, audio_tracks_merged, region_str, sizeof(region_str), region_selector);
+        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 
@@ -2429,8 +2422,11 @@ namespace gsr {
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.streaming_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
-        const std::vector<std::string> audio_tracks = create_audio_tracks_real_names(config.streaming_config.record_options.audio_tracks, config.streaming_config.record_options.application_audio_invert, gsr_info);
-        const std::string audio_tracks_merged = merge_audio_tracks(audio_tracks);
+        std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.streaming_config.record_options.audio_tracks_list, gsr_info);
+        // This isn't possible unless the user modified the config file manually,
+        // But we check it anyways as streaming on some sites can fail if there is more than one audio track
+        if(audio_tracks.size() > 1)
+            audio_tracks.resize(1);
         const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -2466,9 +2462,8 @@ namespace gsr {
             "-o", url.c_str()
         };
 
-        config.streaming_config.record_options.merge_audio_tracks = true;
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, audio_tracks_merged, region_str, sizeof(region_str), region_selector);
+        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
 

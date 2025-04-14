@@ -77,6 +77,8 @@ namespace gsr {
                 fprintf(stderr, "Error: GlobalHotkeysLinux::~GlobalHotkeysLinux: failed to write command to gsr-global-hotkeys, error: %s\n", strerror(errno));
                 close_fds();
             }
+        } else {
+            close_fds();
         }
 
         if(process_id > 0) {

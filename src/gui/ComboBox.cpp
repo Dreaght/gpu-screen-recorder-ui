@@ -85,7 +85,7 @@ namespace gsr {
 
     void ComboBox::add_item(const std::string &text, const std::string &id) {
         items.push_back({mgl::Text(text, *font), id, {0.0f, 0.0f}});
-        items.back().text.set_max_width(font->get_character_size() * 22); // TODO: Make a proper solution
+        items.back().text.set_max_width(font->get_character_size() * 25); // TODO: Make a proper solution
         //items.back().text.set_max_rows(1);
         dirty = true;
     }

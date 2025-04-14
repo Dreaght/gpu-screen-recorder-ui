@@ -149,7 +149,7 @@ namespace gsr {
         tint_color_radio_button_ptr = tint_color_radio_button.get();
         tint_color_radio_button->add_item("Red", "amd");
         tint_color_radio_button->add_item("Green", "nvidia");
-        tint_color_radio_button->add_item("blue", "intel");
+        tint_color_radio_button->add_item("Blue", "intel");
         tint_color_radio_button->on_selection_changed = [](const std::string&, const std::string &id) {
             if(id == "amd")
                 get_color_theme().tint_color = mgl::Color(221, 0, 49);

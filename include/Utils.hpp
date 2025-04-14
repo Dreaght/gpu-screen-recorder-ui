@@ -14,6 +14,7 @@ namespace gsr {
     using StringSplitCallback = std::function<bool(std::string_view line)>;
 
     void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func);
+    bool starts_with(std::string_view str, const char *substr);
 
     std::string get_home_dir();
     std::string get_config_dir();

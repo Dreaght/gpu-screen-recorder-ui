@@ -175,11 +175,6 @@ namespace gsr {
         CAPTURE_OPTIONS
     };
 
-    static bool starts_with(std::string_view str, const char *substr) {
-        size_t len = strlen(substr);
-        return str.size() >= len && memcmp(str.data(), substr, len) == 0;
-    }
-
     GsrInfoExitStatus get_gpu_screen_recorder_info(GsrInfo *gsr_info) {
         *gsr_info = GsrInfo{};
 
