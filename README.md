@@ -22,8 +22,7 @@ GPU Screen Recorder UI uses meson build system so you need to install `meson` to
 ## Build dependencies
 These are the dependencies needed to build GPU Screen Recorder UI:
 
-* x11 (libx11, libxrandr, libxrender, libxcomposite, libxfixes, libxext, libxi)
-* libxcursor
+* x11 (libx11, libxrandr, libxrender, libxcomposite, libxfixes, libxext, libxi, libxcursor)
 * libglvnd (which provides libgl, libglx and libegl)
 * linux-api-headers
 * libpulse (libpulse-simple)
@@ -48,7 +47,7 @@ If you are stuck in such a lock where you cant press and keyboard keys you can p
 This software is licensed under GPL3.0-only. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.\
 `images/default.cur` it part of the [Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master) which is licensed under `CC BY-SA 3.0`.\
 The controller buttons under `images/` were created by [Julio Cacko](https://juliocacko.itch.io/free-input-prompts) and they are licensed under `CC0 1.0 Universal`.\
-The PlayStation logo under `images/` was created by [ArksDigital](https://arks.itch.io/ps4-buttons) and it's are licensed under `CC BY 4.0`.
+The PlayStation logo under `images/` was created by [ArksDigital](https://arks.itch.io/ps4-buttons) and it's licensed under `CC BY 4.0`.
 
 # Reporting bugs, contributing patches, questions or donation
 See [https://git.dec05eba.com/?p=about](https://git.dec05eba.com/?p=about).\

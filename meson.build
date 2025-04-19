@@ -75,6 +75,7 @@ executable(
         dependency('xext'),
         dependency('xi'),
         dependency('xcursor'),
+        dependency('xrandr'),
         dependency('libpulse-simple'),
         dependency('libdrm'),
         dependency('wayland-client'),

@@ -5,6 +5,7 @@
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shapeconst.h>
+#include <X11/extensions/Xrandr.h>
 
 #include <mglpp/system/Utf8.hpp>
 
@@ -518,14 +519,21 @@ namespace gsr {
         return XGetSelectionOwner(dpy, prop_atom) != None;
     }
 
-    static void get_monitors_callback(const mgl_monitor *monitor, void *userdata) {
-        std::vector<Monitor> *monitors = (std::vector<Monitor>*)userdata;
-        monitors->push_back({mgl::vec2i(monitor->pos.x, monitor->pos.y), mgl::vec2i(monitor->size.x, monitor->size.y), std::string(monitor->name)});
-    }
-
     std::vector<Monitor> get_monitors(Display *dpy) {
         std::vector<Monitor> monitors;
-        mgl_for_each_active_monitor_output(dpy, get_monitors_callback, &monitors);
+        int nmonitors = 0;
+        XRRMonitorInfo *monitor_info = XRRGetMonitors(dpy, DefaultRootWindow(dpy), True, &nmonitors);
+        if(monitor_info) {
+            for(int i = 0; i < nmonitors; ++i) {
+                char *monitor_name = XGetAtomName(dpy, monitor_info[i].name);
+                if(!monitor_name)
+                    continue;
+
+                monitors.push_back({mgl::vec2i(monitor_info[i].x, monitor_info[i].y), mgl::vec2i(monitor_info[i].width, monitor_info[i].height), std::string(monitor_name)});
+                XFree(monitor_name);
+            }
+            XRRFreeMonitors(monitor_info);
+        }
         return monitors;
     }
 

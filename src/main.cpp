@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
         disable_prime_run();
     }
 
-    if(mgl_init() != 0) {
+    if(mgl_init(MGL_WINDOW_SYSTEM_X11) != 0) {
         fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
         exit(1);
     }

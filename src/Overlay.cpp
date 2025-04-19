@@ -556,8 +556,8 @@ namespace gsr {
                     memset(xi_output_xev, 0, sizeof(*xi_output_xev));
                     xi_output_xev->type = MotionNotify;
                     xi_output_xev->xmotion.display = display;
-                    xi_output_xev->xmotion.window = window->get_system_handle();
-                    xi_output_xev->xmotion.subwindow = window->get_system_handle();
+                    xi_output_xev->xmotion.window = (Window)window->get_system_handle();
+                    xi_output_xev->xmotion.subwindow = (Window)window->get_system_handle();
                     xi_output_xev->xmotion.x = de->root_x - window_pos.x;
                     xi_output_xev->xmotion.y = de->root_y - window_pos.y;
                     xi_output_xev->xmotion.x_root = de->root_x;
@@ -569,8 +569,8 @@ namespace gsr {
                     memset(xi_output_xev, 0, sizeof(*xi_output_xev));
                     xi_output_xev->type = cookie->evtype == XI_ButtonPress ? ButtonPress : ButtonRelease;
                     xi_output_xev->xbutton.display = display;
-                    xi_output_xev->xbutton.window = window->get_system_handle();
-                    xi_output_xev->xbutton.subwindow = window->get_system_handle();
+                    xi_output_xev->xbutton.window = (Window)window->get_system_handle();
+                    xi_output_xev->xbutton.subwindow = (Window)window->get_system_handle();
                     xi_output_xev->xbutton.x = de->root_x - window_pos.x;
                     xi_output_xev->xbutton.y = de->root_y - window_pos.y;
                     xi_output_xev->xbutton.x_root = de->root_x;
@@ -583,8 +583,8 @@ namespace gsr {
                     memset(xi_output_xev, 0, sizeof(*xi_output_xev));
                     xi_output_xev->type = cookie->evtype == XI_KeyPress ? KeyPress : KeyRelease;
                     xi_output_xev->xkey.display = display;
-                    xi_output_xev->xkey.window = window->get_system_handle();
-                    xi_output_xev->xkey.subwindow = window->get_system_handle();
+                    xi_output_xev->xkey.window = (Window)window->get_system_handle();
+                    xi_output_xev->xkey.subwindow = (Window)window->get_system_handle();
                     xi_output_xev->xkey.x = de->root_x - window_pos.x;
                     xi_output_xev->xkey.y = de->root_y - window_pos.y;
                     xi_output_xev->xkey.x_root = de->root_x;
@@ -767,13 +767,13 @@ namespace gsr {
         // There should be a debug mode to not use these
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
-        XGrabPointer(display, window->get_system_handle(), True,
+        XGrabPointer(display, (Window)window->get_system_handle(), True,
             ButtonPressMask | ButtonReleaseMask | PointerMotionMask |
             Button1MotionMask | Button2MotionMask | Button3MotionMask | Button4MotionMask | Button5MotionMask |
             ButtonMotionMask,
             GrabModeAsync, GrabModeAsync, None, default_cursor, CurrentTime);
         // TODO: This breaks global hotkeys (when using x11 global hotkeys)
-        XGrabKeyboard(display, window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+        XGrabKeyboard(display, (Window)window->get_system_handle(), True, GrabModeAsync, GrabModeAsync, CurrentTime);
         XFlush(display);
     }
 
@@ -907,7 +907,7 @@ namespace gsr {
         // Nvidia + Wayland + Egl doesn't work on some systems properly and it instead falls back to software rendering.
         // Use Glx on Wayland to workaround this issue. This is fine since Egl is only needed for x11 to reliably get the texture of the fullscreen window on Nvidia
         // when a compositor isn't running.
-        window_create_params.render_api = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? MGL_RENDER_API_GLX : MGL_RENDER_API_EGL;
+        window_create_params.graphics_api = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? MGL_GRAPHICS_API_GLX : MGL_GRAPHICS_API_EGL;
 
         if(!window->create("gsr ui", window_create_params))
             fprintf(stderr, "error: failed to create window\n");
@@ -915,10 +915,10 @@ namespace gsr {
         //window->set_low_latency(true);
 
         unsigned char data = 2; // Prefer being composed to allow transparency
-        XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+        XChangeProperty(display, (Window)window->get_system_handle(), XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
         data = 1;
-        XChangeProperty(display, window->get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+        XChangeProperty(display, (Window)window->get_system_handle(), XInternAtom(display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
         const auto original_window_size = window_size;
         window_pos = focused_monitor->position;
@@ -952,12 +952,12 @@ namespace gsr {
 
         //window->set_fullscreen(true);
         if(gsr_info.system_info.display_server == DisplayServer::X11)
-            make_window_click_through(display, window->get_system_handle());
+            make_window_click_through(display, (Window)window->get_system_handle());
 
         window->set_visible(true);
 
-        make_window_sticky(display, window->get_system_handle());
-        hide_window_from_taskbar(display, window->get_system_handle());
+        make_window_sticky(display, (Window)window->get_system_handle());
+        hide_window_from_taskbar(display, (Window)window->get_system_handle());
 
         if(default_cursor) {
             XFreeCursor(display, default_cursor);
@@ -1557,7 +1557,7 @@ namespace gsr {
         Display *display = (Display*)context->connection;
         const std::string video_filename = filepath_get_filename(video_filepath);
 
-        const Window gsr_ui_window = window ? window->get_system_handle() : None;
+        const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
         std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
         if(focused_window_name.empty())
             focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED);
@@ -1787,7 +1787,7 @@ namespace gsr {
         Display *display = (Display*)context->connection;
 
         const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED);
-        if(window && focused_window == window->get_system_handle())
+        if(window && focused_window == (Window)window->get_system_handle())
             return;
 
         const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
@@ -2605,7 +2605,7 @@ namespace gsr {
 
             mgl_context *context = mgl_get_context();
             Display *display = (Display*)context->connection;
-            XRaiseWindow(display, window->get_system_handle());
+            XRaiseWindow(display, (Window)window->get_system_handle());
             XFlush(display);
         }
     }
