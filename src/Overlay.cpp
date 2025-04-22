@@ -1070,6 +1070,7 @@ namespace gsr {
                     on_press_start_replay(false, false);
                 }
             };
+            button->set_item_enabled("save", false);
             main_buttons_list->add_widget(std::move(button));
         }
         {
@@ -1096,6 +1097,7 @@ namespace gsr {
                     on_press_start_record(false);
                 }
             };
+            button->set_item_enabled("pause", false);
             main_buttons_list->add_widget(std::move(button));
         }
         {
@@ -1872,6 +1874,7 @@ namespace gsr {
         record_dropdown_button_ptr->set_activated(true);
         record_dropdown_button_ptr->set_description("Recording");
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
+        record_dropdown_button_ptr->set_item_enabled("pause", true);
     }
 
     void Overlay::update_ui_recording_stopped() {
@@ -1885,6 +1888,7 @@ namespace gsr {
 
         record_dropdown_button_ptr->set_item_label("pause", "Pause");
         record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
+        record_dropdown_button_ptr->set_item_enabled("pause", false);
         paused = false;
     }
 
@@ -1916,6 +1920,7 @@ namespace gsr {
         replay_dropdown_button_ptr->set_activated(true);
         replay_dropdown_button_ptr->set_description("On");
         replay_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
+        replay_dropdown_button_ptr->set_item_enabled("save", true);
     }
 
     void Overlay::update_ui_replay_stopped() {
@@ -1926,6 +1931,7 @@ namespace gsr {
         replay_dropdown_button_ptr->set_activated(false);
         replay_dropdown_button_ptr->set_description("Off");
         replay_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
+        replay_dropdown_button_ptr->set_item_enabled("save", false);
     }
 
     static std::string get_date_str() {

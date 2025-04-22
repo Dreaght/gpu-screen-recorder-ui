@@ -148,7 +148,7 @@ namespace gsr {
                     window.draw(separator);
                 }
 
-                if(mouse_inside_item == -1) {
+                if(mouse_inside_item == -1 && item.enabled) {
                     const bool inside = mgl::FloatRect(item_position, item_size).contains({ (float)mouse_pos.x, (float)mouse_pos.y });
                     if(inside) {
                         draw_rectangle_outline(window, item_position, item_size, get_color_theme().tint_color, border_size);
@@ -161,16 +161,18 @@ namespace gsr {
                     mgl::Sprite icon(item.icon_texture);
                     icon.set_height((int)(item_size.y * 0.4f));
                     icon.set_position((item_position + mgl::vec2f(padding_left, item_size.y * 0.5f - icon.get_size().y * 0.5f)).floor());
+                    icon.set_color(item.enabled ? mgl::Color(255, 255, 255, 255) : mgl::Color(255, 255, 255, 80));
                     window.draw(icon);
                     icon_offset = icon.get_size().x + icon_spacing;
                 }
 
                 item.text.set_position((item_position + mgl::vec2f(padding_left + icon_offset, item_size.y * 0.5f - text_bounds.size.y * 0.5f)).floor());
+                item.text.set_color(item.enabled ? mgl::Color(255, 255, 255, 255) : mgl::Color(255, 255, 255, 80));
                 window.draw(item.text);
 
                 const auto description_bounds = item.description_text.get_bounds();
                 item.description_text.set_position((item_position + mgl::vec2f(item_size.x - description_bounds.size.x - padding_right, item_size.y * 0.5f - description_bounds.size.y * 0.5f)).floor());
-                item.description_text.set_color(mgl::Color(255, 255, 255, 120));
+                item.description_text.set_color(item.enabled ? mgl::Color(255, 255, 255, 120) : mgl::Color(255, 255, 255, 40));
                 window.draw(item.description_text);
 
                 item_position.y += item_size.y;
@@ -205,6 +207,15 @@ namespace gsr {
         for(auto &item : items) {
             if(item.id == id) {
                 item.description_text.set_string(new_description);
+                return;
+            }
+        }
+    }
+
+    void DropdownButton::set_item_enabled(const std::string &id, bool enabled) {
+        for(auto &item : items) {
+            if(item.id == id) {
+                item.enabled = enabled;
                 return;
             }
         }

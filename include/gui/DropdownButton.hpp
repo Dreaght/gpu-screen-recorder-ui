@@ -21,6 +21,7 @@ namespace gsr {
         void set_item_label(const std::string &id, const std::string &new_label);
         void set_item_icon(const std::string &id, mgl::Texture *texture);
         void set_item_description(const std::string &id, const std::string &new_description);
+        void set_item_enabled(const std::string &id, bool enabled);
 
         void set_description(std::string description_text);
         void set_activated(bool activated);
@@ -36,6 +37,7 @@ namespace gsr {
             mgl::Text description_text;
             mgl::Texture *icon_texture = nullptr;
             std::string id;
+            bool enabled = true;
         };
 
         std::vector<Item> items;

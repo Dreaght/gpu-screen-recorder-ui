@@ -160,3 +160,7 @@ If CursorTrackerWayland fails then fallback to getting focused monitor by window
     In that case also add all monitors available to capture in the capture list and automatically choose the gpu that controls the monitor.
 
 Support cjk font. Use fc-match to find the location of the font. This also works in flatpak, in which case the fonts are in /run/host/..., where it lists system fonts.
+
+Keyboard layout is incorrect on wayland when using kde plasma keyboard settings to setup multiple keyboards, for example when changing to french.
+    Text input is correct, but hotkey is incorrect.
+    Need to use "setxkbmap fr" as well.
