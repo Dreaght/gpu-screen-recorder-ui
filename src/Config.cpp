@@ -84,8 +84,8 @@ namespace gsr {
 
             modifier_str = mgl::Keyboard::key_to_string(modifier_key);
             if(!modifier_side) {
-                string_remove_all(modifier_str, "Left");
-                string_remove_all(modifier_str, "Right");
+                string_remove_all(modifier_str, "Left ");
+                string_remove_all(modifier_str, "Right ");
             }
             result += modifier_str;
         }
@@ -148,6 +148,8 @@ namespace gsr {
 
         replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
         replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
+        replay_config.save_1_min_hotkey = {mgl::Keyboard::F11, HOTKEY_MOD_LALT};
+        replay_config.save_10_min_hotkey = {mgl::Keyboard::F12, HOTKEY_MOD_LALT};
 
         screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::Printscreen, 0};
         screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::Printscreen, HOTKEY_MOD_LCTRL};
@@ -264,6 +266,8 @@ namespace gsr {
             {"replay.time", &config.replay_config.replay_time},
             {"replay.start_stop_hotkey", &config.replay_config.start_stop_hotkey},
             {"replay.save_hotkey", &config.replay_config.save_hotkey},
+            {"replay.save_1_min_hotkey", &config.replay_config.save_1_min_hotkey},
+            {"replay.save_10_min_hotkey", &config.replay_config.save_10_min_hotkey},
 
             {"screenshot.record_area_option", &config.screenshot_config.record_area_option},
             {"screenshot.image_width", &config.screenshot_config.image_width},

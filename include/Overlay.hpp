@@ -59,6 +59,8 @@ namespace gsr {
         void toggle_stream();
         void toggle_replay();
         void save_replay();
+        void save_replay_1_min();
+        void save_replay_10_min();
         void take_screenshot();
         void take_screenshot_region();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target = nullptr);
@@ -87,7 +89,7 @@ namespace gsr {
         void update_notification_process_status();
         void save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type);
         void on_replay_saved(const char *replay_saved_filepath);
-        void update_gsr_replay_save();
+        void process_gsr_output();
         void update_gsr_process_status();
         void update_gsr_screenshot_process_status();
 
@@ -96,7 +98,7 @@ namespace gsr {
         void update_power_supply_status();
         void update_system_startup_status();
 
-        void on_stop_recording(int exit_code);
+        void on_stop_recording(int exit_code, const std::string &video_filepath);
 
         void update_ui_recording_paused();
         void update_ui_recording_unpaused();
@@ -110,7 +112,10 @@ namespace gsr {
         void update_ui_replay_started();
         void update_ui_replay_stopped();
 
+        void prepare_gsr_output_for_reading();
         void on_press_save_replay();
+        void on_press_save_replay_1_min_replay();
+        void on_press_save_replay_10_min_replay();
         bool on_press_start_replay(bool disable_notification, bool finished_region_selection);
         void on_press_start_record(bool finished_region_selection);
         void on_press_start_stream(bool finished_region_selection);
@@ -211,7 +216,6 @@ namespace gsr {
         std::function<void()> on_region_selected;
 
         std::string recording_capture_target;
-        std::string replay_capture_target;
         std::string screenshot_capture_target;
 
         std::unique_ptr<CursorTracker> cursor_tracker;

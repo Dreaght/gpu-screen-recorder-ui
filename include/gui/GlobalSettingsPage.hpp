@@ -22,6 +22,8 @@ namespace gsr {
         NONE,
         REPLAY_START_STOP,
         REPLAY_SAVE,
+        REPLAY_SAVE_1_MIN,
+        REPLAY_SAVE_10_MIN,
         RECORD_START_STOP,
         RECORD_PAUSE_UNPAUSE,
         STREAM_START_STOP,
@@ -56,6 +58,7 @@ namespace gsr {
         std::unique_ptr<RadioButton> create_enable_joystick_hotkeys_button();
         std::unique_ptr<List> create_show_hide_hotkey_options();
         std::unique_ptr<List> create_replay_hotkey_options();
+        std::unique_ptr<List> create_replay_partial_save_hotkey_options();
         std::unique_ptr<List> create_record_hotkey_options();
         std::unique_ptr<List> create_stream_hotkey_options();
         std::unique_ptr<List> create_screenshot_hotkey_options();
@@ -89,6 +92,8 @@ namespace gsr {
 
         Button *turn_replay_on_off_button_ptr = nullptr;
         Button *save_replay_button_ptr = nullptr;
+        Button *save_replay_1_min_button_ptr = nullptr;
+        Button *save_replay_10_min_button_ptr = nullptr;
         Button *start_stop_recording_button_ptr = nullptr;
         Button *pause_unpause_recording_button_ptr = nullptr;
         Button *start_stop_streaming_button_ptr = nullptr;

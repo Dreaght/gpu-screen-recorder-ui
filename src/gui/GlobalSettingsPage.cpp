@@ -256,6 +256,30 @@ namespace gsr {
         return list;
     }
 
+    std::unique_ptr<List> GlobalSettingsPage::create_replay_partial_save_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Save 1 minute replay:", get_color_theme().text_color));
+        auto save_replay_1_min_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        save_replay_1_min_button_ptr = save_replay_1_min_button.get();
+        list->add_widget(std::move(save_replay_1_min_button));
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Save 10 minute replay:", get_color_theme().text_color));
+        auto save_replay_10_min_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        save_replay_10_min_button_ptr = save_replay_10_min_button.get();
+        list->add_widget(std::move(save_replay_10_min_button));
+
+        save_replay_1_min_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE_1_MIN);
+        };
+
+        save_replay_10_min_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE_10_MIN);
+        };
+
+        return list;
+    }
+
     std::unique_ptr<List> GlobalSettingsPage::create_record_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
@@ -335,6 +359,8 @@ namespace gsr {
             config.record_config.pause_unpause_hotkey = {mgl::Keyboard::Unknown, 0};
             config.replay_config.start_stop_hotkey = {mgl::Keyboard::Unknown, 0};
             config.replay_config.save_hotkey = {mgl::Keyboard::Unknown, 0};
+            config.replay_config.save_1_min_hotkey = {mgl::Keyboard::Unknown, 0};
+            config.replay_config.save_10_min_hotkey = {mgl::Keyboard::Unknown, 0};
             config.screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::Unknown, 0};
             config.screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::Unknown, 0};
             config.main_config.show_hide_hotkey = {mgl::Keyboard::Unknown, 0};
@@ -374,6 +400,7 @@ namespace gsr {
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
         list_ptr->add_widget(create_show_hide_hotkey_options());
         list_ptr->add_widget(create_replay_hotkey_options());
+        list_ptr->add_widget(create_replay_partial_save_hotkey_options());
         list_ptr->add_widget(create_record_hotkey_options());
         list_ptr->add_widget(create_stream_hotkey_options());
         list_ptr->add_widget(create_screenshot_hotkey_options());
@@ -490,6 +517,8 @@ namespace gsr {
     void GlobalSettingsPage::load_hotkeys() {
         turn_replay_on_off_button_ptr->set_text(config.replay_config.start_stop_hotkey.to_string());
         save_replay_button_ptr->set_text(config.replay_config.save_hotkey.to_string());
+        save_replay_1_min_button_ptr->set_text(config.replay_config.save_1_min_hotkey.to_string());
+        save_replay_10_min_button_ptr->set_text(config.replay_config.save_10_min_hotkey.to_string());
 
         start_stop_recording_button_ptr->set_text(config.record_config.start_stop_hotkey.to_string());
         pause_unpause_recording_button_ptr->set_text(config.record_config.pause_unpause_hotkey.to_string());
@@ -567,6 +596,10 @@ namespace gsr {
                 return turn_replay_on_off_button_ptr;
             case ConfigureHotkeyType::REPLAY_SAVE:
                 return save_replay_button_ptr;
+            case ConfigureHotkeyType::REPLAY_SAVE_1_MIN:
+                return save_replay_1_min_button_ptr;
+            case ConfigureHotkeyType::REPLAY_SAVE_10_MIN:
+                return save_replay_10_min_button_ptr;
             case ConfigureHotkeyType::RECORD_START_STOP:
                 return start_stop_recording_button_ptr;
             case ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE:
@@ -591,6 +624,10 @@ namespace gsr {
                 return &config.replay_config.start_stop_hotkey;
             case ConfigureHotkeyType::REPLAY_SAVE:
                 return &config.replay_config.save_hotkey;
+            case ConfigureHotkeyType::REPLAY_SAVE_1_MIN:
+                return &config.replay_config.save_1_min_hotkey;
+            case ConfigureHotkeyType::REPLAY_SAVE_10_MIN:
+                return &config.replay_config.save_10_min_hotkey;
             case ConfigureHotkeyType::RECORD_START_STOP:
                 return &config.record_config.start_stop_hotkey;
             case ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE:
@@ -642,6 +679,12 @@ namespace gsr {
                 break;
             case ConfigureHotkeyType::REPLAY_SAVE:
                 hotkey_configure_action_name = "Save replay";
+                break;
+            case ConfigureHotkeyType::REPLAY_SAVE_1_MIN:
+                hotkey_configure_action_name = "Save 1 minute replay";
+                break;
+            case ConfigureHotkeyType::REPLAY_SAVE_10_MIN:
+                hotkey_configure_action_name = "Save 10 minute replay";
                 break;
             case ConfigureHotkeyType::RECORD_START_STOP:
                 hotkey_configure_action_name = "Start/stop recording";

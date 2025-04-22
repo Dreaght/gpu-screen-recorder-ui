@@ -119,6 +119,8 @@ namespace gsr {
         int32_t replay_time = 60;
         ConfigHotkey start_stop_hotkey;
         ConfigHotkey save_hotkey;
+        ConfigHotkey save_1_min_hotkey;
+        ConfigHotkey save_10_min_hotkey;
     };
 
     struct ScreenshotConfig {

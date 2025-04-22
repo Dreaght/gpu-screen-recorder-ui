@@ -14,8 +14,6 @@ Add nvidia overclock option.
 
 Add support for window selection in capture.
 
-Add option to record the focused monitor. This works on wayland too when using kms capture since we can get cursor position without root and see which monitor (crtc) the cursor is on. Or use create_window_get_center_position.
-
 Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation. Also a button to create a new directory.
 
 Restart replay on system start if monitor resolution changes.

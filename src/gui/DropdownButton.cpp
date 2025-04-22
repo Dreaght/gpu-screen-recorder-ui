@@ -181,6 +181,10 @@ namespace gsr {
     }
 
     void DropdownButton::add_item(const std::string &text, const std::string &id, const std::string &description) {
+        for(auto &item : items) {
+            if(item.id == id)
+                return;
+        }
         items.push_back({mgl::Text(text, *title_font), mgl::Text(description, *description_font), nullptr, id});
         dirty = true;
     }

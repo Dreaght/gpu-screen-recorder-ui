@@ -30,6 +30,10 @@ static void sigint_handler(int signal) {
     running = 0;
 }
 
+static void signal_ignore(int) {
+
+}
+
 static void disable_prime_run() {
     unsetenv("__NV_PRIME_RENDER_OFFLOAD");
     unsetenv("__NV_PRIME_RENDER_OFFLOAD_PROVIDER");
@@ -218,6 +222,16 @@ int main(int argc, char **argv) {
     unsetenv("vblank_mode");
 
     signal(SIGINT, sigint_handler);
+    signal(SIGTERM, sigint_handler);
+    signal(SIGUSR1, signal_ignore);
+    signal(SIGUSR2, signal_ignore);
+    signal(SIGRTMIN, signal_ignore);
+    signal(SIGRTMIN+1, signal_ignore);
+    signal(SIGRTMIN+2, signal_ignore);
+    signal(SIGRTMIN+3, signal_ignore);
+    signal(SIGRTMIN+4, signal_ignore);
+    signal(SIGRTMIN+5, signal_ignore);
+    signal(SIGRTMIN+6, signal_ignore);
 
     gsr::GsrInfo gsr_info;
     // TODO: Show the error in ui
