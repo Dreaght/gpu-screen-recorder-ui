@@ -21,6 +21,8 @@ namespace gsr {
         bool start();
         // Currently valid ids:
         // save_replay
+        // save_1_min_replay
+        // save_10_min_replay
         // take_screenshot
         // toggle_record
         // toggle_replay
@@ -56,6 +58,8 @@ namespace gsr {
         bool right_pressed = false;
 
         bool save_replay = false;
+        bool save_1_min_replay = false;
+        bool save_10_min_replay = false;
         bool take_screenshot = false;
         bool toggle_record = false;
         bool toggle_replay = false;

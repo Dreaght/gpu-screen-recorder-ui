@@ -135,6 +135,12 @@ namespace gsr {
         if(!theme->ps4_dpad_right_texture.load_from_file((resources_path + "images/ps4_dpad_right.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
+        if(!theme->ps4_cross_texture.load_from_file((resources_path + "images/ps4_cross.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
+            goto error;
+
+        if(!theme->ps4_triangle_texture.load_from_file((resources_path + "images/ps4_triangle.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
+            goto error;
+
         return true;
 
         error:

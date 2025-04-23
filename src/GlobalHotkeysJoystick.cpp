@@ -7,6 +7,8 @@
 
 namespace gsr {
     static constexpr int button_pressed = 1;
+    static constexpr int cross_button = 0;
+    static constexpr int triangle_button = 2;
     static constexpr int options_button = 9;
     static constexpr int playstation_button = 10;
     static constexpr int axis_up_down = 7;
@@ -104,6 +106,20 @@ namespace gsr {
                 it->second("save_replay");
         }
 
+        if(save_1_min_replay) {
+            save_1_min_replay = false;
+            auto it = bound_actions_by_id.find("save_1_min_replay");
+            if(it != bound_actions_by_id.end())
+                it->second("save_1_min_replay");
+        }
+
+        if(save_10_min_replay) {
+            save_10_min_replay = false;
+            auto it = bound_actions_by_id.find("save_10_min_replay");
+            if(it != bound_actions_by_id.end())
+                it->second("save_10_min_replay");
+        }
+
         if(take_screenshot) {
             take_screenshot = false;
             auto it = bound_actions_by_id.find("take_screenshot");
@@ -186,10 +202,27 @@ namespace gsr {
             return;
 
         if((event.type & JS_EVENT_BUTTON) == JS_EVENT_BUTTON) {
-            if(event.number == playstation_button)
-                playstation_button_pressed = event.value == button_pressed;
-            else if(playstation_button_pressed && event.number == options_button && event.value == button_pressed)
-                toggle_show = true;
+            switch(event.number) {
+                case playstation_button: {
+                    playstation_button_pressed = event.value == button_pressed;
+                    break;
+                }
+                case options_button: {
+                    if(playstation_button_pressed && event.value == button_pressed)
+                        toggle_show = true;
+                    break;
+                }
+                case cross_button: {
+                    if(playstation_button_pressed && event.value == button_pressed)
+                        save_1_min_replay = true;
+                    break;
+                }
+                case triangle_button: {
+                    if(playstation_button_pressed && event.value == button_pressed)
+                        save_10_min_replay = true;
+                    break;
+                }
+            }
         } else if((event.type & JS_EVENT_AXIS) == JS_EVENT_AXIS && playstation_button_pressed) {
             const int trigger_threshold = 16383;
             const bool prev_up_pressed = up_pressed;

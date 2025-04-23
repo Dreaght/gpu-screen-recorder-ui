@@ -50,6 +50,8 @@ namespace gsr {
         mgl::Texture ps4_dpad_down_texture;
         mgl::Texture ps4_dpad_left_texture;
         mgl::Texture ps4_dpad_right_texture;
+        mgl::Texture ps4_cross_texture;
+        mgl::Texture ps4_triangle_texture;
 
         double double_click_timeout_seconds = 0.4;
 

@@ -420,6 +420,8 @@ namespace gsr {
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_options_texture, get_theme().body_font.get_character_size(), "to show/hide the UI"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_up_texture, get_theme().body_font.get_character_size(), "to take a screenshot"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_down_texture, get_theme().body_font.get_character_size(), "to save a replay"));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_cross_texture, get_theme().body_font.get_character_size(), "to save a 1 minute replay"));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_triangle_texture, get_theme().body_font.get_character_size(), "to save a 10 minute replay"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_left_texture, get_theme().body_font.get_character_size(), "to start/stop recording"));
         list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_right_texture, get_theme().body_font.get_character_size(), "to turn replay on/off"));
         return subsection;

@@ -385,6 +385,16 @@ namespace gsr {
             overlay->save_replay();
         });
 
+        global_hotkeys_js->bind_action("save_1_min_replay", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->save_replay_1_min();
+        });
+
+        global_hotkeys_js->bind_action("save_10_min_replay", [overlay](const std::string &id) {
+            fprintf(stderr, "pressed %s\n", id.c_str());
+            overlay->save_replay_10_min();
+        });
+
         global_hotkeys_js->bind_action("take_screenshot", [overlay](const std::string &id) {
             fprintf(stderr, "pressed %s\n", id.c_str());
             overlay->take_screenshot();
@@ -1707,7 +1717,7 @@ namespace gsr {
 
             const std::string video_filepath = filepath_get_filename(line);
             if(starts_with(video_filepath, "Video_")) {
-                on_stop_recording(0, video_filepath);
+                on_stop_recording(0, line);
                 return;
             }
 
