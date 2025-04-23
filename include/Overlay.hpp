@@ -210,6 +210,7 @@ namespace gsr {
         ReplayStartupMode replay_startup_mode = ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
         bool try_replay_startup = true;
         bool replay_recording = false;
+        int replay_save_duration_min = 0;
 
         AudioPlayer audio_player;
         RegionSelector region_selector;

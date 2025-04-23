@@ -1202,23 +1202,15 @@ namespace gsr {
                 };
 
                 settings_page->on_page_closed = [this]() {
-                    if(global_hotkeys) {
-                        replay_dropdown_button_ptr->set_item_description("start", config.replay_config.start_stop_hotkey.to_string(false, false));
-                        replay_dropdown_button_ptr->set_item_description("save", config.replay_config.save_hotkey.to_string(false, false));
+                    replay_dropdown_button_ptr->set_item_description("start", config.replay_config.start_stop_hotkey.to_string(false, false));
+                    replay_dropdown_button_ptr->set_item_description("save", config.replay_config.save_hotkey.to_string(false, false));
+                    replay_dropdown_button_ptr->set_item_description("save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
+                    replay_dropdown_button_ptr->set_item_description("save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
 
-                        record_dropdown_button_ptr->set_item_description("start", config.record_config.start_stop_hotkey.to_string(false, false));
-                        record_dropdown_button_ptr->set_item_description("pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
+                    record_dropdown_button_ptr->set_item_description("start", config.record_config.start_stop_hotkey.to_string(false, false));
+                    record_dropdown_button_ptr->set_item_description("pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
 
-                        stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
-                    } else {
-                        replay_dropdown_button_ptr->set_item_description("start", "");
-                        replay_dropdown_button_ptr->set_item_description("save", "");
-
-                        record_dropdown_button_ptr->set_item_description("start", "");
-                        record_dropdown_button_ptr->set_item_description("pause", "");
-
-                        stream_dropdown_button_ptr->set_item_description("start", "");
-                    }
+                    stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
                 };
 
                 page_stack.push(std::move(settings_page));
@@ -1611,7 +1603,6 @@ namespace gsr {
         truncate_string(focused_window_name, 20);
         const char *capture_target = nullptr;
         char msg[512];
-        const std::string filename = focused_window_name + "/" + video_filename;
 
         switch(notification_type) {
             case NotificationType::RECORD: {
@@ -1619,9 +1610,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to %s", focused_window_name.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved a recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of %s to '%s'", recording_capture_target.c_str(), focused_window_name.c_str());
 
                 capture_target = recording_capture_target.c_str();
                 break;
@@ -1630,10 +1621,16 @@ namespace gsr {
                 if(!config.replay_config.show_replay_saved_notifications)
                     return;
 
-                if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a replay of this monitor to '%s'", filename.c_str());
+                char duration[32];
+                if(replay_save_duration_min > 0)
+                    snprintf(duration, sizeof(duration), " %d minute ", replay_save_duration_min);
                 else
-                    snprintf(msg, sizeof(msg), "Saved a replay of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                    snprintf(duration, sizeof(duration), " ");
+
+                if(is_capture_target_monitor(recording_capture_target.c_str()))
+                    snprintf(msg, sizeof(msg), "Saved a%sreplay of this monitor to %s", duration, focused_window_name.c_str());
+                else
+                    snprintf(msg, sizeof(msg), "Saved a%sreplay of %s to '%s'", duration, recording_capture_target.c_str(), focused_window_name.c_str());
 
                 capture_target = recording_capture_target.c_str();
                 break;
@@ -1643,9 +1640,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to %s", focused_window_name.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to %s", screenshot_capture_target.c_str(), focused_window_name.c_str());
 
                 capture_target = screenshot_capture_target.c_str();
                 break;
@@ -1672,12 +1669,17 @@ namespace gsr {
         if(config.replay_config.save_video_in_game_folder) {
             save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
         } else {
-            const std::string filename = filepath_get_filename(replay_saved_filepath);
+            char duration[32];
+            if(replay_save_duration_min > 0)
+                snprintf(duration, sizeof(duration), " %d minute ", replay_save_duration_min);
+            else
+                snprintf(duration, sizeof(duration), " ");
+
             char msg[512];
             if(is_capture_target_monitor(recording_capture_target.c_str()))
-                snprintf(msg, sizeof(msg), "Saved a replay of this monitor to '%s'", filename.c_str());
+                snprintf(msg, sizeof(msg), "Saved a%sreplay of this monitor", duration);
             else
-                snprintf(msg, sizeof(msg), "Saved a replay of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                snprintf(msg, sizeof(msg), "Saved a%sreplay of %s", duration, recording_capture_target.c_str());
             show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
     }
@@ -1746,6 +1748,7 @@ namespace gsr {
             case RecordingStatus::NONE:
                 break;
             case RecordingStatus::REPLAY: {
+                replay_save_duration_min = 0;
                 update_ui_replay_stopped();
                 if(exit_code == 0) {
                     if(config.replay_config.show_replay_stopped_notifications)
@@ -1796,12 +1799,11 @@ namespace gsr {
             if(config.screenshot_config.save_screenshot_in_game_folder) {
                 save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
             } else {
-                const std::string filename = filepath_get_filename(screenshot_filepath.c_str());
                 char msg[512];
                 if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor");
                 else
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to '%s'", screenshot_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s", screenshot_capture_target.c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
         } else {
@@ -1899,12 +1901,11 @@ namespace gsr {
             if(config.record_config.save_video_in_game_folder) {
                 save_video_in_current_game_directory(video_filepath.c_str(), NotificationType::RECORD);
             } else {
-                const std::string filename = filepath_get_filename(video_filepath.c_str());
                 char msg[512];
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to '%s'", filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor");
                 else
-                    snprintf(msg, sizeof(msg), "Saved a recording of %s to '%s'", recording_capture_target.c_str(), filename.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of %s", recording_capture_target.c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
             }
         } else {
@@ -2148,6 +2149,7 @@ namespace gsr {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
             return;
 
+        replay_save_duration_min = 0;
         replay_save_show_notification = true;
         replay_save_clock.restart();
         kill(gpu_screen_recorder_process, SIGUSR1);
@@ -2157,6 +2159,7 @@ namespace gsr {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
             return;
 
+        replay_save_duration_min = 1;
         replay_save_show_notification = true;
         replay_save_clock.restart();
         kill(gpu_screen_recorder_process, SIGRTMIN+3);
@@ -2166,6 +2169,7 @@ namespace gsr {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
             return;
 
+        replay_save_duration_min = 10;
         replay_save_show_notification = true;
         replay_save_clock.restart();
         kill(gpu_screen_recorder_process, SIGRTMIN+5);
@@ -2203,6 +2207,7 @@ namespace gsr {
 
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
+            replay_save_duration_min = 0;
             update_ui_replay_stopped();
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video

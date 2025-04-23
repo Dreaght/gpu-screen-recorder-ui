@@ -110,6 +110,14 @@ namespace gsr {
             window.draw(rect);
         }
 
+        if(activated) {
+            description.set_color(get_color_theme().tint_color);
+            icon_sprite.set_color(get_color_theme().tint_color);
+        } else {
+            description.set_color(mgl::Color(150, 150, 150));
+            icon_sprite.set_color(mgl::Color(255, 255, 255));
+        }
+
         const int text_margin = size.y * 0.085;
 
         const auto title_bounds = title.get_bounds();
@@ -234,14 +242,6 @@ namespace gsr {
             return;
 
         this->activated = activated;
-
-        if(activated) {
-            description.set_color(get_color_theme().tint_color);
-            icon_sprite.set_color(get_color_theme().tint_color);
-        } else {
-            description.set_color(mgl::Color(150, 150, 150));
-            icon_sprite.set_color(mgl::Color(255, 255, 255));
-        }
     }
 
     void DropdownButton::update_if_dirty() {
