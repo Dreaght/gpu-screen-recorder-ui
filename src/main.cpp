@@ -78,6 +78,16 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
         overlay->save_replay();
     });
 
+    rpc->add_handler("replay-save-1-min", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->save_replay_1_min();
+    });
+
+    rpc->add_handler("replay-save-10-min", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->save_replay_10_min();
+    });
+
     rpc->add_handler("take-screenshot", [overlay](const std::string &name) {
         fprintf(stderr, "rpc command executed: %s\n", name.c_str());
         overlay->take_screenshot();

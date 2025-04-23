@@ -56,6 +56,10 @@ static void usage(void) {
     printf("      Start/stop replay.\n");
     printf("  replay-save\n");
     printf("      Save replay.\n");
+    printf("  replay-save-1-min\n");
+    printf("      Save 1 minute replay.\n");
+    printf("  replay-save-10-min\n");
+    printf("      Save 10 minute replay.\n");
     printf("  take-screenshot\n");
     printf("      Take a screenshot.\n");
     printf("  take-screenshot-region\n");
@@ -75,6 +79,8 @@ static bool is_valid_command(const char *command) {
         "toggle-stream",
         "toggle-replay",
         "replay-save",
+        "replay-save-1-min",
+        "replay-save-10-min",
         "take-screenshot",
         "take-screenshot-region",
         NULL

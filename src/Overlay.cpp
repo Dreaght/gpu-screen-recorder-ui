@@ -1912,6 +1912,7 @@ namespace gsr {
             show_notification("Failed to start/save recording. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
         }
         update_ui_recording_stopped();
+        replay_recording = false;
     }
 
     void Overlay::update_ui_recording_paused() {
@@ -2321,26 +2322,34 @@ namespace gsr {
             case RecordingStatus::RECORD:
                 break;
             case RecordingStatus::REPLAY: {
+                if(gpu_screen_recorder_process <= 0)
+                    return;
+
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-                    if(gpu_screen_recorder_process > 0) {
+                    if(!replay_recording) {
                         if(config.record_config.show_recording_started_notifications)
                             show_notification("Started recording in the replay session", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
-                        kill(gpu_screen_recorder_process, SIGRTMIN);
                     }
+                    replay_recording = true;
+                    kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
                     show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::REPLAY);
                 }
                 return;
             }
             case RecordingStatus::STREAM: {
+                if(gpu_screen_recorder_process <= 0)
+                    return;
+
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-                    if(gpu_screen_recorder_process > 0) {
+                    if(!replay_recording) {
                         if(config.record_config.show_recording_started_notifications)
                             show_notification("Started recording in the streaming session", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
-                        kill(gpu_screen_recorder_process, SIGRTMIN);
                     }
+                    replay_recording = true;
+                    kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
                     show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::STREAM);
                 }
