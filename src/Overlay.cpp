@@ -1028,6 +1028,9 @@ namespace gsr {
         if(paused)
             update_ui_recording_paused();
 
+        if(replay_recording)
+            update_ui_recording_started();
+
         // Wayland compositors have retarded fullscreen animations that we cant disable in a proper way
         // without messing up window position.
         show_overlay_timeout_seconds = prevent_game_minimizing ? 0.0 : 0.15;
@@ -1620,9 +1623,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to %s", focused_window_name.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to \"%s\"", focused_window_name.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved a recording of %s to '%s'", recording_capture_target.c_str(), focused_window_name.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a recording of %s to \"%s\"", recording_capture_target.c_str(), focused_window_name.c_str());
 
                 capture_target = recording_capture_target.c_str();
                 break;
@@ -1638,9 +1641,9 @@ namespace gsr {
                     snprintf(duration, sizeof(duration), " ");
 
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a%sreplay of this monitor to %s", duration, focused_window_name.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a%sreplay of this monitor to \"%s\"", duration, focused_window_name.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved a%sreplay of %s to '%s'", duration, recording_capture_target.c_str(), focused_window_name.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a%sreplay of %s to \"%s\"", duration, recording_capture_target.c_str(), focused_window_name.c_str());
 
                 capture_target = recording_capture_target.c_str();
                 break;
@@ -1650,9 +1653,9 @@ namespace gsr {
                     return;
 
                 if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to %s", focused_window_name.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to \"%s\"", focused_window_name.c_str());
                 else
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to %s", screenshot_capture_target.c_str(), focused_window_name.c_str());
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to \"%s\"", screenshot_capture_target.c_str(), focused_window_name.c_str());
 
                 capture_target = screenshot_capture_target.c_str();
                 break;
@@ -1968,6 +1971,7 @@ namespace gsr {
         record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
         record_dropdown_button_ptr->set_item_enabled("pause", false);
         paused = false;
+        replay_recording = false;
     }
 
     void Overlay::update_ui_streaming_started() {
