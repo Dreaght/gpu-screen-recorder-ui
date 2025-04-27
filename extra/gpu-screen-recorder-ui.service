@@ -2,7 +2,7 @@
 Description=GPU Screen Recorder UI Service
 
 [Service]
-ExecStart=gsr-ui
+ExecStart=gsr-ui launch-daemon
 KillSignal=SIGINT
 Restart=on-failure
 RestartSec=5s

@@ -162,15 +162,17 @@ static bool is_flatpak() {
 static void usage() {
     printf("usage: gsr-ui [action]\n");
     printf("OPTIONS:\n");
-    printf("  action  The launch action. Should be either \"launch-show\" or \"launch-hide\". Optional, defaults to \"launch-hide\".\n");
+    printf("  action  The launch action. Should be either \"launch-show\", \"launch-hide\" or \"launch-daemon\". Optional, defaults to \"launch-hide\".\n");
     printf("          If \"launch-show\" is used then the program starts and the UI is immediately opened and can be shown/hidden with Alt+Z.\n");
-    printf("          If \"launch-hide\" is used then the program starts but the UI is not opened until Alt+Z is pressed.\n");
+    printf("          If \"launch-hide\" is used then the program starts but the UI is not opened until Alt+Z is pressed. The UI will be opened if the program is already running in another process.\n");
+    printf("          If \"launch-daemon\" is used then the program starts but the UI is not opened until Alt+Z is pressed. The UI will not be opened if the program is already running in another process.\n");
     exit(1);
 }
 
 enum class LaunchAction {
     LAUNCH_SHOW,
-    LAUNCH_HIDE
+    LAUNCH_HIDE,
+    LAUNCH_DAEMON
 };
 
 int main(int argc, char **argv) {
@@ -191,18 +193,28 @@ int main(int argc, char **argv) {
             launch_action = LaunchAction::LAUNCH_SHOW;
         } else if(strcmp(launch_action_opt, "launch-hide") == 0) {
             launch_action = LaunchAction::LAUNCH_HIDE;
+        } else if(strcmp(launch_action_opt, "launch-daemon") == 0) {
+            launch_action = LaunchAction::LAUNCH_DAEMON;
         } else {
-            printf("error: invalid action \"%s\", expected \"launch-show\" or \"launch-hide\".\n", launch_action_opt);
+            printf("error: invalid action \"%s\", expected \"launch-show\", \"launch-hide\" or \"launch-daemon\".\n", launch_action_opt);
             usage();
         }
     } else {
         usage();
     }
 
-    if(is_flatpak())
-        install_flatpak_systemd_service();
-    else
-        remove_flatpak_systemd_service();
+    // Some users dont have properly setup environments (no display manager that does systemctl --user import-environment DISPLAY WAYLAND_DISPLAY)
+    const char *display = getenv("DISPLAY");
+    if(!display) {
+        display = ":0";
+        setenv("DISPLAY", display, true);
+    }
+
+    const char *wayland_display = getenv("WAYLAND_DISPLAY");
+    if(!wayland_display) {
+        wayland_display = "wayland-1";
+        setenv("WAYLAND_DISPLAY", wayland_display, true);
+    }
 
     // TODO: This is a shitty method to detect if multiple instances of gsr-ui is running but this will work properly even in flatpak
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
@@ -210,6 +222,9 @@ int main(int argc, char **argv) {
     // What do? creating a pid file doesn't work in flatpak either.
     // TODO: This doesn't work in flatpak when disabling hotkeys.
     if(is_gsr_ui_virtual_keyboard_running() || gsr::pidof("gsr-ui", getpid()) != -1) {
+        if(launch_action == LaunchAction::LAUNCH_DAEMON)
+            return 1;
+
         gsr::Rpc rpc;
         if(rpc.open("gsr-ui") && rpc.write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
@@ -220,6 +235,11 @@ int main(int argc, char **argv) {
         }
         return 1;
     }
+
+    if(is_flatpak())
+        install_flatpak_systemd_service();
+    else
+        remove_flatpak_systemd_service();
 
     // Stop nvidia driver from buffering frames
     setenv("__GL_MaxFramesAllowed", "1", true);
