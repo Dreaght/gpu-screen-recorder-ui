@@ -2137,8 +2137,25 @@ namespace gsr {
                 cursor_info = cursor_tracker->get_latest_cursor_info();
             }
 
-            if(cursor_info)
-                return cursor_info->monitor_name;
+            std::string focused_monitor_name;
+            if(cursor_info) {
+                focused_monitor_name = std::move(cursor_info->monitor_name);
+            } else {
+                mgl_context *context = mgl_get_context();
+                Display *display = (Display*)context->connection;
+
+                Window x11_cursor_window = None;
+                mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
+
+                const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
+                auto monitors = get_monitors(display);
+                const Monitor *focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
+                if(focused_monitor)
+                    focused_monitor_name = focused_monitor->name;
+            }
+
+            if(!focused_monitor_name.empty())
+                return focused_monitor_name;
             else if(!capture_options.monitors.empty())
                 return capture_options.monitors.front().name;
             else

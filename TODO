@@ -162,5 +162,11 @@ Support cjk font. Use fc-match to find the location of the font. This also works
 Keyboard layout is incorrect on wayland when using kde plasma keyboard settings to setup multiple keyboards, for example when changing to french.
     Text input is correct, but hotkey is incorrect.
     Need to use "setxkbmap fr" as well.
+    This happens only when grabbing keyboard (gsr-global-hotkeys). Same thing is seen with xev.
 
 Allow to configure replay by disk space as well. When changing bitrate change an editable field that says the disk space, and when changing that disk space field then change the bitrate or duration.
+
+Getting focused monitor on wayland doesn't work when vrr is enabled. This is because it uses software cursor instead (at least on kde plasma wayland).
+    Right now it falls back to create window & getting window position trick if there is no cursor visible (or a software cursor) and one monitor has vrr enabled.
+        Remove this when linux & wayland supports vrr with hardware cursor plane.
+    Find out another way to get cursor position on wayland.

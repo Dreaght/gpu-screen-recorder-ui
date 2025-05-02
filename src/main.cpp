@@ -159,6 +159,21 @@ static bool is_flatpak() {
     return getenv("FLATPAK_ID") != nullptr;
 }
 
+static void set_display_server_environment_variables() {
+    // Some users dont have properly setup environments (no display manager that does systemctl --user import-environment DISPLAY WAYLAND_DISPLAY)
+    const char *display = getenv("DISPLAY");
+    if(!display) {
+        display = ":0";
+        setenv("DISPLAY", display, true);
+    }
+
+    const char *wayland_display = getenv("WAYLAND_DISPLAY");
+    if(!wayland_display) {
+        wayland_display = "wayland-1";
+        setenv("WAYLAND_DISPLAY", wayland_display, true);
+    }
+}
+
 static void usage() {
     printf("usage: gsr-ui [action]\n");
     printf("OPTIONS:\n");
@@ -203,18 +218,7 @@ int main(int argc, char **argv) {
         usage();
     }
 
-    // Some users dont have properly setup environments (no display manager that does systemctl --user import-environment DISPLAY WAYLAND_DISPLAY)
-    const char *display = getenv("DISPLAY");
-    if(!display) {
-        display = ":0";
-        setenv("DISPLAY", display, true);
-    }
-
-    const char *wayland_display = getenv("WAYLAND_DISPLAY");
-    if(!wayland_display) {
-        wayland_display = "wayland-1";
-        setenv("WAYLAND_DISPLAY", wayland_display, true);
-    }
+    set_display_server_environment_variables();
 
     // TODO: This is a shitty method to detect if multiple instances of gsr-ui is running but this will work properly even in flatpak
     // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.

@@ -27,19 +27,20 @@ namespace gsr {
     typedef struct {
         uint64_t crtc_id;
         mgl::vec2i size;
+        bool vrr_enabled;
     } drm_connector;
 
     typedef struct {
         drm_connector connectors[MAX_CONNECTORS];
         int num_connectors;
+        bool has_any_crtc_with_vrr_enabled;
     } drm_connectors;
 
     /* Returns plane_property_mask */
-    static uint32_t plane_get_properties(int drm_fd, uint32_t plane_id, int *crtc_x, int *crtc_y, int *crtc_id, bool *is_cursor) {
+    static uint32_t plane_get_properties(int drm_fd, uint32_t plane_id, int *crtc_x, int *crtc_y, int *crtc_id) {
         *crtc_x = 0;
         *crtc_y = 0;
         *crtc_id = 0;
-        *is_cursor = false;
 
         uint32_t property_mask = 0;
 
@@ -80,8 +81,8 @@ namespace gsr {
         return property_mask;
     }
 
-    static bool connector_get_property_by_name(int drm_fd, drmModeConnectorPtr props, const char *name, uint64_t *result) {
-        for(int i = 0; i < props->count_props; ++i) {
+    static bool get_drm_property_by_name(int drm_fd, drmModeObjectPropertiesPtr props, const char *name, uint64_t *result) {
+        for(uint32_t i = 0; i < props->count_props; ++i) {
             drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
             if(!prop)
                 continue;
@@ -94,6 +95,14 @@ namespace gsr {
             drmModeFreeProperty(prop);
         }
         return false;
+    }
+
+    static bool connector_get_property_by_name(int drm_fd, drmModeConnectorPtr props, const char *name, uint64_t *result) {
+        drmModeObjectProperties properties;
+        properties.count_props = (uint32_t)props->count_props;
+        properties.props = props->props;
+        properties.prop_values = props->prop_values;
+        return get_drm_property_by_name(drm_fd, &properties, name, result);
     }
 
     static drm_connector_type_count* drm_connector_types_get_index(drm_connector_type_count *type_counts, int *num_type_counts, int connector_type) {
@@ -325,7 +334,7 @@ namespace gsr {
     };
 
     /* Returns nullptr if not found */
-    static const drm_connector* get_drm_connector_by_crtc_id(const drm_connectors *connectors, uint32_t crtc_id) {
+    static drm_connector* get_drm_connector_by_crtc_id(drm_connectors *connectors, uint32_t crtc_id) {
         for(int i = 0; i < connectors->num_connectors; ++i) {
             if(connectors->connectors[i].crtc_id == crtc_id)
                 return &connectors->connectors[i];
@@ -335,6 +344,8 @@ namespace gsr {
 
     static void get_drm_connectors(int drm_fd, drm_connectors *drm_connectors) {
         drm_connectors->num_connectors = 0;
+        drm_connectors->has_any_crtc_with_vrr_enabled = false;
+
         drmModeResPtr resources = drmModeGetResources(drm_fd);
         if(!resources)
             return;
@@ -350,23 +361,59 @@ namespace gsr {
             uint64_t crtc_id = 0;
             connector_get_property_by_name(drm_fd, connector, "CRTC_ID", &crtc_id);
             if(crtc_id == 0)
-                goto next;
+                goto next_connector;
 
             crtc = drmModeGetCrtc(drm_fd, crtc_id);
             if(!crtc)
-                goto next;
+                goto next_connector;
 
             drm_connectors->connectors[drm_connectors->num_connectors].crtc_id = crtc_id;
             drm_connectors->connectors[drm_connectors->num_connectors].size = mgl::vec2i{(int)crtc->width, (int)crtc->height};
+            drm_connectors->connectors[drm_connectors->num_connectors].vrr_enabled = false;
             ++drm_connectors->num_connectors;
 
-            next:
+            next_connector:
             if(crtc)
                 drmModeFreeCrtc(crtc);
 
             if(connector)
                 drmModeFreeConnector(connector);
         }
+
+        for(int i = 0; i < resources->count_crtcs; ++i) {
+            drmModeCrtcPtr crtc = nullptr;
+            drmModeObjectPropertiesPtr properties = nullptr;
+            uint64_t vrr_enabled = 0;
+            drm_connector *connector = nullptr;
+
+            crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
+            if(!crtc)
+                continue;
+
+            properties = drmModeObjectGetProperties(drm_fd, crtc->crtc_id, DRM_MODE_OBJECT_CRTC);
+            if(!properties)
+                goto next_crtc;
+
+            if(!get_drm_property_by_name(drm_fd, properties, "VRR_ENABLED", &vrr_enabled))
+                goto next_crtc;
+
+            connector = get_drm_connector_by_crtc_id(drm_connectors, crtc->crtc_id);
+            if(!connector)
+                goto next_crtc;
+
+            if(vrr_enabled) {
+                connector->vrr_enabled = true;
+                drm_connectors->has_any_crtc_with_vrr_enabled = true;
+            }
+
+            next_crtc:
+            if(properties)
+                drmModeFreeObjectProperties(properties);
+
+            if(crtc)
+                drmModeFreeCrtc(crtc);
+        }
+
         drmModeFreeResources(resources);
     }
 
@@ -392,19 +439,20 @@ namespace gsr {
 
         drm_connectors connectors;
         connectors.num_connectors = 0;
+        connectors.has_any_crtc_with_vrr_enabled = false;
         get_drm_connectors(drm_fd, &connectors);
 
         drmModePlaneResPtr planes = drmModeGetPlaneResources(drm_fd);
         if(!planes)
             return;
 
+        bool found_cursor = false;
         for(uint32_t i = 0; i < planes->count_planes; ++i) {
             drmModePlanePtr plane = nullptr;
             const drm_connector *connector = nullptr;
             int crtc_x = 0;
             int crtc_y = 0;
             int crtc_id = 0;
-            bool is_cursor = false;
             uint32_t property_mask = 0;
 
             plane = drmModeGetPlane(drm_fd, planes->planes[i]);
@@ -414,7 +462,7 @@ namespace gsr {
             if(!plane->fb_id)
                 goto next;
 
-            property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_id, &is_cursor);
+            property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_id);
             if(property_mask != plane_property_all || crtc_id <= 0)
                 goto next;
 
@@ -426,6 +474,7 @@ namespace gsr {
                 latest_cursor_position.x = crtc_x;
                 latest_cursor_position.y = crtc_y;
                 latest_crtc_id = crtc_id;
+                found_cursor = true;
                 drmModeFreePlane(plane);
                 break;
             }
@@ -433,6 +482,11 @@ namespace gsr {
             next:
             drmModeFreePlane(plane);
         }
+
+        // On kde plasma wayland (and possibly other wayland compositors) it uses a software cursor only for the monitors with vrr enabled.
+        // In that case we cant know the cursor location and we instead want to fallback to getting focused monitor by using the hack of creating a window and getting the position.
+        if(!found_cursor && latest_crtc_id > 0 && connectors.has_any_crtc_with_vrr_enabled)
+            latest_crtc_id = -1;
 
         drmModeFreePlaneResources(planes);
     }

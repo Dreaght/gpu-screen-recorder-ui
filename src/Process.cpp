@@ -130,8 +130,6 @@ namespace gsr {
                 exit_status = -1;
                 break;
             }
-
-            buffer[bytes_read] = '\0';
             result.append(buffer, bytes_read);
         }
 
