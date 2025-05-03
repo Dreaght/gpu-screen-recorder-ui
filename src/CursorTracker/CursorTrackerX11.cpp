@@ -1,5 +1,5 @@
-#include "../include/CursorTrackerX11.hpp"
-#include "../include/WindowUtils.hpp"
+#include "../../include/CursorTracker/CursorTrackerX11.hpp"
+#include "../../include/WindowUtils.hpp"
 
 namespace gsr {
     CursorTrackerX11::CursorTrackerX11(Display *dpy) : dpy(dpy) {

@@ -1,7 +1,7 @@
 #include "../include/Config.hpp"
 #include "../include/Utils.hpp"
 #include "../include/GsrInfo.hpp"
-#include "../include/GlobalHotkeys.hpp"
+#include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
 #include <variant>
 #include <limits.h>
 #include <inttypes.h>

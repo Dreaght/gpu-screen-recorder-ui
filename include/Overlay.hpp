@@ -6,10 +6,10 @@
 #include "Config.hpp"
 #include "window_texture.h"
 #include "WindowUtils.hpp"
-#include "GlobalHotkeysJoystick.hpp"
+#include "GlobalHotkeys/GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
 #include "RegionSelector.hpp"
-#include "CursorTracker.hpp"
+#include "CursorTracker/CursorTracker.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>

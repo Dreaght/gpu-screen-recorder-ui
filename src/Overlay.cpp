@@ -12,10 +12,10 @@
 #include "../include/gui/Utils.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
-#include "../include/GlobalHotkeys.hpp"
-#include "../include/GlobalHotkeysLinux.hpp"
-#include "../include/CursorTrackerX11.hpp"
-#include "../include/CursorTrackerWayland.hpp"
+#include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
+#include "../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
+#include "../include/CursorTracker/CursorTrackerX11.hpp"
+#include "../include/CursorTracker/CursorTrackerWayland.hpp"
 
 #include <string.h>
 #include <assert.h>
@@ -207,24 +207,21 @@ namespace gsr {
         return false;
     }*/
 
-    // Returns the first monitor if not found. Assumes there is at least one monitor connected.
     static const Monitor* find_monitor_at_position(const std::vector<Monitor> &monitors, mgl::vec2i pos) {
         assert(!monitors.empty());
         for(const Monitor &monitor : monitors) {
             if(mgl::IntRect(monitor.position, monitor.size).contains(pos))
                 return &monitor;
         }
-        return &monitors.front();
+        return nullptr;
     }
 
-    // Returns the first monitor if not found. Assumes there is at least one monitor connected.
     static const Monitor* find_monitor_by_name(const std::vector<Monitor> &monitors, const std::string &name) {
-        assert(!monitors.empty());
         for(const Monitor &monitor : monitors) {
             if(monitor.name == name)
                 return &monitor;
         }
-        return &monitors.front();
+        return nullptr;
     }
 
     static std::string get_power_supply_online_filepath() {
@@ -894,10 +891,14 @@ namespace gsr {
         const Monitor *focused_monitor = nullptr;
         if(cursor_info) {
             focused_monitor = find_monitor_by_name(monitors, cursor_info->monitor_name);
+            if(!focused_monitor)
+                focused_monitor = &monitors.front();
             cursor_position = cursor_info->position;
         } else {
             const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
             focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
+            if(!focused_monitor)
+                focused_monitor = &monitors.front();
         }
 
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.

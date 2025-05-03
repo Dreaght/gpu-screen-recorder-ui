@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GlobalHotkeys.hpp"
-#include "Hotplug.hpp"
+#include "../Hotplug.hpp"
 #include <unordered_map>
 #include <thread>
 #include <poll.h>

@@ -1,7 +1,6 @@
 #include "../../include/gui/GlobalSettingsPage.hpp"
 
 #include "../../include/Overlay.hpp"
-#include "../../include/GlobalHotkeys.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/Process.hpp"
 #include "../../include/gui/GsrPage.hpp"

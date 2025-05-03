@@ -1,4 +1,4 @@
-#include "../include/GlobalHotkeysJoystick.hpp"
+#include "../../include/GlobalHotkeys/GlobalHotkeysJoystick.hpp"
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>

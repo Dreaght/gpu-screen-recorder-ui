@@ -1,4 +1,4 @@
-#include "../include/CursorTrackerWayland.hpp"
+#include "../../include/CursorTracker/CursorTrackerWayland.hpp"
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>

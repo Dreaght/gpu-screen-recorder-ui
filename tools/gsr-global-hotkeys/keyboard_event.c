@@ -404,8 +404,10 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
     if(index < 0 || index >= self->num_event_polls)
         return;
 
-    ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
-    close(self->event_polls[index].fd);
+    if(self->event_polls[index].fd > 0) {
+        ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
+        close(self->event_polls[index].fd);
+    }
     free(self->event_extra_data[index].key_states);
     free(self->event_extra_data[index].key_presses_grabbed);
 
@@ -435,7 +437,7 @@ static int setup_virtual_keyboard_input(const char *name) {
     success &= (ioctl(fd, UI_SET_EVBIT, EV_KEY) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_REP) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_REL) != -1);
-    success &= (ioctl(fd, UI_SET_EVBIT, EV_LED) != -1);
+    //success &= (ioctl(fd, UI_SET_EVBIT, EV_LED) != -1);
 
     success &= (ioctl(fd, UI_SET_MSCBIT, MSC_SCAN) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
@@ -445,9 +447,9 @@ static int setup_virtual_keyboard_input(const char *name) {
     for(int i = 0; i < REL_MAX; ++i) {
         success &= (ioctl(fd, UI_SET_RELBIT, i) != -1);
     }
-    for(int i = 0; i < LED_MAX; ++i) {
-        success &= (ioctl(fd, UI_SET_LEDBIT, i) != -1);
-    }
+    // for(int i = 0; i < LED_MAX; ++i) {
+    //     success &= (ioctl(fd, UI_SET_LEDBIT, i) != -1);
+    // }
 
     // success &= (ioctl(fd, UI_SET_EVBIT, EV_ABS) != -1);
     // success &= (ioctl(fd, UI_SET_ABSBIT, ABS_X) != -1);
@@ -566,8 +568,10 @@ void keyboard_event_deinit(keyboard_event *self) {
     }
 
     for(int i = 0; i < self->num_event_polls; ++i) {
-        ioctl(self->event_polls[i].fd, EVIOCGRAB, 0);
-        close(self->event_polls[i].fd);
+        if(self->event_polls[i].fd > 0) {
+            ioctl(self->event_polls[i].fd, EVIOCGRAB, 0);
+            close(self->event_polls[i].fd);
+        }
         free(self->event_extra_data[i].key_states);
         free(self->event_extra_data[i].key_presses_grabbed);
     }

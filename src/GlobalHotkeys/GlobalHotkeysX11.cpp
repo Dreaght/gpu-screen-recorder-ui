@@ -1,4 +1,4 @@
-#include "../include/GlobalHotkeysX11.hpp"
+#include "../../include/GlobalHotkeys/GlobalHotkeysX11.hpp"
 #include <X11/keysym.h>
 #include <mglpp/window/Event.hpp>
 #include <assert.h>

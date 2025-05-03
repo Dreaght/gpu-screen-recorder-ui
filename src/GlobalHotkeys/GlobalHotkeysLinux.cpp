@@ -1,4 +1,4 @@
-#include "../include/GlobalHotkeysLinux.hpp"
+#include "../../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <limits.h>
