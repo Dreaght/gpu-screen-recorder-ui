@@ -117,6 +117,7 @@ namespace gsr {
         std::string save_directory;
         std::string container = "mp4";
         int32_t replay_time = 60;
+        std::string replay_storage = "ram";
         ConfigHotkey start_stop_hotkey;
         ConfigHotkey save_hotkey;
         ConfigHotkey save_1_min_hotkey;

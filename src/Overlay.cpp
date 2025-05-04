@@ -934,8 +934,11 @@ namespace gsr {
         // when a compositor isn't running.
         window_create_params.graphics_api = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? MGL_GRAPHICS_API_GLX : MGL_GRAPHICS_API_EGL;
 
-        if(!window->create("gsr ui", window_create_params))
+        if(!window->create("gsr ui", window_create_params)) {
             fprintf(stderr, "error: failed to create window\n");
+            window.reset();
+            return;
+        }
 
         //window->set_low_latency(true);
 
@@ -2306,6 +2309,11 @@ namespace gsr {
         if(config.replay_config.restart_replay_on_save && gsr_info.system_info.gsr_version >= GsrVersion{5, 0, 3}) {
             args.push_back("-restart-replay-on-save");
             args.push_back("yes");
+        }
+
+        if(gsr_info.system_info.gsr_version >= GsrVersion{5, 5, 0}) {
+            args.push_back("-replay-storage");
+            args.push_back(config.replay_config.replay_storage.c_str());
         }
 
         char region_str[128];

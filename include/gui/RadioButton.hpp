@@ -23,7 +23,8 @@ namespace gsr {
 
         void add_item(const std::string &text, const std::string &id);
         void set_selected_item(const std::string &id, bool trigger_event = true, bool trigger_event_even_if_selection_not_changed = true);
-        const std::string get_selected_id() const;
+        const std::string& get_selected_id() const;
+        const std::string& get_selected_text() const;
 
         mgl::vec2f get_size() override;
 

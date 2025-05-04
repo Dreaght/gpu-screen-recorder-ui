@@ -169,12 +169,21 @@ namespace gsr {
         }
     }
 
-    const std::string RadioButton::get_selected_id() const {
+    const std::string& RadioButton::get_selected_id() const {
         if(items.empty()) {
             static std::string dummy;
             return dummy;
         } else {
             return items[selected_item].id;
+        }
+    }
+
+    const std::string& RadioButton::get_selected_text() const {
+        if(items.empty()) {
+            static std::string dummy;
+            return dummy;
+        } else {
+            return items[selected_item].text.get_string();
         }
     }
 }

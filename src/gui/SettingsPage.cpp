@@ -715,7 +715,7 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
         auto replay_time_entry = std::make_unique<Entry>(&get_theme().body_font, "60", get_theme().body_font.get_character_size() * 3);
-        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(1, 10800);
+        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(2, 86400);
         replay_time_entry_ptr = replay_time_entry.get();
         list->add_widget(std::move(replay_time_entry));
 
@@ -731,6 +731,24 @@ namespace gsr {
         replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Replay duration in seconds:", get_color_theme().text_color));
         replay_time_list->add_widget(create_replay_time_entry());
         return replay_time_list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_replay_storage() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Where should temporary replay data be stored?", get_color_theme().text_color));
+        auto replay_storage_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        replay_storage_button_ptr = replay_storage_button.get();
+        replay_storage_button->add_item("RAM", "ram");
+        replay_storage_button->add_item("Disk (not recommended on SSDs)", "disk");
+
+        replay_storage_button->on_selection_changed = [this](const std::string&, const std::string &id) {
+            update_estimated_replay_file_size(id);
+            return true;
+        };
+
+        list->add_widget(std::move(replay_storage_button));
+        list->set_visible(gsr_info->system_info.gsr_version >= GsrVersion{5, 5, 0});
+        return list;
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
@@ -766,13 +784,13 @@ namespace gsr {
         return label;
     }
 
-    void SettingsPage::update_estimated_replay_file_size() {
+    void SettingsPage::update_estimated_replay_file_size(const std::string &replay_storage_type) {
         const int64_t replay_time_seconds = atoi(replay_time_entry_ptr->get_text().c_str());
         const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
         const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
         char buffer[256];
-        snprintf(buffer, sizeof(buffer), "Estimated video max file size in RAM: %.2fMB.\nChange video bitrate or replay duration to change file size.", video_filesize_mb);
+        snprintf(buffer, sizeof(buffer), "Estimated video max file size %s: %.2fMB.\nChange video bitrate or replay duration to change file size.", replay_storage_type == "ram" ? "in RAM" : "on disk", video_filesize_mb);
         estimated_file_size_ptr->set_text(buffer);
     }
 
@@ -811,11 +829,13 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_start_replay_automatically());
+        general_list->add_widget(create_replay_storage());
         general_list->add_widget(create_save_replay_in_game_folder());
         if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 3})
             general_list->add_widget(create_restart_replay_on_save());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("Autostart", create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
 
@@ -845,12 +865,12 @@ namespace gsr {
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
 
         replay_time_entry_ptr->on_changed = [this](const std::string&) {
-            update_estimated_replay_file_size();
+            update_estimated_replay_file_size(replay_storage_button_ptr->get_selected_id());
             update_replay_time_text();
         };
 
         video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
-            update_estimated_replay_file_size();
+            update_estimated_replay_file_size(replay_storage_button_ptr->get_selected_id());
         };
     }
 
@@ -1173,6 +1193,7 @@ namespace gsr {
 
     void SettingsPage::load_replay() {
         load_common(config.replay_config.record_options);
+        replay_storage_button_ptr->set_selected_item(config.replay_config.replay_storage);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
         if(restart_replay_on_save)
@@ -1185,8 +1206,8 @@ namespace gsr {
 
         if(config.replay_config.replay_time < 2)
             config.replay_config.replay_time = 2;
-        if(config.replay_config.replay_time > 10800)
-            config.replay_config.replay_time = 10800;
+        if(config.replay_config.replay_time > 86400)
+            config.replay_config.replay_time = 86400;
         replay_time_entry_ptr->set_text(std::to_string(config.replay_config.replay_time));
     }
 
@@ -1322,6 +1343,7 @@ namespace gsr {
         config.replay_config.save_directory = save_directory_button_ptr->get_text();
         config.replay_config.container = container_box_ptr->get_selected_id();
         config.replay_config.replay_time = atoi(replay_time_entry_ptr->get_text().c_str());
+        config.replay_config.replay_storage = replay_storage_button_ptr->get_selected_id();
 
         if(config.replay_config.replay_time < 5) {
             config.replay_config.replay_time = 5;

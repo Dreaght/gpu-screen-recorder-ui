@@ -164,9 +164,15 @@ Keyboard layout is incorrect on wayland when using kde plasma keyboard settings 
     Need to use "setxkbmap fr" as well.
     This happens only when grabbing keyboard (gsr-global-hotkeys). Same thing is seen with xev.
 
-Allow to configure replay by disk space as well. When changing bitrate change an editable field that says the disk space, and when changing that disk space field then change the bitrate or duration.
-
 Getting focused monitor on wayland doesn't work when vrr is enabled. This is because it uses software cursor instead (at least on kde plasma wayland).
     Right now it falls back to create window & getting window position trick if there is no cursor visible (or a software cursor) and one monitor has vrr enabled.
         Remove this when linux & wayland supports vrr with hardware cursor plane.
     Find out another way to get cursor position on wayland.
+    This was fixed in linux 6.11 and in kde plasma in this commit: https://invent.kde.org/plasma/kwin/-/merge_requests/7582/diffs.
+
+Add option to start recording/replay/stream after the notification has disappeared. Show "Starting recording on this monitor in 3 seconds".
+    See if we can use hardware overlay plane instead somehow.
+
+When using wayland for mgl try using wlr-layer-shell and set layer to overlay and keyboard interactivity to exclusive. Do something similar for notifications.
+
+When starting gsr-ui remove any temporary replay disk data that has possibly remained from a crash, by looking for all folders that starts with gsr-replay and end with .gsr, in the replay directory.

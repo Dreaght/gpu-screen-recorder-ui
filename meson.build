@@ -1,4 +1,4 @@
-project('gsr-ui', ['c', 'cpp'], version : '1.5.1', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-ui', ['c', 'cpp'], version : '1.6.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 if get_option('buildtype') == 'debug'
     add_project_arguments('-g3', language : ['c', 'cpp'])
@@ -32,6 +32,11 @@ src = [
     'src/gui/GlobalSettingsPage.cpp',
     'src/gui/GsrPage.cpp',
     'src/gui/Subsection.cpp',
+    'src/GlobalHotkeys/GlobalHotkeysX11.cpp',
+    'src/GlobalHotkeys/GlobalHotkeysLinux.cpp',
+    'src/GlobalHotkeys/GlobalHotkeysJoystick.cpp',
+    'src/CursorTracker/CursorTrackerX11.cpp',
+    'src/CursorTracker/CursorTrackerWayland.cpp',
     'src/Utils.cpp',
     'src/WindowUtils.cpp',
     'src/RegionSelector.cpp',
@@ -39,11 +44,6 @@ src = [
     'src/GsrInfo.cpp',
     'src/Process.cpp',
     'src/Overlay.cpp',
-    'src/GlobalHotkeys/GlobalHotkeysX11.cpp',
-    'src/GlobalHotkeys/GlobalHotkeysLinux.cpp',
-    'src/GlobalHotkeys/GlobalHotkeysJoystick.cpp',
-    'src/CursorTracker/CursorTrackerX11.cpp',
-    'src/CursorTracker/CursorTrackerWayland.cpp',
     'src/AudioPlayer.cpp',
     'src/Hotplug.cpp',
     'src/Rpc.cpp',

@@ -264,6 +264,7 @@ namespace gsr {
             {"replay.save_directory", &config.replay_config.save_directory},
             {"replay.container", &config.replay_config.container},
             {"replay.time", &config.replay_config.replay_time},
+            {"replay.replay_storage", &config.replay_config.replay_storage},
             {"replay.start_stop_hotkey", &config.replay_config.start_stop_hotkey},
             {"replay.save_hotkey", &config.replay_config.save_hotkey},
             {"replay.save_1_min_hotkey", &config.replay_config.save_1_min_hotkey},
