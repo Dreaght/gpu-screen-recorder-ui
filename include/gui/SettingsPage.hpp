@@ -20,6 +20,11 @@ namespace gsr {
     class LineSeparator;
     class Subsection;
 
+    enum class AudioDeviceType {
+        OUTPUT,
+        INPUT
+    };
+
     class SettingsPage : public StaticPage {
     public:
         enum class Type {
@@ -54,11 +59,12 @@ namespace gsr {
         std::unique_ptr<List> create_restore_portal_session_section();
         std::unique_ptr<Widget> create_change_video_resolution_section();
         std::unique_ptr<Widget> create_capture_target_section();
-        std::unique_ptr<ComboBox> create_audio_device_selection_combobox();
+        std::unique_ptr<ComboBox> create_audio_device_selection_combobox(AudioDeviceType device_type);
         std::unique_ptr<Button> create_remove_audio_device_button(List *audio_input_list_ptr, List *audio_device_list_ptr);
-        std::unique_ptr<List> create_audio_device(List *audio_input_list_ptr);
+        std::unique_ptr<List> create_audio_device(AudioDeviceType device_type, List *audio_input_list_ptr);
         std::unique_ptr<Button> create_add_audio_track_button();
-        std::unique_ptr<Button> create_add_audio_device_button(List *audio_input_list_ptr);
+        std::unique_ptr<Button> create_add_audio_output_device_button(List *audio_input_list_ptr);
+        std::unique_ptr<Button> create_add_audio_input_device_button(List *audio_input_list_ptr);
         std::unique_ptr<ComboBox> create_application_audio_selection_combobox(List *application_audio_row);
         std::unique_ptr<List> create_application_audio(List *audio_input_list_ptr);
         std::unique_ptr<List> create_custom_application_audio(List *audio_input_list_ptr);
