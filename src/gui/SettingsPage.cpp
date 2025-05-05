@@ -759,7 +759,7 @@ namespace gsr {
         auto replay_storage_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
         replay_storage_button_ptr = replay_storage_button.get();
         replay_storage_button->add_item("RAM", "ram");
-        replay_storage_button->add_item("Disk (not recommended on SSDs)", "disk");
+        replay_storage_button->add_item("Disk (Not recommended on SSDs)", "disk");
 
         replay_storage_button->on_selection_changed = [this](const std::string&, const std::string &id) {
             update_estimated_replay_file_size(id);

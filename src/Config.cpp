@@ -123,12 +123,12 @@ namespace gsr {
 
         record_config.save_directory = default_videos_save_directory;
         record_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
-        record_config.record_options.video_bitrate = 45000;
+        record_config.record_options.video_bitrate = 40000;
 
         replay_config.record_options.video_quality = "custom";
         replay_config.save_directory = default_videos_save_directory;
         replay_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
-        replay_config.record_options.video_bitrate = 45000;
+        replay_config.record_options.video_bitrate = 40000;
 
         screenshot_config.save_directory = default_pictures_save_directory;
 
