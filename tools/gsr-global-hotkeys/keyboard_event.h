@@ -39,6 +39,8 @@ typedef enum {
 typedef struct {
     int dev_input_id;
     bool grabbed;
+    bool is_non_keyboard_device;
+    bool is_possibly_non_keyboard_device;
     unsigned char *key_states;
     unsigned char *key_presses_grabbed;
     int num_keys_pressed;

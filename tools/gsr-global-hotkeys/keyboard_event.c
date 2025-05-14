@@ -69,7 +69,7 @@ static void keyboard_event_fetch_update_key_states(keyboard_event *self, event_e
     if(ioctl(fd, EVIOCGKEY(KEY_STATES_SIZE), extra_data->key_states) == -1)
         fprintf(stderr, "Warning: failed to fetch key states for device: /dev/input/event%d\n", extra_data->dev_input_id);
 
-    if(!keyboard_event_has_exclusive_grab(self) || extra_data->grabbed)
+    if(!keyboard_event_has_exclusive_grab(self) || extra_data->grabbed || extra_data->is_non_keyboard_device)
         return;
 
     extra_data->num_keys_pressed = keyboard_event_get_num_keys_pressed(extra_data->key_states);
@@ -106,7 +106,7 @@ static void keyboard_event_process_key_state_change(keyboard_event *self, const 
 
     extra_data->key_states[byte_index] = key_byte_state;
 
-    if(!keyboard_event_has_exclusive_grab(self) || extra_data->grabbed)
+    if(!keyboard_event_has_exclusive_grab(self) || extra_data->grabbed || extra_data->is_non_keyboard_device)
         return;
 
     if(extra_data->num_keys_pressed == 0) {
@@ -193,7 +193,8 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         //fprintf(stderr, "fd: %d, type: %d, pressed %d, value: %d\n", fd, event.type, event.code, event.value);
     //}
 
-    if(event.type == EV_KEY && is_keyboard_key(event.code)) {
+    const bool keyboard_key = is_keyboard_key(event.code);
+    if(event.type == EV_KEY && keyboard_key) {
         keyboard_event_process_key_state_change(self, &event, extra_data, fd);
         const uint32_t modifier_bit = keycode_to_modifier_bit(event.code);
         if(modifier_bit == 0) {
@@ -213,6 +214,20 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         /* TODO: What to do on error? */
         if(write(self->uinput_fd, &event, sizeof(event)) != sizeof(event))
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
+    }
+
+    if(!extra_data->is_possibly_non_keyboard_device)
+        return;
+
+    /* TODO: What if some key is being pressed down while this is done? will it remain pressed down? */
+    if(!extra_data->is_non_keyboard_device && (event.type == EV_REL || (event.type == EV_KEY && !keyboard_key))) {
+        fprintf(stderr, "Info: device /dev/input/event%d is likely a non-keyboard device as it received a non-keyboard event. This device will be ignored\n", extra_data->dev_input_id);
+        extra_data->is_non_keyboard_device = true;
+        if(extra_data->grabbed) {
+            extra_data->grabbed = false;
+            ioctl(fd, EVIOCGRAB, 0);
+            fprintf(stderr, "Info: ungrabbed device: /dev/input/event%d\n", extra_data->dev_input_id);
+        }
     }
 }
 
@@ -292,6 +307,46 @@ static bool dev_input_is_virtual(int dev_input_id) {
     return is_virtual;
 }
 
+static inline bool supports_key(unsigned char *key_bits, unsigned int key) {
+    return key_bits[key/8] & (1 << (key % 8));
+}
+
+static bool supports_keyboard_keys(unsigned char *key_bits) {
+    const int keys[2] = { KEY_A, KEY_ESC };
+    for(int i = 0; i < 2; ++i) {
+        if(supports_key(key_bits, keys[i]))
+            return true;
+    }
+    return false;
+}
+
+static bool supports_mouse_keys(unsigned char *key_bits) {
+    const int keys[2] = { BTN_MOUSE, BTN_LEFT };
+    for(int i = 0; i < 2; ++i) {
+        if(supports_key(key_bits, keys[i]))
+            return true;
+    }
+    return false;
+}
+
+static bool supports_joystick_keys(unsigned char *key_bits) {
+    const int keys[9] = { BTN_JOYSTICK, BTN_A, BTN_B, BTN_X, BTN_Y, BTN_SELECT, BTN_START, BTN_SELECT, BTN_TRIGGER_HAPPY1 };
+    for(int i = 0; i < 9; ++i) {
+        if(supports_key(key_bits, keys[i]))
+            return true;
+    }
+    return false;
+}
+
+static bool supports_wheel_keys(unsigned char *key_bits) {
+    const int keys[2] = { BTN_WHEEL, BTN_GEAR_DOWN };
+    for(int i = 0; i < 2; ++i) {
+        if(supports_key(key_bits, keys[i]))
+            return true;
+    }
+    return false;
+}
+
 static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, const char *dev_input_filepath) {
     const int dev_input_id = get_dev_input_id_from_filepath(dev_input_filepath);
     if(dev_input_id == -1)
@@ -320,15 +375,11 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
-        const bool supports_key_a           = key_bits[KEY_A/8]        & (1 << (KEY_A % 8));
-        const bool supports_key_esc         = key_bits[KEY_ESC/8]      & (1 << (KEY_ESC % 8));
-        const bool supports_key_volume_up   = key_bits[KEY_VOLUMEUP/8] & (1 << (KEY_VOLUMEUP % 8));
-        const bool supports_key_events = supports_key_a || supports_key_esc || supports_key_volume_up;
+        const bool supports_key_events      = supports_keyboard_keys(key_bits);
+        const bool supports_mouse_events    = supports_mouse_keys(key_bits);
+        const bool supports_joystick_events = supports_joystick_keys(key_bits);
+        const bool supports_wheel_events    = supports_wheel_keys(key_bits);
 
-        const bool supports_mouse_events    = key_bits[BTN_MOUSE/8]    & (1 << (BTN_MOUSE % 8));
-        //const bool supports_touch_events    = key_bits[BTN_TOUCH/8]    & (1 << (BTN_TOUCH % 8));
-        const bool supports_joystick_events = key_bits[BTN_JOYSTICK/8] & (1 << (BTN_JOYSTICK % 8));
-        const bool supports_wheel_events    = key_bits[BTN_WHEEL/8]    & (1 << (BTN_WHEEL % 8));
         if(supports_key_events && (is_virtual_device || (!supports_joystick_events && !supports_wheel_events))) {
             unsigned char *key_states = calloc(1, KEY_STATES_SIZE);
             unsigned char *key_presses_grabbed = calloc(1, KEY_STATES_SIZE);
@@ -349,6 +400,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
                 };
 
                 if(supports_mouse_events || supports_joystick_events || supports_wheel_events) {
+                    self->event_extra_data[self->num_event_polls].is_possibly_non_keyboard_device = true;
                     fprintf(stderr, "Info: device not grabbed yet because it might be a mouse: /dev/input/event%d\n", dev_input_id);
                     fsync(fd);
                     if(ioctl(fd, EVIOCGKEY(KEY_STATES_SIZE), self->event_extra_data[self->num_event_polls].key_states) == -1)
@@ -441,6 +493,7 @@ static int setup_virtual_keyboard_input(const char *name) {
 
     success &= (ioctl(fd, UI_SET_MSCBIT, MSC_SCAN) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
+        // TODO: Check for joystick button? if we accidentally grab joystick
         if(is_keyboard_key(i) || is_mouse_button(i))
             success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }

@@ -208,7 +208,6 @@ namespace gsr {
     }*/
 
     static const Monitor* find_monitor_at_position(const std::vector<Monitor> &monitors, mgl::vec2i pos) {
-        assert(!monitors.empty());
         for(const Monitor &monitor : monitors) {
             if(mgl::IntRect(monitor.position, monitor.size).contains(pos))
                 return &monitor;
