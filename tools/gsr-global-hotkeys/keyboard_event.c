@@ -220,7 +220,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         return;
 
     /* TODO: What if some key is being pressed down while this is done? will it remain pressed down? */
-    if(!extra_data->is_non_keyboard_device && (event.type == EV_REL || (event.type == EV_KEY && !keyboard_key))) {
+    if(!extra_data->is_non_keyboard_device && (event.type == EV_REL || event.type == EV_ABS || (event.type == EV_KEY && !keyboard_key))) {
         fprintf(stderr, "Info: device /dev/input/event%d is likely a non-keyboard device as it received a non-keyboard event. This device will be ignored\n", extra_data->dev_input_id);
         extra_data->is_non_keyboard_device = true;
         if(extra_data->grabbed) {

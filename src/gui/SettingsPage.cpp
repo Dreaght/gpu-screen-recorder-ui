@@ -735,7 +735,7 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
         auto replay_time_entry = std::make_unique<Entry>(&get_theme().body_font, "60", get_theme().body_font.get_character_size() * 3);
-        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(2, 86400);
+        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(1, 86400);
         replay_time_entry_ptr = replay_time_entry.get();
         list->add_widget(std::move(replay_time_entry));
 
