@@ -147,8 +147,6 @@ Add systray for recording status.
 
 Add a desktop icon when gsr-ui has a window mode option (which should be the default launch option).
 
-Use /dev/input/eventN (or /dev/hidrawN) instead of /dev/input/jsN for joystick input.
-
 Verify if cursor tracker monitor name is always correct. It uses the wayland monitor name for recording, but gpu screen recorder uses a custom name created from the drm connector name.
 
 Notification with the focused monitor (with CursorTrackerWayland) assumes that the x11 monitor name is the same as the drm monitor name. Same for find_monitor_by_name.
@@ -185,3 +183,9 @@ When gpu screen recorder ui can run as a regular window (and supports tray icon 
 Add a bug report page that automatically includes system info (make this clear to the user).
     Do this by sending the report to a custom server that stores that data.
     The server should limit reports per IP to prevent spam.
+
+Make it possible to change controller hotkeys. Also read from /dev/input/eventN instead of /dev/input/jsN. This is readable for controllers.
+
+Add option to copy screenshot to clipboard. Does it work properly on Wayland compositors? Maybe need to wait until the application becomes Wayland native instead of XWayland.
+
+Show message that replay/streaming has to be restarted if recording settings are changed while replay/streaming is ongoing.
