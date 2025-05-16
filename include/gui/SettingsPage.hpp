@@ -186,6 +186,7 @@ namespace gsr {
         CheckBox *save_recording_in_game_folder_ptr = nullptr;
         CheckBox *show_recording_started_notification_checkbox_ptr = nullptr;
         CheckBox *show_video_saved_notification_checkbox_ptr = nullptr;
+        CheckBox *show_video_paused_notification_checkbox_ptr = nullptr;
         CheckBox *show_streaming_started_notification_checkbox_ptr = nullptr;
         CheckBox *show_streaming_stopped_notification_checkbox_ptr = nullptr;
         Button *save_directory_button_ptr = nullptr;

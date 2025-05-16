@@ -100,6 +100,7 @@ namespace gsr {
         bool save_video_in_game_folder = false;
         bool show_recording_started_notifications = true;
         bool show_video_saved_notifications = true;
+        bool show_video_paused_notifications = true;
         std::string save_directory;
         std::string container = "mp4";
         ConfigHotkey start_stop_hotkey;

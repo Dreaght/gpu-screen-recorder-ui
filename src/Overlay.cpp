@@ -1382,10 +1382,12 @@ namespace gsr {
 
         if(paused) {
             update_ui_recording_unpaused();
-            show_notification("Recording has been unpaused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+            if(config.record_config.show_video_paused_notifications)
+                show_notification("Recording has been unpaused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         } else {
             update_ui_recording_paused();
-            show_notification("Recording has been paused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+            if(config.record_config.show_video_paused_notifications)
+                show_notification("Recording has been paused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
 
         kill(gpu_screen_recorder_process, SIGUSR2);
@@ -1684,7 +1686,7 @@ namespace gsr {
         replay_save_show_notification = false;
         if(config.replay_config.save_video_in_game_folder) {
             save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
-        } else {
+        } else if(config.replay_config.show_replay_saved_notifications) {
             char duration[32];
             if(replay_save_duration_min > 0)
                 snprintf(duration, sizeof(duration), " %d minute ", replay_save_duration_min);
@@ -1814,7 +1816,7 @@ namespace gsr {
         if(exit_code == 0) {
             if(config.screenshot_config.save_screenshot_in_game_folder) {
                 save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
-            } else {
+            } else if(config.screenshot_config.show_screenshot_saved_notifications) {
                 char msg[512];
                 if(is_capture_target_monitor(screenshot_capture_target.c_str()))
                     snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor");
@@ -1916,7 +1918,7 @@ namespace gsr {
         if(exit_code == 0) {
             if(config.record_config.save_video_in_game_folder) {
                 save_video_in_current_game_directory(video_filepath.c_str(), NotificationType::RECORD);
-            } else {
+            } else if(config.record_config.show_video_saved_notifications) {
                 char msg[512];
                 if(is_capture_target_monitor(recording_capture_target.c_str()))
                     snprintf(msg, sizeof(msg), "Saved a recording of this monitor");

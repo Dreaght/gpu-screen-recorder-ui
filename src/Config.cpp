@@ -229,6 +229,7 @@ namespace gsr {
             {"record.save_video_in_game_folder", &config.record_config.save_video_in_game_folder},
             {"record.show_recording_started_notifications", &config.record_config.show_recording_started_notifications},
             {"record.show_video_saved_notifications", &config.record_config.show_video_saved_notifications},
+            {"record.show_video_paused_notifications", &config.record_config.show_video_paused_notifications},
             {"record.save_directory", &config.record_config.save_directory},
             {"record.container", &config.record_config.container},
             {"record.start_stop_hotkey", &config.record_config.start_stop_hotkey},

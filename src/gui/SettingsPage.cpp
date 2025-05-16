@@ -940,6 +940,11 @@ namespace gsr {
         show_video_saved_notification_checkbox_ptr = show_video_saved_notification_checkbox.get();
         checkboxes_list->add_widget(std::move(show_video_saved_notification_checkbox));
 
+        auto show_video_paused_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show video paused/unpaused notification");
+        show_video_paused_notification_checkbox->set_checked(true);
+        show_video_paused_notification_checkbox_ptr = show_video_paused_notification_checkbox.get();
+        checkboxes_list->add_widget(std::move(show_video_paused_notification_checkbox));
+
         auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));        
         Subsection *notifications_subsection_ptr = notifications_subsection.get();
         settings_list_ptr->add_widget(std::move(notifications_subsection));
@@ -1239,6 +1244,7 @@ namespace gsr {
         save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
         show_recording_started_notification_checkbox_ptr->set_checked(config.record_config.show_recording_started_notifications);
         show_video_saved_notification_checkbox_ptr->set_checked(config.record_config.show_video_saved_notifications);
+        show_video_paused_notification_checkbox_ptr->set_checked(config.record_config.show_video_paused_notifications);
         save_directory_button_ptr->set_text(config.record_config.save_directory);
         container_box_ptr->set_selected_item(config.record_config.container);
     }
@@ -1379,6 +1385,7 @@ namespace gsr {
         config.record_config.save_video_in_game_folder = save_recording_in_game_folder_ptr->is_checked();
         config.record_config.show_recording_started_notifications = show_recording_started_notification_checkbox_ptr->is_checked();
         config.record_config.show_video_saved_notifications = show_video_saved_notification_checkbox_ptr->is_checked();
+        config.record_config.show_video_paused_notifications = show_video_paused_notification_checkbox_ptr->is_checked();
         config.record_config.save_directory = save_directory_button_ptr->get_text();
         config.record_config.container = container_box_ptr->get_selected_id();
     }
