@@ -69,7 +69,10 @@ namespace gsr {
         if(!theme->settings_texture.load_from_file((resources_path + "images/settings.png").c_str()))
             goto error;
 
-        if(!theme->settings_small_texture.load_from_file((resources_path + "images/settings_small.png").c_str()))
+        if(!theme->settings_small_texture.load_from_file((resources_path + "images/settings_small.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
+            goto error;
+
+        if(!theme->settings_extra_small_texture.load_from_file((resources_path + "images/settings_extra_small.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str()))

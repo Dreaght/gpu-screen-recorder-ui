@@ -189,3 +189,7 @@ Make it possible to change controller hotkeys. Also read from /dev/input/eventN 
 Add option to copy screenshot to clipboard. Does it work properly on Wayland compositors? Maybe need to wait until the application becomes Wayland native instead of XWayland.
 
 Show message that replay/streaming has to be restarted if recording settings are changed while replay/streaming is ongoing.
+
+Support vector graphics. Maybe support svg, rendering it to a texture for better performance.
+
+Support freetype for text rendering. Maybe load freetype as runtime (with dlopen) and use that when available and fallback to stb_freetype if not available.

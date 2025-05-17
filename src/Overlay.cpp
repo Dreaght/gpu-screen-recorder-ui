@@ -1090,7 +1090,7 @@ namespace gsr {
             button->set_item_icon("save", &get_theme().save_texture);
             button->set_item_icon("save_1_min", &get_theme().save_texture);
             button->set_item_icon("save_10_min", &get_theme().save_texture);
-            button->set_item_icon("settings", &get_theme().settings_small_texture);
+            button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack);
@@ -1124,7 +1124,7 @@ namespace gsr {
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("pause", &get_theme().pause_texture);
-            button->set_item_icon("settings", &get_theme().settings_small_texture);
+            button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack);
@@ -1149,7 +1149,7 @@ namespace gsr {
             button->add_item("Start", "start", config.streaming_config.start_stop_hotkey.to_string(false, false));
             button->add_item("Settings", "settings");
             button->set_item_icon("start", &get_theme().play_texture);
-            button->set_item_icon("settings", &get_theme().settings_small_texture);
+            button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
                     auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack);

@@ -28,6 +28,7 @@ namespace gsr {
         mgl::Texture combobox_arrow_texture;
         mgl::Texture settings_texture;
         mgl::Texture settings_small_texture;
+        mgl::Texture settings_extra_small_texture;
         mgl::Texture folder_texture;
         mgl::Texture up_arrow_texture;
         mgl::Texture replay_button_texture;
