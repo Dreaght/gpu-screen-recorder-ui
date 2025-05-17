@@ -1464,6 +1464,49 @@ namespace gsr {
         return strcmp(capture_target, "focused") != 0 && strcmp(capture_target, "region") != 0 && strcmp(capture_target, "portal") != 0 && contains_non_hex_number(capture_target);
     }
 
+    static std::string get_valid_monitor_x11(const std::string &target_monitor_name, const std::vector<Monitor> &monitors) {
+        std::string target_monitor_name_clean = target_monitor_name;
+        if(starts_with(target_monitor_name_clean, "HDMI-A"))
+            target_monitor_name_clean.replace(0, 6, "HDMI");
+
+        for(const Monitor &monitor : monitors) {
+            std::string monitor_name_clean = monitor.name;
+            if(starts_with(monitor_name_clean, "HDMI-A"))
+                monitor_name_clean.replace(0, 6, "HDMI");
+
+            if(target_monitor_name_clean == monitor_name_clean)
+                return monitor.name;
+        }
+
+        return "";
+    }
+
+    static std::string get_focused_monitor_by_cursor(CursorTracker *cursor_tracker, const GsrInfo &gsr_info, const std::vector<Monitor> &x11_monitors) {
+        std::optional<CursorInfo> cursor_info;
+        if(cursor_tracker) {
+            cursor_tracker->update();
+            cursor_info = cursor_tracker->get_latest_cursor_info();
+        }
+
+        std::string focused_monitor_name;
+        if(cursor_info) {
+            focused_monitor_name = std::move(cursor_info->monitor_name);
+        } else {
+            mgl_context *context = mgl_get_context();
+            Display *display = (Display*)context->connection;
+
+            Window x11_cursor_window = None;
+            mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
+
+            const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
+            const Monitor *focused_monitor = find_monitor_at_position(x11_monitors, monitor_position_query_value);
+            if(focused_monitor)
+                focused_monitor_name = focused_monitor->name;
+        }
+
+        return focused_monitor_name;
+    }
+
     void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target) {
         char timeout_seconds_str[32];
         snprintf(timeout_seconds_str, sizeof(timeout_seconds_str), "%f", timeout_seconds);
@@ -1482,20 +1525,24 @@ namespace gsr {
             notification_args[arg_index++] = notification_type_str;
         }
 
-        if(capture_target && is_capture_target_monitor(capture_target)) {
-            notification_args[arg_index++] = "--monitor";
-            notification_args[arg_index++] = capture_target;
-        } else {
-            std::optional<CursorInfo> cursor_info;
-            if(cursor_tracker) {
-                cursor_tracker->update();
-                cursor_info = cursor_tracker->get_latest_cursor_info();
-            }
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
 
-            if(cursor_info) {
-                notification_args[arg_index++] = "--monitor";
-                notification_args[arg_index++] = cursor_info->monitor_name.c_str();
-            }
+        std::string monitor_name;
+        const auto monitors = get_monitors(display);
+
+        if(capture_target && is_capture_target_monitor(capture_target))
+            monitor_name = capture_target;
+        else
+            monitor_name = get_focused_monitor_by_cursor(cursor_tracker.get(), gsr_info, monitors);
+
+        monitor_name = get_valid_monitor_x11(monitor_name, monitors);
+        if(!monitor_name.empty()) {
+            notification_args[arg_index++] = "--monitor";
+            notification_args[arg_index++] = monitor_name.c_str();
+        } else if(!monitors.empty()) {
+            notification_args[arg_index++] = "--monitor";
+            notification_args[arg_index++] = monitors.front().name.c_str();
         }
 
         notification_args[arg_index++] = nullptr;
@@ -2134,6 +2181,23 @@ namespace gsr {
         }
     }
 
+    static std::string get_valid_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
+        std::string capture_target_clean = capture_target;
+        if(starts_with(capture_target_clean, "HDMI-A"))
+            capture_target_clean.replace(0, 6, "HDMI");
+
+        for(const GsrMonitor &monitor : capture_options.monitors) {
+            std::string monitor_name_clean = monitor.name;
+            if(starts_with(monitor_name_clean, "HDMI-A"))
+                monitor_name_clean.replace(0, 6, "HDMI");
+
+            if(capture_target_clean == monitor_name_clean)
+                return monitor.name;
+        }
+
+        return "";
+    }
+
     std::string Overlay::get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
         if(capture_target == "focused_monitor") {
             std::optional<CursorInfo> cursor_info;
@@ -2148,17 +2212,10 @@ namespace gsr {
             } else {
                 mgl_context *context = mgl_get_context();
                 Display *display = (Display*)context->connection;
-
-                Window x11_cursor_window = None;
-                mgl::vec2i cursor_position = get_cursor_position(display, &x11_cursor_window);
-
-                const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
-                auto monitors = get_monitors(display);
-                const Monitor *focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
-                if(focused_monitor)
-                    focused_monitor_name = focused_monitor->name;
+                focused_monitor_name = get_focused_monitor_by_cursor(cursor_tracker.get(), gsr_info, get_monitors(display));
             }
 
+            focused_monitor_name = get_valid_capture_target(focused_monitor_name, capture_options);
             if(!focused_monitor_name.empty())
                 return focused_monitor_name;
             else if(!capture_options.monitors.empty())
