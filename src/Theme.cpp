@@ -63,7 +63,7 @@ namespace gsr {
         if(!theme->title_font_file.load((resources_path + "fonts/NotoSans-Bold.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
             goto error;
 
-        if(!theme->combobox_arrow_texture.load_from_file((resources_path + "images/combobox_arrow.png").c_str()))
+        if(!theme->combobox_arrow_texture.load_from_file((resources_path + "images/combobox_arrow.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->settings_texture.load_from_file((resources_path + "images/settings.png").c_str()))
@@ -75,22 +75,22 @@ namespace gsr {
         if(!theme->settings_extra_small_texture.load_from_file((resources_path + "images/settings_extra_small.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str()))
+        if(!theme->folder_texture.load_from_file((resources_path + "images/folder.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->up_arrow_texture.load_from_file((resources_path + "images/up_arrow.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->replay_button_texture.load_from_file((resources_path + "images/replay.png").c_str()))
+        if(!theme->replay_button_texture.load_from_file((resources_path + "images/replay.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->record_button_texture.load_from_file((resources_path + "images/record.png").c_str()))
+        if(!theme->record_button_texture.load_from_file((resources_path + "images/record.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->stream_button_texture.load_from_file((resources_path + "images/stream.png").c_str()))
+        if(!theme->stream_button_texture.load_from_file((resources_path + "images/stream.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->close_texture.load_from_file((resources_path + "images/cross.png").c_str()))
+        if(!theme->close_texture.load_from_file((resources_path + "images/cross.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->logo_texture.load_from_file((resources_path + "images/gpu_screen_recorder_logo.png").c_str()))
@@ -102,19 +102,19 @@ namespace gsr {
         if(!theme->checkbox_background_texture.load_from_file((resources_path + "images/checkbox_background.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->play_texture.load_from_file((resources_path + "images/play.png").c_str()))
+        if(!theme->play_texture.load_from_file((resources_path + "images/play.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->stop_texture.load_from_file((resources_path + "images/stop.png").c_str()))
+        if(!theme->stop_texture.load_from_file((resources_path + "images/stop.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->pause_texture.load_from_file((resources_path + "images/pause.png").c_str()))
+        if(!theme->pause_texture.load_from_file((resources_path + "images/pause.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->save_texture.load_from_file((resources_path + "images/save.png").c_str()))
+        if(!theme->save_texture.load_from_file((resources_path + "images/save.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
-        if(!theme->screenshot_texture.load_from_file((resources_path + "images/screenshot.png").c_str()))
+        if(!theme->screenshot_texture.load_from_file((resources_path + "images/screenshot.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
         if(!theme->trash_texture.load_from_file((resources_path + "images/trash.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
