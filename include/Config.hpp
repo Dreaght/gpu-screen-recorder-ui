@@ -55,7 +55,7 @@ namespace gsr {
         std::string video_quality = "very_high";
         std::string video_codec = "auto";
         std::string audio_codec = "opus";
-        std::string framerate_mode = "vfr";
+        std::string framerate_mode = "auto";
         bool advanced_view = false;
         bool overclock = false;
         bool record_cursor = true;
@@ -79,6 +79,10 @@ namespace gsr {
         std::string stream_key;
     };
 
+    struct RumbleStreamConfig {
+        std::string stream_key;
+    };
+
     struct CustomStreamConfig {
         std::string url;
         std::string container = "flv";
@@ -91,6 +95,7 @@ namespace gsr {
         std::string streaming_service = "twitch";
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
+        RumbleStreamConfig rumble;
         CustomStreamConfig custom;
         ConfigHotkey start_stop_hotkey;
     };

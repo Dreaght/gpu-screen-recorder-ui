@@ -964,6 +964,7 @@ namespace gsr {
         auto streaming_service_box = std::make_unique<ComboBox>(&get_theme().body_font);
         streaming_service_box->add_item("Twitch", "twitch");
         streaming_service_box->add_item("YouTube", "youtube");
+        streaming_service_box->add_item("Rumble", "rumble");
         streaming_service_box->add_item("Custom", "custom");
         streaming_service_box_ptr = streaming_service_box.get();
         return streaming_service_box;
@@ -987,6 +988,10 @@ namespace gsr {
         auto youtube_stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         youtube_stream_key_entry_ptr = youtube_stream_key_entry.get();
         stream_key_list->add_widget(std::move(youtube_stream_key_entry));
+
+        auto rumble_stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        rumble_stream_key_entry_ptr = rumble_stream_key_entry.get();
+        stream_key_list->add_widget(std::move(rumble_stream_key_entry));
 
         stream_key_list_ptr = stream_key_list.get();
         return stream_key_list;
@@ -1049,12 +1054,14 @@ namespace gsr {
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             const bool twitch_option = id == "twitch";
             const bool youtube_option = id == "youtube";
+            const bool rumble_option = id == "rumble";
             const bool custom_option = id == "custom";
             stream_key_list_ptr->set_visible(!custom_option);
             stream_url_list_ptr->set_visible(custom_option);
             container_list_ptr->set_visible(custom_option);
             twitch_stream_key_entry_ptr->set_visible(twitch_option);
             youtube_stream_key_entry_ptr->set_visible(youtube_option);
+            rumble_stream_key_entry_ptr->set_visible(rumble_option);
             return true;
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
@@ -1256,6 +1263,7 @@ namespace gsr {
         streaming_service_box_ptr->set_selected_item(config.streaming_config.streaming_service);
         youtube_stream_key_entry_ptr->set_text(config.streaming_config.youtube.stream_key);
         twitch_stream_key_entry_ptr->set_text(config.streaming_config.twitch.stream_key);
+        rumble_stream_key_entry_ptr->set_text(config.streaming_config.rumble.stream_key);
         stream_url_entry_ptr->set_text(config.streaming_config.custom.url);
         container_box_ptr->set_selected_item(config.streaming_config.custom.container);
     }
@@ -1397,6 +1405,7 @@ namespace gsr {
         config.streaming_config.streaming_service = streaming_service_box_ptr->get_selected_id();
         config.streaming_config.youtube.stream_key = youtube_stream_key_entry_ptr->get_text();
         config.streaming_config.twitch.stream_key = twitch_stream_key_entry_ptr->get_text();
+        config.streaming_config.rumble.stream_key = rumble_stream_key_entry_ptr->get_text();
         config.streaming_config.custom.url = stream_url_entry_ptr->get_text();
         config.streaming_config.custom.container = container_box_ptr->get_selected_id();
     }

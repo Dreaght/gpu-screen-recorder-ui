@@ -14,6 +14,68 @@ namespace gsr {
     static constexpr int axis_up_down = 7;
     static constexpr int axis_left_right = 6;
 
+    struct DeviceId {
+        uint16_t vendor;
+        uint16_t product;
+    };
+
+    static bool read_file_hex_number(const char *path, unsigned int *value) {
+        *value = 0;
+        FILE *f = fopen(path, "rb");
+        if(!f)
+            return false;
+
+        fscanf(f, "%x", value);
+        fclose(f);
+        return true;
+    }
+
+    static DeviceId joystick_get_device_id(const char *path) {
+        DeviceId device_id;
+        device_id.vendor = 0;
+        device_id.product = 0;
+
+        const char *js_path_id = nullptr;
+        const int len = strlen(path);
+        for(int i = len - 1; i >= 0; --i) {
+            if(path[i] == '/') {
+                js_path_id = path + i + 1;
+                break;
+            }
+        }
+
+        if(!js_path_id)
+            return device_id;
+
+        unsigned int vendor = 0;
+        unsigned int product = 0;
+        char path_buf[1024];
+
+        snprintf(path_buf, sizeof(path_buf), "/sys/class/input/%s/device/id/vendor", js_path_id);
+        if(!read_file_hex_number(path_buf, &vendor))
+            return device_id;
+
+        snprintf(path_buf, sizeof(path_buf), "/sys/class/input/%s/device/id/product", js_path_id);
+        if(!read_file_hex_number(path_buf, &product))
+            return device_id;
+
+        device_id.vendor = vendor;
+        device_id.product = product;
+        return device_id;
+    }
+
+    static bool is_ps4_controller(DeviceId device_id) {
+        return device_id.vendor == 0x054C && (device_id.product == 0x09CC || device_id.product == 0x0BA0 || device_id.product == 0x05C4);
+    }
+
+    static bool is_ps5_controller(DeviceId device_id) {
+        return device_id.vendor == 0x054C && (device_id.product == 0x0DF2 || device_id.product == 0x0CE6);
+    }
+
+    static bool is_stadia_controller(DeviceId device_id) {
+        return device_id.vendor == 0x18D1 && (device_id.product == 0x9400);
+    }
+
     // Returns -1 on error
     static int get_js_dev_input_id_from_filepath(const char *dev_input_filepath) {
         if(strncmp(dev_input_filepath, "/dev/input/js", 13) != 0)
@@ -275,6 +337,8 @@ namespace gsr {
         extra_data[num_poll_fd] = {
             dev_input_id
         };
+
+        //const DeviceId device_id = joystick_get_device_id(dev_input_filepath);
 
         ++num_poll_fd;
         fprintf(stderr, "Info: added joystick: %s\n", dev_input_filepath);
