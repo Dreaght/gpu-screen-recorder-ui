@@ -2579,6 +2579,9 @@ namespace gsr {
         } else if(config.streaming_config.streaming_service == "youtube") {
             url += "rtmp://a.rtmp.youtube.com/live2/";
             url += config.streaming_config.youtube.stream_key;
+        } else if(config.streaming_config.streaming_service == "rumble") {
+            url += "rtmp://rtmp.rumble.com/live/";
+            url += config.streaming_config.rumble.stream_key;
         } else if(config.streaming_config.streaming_service == "custom") {
             url = config.streaming_config.custom.url;
             if(url.size() >= 7 && strncmp(url.c_str(), "rtmp://", 7) == 0)
