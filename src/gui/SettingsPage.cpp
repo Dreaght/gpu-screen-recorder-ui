@@ -768,7 +768,6 @@ namespace gsr {
 
         list->add_widget(std::move(replay_storage_button));
         list->set_visible(gsr_info->system_info.gsr_version >= GsrVersion{5, 5, 0});
-        replay_storage_list_ptr = list.get();
         return list;
     }
 
@@ -837,7 +836,6 @@ namespace gsr {
         notifications_subsection_ptr->set_visible(advanced_view);
         set_application_audio_options_visible(audio_track_section_list_ptr, advanced_view, *gsr_info);
         settings_scrollable_page_ptr->reset_scroll();
-        replay_storage_list_ptr->set_visible(advanced_view && gsr_info->system_info.gsr_version >= GsrVersion{5, 5, 0});
     }
 
     void SettingsPage::add_replay_widgets() {

@@ -37,6 +37,7 @@
 #include <X11/Xcursor/Xcursor.h>
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
+#include <mglpp/system/Utf8.hpp>
 
 extern "C" {
 #include <mgl/mgl.h>
@@ -903,6 +904,7 @@ namespace gsr {
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
+        // TODO: (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor))
         const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window || is_wlroots;
 
         if(prevent_game_minimizing) {
@@ -1640,10 +1642,22 @@ namespace gsr {
         return result;
     }
 
-    // TODO: Utf8 truncate
     static void truncate_string(std::string &str, int max_length) {
-        if((int)str.size() > max_length)
-            str.replace(str.begin() + max_length, str.end(), "...");
+        int index = 0;
+        size_t byte_index = 0;
+
+        while(index < max_length && byte_index < str.size()) {
+            uint32_t codepoint = 0;
+            size_t codepoint_length = 0;
+            mgl::utf8_decode((const unsigned char*)str.c_str() + byte_index, str.size() - byte_index, &codepoint, &codepoint_length);
+            if(codepoint_length == 0)
+                codepoint_length = 1;
+
+            index += 1;
+            byte_index += codepoint_length;
+        }
+
+        str.erase(byte_index);
     }
 
     void Overlay::save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type) {

@@ -200,7 +200,6 @@ namespace gsr {
         RadioButton *turn_on_replay_automatically_mode_ptr = nullptr;
         Subsection *audio_section_ptr = nullptr;
         List *audio_track_section_list_ptr = nullptr;
-        List *replay_storage_list_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
     };

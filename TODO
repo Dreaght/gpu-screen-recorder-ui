@@ -37,8 +37,6 @@ Fix first frame being black when running without a compositor.
 
 Add support for systray.
 
-Add option to take screenshot.
-
 Move event callbacks to a global list instead of std::function object in each widget. This reduces the size of widgets,
     since most widgets wont have the event callback set.
     This event callback would pass the widget as an argument.
