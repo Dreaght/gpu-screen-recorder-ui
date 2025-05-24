@@ -44,42 +44,42 @@ int main(int argc, char **argv) {
         } else if(strcmp(grab_type_arg, "--virtual") == 0) {
             grab_type = KEYBOARD_GRAB_TYPE_VIRTUAL;
         } else {
-            fprintf(stderr, "Error: expected --all or --virtual, got %s\n", grab_type_arg);
+            fprintf(stderr, "gsr-global-hotkeys error: expected --all or --virtual, got %s\n", grab_type_arg);
             usage();
             return 1;
         }
     } else if(argc != 1) {
-        fprintf(stderr, "Error: expected 0 or 1 arguments, got %d argument(s)\n", argc);
+        fprintf(stderr, "gsr-global-hotkeys error: expected 0 or 1 arguments, got %d argument(s)\n", argc);
         usage();
         return 1;
     }
 
     if(is_gsr_global_hotkeys_already_running()) {
-        fprintf(stderr, "Error: gsr-global-hotkeys is already running\n");
+        fprintf(stderr, "gsr-global-hotkeys error: gsr-global-hotkeys is already running\n");
         return 1;
     }
 
     const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
-            fprintf(stderr, "Error: failed to change user to root\n");
+            fprintf(stderr, "gsr-global-hotkeys error: failed to change user to root, global hotkeys will not work. Make sure to set the correct capability on gsr-global-hotkeys\n");
             return 1;
         }
     }
 
     keyboard_event keyboard_ev;
     if(!keyboard_event_init(&keyboard_ev, true, grab_type)) {
-        fprintf(stderr, "Error: failed to setup hotplugging and no keyboard input devices were found\n");
+        fprintf(stderr, "gsr-global-hotkeys error: failed to setup hotplugging and no keyboard input devices were found\n");
         setuid(user_id);
         return 1;
     }
 
-    fprintf(stderr, "Info: global hotkeys setup, waiting for hotkeys to be pressed\n");
+    fprintf(stderr, "gsr-global-hotkeys info: global hotkeys setup, waiting for hotkeys to be pressed\n");
 
     for(;;) {
         keyboard_event_poll_events(&keyboard_ev, -1);
         if(keyboard_event_stdin_has_failed(&keyboard_ev)) {
-            fprintf(stderr, "Info: stdin closed (parent process likely closed this process), exiting...\n");
+            fprintf(stderr, "gsr-global-hotkeys info: stdin closed (parent process likely closed this process), exiting...\n");
             break;
         }
     }
