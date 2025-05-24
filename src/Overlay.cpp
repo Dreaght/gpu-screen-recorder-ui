@@ -1640,6 +1640,7 @@ namespace gsr {
         return result;
     }
 
+    // TODO: Utf8 truncate
     static void truncate_string(std::string &str, int max_length) {
         if((int)str.size() > max_length)
             str.replace(str.begin() + max_length, str.end(), "...");
