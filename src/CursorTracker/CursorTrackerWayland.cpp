@@ -9,13 +9,7 @@
 
 namespace gsr {
     static const int MAX_CONNECTORS = 32;
-    static const int CONNECTOR_TYPE_COUNTS = 32;
     static const uint32_t plane_property_all = 0xF;
-
-    typedef struct {
-        int type;
-        int count;
-    } drm_connector_type_count;
 
     typedef enum {
         PLANE_PROPERTY_CRTC_X      = 1 << 0,
@@ -105,22 +99,6 @@ namespace gsr {
         return get_drm_property_by_name(drm_fd, &properties, name, result);
     }
 
-    static drm_connector_type_count* drm_connector_types_get_index(drm_connector_type_count *type_counts, int *num_type_counts, int connector_type) {
-        for(int i = 0; i < *num_type_counts; ++i) {
-            if(type_counts[i].type == connector_type)
-                return &type_counts[i];
-        }
-
-        if(*num_type_counts == CONNECTOR_TYPE_COUNTS)
-            return NULL;
-
-        const int index = *num_type_counts;
-        type_counts[index].type = connector_type;
-        type_counts[index].count = 0;
-        ++*num_type_counts;
-        return &type_counts[index];
-    }
-
     // Note: this monitor name logic is kept in sync with gpu screen recorder
     static std::string get_monitor_name_from_crtc_id(int drm_fd, uint32_t crtc_id) {
         std::string result;
@@ -128,27 +106,23 @@ namespace gsr {
         if(!resources)
             return result;
 
-        drm_connector_type_count type_counts[CONNECTOR_TYPE_COUNTS];
-        int num_type_counts = 0;
-
         for(int i = 0; i < resources->count_connectors; ++i) {
             uint64_t connector_crtc_id = 0;
             drmModeConnectorPtr connector = drmModeGetConnectorCurrent(drm_fd, resources->connectors[i]);
             if(!connector)
                 continue;
 
-            drm_connector_type_count *connector_type = drm_connector_types_get_index(type_counts, &num_type_counts, connector->connector_type);
             const char *connection_name = drmModeGetConnectorTypeName(connector->connector_type);
-            if(connector_type)
-                ++connector_type->count;
+            if(!connection_name)
+                goto next;
 
             if(connector->connection != DRM_MODE_CONNECTED)
                 goto next;
 
-            if(connector_type && connector_get_property_by_name(drm_fd, connector, "CRTC_ID", &connector_crtc_id) && connector_crtc_id == crtc_id) {
+            if(connector_get_property_by_name(drm_fd, connector, "CRTC_ID", &connector_crtc_id) && connector_crtc_id == crtc_id) {
                 result = connection_name;
                 result += "-";
-                result += std::to_string(connector_type->count);
+                result += std::to_string(connector->connector_type_id);
                 drmModeFreeConnector(connector);
                 break;
             }
