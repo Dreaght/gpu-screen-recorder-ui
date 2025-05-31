@@ -11,6 +11,8 @@ namespace gsr {
     static constexpr int triangle_button = 2;
     static constexpr int options_button = 9;
     static constexpr int playstation_button = 10;
+    static constexpr int l3_button = 11;
+    static constexpr int r3_button = 12;
     static constexpr int axis_up_down = 7;
     static constexpr int axis_left_right = 6;
 
@@ -266,7 +268,8 @@ namespace gsr {
         if((event.type & JS_EVENT_BUTTON) == JS_EVENT_BUTTON) {
             switch(event.number) {
                 case playstation_button: {
-                    playstation_button_pressed = event.value == button_pressed;
+                    // Workaround weird steam input (in-game) behavior where steam triggers playstation button + options when pressing both l3 and r3 at the same time
+                    playstation_button_pressed = (event.value == button_pressed) && !l3_button_pressed && !r3_button_pressed;
                     break;
                 }
                 case options_button: {
@@ -282,6 +285,14 @@ namespace gsr {
                 case triangle_button: {
                     if(playstation_button_pressed && event.value == button_pressed)
                         save_10_min_replay = true;
+                    break;
+                }
+                case l3_button: {
+                    l3_button_pressed = event.value == button_pressed;
+                    break;
+                }
+                case r3_button: {
+                    r3_button_pressed = event.value == button_pressed;
                     break;
                 }
             }

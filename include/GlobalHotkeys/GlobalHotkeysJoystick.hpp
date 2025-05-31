@@ -56,6 +56,8 @@ namespace gsr {
         bool down_pressed = false;
         bool left_pressed = false;
         bool right_pressed = false;
+        bool l3_button_pressed = false;
+        bool r3_button_pressed = false;
 
         bool save_replay = false;
         bool save_1_min_replay = false;
