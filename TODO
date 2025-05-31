@@ -12,8 +12,6 @@ Handle events in draw function because the render position of elements is availa
 
 Add nvidia overclock option.
 
-Add support for window selection in capture.
-
 Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation. Also a button to create a new directory.
 
 Restart replay on system start if monitor resolution changes.
@@ -70,8 +68,6 @@ Run `systemctl status --user gpu-screen-recorder` when starting recording and gi
 
 Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
 
-Dont allow autostart of replay if capture option is window recording (when window recording is added).
-
 Use global shortcuts desktop portal protocol on wayland when available.
 
 Support CJK.
@@ -96,9 +92,6 @@ Make gsr-ui flatpak systemd work nicely with non-flatpak gsr-ui. Maybe change Ex
 
 When enabling X11 global hotkey again only grab lalt, not ralt.
 
-When adding window capture only add it to recording and streaming and do the window selection when recording starts, to make it more ergonomic with hotkeys.
-    If hotkey for recording/streaming start is pressed on the button for start is clicked then hide the ui if it's visible and show the window selection option (cursor).
-
 Show an error that prime run will be disabled when using desktop portal capture option. This can cause issues as the user may have selected a video codec option that isn't available on their iGPU but is available on the prime-run dGPU.
 
 For keyboards that report supporting mice the keyboard grab will be delayed until any key has been pressed (and then released), see: https://github.com/dec05eba/gpu-screen-recorder-issues/issues/97
@@ -115,9 +108,6 @@ Make folder with window name work when using gamescope. Gamescope runs x11 itsel
 When clicking on current directory in file manager show a dropdown menu where you can select common directories (HOME, Videos, Downloads and mounted drives) for quick navigation. Maybe even button to search.
 
 Maybe change gsr-ui startup retry time in the systemd service, from 5 seconds to 2 seconds.
-
-Add support for window capture. This should not prompt for window selection directly but instead prompt for window selection when recording starts and hide the ui first.
-    For screenshots window capture should exist but "follow focused" option should not exist.
 
 Make it possible to take a screenshot through a button in the ui instead of having to use hotkey.
 
@@ -138,8 +128,6 @@ Do xi grab for keys as well. Otherwise the ui cant be used for keyboard input if
 Make inactive buttons gray (in dropdown boxes and in the front page with save, etc when replay is not running).
 
 Add option to do screen-direct recording. But make it clear that it should not be used, except for gsync on x11 nvidia.
-
-Add window capture option (for x11).
 
 Add systray for recording status.
 

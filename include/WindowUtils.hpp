@@ -24,6 +24,7 @@ namespace gsr {
     std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, Window ignore_window);
     std::string get_window_name_at_cursor_position(Display *dpy, Window ignore_window);
     void set_window_size_not_resizable(Display *dpy, Window window, int width, int height);
+    Window window_get_target_window_child(Display *display, Window window);
     mgl::vec2i get_cursor_position(Display *dpy, Window *window);
     mgl::vec2i create_window_get_center_position(Display *display);
     std::string get_window_manager_name(Display *display);

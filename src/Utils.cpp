@@ -32,6 +32,28 @@ namespace gsr {
         return str.size() >= len && memcmp(str.data() + str.size() - len, substr, len) == 0;
     }
 
+    std::string strip(const std::string &str) {
+        int start_index = 0;
+        int str_len = str.size();
+
+        for(int i = 0; i < str_len; ++i) {
+            if(str[i] != ' ') {
+                start_index += i;
+                str_len -= i;
+                break;
+            }
+        }
+
+        for(int i = str_len - 1; i >= 0; --i) {
+            if(str[i] != ' ') {
+                str_len = i + 1;
+                break;
+            }
+        }
+
+        return str.substr(start_index, str_len);
+    }
+
     std::string get_home_dir() {
         const char *home_dir = getenv("HOME");
         if(!home_dir) {

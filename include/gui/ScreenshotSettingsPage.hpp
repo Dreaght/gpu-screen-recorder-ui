@@ -26,7 +26,6 @@ namespace gsr {
     private:
         std::unique_ptr<ComboBox> create_record_area_box();
         std::unique_ptr<Widget> create_record_area();
-        std::unique_ptr<List> create_select_window();
         std::unique_ptr<Entry> create_image_width_entry();
         std::unique_ptr<Entry> create_image_height_entry();
         std::unique_ptr<List> create_image_resolution();
@@ -56,7 +55,6 @@ namespace gsr {
 
         GsrPage *content_page_ptr = nullptr;
         ScrollablePage *settings_scrollable_page_ptr = nullptr;
-        List *select_window_list_ptr = nullptr;
         List *image_resolution_list_ptr = nullptr;
         List *restore_portal_session_list_ptr = nullptr;
         List *color_range_list_ptr = nullptr;

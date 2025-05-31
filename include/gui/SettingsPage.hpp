@@ -46,7 +46,6 @@ namespace gsr {
         std::unique_ptr<RadioButton> create_view_radio_button();
         std::unique_ptr<ComboBox> create_record_area_box();
         std::unique_ptr<Widget> create_record_area();
-        std::unique_ptr<List> create_select_window();
         std::unique_ptr<Entry> create_area_width_entry();
         std::unique_ptr<Entry> create_area_height_entry();
         std::unique_ptr<List> create_area_size();
@@ -147,7 +146,6 @@ namespace gsr {
         GsrPage *content_page_ptr = nullptr;
         ScrollablePage *settings_scrollable_page_ptr = nullptr;
         List *settings_list_ptr = nullptr;
-        List *select_window_list_ptr = nullptr;
         List *area_size_list_ptr = nullptr;
         List *video_resolution_list_ptr = nullptr;
         List *restore_portal_session_list_ptr = nullptr;

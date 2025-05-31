@@ -26,6 +26,7 @@
 #include <malloc.h>
 #include <stdexcept>
 #include <algorithm>
+#include <inttypes.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -678,6 +679,22 @@ namespace gsr {
             on_region_selected = nullptr;
         }
 
+        window_selector.poll_events();
+        if(window_selector.take_canceled()) {
+            on_window_selected = nullptr;
+        } else if(window_selector.take_selection() && on_window_selected) {
+            mgl_context *context = mgl_get_context();
+            Display *display = (Display*)context->connection;
+
+            const Window selected_window = window_selector.get_selection();
+            if(selected_window && selected_window != DefaultRootWindow(display)) {
+                on_window_selected();
+            } else {
+                show_notification("No window selected", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+            }
+            on_window_selected = nullptr;
+        }
+
         if(!visible || !window)
             return;
 
@@ -723,7 +740,16 @@ namespace gsr {
             }
         }
 
-        if(region_selector.is_started()) {
+        if(start_window_capture) {
+            start_window_capture = false;
+            hide();
+            if(!window_selector.start(get_color_theme().tint_color)) {
+                show_notification("Failed to start window capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                on_window_selected = nullptr;
+            }
+        }
+
+        if(region_selector.is_started() || window_selector.is_started()) {
             usleep(5 * 1000); // 5 ms
             return true;
         }
@@ -857,7 +883,7 @@ namespace gsr {
         if(visible)
             return;
 
-        if(region_selector.is_started())
+        if(region_selector.is_started() || window_selector.is_started())
             return;
 
         drawn_first_frame = false;
@@ -1313,6 +1339,7 @@ namespace gsr {
         visible = false;
         drawn_first_frame = false;
         start_region_capture = false;
+        start_window_capture = false;
 
         if(xi_input_xev) {
             free(xi_input_xev);
@@ -1435,6 +1462,24 @@ namespace gsr {
         return nullptr;
     }
 
+    static void truncate_string(std::string &str, int max_length) {
+        int index = 0;
+        size_t byte_index = 0;
+
+        while(index < max_length && byte_index < str.size()) {
+            uint32_t codepoint = 0;
+            size_t codepoint_length = 0;
+            mgl::utf8_decode((const unsigned char*)str.c_str() + byte_index, str.size() - byte_index, &codepoint, &codepoint_length);
+            if(codepoint_length == 0)
+                codepoint_length = 1;
+
+            index += 1;
+            byte_index += codepoint_length;
+        }
+
+        str.erase(byte_index);
+    }
+
     static bool is_hex_num(char c) {
         return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
     }
@@ -1462,8 +1507,44 @@ namespace gsr {
         return is_hex && !hex_start;
     }
 
+    static bool is_number(const char *str) {
+        const char *p = str;
+        while(*p) {
+            char c = *p;
+            if(c < '0' || c > '9')
+                return false;
+            ++p;
+        }
+        return true;
+    }
+
     static bool is_capture_target_monitor(const char *capture_target) {
-        return strcmp(capture_target, "focused") != 0 && strcmp(capture_target, "region") != 0 && strcmp(capture_target, "portal") != 0 && contains_non_hex_number(capture_target);
+        return strcmp(capture_target, "window") != 0 && strcmp(capture_target, "focused") != 0 && strcmp(capture_target, "region") != 0 && strcmp(capture_target, "portal") != 0 && contains_non_hex_number(capture_target);
+    }
+
+    static std::string capture_target_get_notification_name(const char *capture_target) {
+        std::string result;
+        if(is_capture_target_monitor(capture_target)) {
+            result = "this monitor";
+        } else if(is_number(capture_target)) {
+            mgl_context *context = mgl_get_context();
+            Display *display = (Display*)context->connection;
+
+            int64_t window_id = None;
+            sscanf(capture_target, "%" PRIi64, &window_id);
+
+            const std::optional<std::string> window_title = get_window_title(display, window_id);
+            if(window_title) {
+                result = strip(window_title.value());
+                truncate_string(result, 20);
+                result = "window \"" + result + "\"";
+            } else {
+                result = std::string("window ") + capture_target;
+            }
+        } else {
+            result = capture_target;
+        }
+        return result;
     }
 
     static std::string get_valid_monitor_x11(const std::string &target_monitor_name, const std::vector<Monitor> &monitors) {
@@ -1642,24 +1723,6 @@ namespace gsr {
         return result;
     }
 
-    static void truncate_string(std::string &str, int max_length) {
-        int index = 0;
-        size_t byte_index = 0;
-
-        while(index < max_length && byte_index < str.size()) {
-            uint32_t codepoint = 0;
-            size_t codepoint_length = 0;
-            mgl::utf8_decode((const unsigned char*)str.c_str() + byte_index, str.size() - byte_index, &codepoint, &codepoint_length);
-            if(codepoint_length == 0)
-                codepoint_length = 1;
-
-            index += 1;
-            byte_index += codepoint_length;
-        }
-
-        str.erase(byte_index);
-    }
-
     void Overlay::save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type) {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
@@ -1689,11 +1752,7 @@ namespace gsr {
                 if(!config.record_config.show_video_saved_notifications)
                     return;
 
-                if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor to \"%s\"", focused_window_name.c_str());
-                else
-                    snprintf(msg, sizeof(msg), "Saved a recording of %s to \"%s\"", recording_capture_target.c_str(), focused_window_name.c_str());
-
+                snprintf(msg, sizeof(msg), "Saved a recording of %s to \"%s\"", capture_target_get_notification_name(recording_capture_target.c_str()).c_str(), focused_window_name.c_str());
                 capture_target = recording_capture_target.c_str();
                 break;
             }
@@ -1707,11 +1766,7 @@ namespace gsr {
                 else
                     snprintf(duration, sizeof(duration), " ");
 
-                if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a%sreplay of this monitor to \"%s\"", duration, focused_window_name.c_str());
-                else
-                    snprintf(msg, sizeof(msg), "Saved a%sreplay of %s to \"%s\"", duration, recording_capture_target.c_str(), focused_window_name.c_str());
-
+                snprintf(msg, sizeof(msg), "Saved a%sreplay of %s to \"%s\"", duration, capture_target_get_notification_name(recording_capture_target.c_str()).c_str(), focused_window_name.c_str());
                 capture_target = recording_capture_target.c_str();
                 break;
             }
@@ -1719,11 +1774,7 @@ namespace gsr {
                 if(!config.screenshot_config.show_screenshot_saved_notifications)
                     return;
 
-                if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor to \"%s\"", focused_window_name.c_str());
-                else
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s to \"%s\"", screenshot_capture_target.c_str(), focused_window_name.c_str());
-
+                snprintf(msg, sizeof(msg), "Saved a screenshot of %s to \"%s\"", capture_target_get_notification_name(screenshot_capture_target.c_str()).c_str(), focused_window_name.c_str());
                 capture_target = screenshot_capture_target.c_str();
                 break;
             }
@@ -1756,10 +1807,7 @@ namespace gsr {
                 snprintf(duration, sizeof(duration), " ");
 
             char msg[512];
-            if(is_capture_target_monitor(recording_capture_target.c_str()))
-                snprintf(msg, sizeof(msg), "Saved a%sreplay of this monitor", duration);
-            else
-                snprintf(msg, sizeof(msg), "Saved a%sreplay of %s", duration, recording_capture_target.c_str());
+            snprintf(msg, sizeof(msg), "Saved a%sreplay of %s", duration, capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
             show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
     }
@@ -1880,10 +1928,7 @@ namespace gsr {
                 save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
             } else if(config.screenshot_config.show_screenshot_saved_notifications) {
                 char msg[512];
-                if(is_capture_target_monitor(screenshot_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of this monitor");
-                else
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s", screenshot_capture_target.c_str());
+                snprintf(msg, sizeof(msg), "Saved a screenshot of %s", capture_target_get_notification_name(screenshot_capture_target.c_str()).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
         } else {
@@ -1982,10 +2027,7 @@ namespace gsr {
                 save_video_in_current_game_directory(video_filepath.c_str(), NotificationType::RECORD);
             } else if(config.record_config.show_video_saved_notifications) {
                 char msg[512];
-                if(is_capture_target_monitor(recording_capture_target.c_str()))
-                    snprintf(msg, sizeof(msg), "Saved a recording of this monitor");
-                else
-                    snprintf(msg, sizeof(msg), "Saved a recording of %s", recording_capture_target.c_str());
+                snprintf(msg, sizeof(msg), "Saved a recording of %s", capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
             }
         } else {
@@ -2178,11 +2220,12 @@ namespace gsr {
     }
 
     static bool validate_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
-        // TODO: Also check x11 window when enabled (check if capture_target is a decminal/hex number)
-        if(capture_target == "region") {
-            return capture_options.region;
+        if(capture_target == "window") {
+            return capture_options.window;
         } else if(capture_target == "focused") {
             return capture_options.focused;
+        } else if(capture_target == "region") {
+            return capture_options.region;
         } else if(capture_target == "portal") {
             return capture_options.portal;
         } else if(capture_target == "focused_monitor") {
@@ -2214,7 +2257,9 @@ namespace gsr {
     }
 
     std::string Overlay::get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
-        if(capture_target == "focused_monitor") {
+        if(capture_target == "window") {
+            return std::to_string(window_selector.get_selection());
+        } else if(capture_target == "focused_monitor") {
             std::optional<CursorInfo> cursor_info;
             if(cursor_tracker) {
                 cursor_tracker->update();
@@ -2283,8 +2328,8 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGRTMIN+5);
     }
 
-    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_region_selection) {
-        if(region_selector.is_started())
+    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection) {
+        if(region_selector.is_started() || window_selector.is_started())
             return false;
 
         switch(recording_status) {
@@ -2334,9 +2379,17 @@ namespace gsr {
             return false;
         }
 
-        if(config.replay_config.record_options.record_area_option == "region" && !finished_region_selection) {
+        if(config.replay_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [disable_notification, this]() {
+                on_press_start_replay(disable_notification, true);
+            };
+            return false;
+        }
+
+        if(config.replay_config.record_options.record_area_option == "window" && !finished_selection) {
+            start_window_capture = true;
+            on_window_selected = [disable_notification, this]() {
                 on_press_start_replay(disable_notification, true);
             };
             return false;
@@ -2421,18 +2474,15 @@ namespace gsr {
         // to see when the program has exit.
         if(!disable_notification && config.replay_config.show_replay_started_notifications) {
             char msg[256];
-            if(is_capture_target_monitor(recording_capture_target.c_str()))
-                snprintf(msg, sizeof(msg), "Started replaying this monitor");
-            else
-                snprintf(msg, sizeof(msg), "Started replaying %s", recording_capture_target.c_str());
+            snprintf(msg, sizeof(msg), "Started replaying %s", capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
             show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
 
         return true;
     }
 
-    void Overlay::on_press_start_record(bool finished_region_selection) {
-        if(region_selector.is_started())
+    void Overlay::on_press_start_record(bool finished_selection) {
+        if(region_selector.is_started() || window_selector.is_started())
             return;
 
         switch(recording_status) {
@@ -2508,9 +2558,17 @@ namespace gsr {
             return;
         }
 
-        if(config.record_config.record_options.record_area_option == "region" && !finished_region_selection) {
+        if(config.record_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [this]() {
+                on_press_start_record(true);
+            };
+            return;
+        }
+
+        if(config.record_config.record_options.record_area_option == "window" && !finished_selection) {
+            start_window_capture = true;
+            on_window_selected = [this]() {
                 on_press_start_record(true);
             };
             return;
@@ -2578,10 +2636,7 @@ namespace gsr {
         // 1...
         if(config.record_config.show_recording_started_notifications) {
             char msg[256];
-            if(is_capture_target_monitor(recording_capture_target.c_str()))
-                snprintf(msg, sizeof(msg), "Started recording this monitor");
-            else
-                snprintf(msg, sizeof(msg), "Started recording %s", recording_capture_target.c_str());
+            snprintf(msg, sizeof(msg), "Started recording %s", capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
             show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
     }
@@ -2621,8 +2676,8 @@ namespace gsr {
         return url;
     }
 
-    void Overlay::on_press_start_stream(bool finished_region_selection) {
-        if(region_selector.is_started())
+    void Overlay::on_press_start_stream(bool finished_selection) {
+        if(region_selector.is_started() || window_selector.is_started())
             return;
 
         switch(recording_status) {
@@ -2668,9 +2723,17 @@ namespace gsr {
             return;
         }
 
-        if(config.streaming_config.record_options.record_area_option == "region" && !finished_region_selection) {
+        if(config.streaming_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [this]() {
+                on_press_start_stream(true);
+            };
+            return;
+        }
+
+        if(config.streaming_config.record_options.record_area_option == "window" && !finished_selection) {
+            start_window_capture = true;
+            on_window_selected = [this]() {
                 on_press_start_stream(true);
             };
             return;
@@ -2751,16 +2814,13 @@ namespace gsr {
         // to see when the program has exit.
         if(config.streaming_config.show_streaming_started_notifications) {
             char msg[256];
-            if(is_capture_target_monitor(recording_capture_target.c_str()))
-                snprintf(msg, sizeof(msg), "Started streaming this monitor");
-            else
-                snprintf(msg, sizeof(msg), "Started streaming %s", recording_capture_target.c_str());
+            snprintf(msg, sizeof(msg), "Started streaming %s", capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
             show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, recording_capture_target.c_str());
         }
     }
 
-    void Overlay::on_press_take_screenshot(bool finished_region_selection, bool force_region_capture) {
-        if(region_selector.is_started())
+    void Overlay::on_press_take_screenshot(bool finished_selection, bool force_region_capture) {
+        if(region_selector.is_started() || window_selector.is_started())
             return;
 
         if(gpu_screen_recorder_screenshot_process > 0) {
@@ -2779,10 +2839,18 @@ namespace gsr {
             return;
         }
 
-        if(region_capture && !finished_region_selection) {
+        if(region_capture && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [this, force_region_capture]() {
                 usleep(200 * 1000); // Hack: wait 0.2 seconds before taking a screenshot to allow user to move cursor away. TODO: Remove this
+                on_press_take_screenshot(true, force_region_capture);
+            };
+            return;
+        }
+
+        if(config.screenshot_config.record_area_option == "window" && !finished_selection) {
+            start_window_capture = true;
+            on_window_selected = [this, force_region_capture]() {
                 on_press_take_screenshot(true, force_region_capture);
             };
             return;

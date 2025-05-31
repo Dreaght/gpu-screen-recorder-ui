@@ -9,6 +9,7 @@
 #include "GlobalHotkeys/GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
 #include "RegionSelector.hpp"
+#include "WindowSelector.hpp"
 #include "CursorTracker/CursorTracker.hpp"
 
 #include <mglpp/window/Window.hpp>
@@ -116,10 +117,10 @@ namespace gsr {
         void on_press_save_replay();
         void on_press_save_replay_1_min_replay();
         void on_press_save_replay_10_min_replay();
-        bool on_press_start_replay(bool disable_notification, bool finished_region_selection);
-        void on_press_start_record(bool finished_region_selection);
-        void on_press_start_stream(bool finished_region_selection);
-        void on_press_take_screenshot(bool finished_region_selection, bool force_region_capture);
+        bool on_press_start_replay(bool disable_notification, bool finished_selection);
+        void on_press_start_record(bool finished_selection);
+        void on_press_start_stream(bool finished_selection);
+        void on_press_take_screenshot(bool finished_selection, bool force_region_capture);
         bool update_compositor_texture(const Monitor &monitor);
 
         std::string get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options);
@@ -213,9 +214,14 @@ namespace gsr {
         int replay_save_duration_min = 0;
 
         AudioPlayer audio_player;
+    
         RegionSelector region_selector;
         bool start_region_capture = false;
         std::function<void()> on_region_selected;
+
+        WindowSelector window_selector;
+        bool start_window_capture = false;
+        std::function<void()> on_window_selected;
 
         std::string recording_capture_target;
         std::string screenshot_capture_target;

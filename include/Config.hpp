@@ -45,7 +45,7 @@ namespace gsr {
         int32_t video_width = 0;
         int32_t video_height = 0;
         int32_t fps = 60;
-        int32_t video_bitrate = 15000;
+        int32_t video_bitrate = 8000;
         bool merge_audio_tracks = true; // TODO: Remove in the future
         bool application_audio_invert = false; // TODO: Remove in the future
         bool change_video_resolution = false;

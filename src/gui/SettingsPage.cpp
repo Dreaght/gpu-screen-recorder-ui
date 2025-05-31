@@ -65,13 +65,12 @@ namespace gsr {
     std::unique_ptr<ComboBox> SettingsPage::create_record_area_box() {
         auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them
-        // TODO: Enable this
-        //if(capture_options.window)
-        //    record_area_box->add_item("Window", "window");
-        if(capture_options.region)
-            record_area_box->add_item("Region", "region");
+        if(capture_options.window)
+            record_area_box->add_item("Window", "window");
         if(capture_options.focused)
             record_area_box->add_item("Follow focused window", "focused");
+        if(capture_options.region)
+            record_area_box->add_item("Region", "region");
         if(!capture_options.monitors.empty())
             record_area_box->add_item(gsr_info->system_info.display_server == DisplayServer::WAYLAND ? "Focused monitor (Experimental on Wayland)" : "Focused monitor", "focused_monitor");
         for(const auto &monitor : capture_options.monitors) {
@@ -90,14 +89,6 @@ namespace gsr {
         record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box());
         return record_area_list;
-    }
-
-    std::unique_ptr<List> SettingsPage::create_select_window() {
-        auto select_window_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        select_window_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Select window:", get_color_theme().text_color));
-        select_window_list->add_widget(std::make_unique<Button>(&get_theme().body_font, "Click here to select a window...", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120)));
-        select_window_list_ptr = select_window_list.get();
-        return select_window_list;
     }
 
     std::unique_ptr<Entry> SettingsPage::create_area_width_entry() {
@@ -186,7 +177,6 @@ namespace gsr {
 
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         capture_target_list->add_widget(create_record_area());
-        capture_target_list->add_widget(create_select_window());
         capture_target_list->add_widget(create_area_size_section());
         capture_target_list->add_widget(create_video_resolution_section());
         capture_target_list->add_widget(create_restore_portal_session_section());
@@ -451,13 +441,13 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate_entry() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "15000", (int)(get_theme().body_font.get_character_size() * 4.0f));
+        auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "8000", (int)(get_theme().body_font.get_character_size() * 4.0f));
         video_bitrate_entry->validate_handler = create_entry_validator_integer_in_range(1, 500000);
         video_bitrate_entry_ptr = video_bitrate_entry.get();
         list->add_widget(std::move(video_bitrate_entry));
 
         if(type == Type::STREAM) {
-            auto size_mb_label = std::make_unique<Label>(&get_theme().body_font, "1.64MB", get_color_theme().text_color);
+            auto size_mb_label = std::make_unique<Label>(&get_theme().body_font, "", get_color_theme().text_color);
             Label *size_mb_label_ptr = size_mb_label.get();
             list->add_widget(std::move(size_mb_label));
 
@@ -634,10 +624,8 @@ namespace gsr {
         content_page_ptr->add_widget(create_settings());
 
         record_area_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
-            const bool window_selected = id == "window";
             const bool focused_selected = id == "focused";
             const bool portal_selected = id == "portal";
-            select_window_list_ptr->set_visible(window_selected);
             area_size_list_ptr->set_visible(focused_selected);
             video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
             change_video_resolution_checkbox_ptr->set_visible(!focused_selected);

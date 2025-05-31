@@ -26,7 +26,6 @@ namespace gsr {
 
         bool failed() const;
         bool poll_events();
-        bool is_selected() const;
         bool take_selection();
         bool take_canceled();
         Region get_selection() const;

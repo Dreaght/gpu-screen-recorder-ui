@@ -119,7 +119,7 @@ namespace gsr {
 
         streaming_config.record_options.video_quality = "custom";
         streaming_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
-        streaming_config.record_options.video_bitrate = 15000;
+        streaming_config.record_options.video_bitrate = 8000;
 
         record_config.save_directory = default_videos_save_directory;
         record_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});

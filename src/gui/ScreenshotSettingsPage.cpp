@@ -35,9 +35,8 @@ namespace gsr {
     std::unique_ptr<ComboBox> ScreenshotSettingsPage::create_record_area_box() {
         auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them
-        // TODO: Enable this
-        //if(capture_options.window)
-        //    record_area_box->add_item("Window", "window");
+        if(capture_options.window)
+            record_area_box->add_item("Window", "window");
         if(capture_options.region)
             record_area_box->add_item("Region", "region");
         if(!capture_options.monitors.empty())
@@ -58,14 +57,6 @@ namespace gsr {
         record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box());
         return record_area_list;
-    }
-
-    std::unique_ptr<List> ScreenshotSettingsPage::create_select_window() {
-        auto select_window_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        select_window_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Select window:", get_color_theme().text_color));
-        select_window_list->add_widget(std::make_unique<Button>(&get_theme().body_font, "Click here to select a window...", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120)));
-        select_window_list_ptr = select_window_list.get();
-        return select_window_list;
     }
 
     std::unique_ptr<Entry> ScreenshotSettingsPage::create_image_width_entry() {
@@ -124,7 +115,6 @@ namespace gsr {
 
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         capture_target_list->add_widget(create_record_area());
-        capture_target_list->add_widget(create_select_window());
         capture_target_list->add_widget(create_image_resolution_section());
         capture_target_list->add_widget(create_restore_portal_session_section());
 
@@ -258,9 +248,7 @@ namespace gsr {
         content_page_ptr->add_widget(create_settings());
 
         record_area_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
-            const bool window_selected = id == "window";
             const bool portal_selected = id == "portal";
-            select_window_list_ptr->set_visible(window_selected);
             image_resolution_list_ptr->set_visible(change_image_resolution_checkbox_ptr->is_checked());
             restore_portal_session_list_ptr->set_visible(portal_selected);
             return true;

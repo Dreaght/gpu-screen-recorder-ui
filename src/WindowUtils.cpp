@@ -1,4 +1,5 @@
 #include "../include/WindowUtils.hpp"
+#include "../include/Utils.hpp"
 
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -62,7 +63,7 @@ namespace gsr {
         return window_has_atom(dpy, window, net_wm_state_atom) || window_has_atom(dpy, window, wm_state_atom);
     }
 
-    static Window window_get_target_window_child(Display *display, Window window) {
+    Window window_get_target_window_child(Display *display, Window window) {
         if(window == None)
             return None;
 
@@ -210,28 +211,6 @@ namespace gsr {
         if(data)
             XFree(data);
         return result;
-    }
-
-    static std::string strip(const std::string &str) {
-        int start_index = 0;
-        int str_len = str.size();
-
-        for(int i = 0; i < str_len; ++i) {
-            if(str[i] != ' ') {
-                start_index += i;
-                str_len -= i;
-                break;
-            }
-        }
-
-        for(int i = str_len - 1; i >= 0; --i) {
-            if(str[i] != ' ') {
-                str_len = i + 1;
-                break;
-            }
-        }
-
-        return str.substr(start_index, str_len);
     }
 
     std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type) {

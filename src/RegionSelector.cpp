@@ -208,7 +208,7 @@ namespace gsr {
         window_attr.background_pixel = is_wayland ? 0 : border_color_x11;
         window_attr.border_pixel = 0;
         window_attr.override_redirect = true;
-        window_attr.event_mask = StructureNotifyMask | PointerMotionMask;
+        window_attr.event_mask = StructureNotifyMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
         window_attr.colormap = region_window_colormap;
 
         Screen *screen = XDefaultScreenOfDisplay(dpy);
@@ -364,10 +364,6 @@ namespace gsr {
             }
         }
         return true;
-    }
-
-    bool RegionSelector::is_selected() const {
-        return selected;
     }
 
     bool RegionSelector::take_selection() {
