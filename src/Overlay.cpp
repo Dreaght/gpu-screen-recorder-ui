@@ -2328,6 +2328,48 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGRTMIN+5);
     }
 
+    static const char* switch_video_codec_to_usable_hardware_encoder(const GsrInfo &gsr_info) {
+        if(gsr_info.supported_video_codecs.h264)
+            return "h264";
+        else if(gsr_info.supported_video_codecs.hevc)
+            return "hevc";
+        else if(gsr_info.supported_video_codecs.av1)
+            return "av1";
+        else if(gsr_info.supported_video_codecs.vp8)
+            return "vp8";
+        else if(gsr_info.supported_video_codecs.vp9)
+            return "vp9";
+        return nullptr;
+    }
+
+    static const char* change_container_if_codec_not_supported(const char *video_codec, const char *container) {
+        if(strcmp(video_codec, "vp8") == 0 || strcmp(video_codec, "vp9") == 0) {
+            if(strcmp(container, "webm") != 0 && strcmp(container, "matroska") != 0) {
+                fprintf(stderr, "Warning: container '%s' is not compatible with video codec '%s', using webm container instead\n", container, video_codec);
+                return "webm";
+            }
+        } else if(strcmp(container, "webm") == 0) {
+            fprintf(stderr, "Warning: container webm is not compatible with video codec '%s', using mp4 container instead\n",  video_codec);
+            return "mp4";
+        }
+        return container;
+    }
+
+    static void choose_video_codec_and_container_with_fallback(const GsrInfo &gsr_info, const char **video_codec, const char **container, const char **encoder) {
+        *encoder = "gpu";
+        if(strcmp(*video_codec, "h264_software") == 0) {
+            *video_codec = "h264";
+            *encoder = "cpu";
+        } else if(strcmp(*video_codec, "auto") == 0) {
+            *video_codec = switch_video_codec_to_usable_hardware_encoder(gsr_info);
+            if(!*video_codec) {
+                *video_codec = "h264";
+                *encoder = "cpu";
+            }
+        }
+        *container = change_container_if_codec_not_supported(*video_codec, *container);
+    }
+
     bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection) {
         if(region_selector.is_started() || window_selector.is_started())
             return false;
@@ -2402,12 +2444,10 @@ namespace gsr {
         const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.replay_config.record_options.audio_tracks_list, gsr_info);
         const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
         const std::string replay_time = std::to_string(config.replay_config.replay_time);
+        const char *container = config.replay_config.container.c_str();
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        if(strcmp(video_codec, "h264_software") == 0) {
-            video_codec = "h264";
-            encoder = "cpu";
-        }
+        choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
 
         char size[64];
         size[0] = '\0';
@@ -2419,7 +2459,7 @@ namespace gsr {
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
-            "-c", config.replay_config.container.c_str(),
+            "-c", container,
             "-ac", config.replay_config.record_options.audio_codec.c_str(),
             "-cursor", config.replay_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.replay_config.record_options.color_range.c_str(),
@@ -2582,12 +2622,10 @@ namespace gsr {
         const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
         const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.record_config.record_options.audio_tracks_list, gsr_info);
         const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
+        const char *container = config.record_config.container.c_str();
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        if(strcmp(video_codec, "h264_software") == 0) {
-            video_codec = "h264";
-            encoder = "cpu";
-        }
+        choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
 
         char size[64];
         size[0] = '\0';
@@ -2599,7 +2637,7 @@ namespace gsr {
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
-            "-c", config.record_config.container.c_str(),
+            "-c", container,
             "-ac", config.record_config.record_options.audio_codec.c_str(),
             "-cursor", config.record_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.record_config.record_options.color_range.c_str(),
@@ -2748,16 +2786,12 @@ namespace gsr {
         if(audio_tracks.size() > 1)
             audio_tracks.resize(1);
         const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
+        const char *container = "flv";
+        if(config.streaming_config.streaming_service == "custom")
+            container = config.streaming_config.custom.container.c_str();
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        if(strcmp(video_codec, "h264_software") == 0) {
-            video_codec = "h264";
-            encoder = "cpu";
-        }
-
-        std::string container = "flv";
-        if(config.streaming_config.streaming_service == "custom")
-            container = config.streaming_config.custom.container;
+        choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
 
         const std::string url = streaming_get_url(config);
 
@@ -2771,7 +2805,7 @@ namespace gsr {
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
-            "-c", container.c_str(),
+            "-c", container,
             "-ac", config.streaming_config.record_options.audio_codec.c_str(),
             "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.streaming_config.record_options.color_range.c_str(),
