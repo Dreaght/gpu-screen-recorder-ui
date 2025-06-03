@@ -176,11 +176,21 @@ namespace gsr {
         }
     }
 
+    static const char *get_basename(const char *path, int size) {
+        for(int i = size - 1; i >= 0; --i) {
+            if(path[i] == '/')
+                return path + i + 1;
+        }
+        return path;
+    }
+
     // |output_buffer| should be at least PATH_MAX in size
     bool read_cmdline_arg0(const char *filepath, char *output_buffer, int output_buffer_size) {
         output_buffer[0] = '\0';
 
+        const char *arg0_start = NULL;
         const char *arg0_end = NULL;
+        int arg0_size = 0;
         int fd = open(filepath, O_RDONLY);
         if(fd == -1)
             return false;
@@ -190,13 +200,16 @@ namespace gsr {
         if(bytes_read == -1)
             goto err;
 
-        arg0_end = (const char*)memchr(buffer, '\0', bytes_read);
+        arg0_start = buffer;
+        arg0_end = (const char*)memchr(arg0_start, '\0', bytes_read);
         if(!arg0_end)
             goto err;
 
-        if((arg0_end - buffer) + 1 <= output_buffer_size) {
-            memcpy(output_buffer, buffer, arg0_end - buffer);
-            output_buffer[arg0_end - buffer] = '\0';
+        arg0_start = get_basename(arg0_start, arg0_end - arg0_start);
+        arg0_size = arg0_end - arg0_start;
+        if(arg0_size + 1 <= output_buffer_size) {
+            memcpy(output_buffer, arg0_start, arg0_size);
+            output_buffer[arg0_size] = '\0';
             close(fd);
             return true;
         }

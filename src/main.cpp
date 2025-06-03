@@ -240,6 +240,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if(gsr::pidof("gpu-screen-recorder", getpid()) != -1) {
+        const char *args[] = { "gsr-notify", "--text", "GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
+        gsr::exec_program_daemonized(args);
+    }
+
     if(is_flatpak())
         install_flatpak_systemd_service();
     else
