@@ -960,7 +960,7 @@ namespace gsr {
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
         // TODO: (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor))
-        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window || is_wlroots;
+        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window || is_wlroots || is_hyprland;
 
         if(prevent_game_minimizing) {
             window_pos = focused_monitor->position;
