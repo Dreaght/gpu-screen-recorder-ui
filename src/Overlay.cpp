@@ -273,6 +273,33 @@ namespace gsr {
         return true;
     }
 
+    static bool is_hyprland_waybar_running_as_dock() {
+        const char *args[] = { "hyprctl", "layers", nullptr };
+        std::string stdout_str;
+        if(exec_program_on_host_get_stdout(args, stdout_str) != 0)
+            return false;
+
+        int waybar_layer_level = -1;
+        int current_layer_level = 0;
+        string_split_char(stdout_str, '\n', [&](const std::string_view line) {
+            if(line.find("Layer level 0") != std::string_view::npos)
+                current_layer_level = 0;
+            else if(line.find("Layer level 1") != std::string_view::npos)
+                current_layer_level = 1;
+            else if(line.find("Layer level 2") != std::string_view::npos)
+                current_layer_level = 2;
+            else if(line.find("Layer level 3") != std::string_view::npos)
+                current_layer_level = 3;
+            else if(line.find("namespace: waybar") != std::string_view::npos) {
+                waybar_layer_level = current_layer_level;
+                return false;
+            }
+            return true;
+        });
+
+        return waybar_layer_level >= 0 && waybar_layer_level <= 1;
+    }
+
     static Hotkey config_hotkey_to_hotkey(ConfigHotkey config_hotkey) {
         return {
             (uint32_t)mgl::Keyboard::key_to_x11_keysym((mgl::Keyboard::Key)config_hotkey.key),
@@ -904,6 +931,8 @@ namespace gsr {
         const std::string wm_name = get_window_manager_name(display);
         const bool is_kwin = wm_name == "KWin";
         const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
+        const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+        const bool hyprland_waybar_is_dock = is_hyprland && is_hyprland_waybar_running_as_dock();
 
         std::optional<CursorInfo> cursor_info;
         if(cursor_tracker) {
@@ -1035,7 +1064,7 @@ namespace gsr {
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
         xi_grab_all_mouse_devices(xi_display);
 
-        if(!is_wlroots)
+        if(!is_wlroots && !hyprland_waybar_is_dock)
             window->set_fullscreen(true);
 
         visible = true;

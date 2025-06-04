@@ -61,8 +61,8 @@ I'm looking for somebody that can create sound effects for the notifications.
 ![](https://dec05eba.com/images/settings_page.jpg)
 
 # Known issues
-* When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay.
-* Opening the UI when a game is fullscreen can mess up the game window a bit on Hyprland. This is an issue with Hyprland.
+* When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay. Change your waybar dock mode to "dock" in its config to fix this.
+* Opening the UI when a game is fullscreen can mess up the game window a bit on Hyprland. This is an issue with Hyprland. Change your waybar dock mode to "dock" in its config to fix this.
 * The background of the UI is black when opening the UI while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
 * Unable to close the region selection with escape key while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
 
