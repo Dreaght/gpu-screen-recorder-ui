@@ -69,3 +69,5 @@ I'm looking for somebody that can create sound effects for the notifications.
 # FAQ
 ## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
 If you have previously used the flatpak version of GPU Screen Recorder with the new UI then the non-flatpak version of the systemd service will conflict with that. Run `gsr-ui` to fix that.
+## I use a non-qwerty keyboard layout and I have an issue with incorrect keys registered in the software
+This is a KDE Plasma Wayland issue. Use `setxkbmap <language>` command, for example `setxkbmap se` to make sure X11 applications (such as this one) gets updated to use your languages keyboard layout.

@@ -187,3 +187,7 @@ In settings show audio levels for each audio. Maybe show audio level image besid
 Only use fake cursor on wayland if the focused x11 window is fullscreen.
 
 Create window as a real overlay window, using layer shell protocol, when possible. This will however minimize windows on floating wms. Check if this can be fixed somehow, or only use layer shell in tiling wms.
+
+Add timeout option for screenshots.
+
+Add a window that shows a warning for wayland users, that wayland doesn't support this software and if they experience issues then they should use x11 instead.
