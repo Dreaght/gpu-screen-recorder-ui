@@ -191,3 +191,5 @@ Create window as a real overlay window, using layer shell protocol, when possibl
 Add timeout option for screenshots.
 
 Add a window that shows a warning for wayland users, that wayland doesn't support this software and if they experience issues then they should use x11 instead.
+
+Add a window that shows a warning if gpu video encoding isn't supported.

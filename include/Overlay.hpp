@@ -91,6 +91,7 @@ namespace gsr {
         void save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type);
         void on_replay_saved(const char *replay_saved_filepath);
         void process_gsr_output();
+        void on_gsr_process_error(int exit_code, NotificationType notification_type);
         void update_gsr_process_status();
         void update_gsr_screenshot_process_status();
 

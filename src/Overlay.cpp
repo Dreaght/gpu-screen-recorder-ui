@@ -1885,6 +1885,35 @@ namespace gsr {
         }
     }
 
+    void Overlay::on_gsr_process_error(int exit_code, NotificationType notification_type) {
+        fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
+        if(exit_code == 50) {
+            show_notification("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        } else if(exit_code == 60) {
+            show_notification("Stopped capture because the user canceled the desktop portal", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        } else {
+            const char *prefix = "";
+            switch(notification_type) {
+                case NotificationType::NONE:
+                case NotificationType::SCREENSHOT:
+                    break;
+                case NotificationType::RECORD:
+                    prefix = "Failed to start/save recording";
+                    break;
+                case NotificationType::REPLAY:
+                    prefix = "Replay stopped because of an error";
+                    break;
+                case NotificationType::STREAM:
+                    prefix = "Streaming stopped because of an error";
+                    break;
+            }
+
+            char msg[256];
+            snprintf(msg, sizeof(msg), "%s. Verify if settings are correct", prefix);
+            show_notification(msg, notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        }
+    }
+
     void Overlay::update_gsr_process_status() {
         if(gpu_screen_recorder_process <= 0)
             return;
@@ -1911,8 +1940,7 @@ namespace gsr {
                     if(config.replay_config.show_replay_stopped_notifications)
                         show_notification("Replay stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 } else {
-                    fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-                    show_notification("Replay stopped because of an error. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
+                    on_gsr_process_error(exit_code, NotificationType::REPLAY);
                 }
                 break;
             }
@@ -1927,8 +1955,7 @@ namespace gsr {
                     if(config.streaming_config.show_streaming_stopped_notifications)
                         show_notification("Streaming has stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 } else {
-                    fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-                    show_notification("Streaming stopped because of an error. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
+                    on_gsr_process_error(exit_code, NotificationType::STREAM);
                 }
                 break;
             }
@@ -2060,8 +2087,7 @@ namespace gsr {
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
             }
         } else {
-            fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
-            show_notification("Failed to start/save recording. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+            on_gsr_process_error(exit_code, NotificationType::RECORD);
         }
         update_ui_recording_stopped();
         replay_recording = false;
