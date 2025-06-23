@@ -2,7 +2,7 @@
 Description=GPU Screen Recorder UI Service
 
 [Service]
-ExecStart=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui launch-daemon
+ExecStart=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui
 KillSignal=SIGINT
 Restart=on-failure
 RestartSec=5s
