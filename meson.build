@@ -62,7 +62,7 @@ datadir = get_option('datadir')
 gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
 
 add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', language: ['c', 'cpp'])
-add_project_arguments('-DGSR_FLATPAK_VERSION="5.7.2"', language: ['c', 'cpp'])
+add_project_arguments('-DGSR_FLATPAK_VERSION="5.7.3"', language: ['c', 'cpp'])
 
 executable(
     meson.project_name(),

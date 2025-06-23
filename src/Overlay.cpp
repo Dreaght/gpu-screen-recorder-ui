@@ -2483,7 +2483,7 @@ namespace gsr {
         recording_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(recording_capture_target, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings", recording_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
             return false;
         }
@@ -2660,7 +2660,7 @@ namespace gsr {
         recording_capture_target = get_capture_target(config.record_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.record_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid. Please change capture target in settings", recording_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
             return;
         }
@@ -2823,7 +2823,7 @@ namespace gsr {
         recording_capture_target = get_capture_target(config.streaming_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.streaming_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid. Please change capture target in settings", recording_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
             return;
         }
@@ -2935,7 +2935,7 @@ namespace gsr {
         screenshot_capture_target = get_capture_target(record_area_option, capture_options);
         if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid. Please change capture target in settings", screenshot_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid.\nPlease change capture target in settings", screenshot_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
             return;
         }
