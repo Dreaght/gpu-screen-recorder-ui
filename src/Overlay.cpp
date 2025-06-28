@@ -1506,7 +1506,10 @@ namespace gsr {
             byte_index += codepoint_length;
         }
 
-        str.erase(byte_index);
+        if(byte_index < str.size()) {
+            str.erase(byte_index);
+            str += "...";
+        }
     }
 
     static bool is_hex_num(char c) {
