@@ -4,7 +4,6 @@
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
 
-#include <unistd.h>
 #include <signal.h>
 #include <string.h>
 #include <limits.h>
@@ -239,10 +238,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if(gsr::pidof("gpu-screen-recorder", getpid()) != -1) {
+    if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
         const char *args[] = { "gsr-notify", "--text", "GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
         gsr::exec_program_daemonized(args);
-        return 1;
     }
 
     if(mgl_init(MGL_WINDOW_SYSTEM_X11) != 0) {
