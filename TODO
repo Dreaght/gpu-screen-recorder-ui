@@ -195,3 +195,13 @@ Add a window that shows a warning for wayland users, that wayland doesn't suppor
 Add a window that shows a warning if gpu video encoding isn't supported.
 
 Disable system notifications when recording. Does the notification dbus interface support pausing notifications?
+
+Automatically mark window region in window capture for screenshot on x11.
+
+Disable hotkeys if virtual keyboard is found (either at startup or after running), if grab type if not virtual. Show a notification if that happens that hotkeys have been disabled.
+    Detect if keyboard is locked by listening to gsr-ui virtual keyboard events and if no event is received after pressing a key (when writing to it after receiving input from another keyboard)
+    then remove the keyboard grab and show a message or something.
+        This can happen if the gsr-ui virtual keyboard is grabbed by some other software.
+        Maybe this can be fixed automatically by grabbing gsr-ui virtual keyboard and releasing it just before we write to it and then release it again.
+        But wont keyboard remapping software grab the keyboard first if they detect it quickly?
+            If we fail to grab it because some other software did then dont grab any keyboards nor gsr-ui virtual keyboards, just listen to them.

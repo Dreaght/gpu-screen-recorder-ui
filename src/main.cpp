@@ -14,7 +14,6 @@
 #include <mglpp/system/Clock.hpp>
 
 // TODO: Make keyboard/controller controllable for steam deck (and other controllers).
-// TODO: Keep track of gpu screen recorder run by other programs to not allow recording at the same time, or something.
 // TODO: Add systray by using org.kde.StatusNotifierWatcher/etc dbus directly.
 // TODO: Make sure the overlay always stays on top. Test with starting the overlay and then opening youtube in fullscreen.
 //       This is done in Overlay::force_window_on_top, but it's not called right now. It cant be used because the overlay will be on top of
@@ -220,17 +219,17 @@ int main(int argc, char **argv) {
 
     set_display_server_environment_variables();
 
-    // TODO: This is a shitty method to detect if multiple instances of gsr-ui is running but this will work properly even in flatpak
-    // that uses pid sandboxing. Replace this with a better method once we no longer rely on linux global hotkeys on some platform.
-    // TODO: This method doesn't work when disabling hotkeys and the method below with pidof gsr-ui doesn't work in flatpak.
-    // What do? creating a pid file doesn't work in flatpak either.
-    // TODO: This doesn't work in flatpak when disabling hotkeys.
-    if(is_gsr_ui_virtual_keyboard_running() || gsr::pidof("gsr-ui", getpid()) != -1) {
+    auto rpc = std::make_unique<gsr::Rpc>();
+    const bool rpc_created = rpc->create("gsr-ui");
+    if(!rpc_created)
+        fprintf(stderr, "Error: Failed to create rpc\n");
+
+    if(is_gsr_ui_virtual_keyboard_running() || !rpc_created) {
         if(launch_action == LaunchAction::LAUNCH_DAEMON)
             return 1;
 
-        gsr::Rpc rpc;
-        if(rpc.open("gsr-ui") && rpc.write("show_ui\n", 8)) {
+        rpc = std::make_unique<gsr::Rpc>();
+        if(rpc->open("gsr-ui") && rpc->write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
         } else {
             fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
@@ -243,6 +242,12 @@ int main(int argc, char **argv) {
     if(gsr::pidof("gpu-screen-recorder", getpid()) != -1) {
         const char *args[] = { "gsr-notify", "--text", "GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
         gsr::exec_program_daemonized(args);
+        return 1;
+    }
+
+    if(mgl_init(MGL_WINDOW_SYSTEM_X11) != 0) {
+        fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
+        return 1;
     }
 
     if(is_flatpak())
@@ -288,11 +293,6 @@ int main(int argc, char **argv) {
         disable_prime_run();
     }
 
-    if(mgl_init(MGL_WINDOW_SYSTEM_X11) != 0) {
-        fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
-        exit(1);
-    }
-
     gsr::SupportedCaptureOptions capture_options = gsr::get_supported_capture_options(gsr_info);
 
     std::string resources_path;
@@ -324,10 +324,6 @@ int main(int argc, char **argv) {
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
     if(launch_action == LaunchAction::LAUNCH_SHOW)
         overlay->show();
-
-    auto rpc = std::make_unique<gsr::Rpc>();
-    if(!rpc->create("gsr-ui"))
-        fprintf(stderr, "Error: Failed to create rpc, commands won't be received\n");
 
     rpc_add_commands(rpc.get(), overlay.get());
 

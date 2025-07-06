@@ -32,7 +32,7 @@ namespace gsr {
             fclose(file);
 
         if(!fifo_filepath.empty())
-            remove(fifo_filepath.c_str());
+            unlink(fifo_filepath.c_str());
     }
 
     bool Rpc::create(const char *name) {
@@ -44,15 +44,16 @@ namespace gsr {
         char fifo_filepath_tmp[PATH_MAX];
         get_runtime_filepath(fifo_filepath_tmp, sizeof(fifo_filepath_tmp), name);
         fifo_filepath = fifo_filepath_tmp;
-        remove(fifo_filepath.c_str());
+        unlink(fifo_filepath.c_str());
 
         if(mkfifo(fifo_filepath.c_str(), 0600) != 0) {
             fprintf(stderr, "Error: mkfifo failed, error: %s, %s\n", strerror(errno), fifo_filepath.c_str());
+            fifo_filepath.clear();
             return false;
         }
 
         if(!open_filepath(fifo_filepath.c_str())) {
-            remove(fifo_filepath.c_str());
+            unlink(fifo_filepath.c_str());
             fifo_filepath.clear();
             return false;
         }
