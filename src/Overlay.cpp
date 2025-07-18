@@ -758,6 +758,12 @@ namespace gsr {
         update_gsr_screenshot_process_status();
         replay_status_update_status();
 
+        if(hide_ui) {
+            hide_ui = false;
+            hide();
+            return false;
+        }
+
         if(start_region_capture) {
             start_region_capture = false;
             hide();
@@ -1337,6 +1343,8 @@ namespace gsr {
     void Overlay::hide() {
         if(!visible)
             return;
+
+        hide_ui = false;
 
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
@@ -2588,6 +2596,9 @@ namespace gsr {
             show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
 
+        if(config.replay_config.record_options.record_area_option == "portal")
+            hide_ui = true;
+
         return true;
     }
 
@@ -2747,6 +2758,9 @@ namespace gsr {
             snprintf(msg, sizeof(msg), "Started recording %s", capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
             show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
+
+        if(config.record_config.record_options.record_area_option == "portal")
+            hide_ui = true;
     }
 
     static std::string streaming_get_url(const Config &config) {
@@ -2921,6 +2935,9 @@ namespace gsr {
             snprintf(msg, sizeof(msg), "Started streaming %s", capture_target_get_notification_name(recording_capture_target.c_str()).c_str());
             show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, recording_capture_target.c_str());
         }
+
+        if(config.streaming_config.record_options.record_area_option == "portal")
+            hide_ui = true;
     }
 
     void Overlay::on_press_take_screenshot(bool finished_selection, bool force_region_capture) {
@@ -2995,6 +3012,9 @@ namespace gsr {
         if(gpu_screen_recorder_screenshot_process == -1) {
             show_notification("Failed to launch gpu-screen-recorder to take a screenshot", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
         }
+
+        if(config.screenshot_config.record_area_option == "portal")
+            hide_ui = true;
     }
 
     bool Overlay::update_compositor_texture(const Monitor &monitor) {

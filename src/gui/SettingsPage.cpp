@@ -183,7 +183,7 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_video_resolution_section());
-        return std::make_unique<Subsection>("Record area", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>("Capture", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     static bool audio_device_is_output(const std::string &audio_device_id) {

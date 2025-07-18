@@ -229,5 +229,7 @@ namespace gsr {
 
         std::unique_ptr<CursorTracker> cursor_tracker;
         mgl::Clock cursor_tracker_update_clock;
+
+        bool hide_ui = false;
     };
 }

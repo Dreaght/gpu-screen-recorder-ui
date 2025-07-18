@@ -120,7 +120,7 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_image_resolution_section());
-        return std::make_unique<Subsection>("Record area", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>("Capture", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_image_quality_section() {
