@@ -196,8 +196,6 @@ Add a window that shows a warning if gpu video encoding isn't supported.
 
 Disable system notifications when recording. Does the notification dbus interface support pausing notifications?
 
-Automatically mark window region in window capture for screenshot on x11.
-
 Disable hotkeys if virtual keyboard is found (either at startup or after running), if grab type if not virtual. Show a notification if that happens that hotkeys have been disabled.
     Detect if keyboard is locked by listening to gsr-ui virtual keyboard events and if no event is received after pressing a key (when writing to it after receiving input from another keyboard)
     then remove the keyboard grab and show a message or something.
