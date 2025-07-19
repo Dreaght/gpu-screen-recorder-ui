@@ -205,3 +205,5 @@ Disable hotkeys if virtual keyboard is found (either at startup or after running
         Maybe this can be fixed automatically by grabbing gsr-ui virtual keyboard and releasing it just before we write to it and then release it again.
         But wont keyboard remapping software grab the keyboard first if they detect it quickly?
             If we fail to grab it because some other software did then dont grab any keyboards nor gsr-ui virtual keyboards, just listen to them.
+
+Support localization.

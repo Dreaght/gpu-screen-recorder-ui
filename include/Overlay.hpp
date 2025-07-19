@@ -41,6 +41,12 @@ namespace gsr {
         SCREENSHOT
     };
 
+    enum class ScreenshotForceType {
+        NONE,
+        REGION,
+        WINDOW
+    };
+
     class Overlay {
     public:
         Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs);
@@ -64,6 +70,7 @@ namespace gsr {
         void save_replay_10_min();
         void take_screenshot();
         void take_screenshot_region();
+        void take_screenshot_window();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target = nullptr);
         bool is_open() const;
         bool should_exit(std::string &reason) const;
@@ -121,7 +128,7 @@ namespace gsr {
         bool on_press_start_replay(bool disable_notification, bool finished_selection);
         void on_press_start_record(bool finished_selection);
         void on_press_start_stream(bool finished_selection);
-        void on_press_take_screenshot(bool finished_selection, bool force_region_capture);
+        void on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type);
         bool update_compositor_texture(const Monitor &monitor);
 
         std::string get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options);

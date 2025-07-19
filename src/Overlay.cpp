@@ -379,6 +379,13 @@ namespace gsr {
             });
 
         global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().screenshot_config.take_screenshot_window_hotkey),
+            "take_screenshot_window", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->take_screenshot_window();
+            });
+
+        global_hotkeys->bind_key_press(
             config_hotkey_to_hotkey(ConfigHotkey{ mgl::Keyboard::Key::Escape, HOTKEY_MOD_LCTRL | HOTKEY_MOD_LSHIFT | HOTKEY_MOD_LALT }),
             "exit", [overlay](const std::string &id) {
                 fprintf(stderr, "pressed %s\n", id.c_str());
@@ -1481,11 +1488,15 @@ namespace gsr {
     }
 
     void Overlay::take_screenshot() {
-        on_press_take_screenshot(false, false);
+        on_press_take_screenshot(false, ScreenshotForceType::NONE);
     }
 
     void Overlay::take_screenshot_region() {
-        on_press_take_screenshot(false, true);
+        on_press_take_screenshot(false, ScreenshotForceType::REGION);
+    }
+
+    void Overlay::take_screenshot_window() {
+        on_press_take_screenshot(false, ScreenshotForceType::WINDOW);
     }
 
     static const char* notification_type_to_string(NotificationType notification_type) {
@@ -2940,7 +2951,7 @@ namespace gsr {
             hide_ui = true;
     }
 
-    void Overlay::on_press_take_screenshot(bool finished_selection, bool force_region_capture) {
+    void Overlay::on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type) {
         if(region_selector.is_started() || window_selector.is_started())
             return;
 
@@ -2949,8 +2960,21 @@ namespace gsr {
             return;
         }
 
-        const bool region_capture = config.screenshot_config.record_area_option == "region" || force_region_capture;
-        const char *record_area_option = region_capture ? "region" : config.screenshot_config.record_area_option.c_str();
+        bool hotkey_window_capture = false;
+        std::string record_area_option;
+        switch(force_type) {
+            case ScreenshotForceType::NONE:
+                record_area_option = config.screenshot_config.record_area_option;
+                break;
+            case ScreenshotForceType::REGION:
+                record_area_option = "region";
+                break;
+            case ScreenshotForceType::WINDOW:
+                record_area_option = gsr_info.system_info.display_server == DisplayServer::X11 ? "window" : "portal";
+                hotkey_window_capture = true;
+                break;
+        }
+
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
         screenshot_capture_target = get_capture_target(record_area_option, capture_options);
         if(!validate_capture_target(record_area_option, capture_options)) {
@@ -2960,19 +2984,19 @@ namespace gsr {
             return;
         }
 
-        if(region_capture && !finished_selection) {
+        if(record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
-            on_region_selected = [this, force_region_capture]() {
+            on_region_selected = [this, force_type]() {
                 usleep(200 * 1000); // Hack: wait 0.2 seconds before taking a screenshot to allow user to move cursor away. TODO: Remove this
-                on_press_take_screenshot(true, force_region_capture);
+                on_press_take_screenshot(true, force_type);
             };
             return;
         }
 
-        if(config.screenshot_config.record_area_option == "window" && !finished_selection) {
+        if(record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_window_selected = [this, force_region_capture]() {
-                on_press_take_screenshot(true, force_region_capture);
+            on_window_selected = [this, force_type]() {
+                on_press_take_screenshot(true, force_type);
             };
             return;
         }
@@ -2996,13 +3020,22 @@ namespace gsr {
             args.push_back(size);
         }
 
-        if(config.screenshot_config.restore_portal_session) {
+        if(config.screenshot_config.restore_portal_session && !hotkey_window_capture) {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }
 
+        const std::string hotkey_window_capture_portal_session_token_filepath = get_config_dir() + "/gpu-screen-recorder/gsr-ui-window-capture-token";
+        if(record_area_option == "portal") {
+            hide_ui = true;
+            if(hotkey_window_capture) {
+                args.push_back("-portal-session-token-filepath");
+                args.push_back(hotkey_window_capture_portal_session_token_filepath.c_str());
+            }
+        }
+
         char region_str[128];
-        if(region_capture)
+        if(record_area_option == "region")
             add_region_command(args, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
@@ -3012,9 +3045,6 @@ namespace gsr {
         if(gpu_screen_recorder_screenshot_process == -1) {
             show_notification("Failed to launch gpu-screen-recorder to take a screenshot", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
         }
-
-        if(config.screenshot_config.record_area_option == "portal")
-            hide_ui = true;
     }
 
     bool Overlay::update_compositor_texture(const Monitor &monitor) {

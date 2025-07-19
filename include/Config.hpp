@@ -145,6 +145,7 @@ namespace gsr {
         std::string save_directory;
         ConfigHotkey take_screenshot_hotkey;
         ConfigHotkey take_screenshot_region_hotkey;
+        ConfigHotkey take_screenshot_window_hotkey; // Or desktop portal, on wayland
     };
 
     struct Config {

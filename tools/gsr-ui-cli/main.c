@@ -64,6 +64,8 @@ static void usage(void) {
     printf("      Take a screenshot.\n");
     printf("  take-screenshot-region\n");
     printf("      Take a screenshot of a region.\n");
+    printf("  take-screenshot-window\n");
+    printf("      Take a screenshot of a window (or desktop portal on Wayland).\n");
     printf("\n");
     printf("EXAMPLES:\n");
     printf("  gsr-ui-cli toggle-show\n");
@@ -83,6 +85,7 @@ static bool is_valid_command(const char *command) {
         "replay-save-10-min",
         "take-screenshot",
         "take-screenshot-region",
+        "take-screenshot-window",
         NULL
     };
 

@@ -348,6 +348,27 @@ namespace gsr {
         return list;
     }
 
+    std::unique_ptr<List> GlobalSettingsPage::create_screenshot_window_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        char str[128];
+        if(gsr_info->system_info.display_server == DisplayServer::X11)
+            snprintf(str, sizeof(str), "Take a screenshot of a window:");
+        else
+            snprintf(str, sizeof(str), "Take a screenshot with desktop portal:");
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+        auto take_screenshot_window_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        take_screenshot_window_button_ptr = take_screenshot_window_button.get();
+        list->add_widget(std::move(take_screenshot_window_button));
+
+        take_screenshot_window_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::TAKE_SCREENSHOT_WINDOW);
+        };
+
+        return list;
+    }
+
     std::unique_ptr<List> GlobalSettingsPage::create_hotkey_control_buttons() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
@@ -362,6 +383,7 @@ namespace gsr {
             config.replay_config.save_10_min_hotkey = {mgl::Keyboard::Unknown, 0};
             config.screenshot_config.take_screenshot_hotkey = {mgl::Keyboard::Unknown, 0};
             config.screenshot_config.take_screenshot_region_hotkey = {mgl::Keyboard::Unknown, 0};
+            config.screenshot_config.take_screenshot_window_hotkey = {mgl::Keyboard::Unknown, 0};
             config.main_config.show_hide_hotkey = {mgl::Keyboard::Unknown, 0};
             load_hotkeys();
             overlay->rebind_all_keyboard_hotkeys();
@@ -404,6 +426,7 @@ namespace gsr {
         list_ptr->add_widget(create_stream_hotkey_options());
         list_ptr->add_widget(create_screenshot_hotkey_options());
         list_ptr->add_widget(create_screenshot_region_hotkey_options());
+        list_ptr->add_widget(create_screenshot_window_hotkey_options());
         list_ptr->add_widget(create_hotkey_control_buttons());
         return subsection;
     }
@@ -528,6 +551,7 @@ namespace gsr {
 
         take_screenshot_button_ptr->set_text(config.screenshot_config.take_screenshot_hotkey.to_string());
         take_screenshot_region_button_ptr->set_text(config.screenshot_config.take_screenshot_region_hotkey.to_string());
+        take_screenshot_window_button_ptr->set_text(config.screenshot_config.take_screenshot_window_hotkey.to_string());
 
         show_hide_button_ptr->set_text(config.main_config.show_hide_hotkey.to_string());
     }
@@ -611,6 +635,8 @@ namespace gsr {
                 return take_screenshot_button_ptr;
             case ConfigureHotkeyType::TAKE_SCREENSHOT_REGION:
                 return take_screenshot_region_button_ptr;
+            case ConfigureHotkeyType::TAKE_SCREENSHOT_WINDOW:
+                return take_screenshot_window_button_ptr;
             case ConfigureHotkeyType::SHOW_HIDE:
                 return show_hide_button_ptr;
         }
@@ -639,6 +665,8 @@ namespace gsr {
                 return &config.screenshot_config.take_screenshot_hotkey;
             case ConfigureHotkeyType::TAKE_SCREENSHOT_REGION:
                 return &config.screenshot_config.take_screenshot_region_hotkey;
+            case ConfigureHotkeyType::TAKE_SCREENSHOT_WINDOW:
+                return &config.screenshot_config.take_screenshot_window_hotkey;
             case ConfigureHotkeyType::SHOW_HIDE:
                 return &config.main_config.show_hide_hotkey;
         }
@@ -654,6 +682,7 @@ namespace gsr {
             &config.streaming_config.start_stop_hotkey,
             &config.screenshot_config.take_screenshot_hotkey,
             &config.screenshot_config.take_screenshot_region_hotkey,
+            &config.screenshot_config.take_screenshot_window_hotkey,
             &config.main_config.show_hide_hotkey
         };
         for(ConfigHotkey *config_hotkey : config_hotkeys) {
@@ -702,6 +731,13 @@ namespace gsr {
             case ConfigureHotkeyType::TAKE_SCREENSHOT_REGION:
                 hotkey_configure_action_name = "Take a screenshot of a region";
                 break;
+            case ConfigureHotkeyType::TAKE_SCREENSHOT_WINDOW: {
+                if(gsr_info->system_info.display_server == DisplayServer::X11)
+                    hotkey_configure_action_name = "Take a screenshot of a window";
+                else
+                    hotkey_configure_action_name = "Take a screenshot with desktop portal";
+                break;
+            }
             case ConfigureHotkeyType::SHOW_HIDE:
                 hotkey_configure_action_name = "Show/hide UI";
                 break;
