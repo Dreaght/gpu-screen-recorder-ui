@@ -205,3 +205,5 @@ Disable hotkeys if virtual keyboard is found (either at startup or after running
             If we fail to grab it because some other software did then dont grab any keyboards nor gsr-ui virtual keyboards, just listen to them.
 
 Support localization.
+
+Add option to not capture cursor in screenshot when doing region/window capture.
