@@ -207,3 +207,5 @@ Disable hotkeys if virtual keyboard is found (either at startup or after running
 Support localization.
 
 Add option to not capture cursor in screenshot when doing region/window capture.
+
+Window selection doesn't work when a window is fullscreen on x11.

@@ -94,6 +94,7 @@ namespace gsr {
 
         void close_gpu_screen_recorder_output();
 
+        double get_time_passed_in_replay_buffer_seconds();
         void update_notification_process_status();
         void save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type);
         void on_replay_saved(const char *replay_saved_filepath);
@@ -220,6 +221,12 @@ namespace gsr {
         bool try_replay_startup = true;
         bool replay_recording = false;
         int replay_save_duration_min = 0;
+        double replay_buffer_save_duration_sec = 0.0;
+        mgl::Clock replay_duration_clock;
+        double replay_saved_duration_sec = 0.0;
+        bool replay_restart_on_save = false;
+
+        mgl::Clock recording_duration_clock;
 
         AudioPlayer audio_player;
     
