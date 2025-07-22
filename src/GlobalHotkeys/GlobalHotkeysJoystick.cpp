@@ -102,7 +102,8 @@ namespace gsr {
             close(event_fd);
 
         for(int i = 0; i < num_poll_fd; ++i) {
-            close(poll_fd[i].fd);
+            if(poll_fd[i].fd > 0)
+                close(poll_fd[i].fd);
         }
     }
 
@@ -221,6 +222,9 @@ namespace gsr {
                     if(i == event_index)
                         goto done;
 
+                    char dev_input_filepath[256];
+                    snprintf(dev_input_filepath, sizeof(dev_input_filepath), "/dev/input/js%d", extra_data[i].dev_input_id);
+                    fprintf(stderr, "Info: removed joystick: %s\n", dev_input_filepath);
                     if(remove_poll_fd(i))
                         --i; // This item was removed so we want to repeat the same index to continue to the next item
 
@@ -234,18 +238,13 @@ namespace gsr {
                     goto done;
                 } else if(i == hotplug_poll_index) {
                     hotplug.process_event_data(poll_fd[i].fd, [&](HotplugAction hotplug_action, const char *devname) {
-                        char dev_input_filepath[1024];
-                        snprintf(dev_input_filepath, sizeof(dev_input_filepath), "/dev/%s", devname);
                         switch(hotplug_action) {
                             case HotplugAction::ADD: {
-                                // Cant open the /dev/input device immediately or it fails.
-                                // TODO: Remove this hack when a better solution is found.
-                                usleep(50 * 1000);
-                                add_device(dev_input_filepath);
+                                add_device(devname);
                                 break;
                             }
                             case HotplugAction::REMOVE: {
-                                if(remove_device(dev_input_filepath))
+                                if(remove_device(devname))
                                     --i; // This item was removed so we want to repeat the same index to continue to the next item
                                 break;
                             }
@@ -373,7 +372,9 @@ namespace gsr {
         if(index < 0 || index >= num_poll_fd)
             return false;
 
-        close(poll_fd[index].fd);
+        if(poll_fd[index].fd > 0)
+            close(poll_fd[index].fd);
+
         for(int i = index + 1; i < num_poll_fd; ++i) {
             poll_fd[i - 1] = poll_fd[i];
             extra_data[i - 1] = extra_data[i];

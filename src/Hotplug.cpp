@@ -59,10 +59,9 @@ namespace gsr {
 
     /* TODO: This assumes SUBSYSTEM= is output before DEVNAME=, is that always true? */
     void Hotplug::parse_netlink_data(const char *line, const HotplugEventCallback &callback) {
-        const char *at_symbol = strchr(line, '@');
-        if(at_symbol) {
-            event_is_add = strncmp(line, "add@", 4) == 0;
-            event_is_remove = strncmp(line, "remove@", 7) == 0;
+        if(strncmp(line, "ACTION=", 7) == 0) {
+            event_is_add = strncmp(line+7, "add", 3) == 0;
+            event_is_remove = strncmp(line+7, "remove", 6) == 0;
             subsystem_is_input = false;
         } else if(event_is_add || event_is_remove) {
             if(strcmp(line, "SUBSYSTEM=input") == 0)
