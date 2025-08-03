@@ -2876,7 +2876,7 @@ namespace gsr {
             else
                 url = "rtmp://" + url;
 
-            if(!url.empty() && url.back() != '/' && url.back() != '=')
+            if(!url.empty() && url.back() != '/' && url.back() != '=' && !config.streaming_config.custom.key.empty())
                 url += "/";
 
             url += config.streaming_config.custom.key;
