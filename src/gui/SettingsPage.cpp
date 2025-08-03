@@ -985,13 +985,19 @@ namespace gsr {
         return stream_key_list;
     }
 
-    std::unique_ptr<List> SettingsPage::create_stream_url_section() {
+    std::unique_ptr<List> SettingsPage::create_stream_custom_section() {
         auto stream_url_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "URL:", get_color_theme().text_color));
+        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream URL:", get_color_theme().text_color));
 
         auto stream_url_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         stream_url_entry_ptr = stream_url_entry.get();
         stream_url_list->add_widget(std::move(stream_url_entry));
+
+        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
+
+        auto stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        stream_key_entry_ptr = stream_key_entry.get();
+        stream_url_list->add_widget(std::move(stream_key_entry));
 
         stream_url_list_ptr = stream_url_list.get();
         return stream_url_list;
@@ -1019,7 +1025,7 @@ namespace gsr {
         auto streaming_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());
-        streaming_info_list->add_widget(create_stream_url_section());
+        streaming_info_list->add_widget(create_stream_custom_section());
         streaming_info_list->add_widget(create_stream_container_section());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
@@ -1253,6 +1259,7 @@ namespace gsr {
         twitch_stream_key_entry_ptr->set_text(config.streaming_config.twitch.stream_key);
         rumble_stream_key_entry_ptr->set_text(config.streaming_config.rumble.stream_key);
         stream_url_entry_ptr->set_text(config.streaming_config.custom.url);
+        stream_key_entry_ptr->set_text(config.streaming_config.custom.key);
         container_box_ptr->set_selected_item(config.streaming_config.custom.container);
     }
 
@@ -1395,6 +1402,7 @@ namespace gsr {
         config.streaming_config.twitch.stream_key = twitch_stream_key_entry_ptr->get_text();
         config.streaming_config.rumble.stream_key = rumble_stream_key_entry_ptr->get_text();
         config.streaming_config.custom.url = stream_url_entry_ptr->get_text();
+        config.streaming_config.custom.key = stream_key_entry_ptr->get_text();
         config.streaming_config.custom.container = container_box_ptr->get_selected_id();
     }
 }

@@ -118,7 +118,7 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_streaming_service_box();
         std::unique_ptr<List> create_streaming_service_section();
         std::unique_ptr<List> create_stream_key_section();
-        std::unique_ptr<List> create_stream_url_section();
+        std::unique_ptr<List> create_stream_custom_section();
         std::unique_ptr<ComboBox> create_stream_container_box();
         std::unique_ptr<List> create_stream_container_section();
         void add_stream_widgets();
@@ -192,6 +192,7 @@ namespace gsr {
         Entry *youtube_stream_key_entry_ptr = nullptr;
         Entry *rumble_stream_key_entry_ptr = nullptr;
         Entry *stream_url_entry_ptr = nullptr;
+        Entry *stream_key_entry_ptr = nullptr;
         Entry *replay_time_entry_ptr = nullptr;
         RadioButton *replay_storage_button_ptr = nullptr;
         Label *replay_time_label_ptr = nullptr;

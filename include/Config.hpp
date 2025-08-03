@@ -85,6 +85,7 @@ namespace gsr {
 
     struct CustomStreamConfig {
         std::string url;
+        std::string key;
         std::string container = "flv";
     };
 
