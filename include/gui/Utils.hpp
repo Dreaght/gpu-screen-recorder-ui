@@ -2,6 +2,7 @@
 
 #include <mglpp/system/vec.hpp>
 #include <mglpp/graphics/Color.hpp>
+#include <mglpp/window/Window.hpp>
 
 namespace mgl {
     class Window;
@@ -14,4 +15,5 @@ namespace gsr {
     void set_frame_delta_seconds(double frame_delta);
     mgl::vec2f scale_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to);
     mgl::vec2f clamp_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to);
+    mgl::Scissor scissor_get_sub_area(mgl::Scissor parent, mgl::Scissor child);
 }

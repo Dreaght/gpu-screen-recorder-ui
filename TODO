@@ -87,6 +87,7 @@ Dont put widget position to int position when scrolling. This makes the UI jitte
 Show warning if another instance of gpu screen recorder is already running when starting recording?
 
 Keyboard leds get turned off when stopping gsr-global-hotkeys (for example numlock). The numlock key has to be pressed twice again to make it look correct to match its state.
+    Fix this by writing 0 or 1 to /sys/class/leds/input2::numlock/brightness.
 
 Make gsr-ui flatpak systemd work nicely with non-flatpak gsr-ui. Maybe change ExecStart to do flatpak run ... || gsr-ui, but make it run as a shell command first with /bin/sh -c "".
 

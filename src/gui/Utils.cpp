@@ -5,6 +5,18 @@
 namespace gsr {
     static double frame_delta_seconds = 1.0;
 
+    static mgl::vec2i min_vec2i(mgl::vec2i a, mgl::vec2i b) {
+        return { std::min(a.x, b.x), std::min(a.y, b.y) };
+    }
+
+    static mgl::vec2i max_vec2i(mgl::vec2i a, mgl::vec2i b) {
+        return { std::max(a.x, b.x), std::max(a.y, b.y) };
+    }
+
+    static mgl::vec2i clamp_vec2i(mgl::vec2i value, mgl::vec2i min, mgl::vec2i max) {
+        return min_vec2i(max, max_vec2i(value, min));
+    }
+
     // TODO: Use vertices to make it one draw call
     void draw_rectangle_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, float border_size) {
         pos = pos.floor();
@@ -73,5 +85,13 @@ namespace gsr {
             return scale_keep_aspect_ratio(from, to);
         else
             return from;
+    }
+
+    mgl::Scissor scissor_get_sub_area(mgl::Scissor parent, mgl::Scissor child) {
+        const mgl::vec2i pos = clamp_vec2i(child.position, parent.position, parent.position + parent.size);
+        return mgl::Scissor{
+            pos,
+            min_vec2i(child.size, parent.position + parent.size - pos)
+        };
     }
 }
