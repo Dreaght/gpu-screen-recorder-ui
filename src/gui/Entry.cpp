@@ -43,11 +43,23 @@ namespace gsr {
                 caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
                 selection_start_caret = caret;
                 show_selection = true;
+            } else {
+                selecting_text = false;
+                selecting_with_keyboard = false;
+                show_selection = false;
             }
         } else if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left) {
             selecting_text = false;
             if(caret.byte_index == selection_start_caret.byte_index)
                 show_selection = false;
+        } else if(event.type == mgl::Event::MouseMoved && selected) {
+            if(selecting_text) {
+                const auto caret_index_mouse = find_closest_caret_index_by_position(mgl::vec2f(event.mouse_move.x, event.mouse_move.y));
+                caret.byte_index = caret_index_mouse.byte_index;
+                caret.utf8_index = caret_index_mouse.utf8_index;
+                caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
+                return false;
+            }
         } else if(event.type == mgl::Event::KeyPressed && selected) {
             int selection_start_byte = caret.byte_index;
             int selection_end_byte = caret.byte_index;
@@ -223,13 +235,6 @@ namespace gsr {
         window.set_scissor(scissor);
 
         window.draw(text);
-
-        if(selecting_text) {
-            const auto caret_index_mouse = find_closest_caret_index_by_position(window.get_mouse_position().to_vec2f());
-            caret.byte_index = caret_index_mouse.byte_index;
-            caret.utf8_index = caret_index_mouse.utf8_index;
-            caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
-        }
 
         if(show_selection)
             draw_caret_selection(window, draw_pos, caret_size);
