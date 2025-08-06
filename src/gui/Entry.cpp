@@ -6,6 +6,7 @@
 #include <mglpp/system/FloatRect.hpp>
 #include <mglpp/system/Utf8.hpp>
 #include <optional>
+#include <string.h>
 
 namespace gsr {
     static const float padding_top_scale = 0.004629f;
@@ -100,31 +101,21 @@ namespace gsr {
                 caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
 
                 show_selection = true;
-            } else if(event.key.code == mgl::Keyboard::Left && caret.byte_index > 0) {
-                if(!selecting_with_keyboard && show_selection) {
+            } else if(event.key.code == mgl::Keyboard::Left) {
+                if(!selecting_with_keyboard && show_selection)
                     show_selection = false;
-                } else {
-                    caret.byte_index = mgl::utf8_get_start_of_codepoint((const unsigned char*)text.get_string().data(), text.get_string().size(), caret.byte_index - 1);
-                    caret.utf8_index -= 1;
-                    // TODO: Move left by one character instead of calculating every character to caret index
-                    caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
-                }
+                else
+                    move_caret_word(Direction::LEFT, event.key.control ? 999999 : 1);
 
                 if(!selecting_with_keyboard) {
                     selection_start_caret = caret;
                     show_selection = false;
                 }
             } else if(event.key.code == mgl::Keyboard::Right) {
-                if(!selecting_with_keyboard && show_selection) {
+                if(!selecting_with_keyboard && show_selection)
                     show_selection = false;
-                } else {
-                    const int caret_byte_index_before = caret.byte_index;
-                    caret.byte_index = mgl::utf8_index_to_byte_index((const unsigned char*)text.get_string().data(), text.get_string().size(), caret.utf8_index + 1);
-                    if(caret.byte_index != caret_byte_index_before)
-                        caret.utf8_index += 1;
-                    // TODO: Move right by one character instead of calculating every character to caret index
-                    caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
-                }
+                else
+                    move_caret_word(Direction::RIGHT, event.key.control ? 999999 : 1);
 
                 if(!selecting_with_keyboard) {
                     selection_start_caret = caret;
@@ -254,11 +245,16 @@ namespace gsr {
     }
 
     void Entry::draw_caret_selection(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f caret_size) {
+        if(selection_start_caret.byte_index == caret.byte_index)
+            return;
+
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
+        const int caret_width = std::max(1.0f, caret_width_scale * get_theme().window_height);
+        const int offset = caret.byte_index < selection_start_caret.byte_index ? caret_width : 0;
 
-        mgl::Rectangle caret_selection_rect(mgl::vec2f(std::abs(selection_start_caret.offset_x - caret.offset_x), caret_size.y).floor());
-        caret_selection_rect.set_position((draw_pos + mgl::vec2f(padding_left + std::min(caret.offset_x, selection_start_caret.offset_x) - text_overflow, padding_top)).floor());
+        mgl::Rectangle caret_selection_rect(mgl::vec2f(std::abs(selection_start_caret.offset_x - caret.offset_x) - offset, caret_size.y).floor());
+        caret_selection_rect.set_position((draw_pos + mgl::vec2f(padding_left + std::min(caret.offset_x, selection_start_caret.offset_x) - text_overflow + offset, padding_top)).floor());
         mgl::Color caret_select_color = get_color_theme().tint_color;
         caret_select_color.a = 100;
         caret_selection_rect.set_color(caret_select_color);
@@ -272,6 +268,42 @@ namespace gsr {
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         return { max_width, text.get_bounds().size.y + padding_top + padding_bottom };
+    }
+
+    void Entry::move_caret_word(Direction direction, size_t max_codepoints) {
+        const int dir_step = direction == Direction::LEFT ? -1 : 1;
+        const int num_delimiter_chars = 7;
+        const char delimiter_chars[num_delimiter_chars + 1] = " \t\n/.,;";
+        const unsigned char *text_str = (const unsigned char*)text.get_string().data();
+
+        int num_non_delimiter_chars_found = 0;
+
+        for(size_t i = 0; i < max_codepoints; ++i) {
+            const int caret_byte_index_before = caret.byte_index;
+            caret.byte_index = mgl::utf8_index_to_byte_index(text_str, text.get_string().size(), std::max(0, caret.utf8_index + dir_step));
+            if(caret.byte_index == caret_byte_index_before)
+                break;
+
+            const size_t codepoint_start = std::min(caret_byte_index_before, caret.byte_index);
+            const size_t codepoint_end = std::max(caret_byte_index_before, caret.byte_index);
+            uint32_t decoded_codepoint = ' ';
+            size_t codepoint_length = 1;
+            mgl::utf8_decode(text_str + codepoint_start, codepoint_end - codepoint_start, &decoded_codepoint, &codepoint_length);
+
+            const bool is_delimiter_char = !!memchr(delimiter_chars, decoded_codepoint, num_delimiter_chars);
+            if(is_delimiter_char) {
+                if(num_non_delimiter_chars_found > 0) {
+                    caret.byte_index = caret_byte_index_before;
+                    break;
+                }
+            } else {
+                ++num_non_delimiter_chars_found;
+            }
+
+            caret.utf8_index += dir_step;
+        }
+        // TODO: Move right by one character instead of calculating every character to caret index
+        caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
     }
 
     EntryValidateHandlerResult Entry::set_text(std::string str) {

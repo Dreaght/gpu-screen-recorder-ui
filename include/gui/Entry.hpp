@@ -19,6 +19,11 @@ namespace gsr {
 
     class Entry : public Widget {
     public:
+        enum class Direction {
+            LEFT,
+            RIGHT
+        };
+
         Entry(mgl::Font *font, const char *text, float max_width);
         Entry(const Entry&) = delete;
         Entry& operator=(const Entry&) = delete;
@@ -40,6 +45,7 @@ namespace gsr {
 
         std::function<void(const std::string &text)> on_changed;
     private:
+        void move_caret_word(Direction direction, size_t max_codepoints);
         EntryValidateHandlerResult set_text_internal(std::string str);
         void draw_caret(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f caret_size);
         void draw_caret_selection(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f caret_size);
