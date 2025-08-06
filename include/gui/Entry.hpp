@@ -4,7 +4,7 @@
 #include <functional>
 
 #include <mglpp/graphics/Color.hpp>
-#include <mglpp/graphics/Text.hpp>
+#include <mglpp/graphics/Text32.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 
 namespace gsr {
@@ -15,7 +15,12 @@ namespace gsr {
         ALLOW,
         REPLACED
     };
-    using EntryValidateHandler = std::function<EntryValidateHandlerResult(Entry &entry, const std::string &str)>;
+    using EntryValidateHandler = std::function<EntryValidateHandlerResult(Entry &entry, const std::u32string &str)>;
+
+    struct CaretIndexPos {
+        int index;
+        mgl::vec2f pos;
+    };
 
     class Entry : public Widget {
     public:
@@ -33,11 +38,8 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
 
-        EntryValidateHandlerResult set_text(std::string str);
-        const std::string& get_text() const;
-
-        // Also updates the cursor position
-        void replace_text(size_t index, size_t size, const std::string &replacement);
+        EntryValidateHandlerResult set_text(const std::string &str);
+        std::string get_text() const;
 
         // Return false to specify that the string should not be accepted. This reverts the string back to its previous value.
         // The input can be changed by changing the input parameter and returning true.
@@ -45,20 +47,21 @@ namespace gsr {
 
         std::function<void(const std::string &text)> on_changed;
     private:
+        // Also updates the cursor position
+        void replace_text(size_t index, size_t size, const std::u32string &replacement);
         void move_caret_word(Direction direction, size_t max_codepoints);
-        EntryValidateHandlerResult set_text_internal(std::string str);
+        EntryValidateHandlerResult set_text_internal(std::u32string str);
         void draw_caret(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f caret_size);
         void draw_caret_selection(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f caret_size);
-        mgl_index_codepoint_pair find_closest_caret_index_by_position(mgl::vec2f position);
+        CaretIndexPos find_closest_caret_index_by_position(mgl::vec2f position);
     private:
         struct Caret {
             float offset_x = 0.0f;
-            int utf8_index = 0;
-            int byte_index = 0;
+            int index = 0;
         };
 
         mgl::Rectangle background;
-        mgl::Text text;
+        mgl::Text32 text;
         float max_width;
         bool selected = false;
         bool selecting_text = false;

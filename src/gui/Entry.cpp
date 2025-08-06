@@ -23,7 +23,7 @@ namespace gsr {
         }
     }
 
-    Entry::Entry(mgl::Font *font, const char *text, float max_width) : text("", *font), max_width(max_width) {
+    Entry::Entry(mgl::Font *font, const char *text, float max_width) : text(std::u32string(), *font), max_width(max_width) {
         this->text.set_color(get_color_theme().text_color);
         set_text(text);
     }
@@ -39,8 +39,7 @@ namespace gsr {
                 selecting_text = true;
 
                 const auto caret_index_mouse = find_closest_caret_index_by_position(mouse_pos);
-                caret.byte_index = caret_index_mouse.byte_index;
-                caret.utf8_index = caret_index_mouse.utf8_index;
+                caret.index = caret_index_mouse.index;
                 caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
                 selection_start_caret = caret;
                 show_selection = true;
@@ -51,54 +50,48 @@ namespace gsr {
             }
         } else if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left) {
             selecting_text = false;
-            if(caret.byte_index == selection_start_caret.byte_index)
+            if(caret.index == selection_start_caret.index)
                 show_selection = false;
         } else if(event.type == mgl::Event::MouseMoved && selected) {
             if(selecting_text) {
                 const auto caret_index_mouse = find_closest_caret_index_by_position(mgl::vec2f(event.mouse_move.x, event.mouse_move.y));
-                caret.byte_index = caret_index_mouse.byte_index;
-                caret.utf8_index = caret_index_mouse.utf8_index;
+                caret.index = caret_index_mouse.index;
                 caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
                 return false;
             }
         } else if(event.type == mgl::Event::KeyPressed && selected) {
-            int selection_start_byte = caret.byte_index;
-            int selection_end_byte = caret.byte_index;
+            int selection_start_byte = caret.index;
+            int selection_end_byte = caret.index;
             if(show_selection) {
-                selection_start_byte = std::min(caret.byte_index, selection_start_caret.byte_index);
-                selection_end_byte = std::max(caret.byte_index, selection_start_caret.byte_index);
+                selection_start_byte = std::min(caret.index, selection_start_caret.index);
+                selection_end_byte = std::max(caret.index, selection_start_caret.index);
             }
 
             if(event.key.code == mgl::Keyboard::Backspace) {
-                if(selection_start_byte == selection_end_byte && caret.byte_index > 0)
-                    selection_start_byte = mgl::utf8_get_start_of_codepoint((const unsigned char*)text.get_string().c_str(), text.get_string().size(), caret.byte_index - 1);
+                if(selection_start_byte == selection_end_byte && caret.index > 0)
+                    selection_start_byte -= 1;
 
-                replace_text(selection_start_byte, selection_end_byte - selection_start_byte, "");
+                replace_text(selection_start_byte, selection_end_byte - selection_start_byte, std::u32string());
             } else if(event.key.code == mgl::Keyboard::Delete) {
-                if(selection_start_byte == selection_end_byte && caret.byte_index < (int)text.get_string().size()) {
-                    size_t codepoint_length = 1;
-                    mgl::utf8_get_codepoint_length(((const unsigned char*)text.get_string().c_str())[caret.byte_index], &codepoint_length);
-                    selection_end_byte = selection_start_byte + codepoint_length;
-                }
+                if(selection_start_byte == selection_end_byte && caret.index < (int)text.get_string().size())
+                    selection_end_byte += 1;
 
-                replace_text(selection_start_byte, selection_end_byte - selection_start_byte, "");
+                replace_text(selection_start_byte, selection_end_byte - selection_start_byte, std::u32string());
             } else if(event.key.code == mgl::Keyboard::C && event.key.control) {
                 const size_t selection_num_bytes = selection_end_byte - selection_start_byte;
                 if(selection_num_bytes > 0)
-                    window.set_clipboard(text.get_string().substr(selection_start_byte, selection_num_bytes));
+                    window.set_clipboard(mgl::utf32_to_utf8(text.get_string().substr(selection_start_byte, selection_num_bytes)));
             } else if(event.key.code == mgl::Keyboard::V && event.key.control) {
                 std::string clipboard_string = window.get_clipboard_string();
                 string_replace_all(clipboard_string, '\n', ' ');
-                replace_text(selection_start_byte, selection_end_byte - selection_start_byte, std::move(clipboard_string));
+                replace_text(selection_start_byte, selection_end_byte - selection_start_byte, mgl::utf8_to_utf32(clipboard_string));
             } else if(event.key.code == mgl::Keyboard::A && event.key.control) {
-                selection_start_caret.byte_index = 0;
-                selection_start_caret.utf8_index = 0;
+                selection_start_caret.index = 0;
                 selection_start_caret.offset_x = 0.0f;
 
-                caret.byte_index = text.get_string().size();
-                caret.utf8_index = mgl::utf8_get_character_count((const unsigned char*)text.get_string().data(), text.get_string().size());
+                caret.index = text.get_string().size();
                 // TODO: Optimize
-                caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
+                caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
 
                 show_selection = true;
             } else if(event.key.code == mgl::Keyboard::Left) {
@@ -122,8 +115,7 @@ namespace gsr {
                     show_selection = false;
                 }
             } else if(event.key.code == mgl::Keyboard::Home) {
-                caret.byte_index = 0;
-                caret.utf8_index = 0;
+                caret.index = 0;
                 caret.offset_x = 0.0f;
 
                 if(!selecting_with_keyboard) {
@@ -131,10 +123,9 @@ namespace gsr {
                     show_selection = false;
                 }
             } else if(event.key.code == mgl::Keyboard::End) {
-                caret.byte_index = text.get_string().size();
-                caret.utf8_index = mgl::utf8_get_character_count((const unsigned char*)text.get_string().data(), text.get_string().size());
+                caret.index = text.get_string().size();
                 // TODO: Optimize
-                caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
+                caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
 
                 if(!selecting_with_keyboard) {
                     selection_start_caret = caret;
@@ -155,14 +146,14 @@ namespace gsr {
 
             return false;
         } else if(event.type == mgl::Event::TextEntered && selected && event.text.codepoint >= 32 && event.text.codepoint != 127) {
-            int selection_start_byte = caret.byte_index;
-            int selection_end_byte = caret.byte_index;
+            int selection_start_byte = caret.index;
+            int selection_end_byte = caret.index;
             if(show_selection) {
-                selection_start_byte = std::min(caret.byte_index, selection_start_caret.byte_index);
-                selection_end_byte = std::max(caret.byte_index, selection_start_caret.byte_index);
+                selection_start_byte = std::min(caret.index, selection_start_caret.index);
+                selection_end_byte = std::max(caret.index, selection_start_caret.index);
             }
 
-            replace_text(selection_start_byte, selection_end_byte - selection_start_byte, std::string(event.text.str, event.text.size));
+            replace_text(selection_start_byte, selection_end_byte - selection_start_byte, mgl::utf8_to_utf32((const unsigned char*)event.text.str, event.text.size));
             return false;
         }
 
@@ -245,13 +236,13 @@ namespace gsr {
     }
 
     void Entry::draw_caret_selection(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f caret_size) {
-        if(selection_start_caret.byte_index == caret.byte_index)
+        if(selection_start_caret.index == caret.index)
             return;
 
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_left = padding_left_scale * get_theme().window_height;
         const int caret_width = std::max(1.0f, caret_width_scale * get_theme().window_height);
-        const int offset = caret.byte_index < selection_start_caret.byte_index ? caret_width : 0;
+        const int offset = caret.index < selection_start_caret.index ? caret_width : 0;
 
         mgl::Rectangle caret_selection_rect(mgl::vec2f(std::abs(selection_start_caret.offset_x - caret.offset_x) - offset, caret_size.y).floor());
         caret_selection_rect.set_position((draw_pos + mgl::vec2f(padding_left + std::min(caret.offset_x, selection_start_caret.offset_x) - text_overflow + offset, padding_top)).floor());
@@ -274,45 +265,37 @@ namespace gsr {
         const int dir_step = direction == Direction::LEFT ? -1 : 1;
         const int num_delimiter_chars = 7;
         const char delimiter_chars[num_delimiter_chars + 1] = " \t\n/.,;";
-        const unsigned char *text_str = (const unsigned char*)text.get_string().data();
+        const char32_t *text_str = text.get_string().data();
 
         int num_non_delimiter_chars_found = 0;
 
         for(size_t i = 0; i < max_codepoints; ++i) {
-            const int caret_byte_index_before = caret.byte_index;
-            caret.byte_index = mgl::utf8_index_to_byte_index(text_str, text.get_string().size(), std::max(0, caret.utf8_index + dir_step));
-            if(caret.byte_index == caret_byte_index_before)
-                break;
+            const uint32_t codepoint = text_str[caret.index];
 
-            const size_t codepoint_start = std::min(caret_byte_index_before, caret.byte_index);
-            const size_t codepoint_end = std::max(caret_byte_index_before, caret.byte_index);
-            uint32_t decoded_codepoint = ' ';
-            size_t codepoint_length = 1;
-            mgl::utf8_decode(text_str + codepoint_start, codepoint_end - codepoint_start, &decoded_codepoint, &codepoint_length);
-
-            const bool is_delimiter_char = !!memchr(delimiter_chars, decoded_codepoint, num_delimiter_chars);
+            const bool is_delimiter_char = codepoint < 127 && !!memchr(delimiter_chars, codepoint, num_delimiter_chars);
             if(is_delimiter_char) {
-                if(num_non_delimiter_chars_found > 0) {
-                    caret.byte_index = caret_byte_index_before;
+                if(num_non_delimiter_chars_found > 0)
                     break;
-                }
             } else {
                 ++num_non_delimiter_chars_found;
             }
 
-            caret.utf8_index += dir_step;
+            if(caret.index + dir_step < 0 || caret.index + dir_step > (int)text.get_string().size())
+                break;
+
+            caret.index += dir_step;
         }
+
         // TODO: Move right by one character instead of calculating every character to caret index
-        caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
+        caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
     }
 
-    EntryValidateHandlerResult Entry::set_text(std::string str) {
-        EntryValidateHandlerResult validate_result = set_text_internal(std::move(str));
+    EntryValidateHandlerResult Entry::set_text(const std::string &str) {
+        EntryValidateHandlerResult validate_result = set_text_internal(mgl::utf8_to_utf32(str));
         if(validate_result == EntryValidateHandlerResult::ALLOW) {
-            caret.byte_index = text.get_string().size();
-            caret.utf8_index = mgl::utf8_get_character_count((const unsigned char*)text.get_string().data(), text.get_string().size());
+            caret.index = text.get_string().size();
             // TODO: Optimize
-            caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
+            caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
             selection_start_caret = caret;
 
             selecting_text = false;
@@ -322,40 +305,37 @@ namespace gsr {
         return validate_result;
     }
 
-    EntryValidateHandlerResult Entry::set_text_internal(std::string str) {
+    EntryValidateHandlerResult Entry::set_text_internal(std::u32string str) {
         EntryValidateHandlerResult validate_result = EntryValidateHandlerResult::ALLOW;
         if(validate_handler)
             validate_result = validate_handler(*this, str);
 
         if(validate_result == EntryValidateHandlerResult::ALLOW) {
             text.set_string(std::move(str));
+            // TODO: Call callback with utf32 instead?
             if(on_changed)
-                on_changed(text.get_string());
+                on_changed(mgl::utf32_to_utf8(text.get_string()));
         }
 
         return validate_result;
     }
 
-    const std::string& Entry::get_text() const {
-        return text.get_string();
+    std::string Entry::get_text() const {
+        return mgl::utf32_to_utf8(text.get_string());
     }
 
-    void Entry::replace_text(size_t index, size_t size, const std::string &replacement) {
+    void Entry::replace_text(size_t index, size_t size, const std::u32string &replacement) {
         if(index + size > text.get_string().size())
             return;
 
         const auto prev_caret = caret;
 
-        if((int)index >= caret.byte_index) {
-            caret.utf8_index += mgl::utf8_get_character_count((const unsigned char*)replacement.c_str(), replacement.size());
-            caret.byte_index += replacement.size();
-        } else {
-            caret.utf8_index -= mgl::utf8_get_character_count((const unsigned char*)(text.get_string().c_str() + caret.byte_index - size), size);
-            caret.utf8_index += mgl::utf8_get_character_count((const unsigned char*)replacement.c_str(), replacement.size());
-            caret.byte_index = caret.byte_index - size + replacement.size();
-        }
+        if((int)index >= caret.index)
+            caret.index += replacement.size();
+        else
+            caret.index = caret.index - size + replacement.size();
 
-        std::string str = text.get_string();
+        std::u32string str = text.get_string();
         str.replace(index, size, replacement);
         const EntryValidateHandlerResult validate_result = set_text_internal(std::move(str));
         if(validate_result == EntryValidateHandlerResult::DENY) {
@@ -366,7 +346,7 @@ namespace gsr {
         }
 
         // TODO: Optimize
-        caret.offset_x = text.find_character_pos(caret.utf8_index).x - this->text.get_position().x;
+        caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
         selection_start_caret = caret;
 
         selecting_text = false;
@@ -374,17 +354,13 @@ namespace gsr {
         show_selection = false;
     }
 
-    mgl_index_codepoint_pair Entry::find_closest_caret_index_by_position(mgl::vec2f position) {
-        const std::string &str = text.get_string();
+    CaretIndexPos Entry::find_closest_caret_index_by_position(mgl::vec2f position) {
+        const std::u32string &str = text.get_string();
         mgl::Font *font = text.get_font();
 
-        mgl_index_codepoint_pair result = {0, 0, {text.get_position().x, text.get_position().y}};
-
-        for(; result.byte_index < str.size();) {
-            uint32_t codepoint = ' ';
-            size_t clen = 1;
-            if(!mgl::utf8_decode((const unsigned char*)&str[result.byte_index], str.size() - result.byte_index, &codepoint, &clen))
-                clen = 1;
+        CaretIndexPos result = {0, {text.get_position().x, text.get_position().y}};
+        for(result.index = 0; result.index < (int)str.size(); ++result.index) {
+            const uint32_t codepoint = str[result.index];
 
             float glyph_width = 0.0f;
             if(codepoint == '\t') {
@@ -400,8 +376,6 @@ namespace gsr {
                 break;
             
             result.pos.x += glyph_width;
-            result.byte_index += clen;
-            result.utf8_index += 1;
         }
 
         return result;
@@ -411,7 +385,7 @@ namespace gsr {
         return c >= '0' && c <= '9';
     }
 
-    static std::optional<int> to_integer(const std::string &str) {
+    static std::optional<int> to_integer(const std::u32string &str) {
         if(str.empty())
             return std::nullopt;
 
@@ -438,7 +412,7 @@ namespace gsr {
     }
 
     EntryValidateHandler create_entry_validator_integer_in_range(int min, int max) {
-        return [min, max](Entry &entry, const std::string &str) {
+        return [min, max](Entry &entry, const std::u32string &str) {
             if(str.empty())
                 return EntryValidateHandlerResult::ALLOW;
 
