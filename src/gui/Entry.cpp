@@ -23,14 +23,21 @@ namespace gsr {
         }
     }
 
-    Entry::Entry(mgl::Font *font, const char *text, float max_width) : text(std::u32string(), *font), max_width(max_width) {
+    Entry::Entry(mgl::Font *font, const char *text, float max_width) :
+        text(std::u32string(), *font),
+        masked_text(std::u32string(), *font),
+        max_width(max_width)
+    {
         this->text.set_color(get_color_theme().text_color);
+        this->masked_text.set_color(get_color_theme().text_color);
         set_text(text);
     }
 
     bool Entry::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) {
         if(!visible)
             return true;
+
+        mgl::Text32 &active_text = masked ? masked_text : text;
 
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const mgl::vec2f mouse_pos = { (float)event.mouse_button.x, (float)event.mouse_button.y };
@@ -40,7 +47,7 @@ namespace gsr {
 
                 const auto caret_index_mouse = find_closest_caret_index_by_position(mouse_pos);
                 caret.index = caret_index_mouse.index;
-                caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
+                caret.offset_x = caret_index_mouse.pos.x - active_text.get_position().x;
                 selection_start_caret = caret;
                 show_selection = true;
             } else {
@@ -56,7 +63,7 @@ namespace gsr {
             if(selecting_text) {
                 const auto caret_index_mouse = find_closest_caret_index_by_position(mgl::vec2f(event.mouse_move.x, event.mouse_move.y));
                 caret.index = caret_index_mouse.index;
-                caret.offset_x = caret_index_mouse.pos.x - this->text.get_position().x;
+                caret.offset_x = caret_index_mouse.pos.x - active_text.get_position().x;
                 return false;
             }
         } else if(event.type == mgl::Event::KeyPressed && selected) {
@@ -73,7 +80,7 @@ namespace gsr {
 
                 replace_text(selection_start_byte, selection_end_byte - selection_start_byte, std::u32string());
             } else if(event.key.code == mgl::Keyboard::Delete) {
-                if(selection_start_byte == selection_end_byte && caret.index < (int)text.get_string().size())
+                if(selection_start_byte == selection_end_byte && caret.index < (int)active_text.get_string().size())
                     selection_end_byte += 1;
 
                 replace_text(selection_start_byte, selection_end_byte - selection_start_byte, std::u32string());
@@ -89,9 +96,9 @@ namespace gsr {
                 selection_start_caret.index = 0;
                 selection_start_caret.offset_x = 0.0f;
 
-                caret.index = text.get_string().size();
+                caret.index = active_text.get_string().size();
                 // TODO: Optimize
-                caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
+                caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
 
                 show_selection = true;
             } else if(event.key.code == mgl::Keyboard::Left) {
@@ -123,9 +130,9 @@ namespace gsr {
                     show_selection = false;
                 }
             } else if(event.key.code == mgl::Keyboard::End) {
-                caret.index = text.get_string().size();
+                caret.index = active_text.get_string().size();
                 // TODO: Optimize
-                caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
+                caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
 
                 if(!selecting_with_keyboard) {
                     selection_start_caret = caret;
@@ -171,13 +178,15 @@ namespace gsr {
         const int padding_left = padding_left_scale * get_theme().window_height;
         const int padding_right = padding_right_scale * get_theme().window_height;
 
+        mgl::Text32 &active_text = masked ? masked_text : text;
+
         background.set_size(get_size());
         background.set_position(draw_pos.floor());
         background.set_color(selected ? mgl::Color(0, 0, 0, 255) : mgl::Color(0, 0, 0, 120));
         window.draw(background);
 
         const int caret_width = std::max(1.0f, caret_width_scale * get_theme().window_height);
-        const mgl::vec2f caret_size = mgl::vec2f(caret_width, text.get_bounds().size.y).floor();
+        const mgl::vec2f caret_size = mgl::vec2f(caret_width, active_text.get_bounds().size.y).floor();
 
         const float overflow_left = (caret.offset_x + padding_left) - (padding_left + text_overflow);
         if(overflow_left < 0.0f)
@@ -187,18 +196,18 @@ namespace gsr {
         if(overflow_right - text_overflow > 0.0f)
             text_overflow = overflow_right;
 
-        text.set_position((draw_pos + mgl::vec2f(padding_left, get_size().y * 0.5f - text.get_bounds().size.y * 0.5f) - mgl::vec2f(text_overflow, 0.0f)).floor());
+        active_text.set_position((draw_pos + mgl::vec2f(padding_left, get_size().y * 0.5f - active_text.get_bounds().size.y * 0.5f) - mgl::vec2f(text_overflow, 0.0f)).floor());
 
-        const auto text_bounds = text.get_bounds();
+        const auto text_bounds = active_text.get_bounds();
         const bool text_larger_than_background = text_bounds.size.x > (background.get_size().x - padding_left - padding_right);
         const float text_overflow_right = (text_bounds.position.x + text_bounds.size.x) - (background.get_position().x + background.get_size().x - padding_right);
         if(text_larger_than_background) {
             if(text_overflow_right < 0.0f) {
                 text_overflow += text_overflow_right;
-                text.set_position(text.get_position() + mgl::vec2f(-text_overflow_right, 0.0f));
+                active_text.set_position(active_text.get_position() + mgl::vec2f(-text_overflow_right, 0.0f));
             }
         } else {
-            text.set_position(text.get_position() + mgl::vec2f(-text_overflow, 0.0f));
+            active_text.set_position(active_text.get_position() + mgl::vec2f(-text_overflow, 0.0f));
             text_overflow = 0.0f;
         }
 
@@ -216,7 +225,7 @@ namespace gsr {
             });
         window.set_scissor(scissor);
 
-        window.draw(text);
+        window.draw(active_text);
 
         if(show_selection)
             draw_caret_selection(window, draw_pos, caret_size);
@@ -262,10 +271,11 @@ namespace gsr {
     }
 
     void Entry::move_caret_word(Direction direction, size_t max_codepoints) {
+        mgl::Text32 &active_text = masked ? masked_text : text;
         const int dir_step = direction == Direction::LEFT ? -1 : 1;
         const int num_delimiter_chars = 7;
         const char delimiter_chars[num_delimiter_chars + 1] = " \t\n/.,;";
-        const char32_t *text_str = text.get_string().data();
+        const char32_t *text_str = active_text.get_string().data();
 
         int num_non_delimiter_chars_found = 0;
 
@@ -280,22 +290,23 @@ namespace gsr {
                 ++num_non_delimiter_chars_found;
             }
 
-            if(caret.index + dir_step < 0 || caret.index + dir_step > (int)text.get_string().size())
+            if(caret.index + dir_step < 0 || caret.index + dir_step > (int)active_text.get_string().size())
                 break;
 
             caret.index += dir_step;
         }
 
-        // TODO: Move right by one character instead of calculating every character to caret index
-        caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
+        // TODO: Move right by some characters instead of calculating every character to caret index
+        caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
     }
 
     EntryValidateHandlerResult Entry::set_text(const std::string &str) {
         EntryValidateHandlerResult validate_result = set_text_internal(mgl::utf8_to_utf32(str));
         if(validate_result == EntryValidateHandlerResult::ALLOW) {
-            caret.index = text.get_string().size();
+            mgl::Text32 &active_text = masked ? masked_text : text;
+            caret.index = active_text.get_string().size();
             // TODO: Optimize
-            caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
+            caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
             selection_start_caret = caret;
 
             selecting_text = false;
@@ -312,6 +323,8 @@ namespace gsr {
 
         if(validate_result == EntryValidateHandlerResult::ALLOW) {
             text.set_string(std::move(str));
+            if(masked)
+                masked_text.set_string(std::u32string(text.get_string().size(), '*'));
             // TODO: Call callback with utf32 instead?
             if(on_changed)
                 on_changed(mgl::utf32_to_utf8(text.get_string()));
@@ -322,6 +335,25 @@ namespace gsr {
 
     std::string Entry::get_text() const {
         return mgl::utf32_to_utf8(text.get_string());
+    }
+
+    void Entry::set_masked(bool masked) {
+        if(masked == this->masked)
+            return;
+
+        this->masked = masked;
+
+        if(masked)
+            masked_text.set_string(std::u32string(text.get_string().size(), '*'));
+        else
+            masked_text.set_string(std::u32string());
+
+        mgl::Text32 &active_text = masked ? masked_text : text;
+        caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
+    }
+
+    bool Entry::is_masked() const {
+        return masked;
     }
 
     void Entry::replace_text(size_t index, size_t size, const std::u32string &replacement) {
@@ -345,8 +377,9 @@ namespace gsr {
             return;
         }
 
+        mgl::Text32 &active_text = masked ? masked_text : text;
         // TODO: Optimize
-        caret.offset_x = text.find_character_pos(caret.index).x - this->text.get_position().x;
+        caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
         selection_start_caret = caret;
 
         selecting_text = false;
@@ -355,10 +388,11 @@ namespace gsr {
     }
 
     CaretIndexPos Entry::find_closest_caret_index_by_position(mgl::vec2f position) {
-        const std::u32string &str = text.get_string();
-        mgl::Font *font = text.get_font();
+        mgl::Text32 &active_text = masked ? masked_text : text;
+        const std::u32string &str = active_text.get_string();
+        mgl::Font *font = active_text.get_font();
 
-        CaretIndexPos result = {0, {text.get_position().x, text.get_position().y}};
+        CaretIndexPos result = {0, {active_text.get_position().x, active_text.get_position().y}};
         for(result.index = 0; result.index < (int)str.size(); ++result.index) {
             const uint32_t codepoint = str[result.index];
 

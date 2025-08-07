@@ -41,6 +41,9 @@ namespace gsr {
         EntryValidateHandlerResult set_text(const std::string &str);
         std::string get_text() const;
 
+        void set_masked(bool masked);
+        bool is_masked() const;
+
         // Return false to specify that the string should not be accepted. This reverts the string back to its previous value.
         // The input can be changed by changing the input parameter and returning true.
         EntryValidateHandler validate_handler;
@@ -62,11 +65,13 @@ namespace gsr {
 
         mgl::Rectangle background;
         mgl::Text32 text;
+        mgl::Text32 masked_text;
         float max_width;
         bool selected = false;
         bool selecting_text = false;
         bool selecting_with_keyboard = false;
         bool show_selection = false;
+        bool masked = false;
         Caret caret;
         Caret selection_start_caret;
         float text_overflow = 0.0f;

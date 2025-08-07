@@ -118,9 +118,11 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_streaming_service_box();
         std::unique_ptr<List> create_streaming_service_section();
         std::unique_ptr<List> create_stream_key_section();
+        std::unique_ptr<List> create_stream_custom_url();
+        std::unique_ptr<List> create_stream_custom_key();
         std::unique_ptr<List> create_stream_custom_section();
         std::unique_ptr<ComboBox> create_stream_container_box();
-        std::unique_ptr<List> create_stream_container_section();
+        std::unique_ptr<List> create_stream_container();
         void add_stream_widgets();
 
         void load_audio_tracks(const RecordOptions &record_options);
@@ -173,8 +175,7 @@ namespace gsr {
         ComboBox *container_box_ptr = nullptr;
         ComboBox *streaming_service_box_ptr = nullptr;
         List *stream_key_list_ptr = nullptr;
-        List *stream_url_list_ptr = nullptr;
-        List *container_list_ptr = nullptr;
+        List *custom_stream_list_ptr = nullptr;
         CheckBox *save_replay_in_game_folder_ptr = nullptr;
         CheckBox *restart_replay_on_save = nullptr;
         Label *estimated_file_size_ptr = nullptr;

@@ -120,6 +120,12 @@ namespace gsr {
         if(!theme->trash_texture.load_from_file((resources_path + "images/trash.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
+        if(!theme->masked_texture.load_from_file((resources_path + "images/masked.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
+            goto error;
+
+        if(!theme->unmasked_texture.load_from_file((resources_path + "images/unmasked.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
+            goto error;
+
         if(!theme->ps4_home_texture.load_from_file((resources_path + "images/ps4_home.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 

@@ -64,6 +64,10 @@ namespace gsr {
         this->visible = visible;
     }
 
+    Widget* Widget::get_parent_widget() {
+        return parent_widget;
+    }
+
     void add_widget_to_remove(std::unique_ptr<Widget> widget) {
         widgets_to_remove.push_back(std::move(widget));
     }

@@ -25,12 +25,6 @@ Have different modes. Overlay, window and side menu. Overlay can be used on x11,
 
 Show navigation breadcrumbs for settings and deeper navigation (such as selecting a directory to save videos).
 
-Add option to hide stream key like a password input.
-    This could be implemented in Entry by having a second mgl::Text field that gets updated in set_text and that is displayed instead when the entry is masked.
-    For caret drawing overflow check in ::draw use that text field is the entry is masked and use that text field in caret navigation.
-    If masking is disabled then switch to caret index in the real text by using the same utf8_index (since the text is the same length)
-    but recalculate byte_index from utf8_index with utf8_index_to_byte_index.
-
 Add global setting. In that setting there should be an option to enable/disable gsr-ui from system startup (the systemd service).
 
 Add profiles and hotkey to switch between profiles (show notification when switching profile).

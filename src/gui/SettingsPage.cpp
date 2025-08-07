@@ -4,6 +4,7 @@
 #include "../../include/gui/PageStack.hpp"
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/Subsection.hpp"
+#include "../../include/gui/Image.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Utils.hpp"
@@ -965,42 +966,75 @@ namespace gsr {
         return streaming_service_list;
     }
 
+    static std::unique_ptr<Button> create_mask_toggle_button(Entry *entry_to_toggle, mgl::vec2f size) {
+        auto button = std::make_unique<Button>(&get_theme().body_font, "", size, mgl::Color(0, 0, 0, 0));
+        Button *button_ptr = button.get();
+        button->set_icon(&get_theme().masked_texture);
+        button->on_click = [entry_to_toggle, button_ptr]() {
+            const bool is_masked = entry_to_toggle->is_masked();
+            button_ptr->set_icon(is_masked ? &get_theme().unmasked_texture : &get_theme().masked_texture);
+            entry_to_toggle->set_masked(!is_masked);
+        };
+        return button;
+    }
+
+    static Entry* add_stream_key_entry_to_list(List *stream_key_list) {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        auto key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        key_entry->set_masked(true);
+        Entry *key_entry_ptr = key_entry.get();
+        const float mask_icon_size = key_entry_ptr->get_size().y * 0.9f;
+        list->add_widget(std::move(key_entry));
+        list->add_widget(create_mask_toggle_button(key_entry_ptr, mgl::vec2f(mask_icon_size, mask_icon_size)));
+        stream_key_list->add_widget(std::move(list));
+        return key_entry_ptr;
+    }
+
     std::unique_ptr<List> SettingsPage::create_stream_key_section() {
         auto stream_key_list = std::make_unique<List>(List::Orientation::VERTICAL);
         stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
 
-        auto twitch_stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
-        twitch_stream_key_entry_ptr = twitch_stream_key_entry.get();
-        stream_key_list->add_widget(std::move(twitch_stream_key_entry));
-
-        auto youtube_stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
-        youtube_stream_key_entry_ptr = youtube_stream_key_entry.get();
-        stream_key_list->add_widget(std::move(youtube_stream_key_entry));
-
-        auto rumble_stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
-        rumble_stream_key_entry_ptr = rumble_stream_key_entry.get();
-        stream_key_list->add_widget(std::move(rumble_stream_key_entry));
+        twitch_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
+        youtube_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
+        rumble_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
 
         stream_key_list_ptr = stream_key_list.get();
         return stream_key_list;
     }
 
-    std::unique_ptr<List> SettingsPage::create_stream_custom_section() {
-        auto stream_url_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream URL:", get_color_theme().text_color));
-
+    std::unique_ptr<List> SettingsPage::create_stream_custom_url() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto stream_url_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         stream_url_entry_ptr = stream_url_entry.get();
-        stream_url_list->add_widget(std::move(stream_url_entry));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream URL:", get_color_theme().text_color));
+        list->add_widget(std::move(stream_url_entry));
+        return list;
+    }
 
-        stream_url_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
-
+    std::unique_ptr<List> SettingsPage::create_stream_custom_key() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         auto stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        stream_key_entry->set_masked(true);
         stream_key_entry_ptr = stream_key_entry.get();
-        stream_url_list->add_widget(std::move(stream_key_entry));
+        const float mask_icon_size = stream_key_entry_ptr->get_size().y * 0.9f;
+        list->add_widget(std::move(stream_key_entry));
+        list->add_widget(create_mask_toggle_button(stream_key_entry_ptr, mgl::vec2f(mask_icon_size, mask_icon_size)));
+        return list;
+    }
 
-        stream_url_list_ptr = stream_url_list.get();
-        return stream_url_list;
+    std::unique_ptr<List> SettingsPage::create_stream_custom_section() {
+        auto custom_stream_list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        auto stream_url_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        stream_url_list->add_widget(create_stream_custom_url());
+        stream_url_list->add_widget(create_stream_container());
+
+        custom_stream_list->add_widget(std::move(stream_url_list));
+        custom_stream_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
+        custom_stream_list->add_widget(create_stream_custom_key());
+
+        custom_stream_list_ptr = custom_stream_list.get();
+        return custom_stream_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_stream_container_box() {
@@ -1013,11 +1047,10 @@ namespace gsr {
         return container_box;
     }
     
-    std::unique_ptr<List> SettingsPage::create_stream_container_section() {
+    std::unique_ptr<List> SettingsPage::create_stream_container() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
         container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_color_theme().text_color));
         container_list->add_widget(create_stream_container_box());
-        container_list_ptr = container_list.get();
         return container_list;
     }
 
@@ -1026,7 +1059,6 @@ namespace gsr {
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());
         streaming_info_list->add_widget(create_stream_custom_section());
-        streaming_info_list->add_widget(create_stream_container_section());
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
@@ -1051,11 +1083,10 @@ namespace gsr {
             const bool rumble_option = id == "rumble";
             const bool custom_option = id == "custom";
             stream_key_list_ptr->set_visible(!custom_option);
-            stream_url_list_ptr->set_visible(custom_option);
-            container_list_ptr->set_visible(custom_option);
-            twitch_stream_key_entry_ptr->set_visible(twitch_option);
-            youtube_stream_key_entry_ptr->set_visible(youtube_option);
-            rumble_stream_key_entry_ptr->set_visible(rumble_option);
+            custom_stream_list_ptr->set_visible(custom_option);
+            twitch_stream_key_entry_ptr->get_parent_widget()->set_visible(twitch_option);
+            youtube_stream_key_entry_ptr->get_parent_widget()->set_visible(youtube_option);
+            rumble_stream_key_entry_ptr->get_parent_widget()->set_visible(rumble_option);
             return true;
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");

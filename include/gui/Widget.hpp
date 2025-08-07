@@ -45,6 +45,8 @@ namespace gsr {
 
         void set_visible(bool visible);
 
+        Widget* get_parent_widget();
+
         void *userdata = nullptr;
     protected:
         void set_widget_as_selected_in_parent();

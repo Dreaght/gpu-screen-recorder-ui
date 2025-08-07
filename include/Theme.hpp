@@ -44,6 +44,8 @@ namespace gsr {
         mgl::Texture save_texture;
         mgl::Texture screenshot_texture;
         mgl::Texture trash_texture;
+        mgl::Texture masked_texture;
+        mgl::Texture unmasked_texture;
 
         mgl::Texture ps4_home_texture;
         mgl::Texture ps4_options_texture;
