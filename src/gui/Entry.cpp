@@ -273,8 +273,8 @@ namespace gsr {
     void Entry::move_caret_word(Direction direction, size_t max_codepoints) {
         mgl::Text32 &active_text = masked ? masked_text : text;
         const int dir_step = direction == Direction::LEFT ? -1 : 1;
-        const int num_delimiter_chars = 7;
-        const char delimiter_chars[num_delimiter_chars + 1] = " \t\n/.,;";
+        const int num_delimiter_chars = 15;
+        const char delimiter_chars[num_delimiter_chars + 1] = " \t\n/.,:;\\[](){}";
         const char32_t *text_str = active_text.get_string().data();
 
         int num_non_delimiter_chars_found = 0;
