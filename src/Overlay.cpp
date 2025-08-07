@@ -1951,7 +1951,15 @@ namespace gsr {
     void Overlay::on_gsr_process_error(int exit_code, NotificationType notification_type) {
         fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
         if(exit_code == 50) {
-            show_notification("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        } else if(exit_code == 51) {
+            show_notification("Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        } else if(exit_code == 52) {
+            show_notification("Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        } else if(exit_code == 53) {
+            show_notification("Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+        } else if(exit_code == 54) {
+            show_notification("Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
         } else if(exit_code == 60) {
             show_notification("Stopped capture because the user canceled the desktop portal", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
         } else {
@@ -2468,7 +2476,7 @@ namespace gsr {
         kill(gpu_screen_recorder_process, SIGRTMIN+5);
     }
 
-    static const char* switch_video_codec_to_usable_hardware_encoder(const GsrInfo &gsr_info) {
+    static const char* get_first_usable_hardware_video_codec_name(const GsrInfo &gsr_info) {
         if(gsr_info.supported_video_codecs.h264)
             return "h264";
         else if(gsr_info.supported_video_codecs.hevc)
@@ -2501,8 +2509,7 @@ namespace gsr {
             *video_codec = "h264";
             *encoder = "cpu";
         } else if(strcmp(*video_codec, "auto") == 0) {
-            *video_codec = switch_video_codec_to_usable_hardware_encoder(gsr_info);
-            if(!*video_codec) {
+            if(!get_first_usable_hardware_video_codec_name(gsr_info)) {
                 *video_codec = "h264";
                 *encoder = "cpu";
             }
