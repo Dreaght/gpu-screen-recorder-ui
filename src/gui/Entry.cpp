@@ -350,6 +350,7 @@ namespace gsr {
 
         mgl::Text32 &active_text = masked ? masked_text : text;
         caret.offset_x = active_text.find_character_pos(caret.index).x - active_text.get_position().x;
+        selection_start_caret.offset_x = active_text.find_character_pos(selection_start_caret.index).x - active_text.get_position().x;
     }
 
     bool Entry::is_masked() const {
