@@ -174,6 +174,7 @@ namespace gsr {
             {"main.hotkeys_enable_option", &config.main_config.hotkeys_enable_option},
             {"main.joystick_hotkeys_enable_option", &config.main_config.joystick_hotkeys_enable_option},
             {"main.tint_color", &config.main_config.tint_color},
+            {"main.notification_speed", &config.main_config.notification_speed},
             {"main.show_hide_hotkey", &config.main_config.show_hide_hotkey},
 
             {"streaming.record_options.record_area_option", &config.streaming_config.record_options.record_area_option},

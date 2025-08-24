@@ -467,13 +467,42 @@ namespace gsr {
         return exit_program_button;
     }
 
+    std::unique_ptr<List> GlobalSettingsPage::create_notification_speed() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Notification speed", get_color_theme().text_color));
+
+        auto radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        notification_speed_button_ptr = radio_button.get();
+        radio_button->add_item("Normal", "normal");
+        radio_button->add_item("Fast", "fast");
+        radio_button->on_selection_changed = [this](const std::string&, const std::string &id) {
+            if(id == "normal")
+                overlay->set_notification_speed(NotificationSpeed::NORMAL);
+            else if(id == "fast")
+                overlay->set_notification_speed(NotificationSpeed::FAST);
+            return true;
+        };
+        list->add_widget(std::move(radio_button));
+
+        return list;
+    }
+
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        List *list_ptr = list.get();
+        auto subsection = std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+
+        list_ptr->add_widget(create_notification_speed());
+        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        list->add_widget(create_exit_program_button());
+        auto navigate_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        navigate_list->add_widget(create_exit_program_button());
         if(inside_flatpak)
-            list->add_widget(create_go_back_to_old_ui_button());
-        return std::make_unique<Subsection>("Application options", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+            navigate_list->add_widget(create_go_back_to_old_ui_button());
+        list_ptr->add_widget(std::move(navigate_list));
+
+        return subsection;
     }
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_info_subsection(ScrollablePage *parent_page) {
@@ -535,6 +564,8 @@ namespace gsr {
         enable_keyboard_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
         enable_joystick_hotkeys_radio_button_ptr->set_selected_item(config.main_config.joystick_hotkeys_enable_option, false, false);
 
+        notification_speed_button_ptr->set_selected_item(config.main_config.notification_speed);
+
         load_hotkeys();
     }
 
@@ -561,6 +592,7 @@ namespace gsr {
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
         config.main_config.hotkeys_enable_option = enable_keyboard_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
+        config.main_config.notification_speed = notification_speed_button_ptr->get_selected_id();
         save_config(config);
     }
 

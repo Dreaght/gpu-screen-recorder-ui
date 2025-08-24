@@ -47,6 +47,11 @@ namespace gsr {
         WINDOW
     };
 
+    enum class NotificationSpeed {
+        NORMAL,
+        FAST
+    };
+
     class Overlay {
     public:
         Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs);
@@ -81,6 +86,8 @@ namespace gsr {
 
         void unbind_all_keyboard_hotkeys();
         void rebind_all_keyboard_hotkeys();
+
+        void set_notification_speed(NotificationSpeed notification_speed);
     private:
         void handle_keyboard_mapping_event();
         void on_event(mgl::Event &event);
@@ -245,5 +252,6 @@ namespace gsr {
         mgl::Clock cursor_tracker_update_clock;
 
         bool hide_ui = false;
+        double notification_duration_multiplier = 1.0;
     };
 }

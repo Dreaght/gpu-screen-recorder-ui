@@ -70,6 +70,7 @@ namespace gsr {
         std::unique_ptr<Subsection> create_controller_hotkey_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Button> create_exit_program_button();
         std::unique_ptr<Button> create_go_back_to_old_ui_button();
+        std::unique_ptr<List> create_notification_speed();
         std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_application_info_subsection(ScrollablePage *parent_page);
         void add_widgets();
@@ -103,6 +104,7 @@ namespace gsr {
         Button *take_screenshot_region_button_ptr = nullptr;
         Button *take_screenshot_window_button_ptr = nullptr;
         Button *show_hide_button_ptr = nullptr;
+        RadioButton *notification_speed_button_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;
         ConfigureHotkeyType configure_hotkey_type = ConfigureHotkeyType::NONE;

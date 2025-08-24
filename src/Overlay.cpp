@@ -50,6 +50,7 @@ namespace gsr {
     static const double force_window_on_top_timeout_seconds = 1.0;
     static const double replay_status_update_check_timeout_seconds = 1.5;
     static const double replay_saving_notification_timeout_seconds = 0.5;
+    static const double short_notification_timeout_seconds = 2.0;
     static const double notification_timeout_seconds = 3.0;
     static const double notification_error_timeout_seconds = 5.0;
     static const double cursor_tracker_update_timeout_sec = 0.1;
@@ -446,6 +447,17 @@ namespace gsr {
         return global_hotkeys_js;
     }
 
+    static NotificationSpeed to_notification_speed(const std::string &notification_speed_str) {
+        if(notification_speed_str == "normal")
+            return NotificationSpeed::NORMAL;
+        else if(notification_speed_str == "fast")
+            return NotificationSpeed::FAST;
+        else {
+            assert(false);
+            return NotificationSpeed::NORMAL;
+        }
+    }
+
     Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
         gsr_info(std::move(gsr_info)),
@@ -474,6 +486,7 @@ namespace gsr {
 
         power_supply_online_filepath = get_power_supply_online_filepath();
         replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
+        set_notification_speed(to_notification_speed(config.main_config.notification_speed));
 
         if(config.main_config.hotkeys_enable_option == "enable_hotkeys")
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
@@ -1645,6 +1658,8 @@ namespace gsr {
     }
 
     void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target) {
+        timeout_seconds *= notification_duration_multiplier;
+
         char timeout_seconds_str[32];
         snprintf(timeout_seconds_str, sizeof(timeout_seconds_str), "%f", timeout_seconds);
 
@@ -1735,6 +1750,17 @@ namespace gsr {
         // TODO: Check if type is GlobalHotkeysLinux
         if(global_hotkeys)
             bind_linux_hotkeys(static_cast<GlobalHotkeysLinux*>(global_hotkeys.get()), this);
+    }
+
+    void Overlay::set_notification_speed(NotificationSpeed notification_speed) {
+        switch(notification_speed) {
+            case NotificationSpeed::NORMAL:
+                notification_duration_multiplier = 1.0;
+                break;
+            case NotificationSpeed::FAST:
+                notification_duration_multiplier = 0.3;
+                break;
+        }
     }
 
     void Overlay::update_notification_process_status() {
@@ -1966,7 +1992,9 @@ namespace gsr {
             const char *prefix = "";
             switch(notification_type) {
                 case NotificationType::NONE:
+                    break;
                 case NotificationType::SCREENSHOT:
+                    prefix = "Failed to take a screenshot";
                     break;
                 case NotificationType::RECORD:
                     prefix = "Failed to start/save recording";
@@ -2009,7 +2037,7 @@ namespace gsr {
                 update_ui_replay_stopped();
                 if(exit_code == 0) {
                     if(config.replay_config.show_replay_stopped_notifications)
-                        show_notification("Replay stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                        show_notification("Replay stopped", short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 } else {
                     on_gsr_process_error(exit_code, NotificationType::REPLAY);
                 }
@@ -2024,7 +2052,7 @@ namespace gsr {
                 update_ui_streaming_stopped();
                 if(exit_code == 0) {
                     if(config.streaming_config.show_streaming_stopped_notifications)
-                        show_notification("Streaming has stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                        show_notification("Streaming has stopped", short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 } else {
                     on_gsr_process_error(exit_code, NotificationType::STREAM);
                 }
@@ -2665,7 +2693,7 @@ namespace gsr {
         if(!disable_notification && config.replay_config.show_replay_started_notifications) {
             char msg[256];
             snprintf(msg, sizeof(msg), "Started replaying %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
-            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
+            show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
 
         if(config.replay_config.record_options.record_area_option == "portal")
@@ -2693,7 +2721,7 @@ namespace gsr {
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
                     if(!replay_recording) {
                         if(config.record_config.show_recording_started_notifications)
-                            show_notification("Started recording in the replay session", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+                            show_notification("Started recording in the replay session", short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
 
                         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
@@ -2714,7 +2742,7 @@ namespace gsr {
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
                     if(!replay_recording) {
                         if(config.record_config.show_recording_started_notifications)
-                            show_notification("Started recording in the streaming session", notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+                            show_notification("Started recording in the streaming session", short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
 
                         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
@@ -2840,7 +2868,7 @@ namespace gsr {
         if(config.record_config.show_recording_started_notifications) {
             char msg[256];
             snprintf(msg, sizeof(msg), "Started recording %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
-            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
+            show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
 
         if(config.record_config.record_options.record_area_option == "portal")
@@ -3026,7 +3054,7 @@ namespace gsr {
         if(config.streaming_config.show_streaming_started_notifications) {
             char msg[256];
             snprintf(msg, sizeof(msg), "Started streaming %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
-            show_notification(msg, notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, recording_capture_target.c_str());
+            show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, recording_capture_target.c_str());
         }
 
         if(config.streaming_config.record_options.record_area_option == "portal")
