@@ -215,8 +215,17 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_clipboard() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save screenshot to clipboard");
+        save_screenshot_to_clipboard_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_general_section() {
-        return std::make_unique<Subsection>("General", create_save_screenshot_in_game_folder(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(create_save_screenshot_in_game_folder());
+        list->add_widget(create_save_screenshot_to_clipboard());
+        return std::make_unique<Subsection>("General", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_notifications_section() {
@@ -281,6 +290,7 @@ namespace gsr {
         restore_portal_session_checkbox_ptr->set_checked(config.screenshot_config.restore_portal_session);
         save_directory_button_ptr->set_text(config.screenshot_config.save_directory);
         save_screenshot_in_game_folder_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_in_game_folder);
+        save_screenshot_to_clipboard_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_clipboard);
         show_screenshot_saved_notification_checkbox_ptr->set_checked(config.screenshot_config.show_screenshot_saved_notifications);
 
         if(config.screenshot_config.image_width == 0)
@@ -309,6 +319,7 @@ namespace gsr {
         config.screenshot_config.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
         config.screenshot_config.save_screenshot_in_game_folder = save_screenshot_in_game_folder_checkbox_ptr->is_checked();
+        config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
         config.screenshot_config.show_screenshot_saved_notifications = show_screenshot_saved_notification_checkbox_ptr->is_checked();
 
         if(config.screenshot_config.image_width == 0)

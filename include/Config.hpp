@@ -143,6 +143,7 @@ namespace gsr {
         bool restore_portal_session = true;
 
         bool save_screenshot_in_game_folder = false;
+        bool save_screenshot_to_clipboard = false;
         bool show_screenshot_saved_notifications = true;
         std::string save_directory;
         ConfigHotkey take_screenshot_hotkey;

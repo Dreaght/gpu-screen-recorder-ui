@@ -1842,6 +1842,15 @@ namespace gsr {
         return replay_duration_sec;
     }
 
+    static ClipboardFile::FileType filename_to_clipboard_file_type(const std::string &filename) {
+        if(ends_with(filename, ".jpg") || ends_with(filename, ".jpeg"))
+            return ClipboardFile::FileType::JPG;
+        else if(ends_with(filename, ".png"))
+            return ClipboardFile::FileType::PNG;
+        assert(false);
+        return ClipboardFile::FileType::PNG;
+    }
+
     void Overlay::save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type) {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
@@ -1896,6 +1905,9 @@ namespace gsr {
                 snprintf(msg, sizeof(msg), "Saved a screenshot of %s\nto \"%s\"",
                     capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str(), focused_window_name.c_str());
                 capture_target = screenshot_capture_target.c_str();
+
+                if(config.screenshot_config.save_screenshot_to_clipboard)
+                    clipboard_file.set_current_file(new_video_filepath, filename_to_clipboard_file_type(new_video_filepath));
                 break;
             }
             case NotificationType::NONE:
@@ -2086,6 +2098,9 @@ namespace gsr {
                 snprintf(msg, sizeof(msg), "Saved a screenshot of %s",
                     capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
+
+                if(config.screenshot_config.save_screenshot_to_clipboard)
+                    clipboard_file.set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);

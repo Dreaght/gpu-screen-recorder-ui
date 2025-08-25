@@ -10,6 +10,7 @@
 #include "AudioPlayer.hpp"
 #include "RegionSelector.hpp"
 #include "WindowSelector.hpp"
+#include "ClipboardFile.hpp"
 #include "CursorTracker/CursorTracker.hpp"
 
 #include <mglpp/window/Window.hpp>
@@ -253,5 +254,6 @@ namespace gsr {
 
         bool hide_ui = false;
         double notification_duration_multiplier = 1.0;
+        ClipboardFile clipboard_file;
     };
 }

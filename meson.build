@@ -1,4 +1,6 @@
-project('gsr-ui', ['c', 'cpp'], version : '1.7.3', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-ui', ['c', 'cpp'], version : '1.7.4', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+
+add_project_arguments('-D_FILE_OFFSET_BITS=64', language : ['c', 'cpp'])
 
 if get_option('buildtype') == 'debug'
     add_project_arguments('-g3', language : ['c', 'cpp'])
@@ -47,6 +49,7 @@ src = [
     'src/Overlay.cpp',
     'src/AudioPlayer.cpp',
     'src/Hotplug.cpp',
+    'src/ClipboardFile.cpp',
     'src/Rpc.cpp',
     'src/main.cpp',
 ]
