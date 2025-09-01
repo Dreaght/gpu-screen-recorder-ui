@@ -2560,6 +2560,17 @@ namespace gsr {
         *container = change_container_if_codec_not_supported(*video_codec, *container);
     }
 
+    static std::string get_framerate_mode_validate(const RecordOptions &record_options, const GsrInfo &gsr_info) {
+        std::string framerate_mode = record_options.framerate_mode;
+        if(framerate_mode == "auto") {
+            framerate_mode = "vfr";
+        } else if(framerate_mode == "content") {
+            if(gsr_info.system_info.display_server != DisplayServer::X11)
+                framerate_mode = "vfr";
+        }
+        return framerate_mode;
+    }
+
     bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection) {
         if(region_selector.is_started() || window_selector.is_started())
             return false;
@@ -2632,7 +2643,7 @@ namespace gsr {
         const std::string video_bitrate = std::to_string(config.replay_config.record_options.video_bitrate);
         const std::string output_directory = config.replay_config.save_directory;
         const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.replay_config.record_options.audio_tracks_list, gsr_info);
-        const std::string framerate_mode = config.replay_config.record_options.framerate_mode == "auto" ? "vfr" : config.replay_config.record_options.framerate_mode;
+        const std::string framerate_mode = get_framerate_mode_validate(config.replay_config.record_options, gsr_info);
         const std::string replay_time = std::to_string(config.replay_config.replay_time);
         const char *container = config.replay_config.container.c_str();
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
@@ -2829,7 +2840,7 @@ namespace gsr {
         const std::string video_bitrate = std::to_string(config.record_config.record_options.video_bitrate);
         const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
         const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.record_config.record_options.audio_tracks_list, gsr_info);
-        const std::string framerate_mode = config.record_config.record_options.framerate_mode == "auto" ? "vfr" : config.record_config.record_options.framerate_mode;
+        const std::string framerate_mode = get_framerate_mode_validate(config.record_config.record_options, gsr_info);
         const char *container = config.record_config.container.c_str();
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
@@ -3005,7 +3016,7 @@ namespace gsr {
         // But we check it anyways as streaming on some sites can fail if there is more than one audio track
         if(audio_tracks.size() > 1)
             audio_tracks.resize(1);
-        const std::string framerate_mode = config.streaming_config.record_options.framerate_mode == "auto" ? "vfr" : config.streaming_config.record_options.framerate_mode;
+        const std::string framerate_mode = get_framerate_mode_validate(config.streaming_config.record_options, gsr_info);
         const char *container = "flv";
         if(config.streaming_config.streaming_service == "custom")
             container = config.streaming_config.custom.container.c_str();

@@ -36,7 +36,7 @@ namespace gsr {
                 for(size_t i = 0; i < items.size(); ++i) {
                     Item &item = items[i];
                     item_size.y = padding_top + item.text.get_bounds().size.y + padding_bottom;
-                    if(mgl::FloatRect(item.position, item_size).contains(mouse_pos)) {
+                    if(mgl::FloatRect(item.position, item_size).contains(mouse_pos) && item.enabled) {
                         const size_t prev_selected_item = selected_item;
                         selected_item = i;
                         show_dropdown = false;
@@ -93,7 +93,7 @@ namespace gsr {
     void ComboBox::set_selected_item(const std::string &id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
-            if(item.id == id) {
+            if(item.id == id && item.enabled) {
                 const size_t prev_selected_item = selected_item;
                 selected_item = i;
                 dirty = true;
@@ -102,6 +102,22 @@ namespace gsr {
                     on_selection_changed(item.text.get_string(), item.id);
 
                 break;
+            }
+        }
+    }
+
+    void ComboBox::set_item_enabled(const std::string &id, bool enabled) {
+        for(size_t i = 0; i < items.size(); ++i) {
+            auto &item = items[i];
+            if(item.id == id) {
+                item.enabled = enabled;
+                item.text.set_color(item.enabled ? mgl::Color(255, 255, 255, 255) : mgl::Color(255, 255, 255, 80));
+                if(selected_item == i) {
+                    selected_item = 0;
+                    show_dropdown = false;
+                    dirty = true;
+                }
+                return;
             }
         }
     }
@@ -150,7 +166,7 @@ namespace gsr {
             Item &item = items[i];
             item_size.y = padding_top + item.text.get_bounds().size.y + padding_bottom;
 
-            if(!cursor_inside) {
+            if(!cursor_inside && item.enabled) {
                 cursor_inside = mgl::FloatRect(items_draw_pos, item_size).contains(mouse_pos);
                 if(cursor_inside) {
                     mgl::Rectangle item_background(items_draw_pos.floor(), item_size.floor());

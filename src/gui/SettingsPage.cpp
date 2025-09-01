@@ -568,6 +568,13 @@ namespace gsr {
         framerate_mode_box->add_item("Auto (Recommended)", "auto");
         framerate_mode_box->add_item("Constant", "cfr");
         framerate_mode_box->add_item("Variable", "vfr");
+        if(gsr_info->system_info.display_server == DisplayServer::X11) {
+            framerate_mode_box->add_item("Sync to content", "content");
+            framerate_mode_box->set_item_enabled("content", true);
+        } else {
+            framerate_mode_box->add_item("Sync to content (X11 only)", "content");
+            framerate_mode_box->set_item_enabled("content", false);
+        }
         framerate_mode_box_ptr = framerate_mode_box.get();
         return framerate_mode_box;
     }

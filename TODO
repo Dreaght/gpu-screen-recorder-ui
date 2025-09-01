@@ -206,3 +206,8 @@ Support localization.
 Add option to not capture cursor in screenshot when doing region/window capture.
 
 Window selection doesn't work when a window is fullscreen on x11.
+
+Make it possible to change replay duration of the "save 1 min" and "save 10 min" by adding them to the replay settings as options.
+
+If replay duration is set below the "save 1 min" or "save 10 min" then gray them out and when hovering over those buttons
+    show a tooltip that says that those buttons cant be used because the replay duration in replay settings is set to a lower value than that (and display the replay duration there).
