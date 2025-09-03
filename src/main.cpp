@@ -195,7 +195,9 @@ enum class LaunchAction {
 
 int main(int argc, char **argv) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
+#ifdef __GLIBC__
     mallopt(M_MMAP_THRESHOLD, 65536);
+#endif
 
     if(geteuid() == 0) {
         fprintf(stderr, "Error: don't run gsr-ui as the root user\n");
