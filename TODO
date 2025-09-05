@@ -211,5 +211,3 @@ Make it possible to change replay duration of the "save 1 min" and "save 10 min"
 
 If replay duration is set below the "save 1 min" or "save 10 min" then gray them out and when hovering over those buttons
     show a tooltip that says that those buttons cant be used because the replay duration in replay settings is set to a lower value than that (and display the replay duration there).
-
-Add content framerate mode for wayland with desktop portal capture when it has been added to gpu-screen-recorder and if it works.

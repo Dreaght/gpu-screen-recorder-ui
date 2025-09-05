@@ -2561,13 +2561,10 @@ namespace gsr {
     }
 
     static std::string get_framerate_mode_validate(const RecordOptions &record_options, const GsrInfo &gsr_info) {
+        (void)gsr_info;
         std::string framerate_mode = record_options.framerate_mode;
-        if(framerate_mode == "auto") {
+        if(framerate_mode == "auto")
             framerate_mode = "vfr";
-        } else if(framerate_mode == "content") {
-            if(gsr_info.system_info.display_server != DisplayServer::X11)
-                framerate_mode = "vfr";
-        }
         return framerate_mode;
     }
 
