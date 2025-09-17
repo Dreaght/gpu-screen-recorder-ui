@@ -4,17 +4,17 @@
 A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.\
 The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.
 
+# Installation
+If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
+If you are running another distro then you can run `sudo ./install.sh`, but you need to manually install the dependencies, as described below.\
+You can also install gpu screen recorder from [flathub](https://flathub.org/apps/details/com.dec05eba.gpu_screen_recorder) which includes this UI.
+
 # Usage
 Press `Left Alt+Z` to show/hide the UI. Go into settings (the icon on the right) to view all of the different hotkeys configured.\
 You can start the overlay UI and make it start automatically on system startup by running `systemctl enable --now --user gpu-screen-recorder-ui`.
 Alternatively you can run `gsr-ui` and go into settings and enable start on system startup setting.\
 If you use a non-systemd distro and want to start the UI on system startup then you have to manually add `gsr-ui launch-daemon` to your system startup script.\
 A program called `gsr-ui-cli` is also installed when installing this software. This can be used to remotely control the UI. Run `gsr-ui-cli --help` to list the available commands.
-
-# Installation
-If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
-If you are running another distro then you can run `sudo ./install.sh`, but you need to manually install the dependencies, as described below.\
-You can also install gpu screen recorder from [flathub](https://flathub.org/apps/details/com.dec05eba.gpu_screen_recorder) which includes this UI.
 
 # Dependencies
 GPU Screen Recorder UI uses meson build system so you need to install `meson` to build GPU Screen Recorder UI.
