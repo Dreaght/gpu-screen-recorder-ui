@@ -959,6 +959,7 @@ namespace gsr {
         const bool is_kwin = wm_name == "KWin";
         const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
         const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+        //const bool is_smithay = wm_name.find("Smithay") != std::string::npos;
         const bool hyprland_waybar_is_dock = is_hyprland && is_hyprland_waybar_running_as_dock();
 
         std::optional<CursorInfo> cursor_info;
@@ -986,8 +987,7 @@ namespace gsr {
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
-        // TODO: (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor))
-        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || x11_cursor_window || is_wlroots || is_hyprland;
+        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor)) || is_wlroots || is_hyprland;
 
         if(prevent_game_minimizing) {
             window_pos = focused_monitor->position;
