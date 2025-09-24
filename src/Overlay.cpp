@@ -512,7 +512,7 @@ namespace gsr {
         hide();
 
         if(notification_process > 0) {
-            kill(notification_process, SIGKILL);
+            kill(notification_process, SIGINT);
             int status;
             if(waitpid(notification_process, &status, 0) == -1) {
                 perror("waitpid failed");
@@ -1700,7 +1700,7 @@ namespace gsr {
         notification_args[arg_index++] = nullptr;
 
         if(notification_process > 0) {
-            kill(notification_process, SIGKILL);
+            kill(notification_process, SIGINT);
             int status = 0;
             waitpid(notification_process, &status, 0);
         }
@@ -1827,8 +1827,6 @@ namespace gsr {
                 result += " ";
             result += std::to_string(seconds) + " second" + (seconds == 1 ? "" : "s");
         }
-
-        fprintf(stderr, "to duration string: %f, %d, %d, %d\n", duration_sec, seconds, minutes, hours);
 
         return result;
     }
