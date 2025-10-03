@@ -226,16 +226,13 @@ int main(int argc, char **argv) {
     set_display_server_environment_variables();
 
     auto rpc = std::make_unique<gsr::Rpc>();
-    const bool rpc_created = rpc->create("gsr-ui");
-    if(!rpc_created)
-        fprintf(stderr, "Error: Failed to create rpc\n");
+    const gsr::RpcOpenResult rpc_open_result = rpc->open("gsr-ui");
 
-    if(is_gsr_ui_virtual_keyboard_running() || !rpc_created) {
+    if(is_gsr_ui_virtual_keyboard_running() || rpc_open_result == gsr::RpcOpenResult::OK) {
         if(launch_action == LaunchAction::LAUNCH_DAEMON)
             return 1;
 
-        rpc = std::make_unique<gsr::Rpc>();
-        if(rpc->open("gsr-ui") && rpc->write("show_ui\n", 8)) {
+        if(rpc->write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
         } else {
             fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
@@ -244,6 +241,9 @@ int main(int argc, char **argv) {
         }
         return 1;
     }
+
+    if(!rpc->create("gsr-ui"))
+        fprintf(stderr, "Error: Failed to create rpc\n");
 
     if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
         const char *args[] = { "gsr-notify", "--text", "GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };

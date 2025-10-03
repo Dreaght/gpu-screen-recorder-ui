@@ -5,9 +5,11 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
-static void get_runtime_filepath(char *buffer, size_t buffer_size, const char *filename) {
+static void get_socket_filepath(char *buffer, size_t buffer_size, const char *filename) {
     char dir[PATH_MAX];
 
     const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
@@ -23,7 +25,7 @@ static void get_runtime_filepath(char *buffer, size_t buffer_size, const char *f
 }
 
 /* Assumes |str| size is less than 256 */
-static void fifo_write_all(int file_fd, const char *str) {
+static void file_write_all(int file_fd, const char *str) {
     char command[256];
     const ssize_t command_size = snprintf(command, sizeof(command), "%s\n", str);
     if(command_size >= (ssize_t)sizeof(command)) {
@@ -33,7 +35,7 @@ static void fifo_write_all(int file_fd, const char *str) {
 
     ssize_t offset = 0;
     while(offset < (ssize_t)command_size) {
-        const ssize_t bytes_written = write(file_fd, str + offset, command_size - offset);
+        const ssize_t bytes_written = write(file_fd, command + offset, command_size - offset);
         if(bytes_written > 0)
             offset += bytes_written;
     }
@@ -112,15 +114,34 @@ int main(int argc, char **argv) {
         usage();
     }
 
-    char fifo_filepath[PATH_MAX];
-    get_runtime_filepath(fifo_filepath, sizeof(fifo_filepath), "gsr-ui");
-    const int fifo_fd = open(fifo_filepath, O_RDWR | O_NONBLOCK);
-    if(fifo_fd <= 0) {
-        fprintf(stderr, "Error: failed to open fifo file %s. Maybe gsr-ui is not running?\n", fifo_filepath);
+    char socket_filepath[PATH_MAX];
+    get_socket_filepath(socket_filepath, sizeof(socket_filepath), "gsr-ui");
+
+    const int socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if(socket_fd <= 0) {
+        fprintf(stderr, "Error: failed to create socket\n");
         exit(2);
     }
 
-    fifo_write_all(fifo_fd, command);
-    close(fifo_fd);
+    struct sockaddr_un addr = {0};
+    addr.sun_family = AF_UNIX;
+    snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", socket_filepath);
+
+    for(;;) {
+        if(connect(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+            const int err = errno;
+            if(err == EWOULDBLOCK) {
+                usleep(10 * 1000);
+            } else {
+                fprintf(stderr, "Error: failed to connect, error: %s. Maybe gsr-ui is not running?\n", strerror(err));
+                exit(2);
+            }
+        } else {
+            break;
+        }
+    }
+
+    file_write_all(socket_fd, command);
+    close(socket_fd);
     return 0;
 }
