@@ -3091,7 +3091,6 @@ namespace gsr {
             return;
         }
 
-        bool hotkey_window_capture = false;
         std::string record_area_option;
         switch(force_type) {
             case ScreenshotForceType::NONE:
@@ -3102,7 +3101,6 @@ namespace gsr {
                 break;
             case ScreenshotForceType::WINDOW:
                 record_area_option = gsr_info.system_info.display_server == DisplayServer::X11 ? "window" : "portal";
-                hotkey_window_capture = true;
                 break;
         }
 
@@ -3133,10 +3131,11 @@ namespace gsr {
 
         // TODO: Validate input, fallback to valid values
         const std::string output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
+        const bool capture_cursor = force_type == ScreenshotForceType::NONE && config.screenshot_config.record_cursor;
 
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", screenshot_capture_target.c_str(),
-            "-cursor", config.screenshot_config.record_cursor ? "yes" : "no",
+            "-cursor", capture_cursor ? "yes" : "no",
             "-v", "no",
             "-q", config.screenshot_config.image_quality.c_str(),
             "-o", output_file.c_str()
@@ -3150,7 +3149,7 @@ namespace gsr {
             args.push_back(size);
         }
 
-        if(config.screenshot_config.restore_portal_session && !hotkey_window_capture) {
+        if(config.screenshot_config.restore_portal_session && force_type != ScreenshotForceType::WINDOW) {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }
@@ -3158,7 +3157,7 @@ namespace gsr {
         const std::string hotkey_window_capture_portal_session_token_filepath = get_config_dir() + "/gpu-screen-recorder/gsr-ui-window-capture-token";
         if(record_area_option == "portal") {
             hide_ui = true;
-            if(hotkey_window_capture) {
+            if(force_type == ScreenshotForceType::WINDOW) {
                 args.push_back("-portal-session-token-filepath");
                 args.push_back(hotkey_window_capture_portal_session_token_filepath.c_str());
             }

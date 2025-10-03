@@ -102,24 +102,6 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
     });
 }
 
-static bool is_gsr_ui_virtual_keyboard_running() {
-    FILE *f = fopen("/proc/bus/input/devices", "rb");
-    if(!f)
-        return false;
-
-    bool virtual_keyboard_running = false;
-    char line[1024];
-    while(fgets(line, sizeof(line), f)) {
-        if(strstr(line, "gsr-ui virtual keyboard")) {
-            virtual_keyboard_running = true;
-            break;
-        }
-    }
-
-    fclose(f);
-    return virtual_keyboard_running;
-}
-
 static void install_flatpak_systemd_service() {
     const bool systemd_service_exists = system(
         "data_home=$(flatpak-spawn --host -- /bin/sh -c 'echo \"${XDG_DATA_HOME:-$HOME/.local/share}\"') && "
@@ -228,7 +210,7 @@ int main(int argc, char **argv) {
     auto rpc = std::make_unique<gsr::Rpc>();
     const gsr::RpcOpenResult rpc_open_result = rpc->open("gsr-ui");
 
-    if(is_gsr_ui_virtual_keyboard_running() || rpc_open_result == gsr::RpcOpenResult::OK) {
+    if(rpc_open_result == gsr::RpcOpenResult::OK) {
         if(launch_action == LaunchAction::LAUNCH_DAEMON)
             return 1;
 
