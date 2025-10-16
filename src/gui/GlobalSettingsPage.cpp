@@ -528,6 +528,22 @@ namespace gsr {
         return std::make_unique<Subsection>("Application info", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_donate_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:", get_color_theme().text_color));
+
+        auto donate_button = std::make_unique<Button>(&get_theme().body_font, "Donate", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        donate_button->on_click = [this] {
+            const char *args[] = { "xdg-open", "https://buymeacoffee.com/dec05eba", nullptr };
+            exec_program_daemonized(args);
+            overlay->hide_next_frame();
+        };
+        list->add_widget(std::move(donate_button));
+
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.", get_color_theme().text_color));
+        return std::make_unique<Subsection>("Donate", std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+    }
+
     void GlobalSettingsPage::add_widgets() {
         auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size());
 
@@ -539,6 +555,7 @@ namespace gsr {
         settings_list->add_widget(create_controller_hotkey_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_options_subsection(scrollable_page.get()));
         settings_list->add_widget(create_application_info_subsection(scrollable_page.get()));
+        settings_list->add_widget(create_donate_subsection(scrollable_page.get()));
         scrollable_page->add_widget(std::move(settings_list));
 
         content_page_ptr->add_widget(std::move(scrollable_page));

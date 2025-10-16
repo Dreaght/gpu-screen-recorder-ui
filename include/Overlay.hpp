@@ -65,7 +65,7 @@ namespace gsr {
         bool draw();
 
         void show();
-        void hide();
+        void hide_next_frame();
         void toggle_show();
         void toggle_record();
         void toggle_pause();
@@ -90,6 +90,8 @@ namespace gsr {
 
         void set_notification_speed(NotificationSpeed notification_speed);
     private:
+        void hide();
+
         void handle_keyboard_mapping_event();
         void on_event(mgl::Event &event);
 

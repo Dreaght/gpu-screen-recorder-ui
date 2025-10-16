@@ -73,7 +73,7 @@ namespace gsr {
         if(capture_options.region)
             record_area_box->add_item("Region", "region");
         if(!capture_options.monitors.empty())
-            record_area_box->add_item(gsr_info->system_info.display_server == DisplayServer::WAYLAND ? "Focused monitor (Experimental on Wayland)" : "Focused monitor", "focused_monitor");
+            record_area_box->add_item("Focused monitor", "focused_monitor");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
             snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);

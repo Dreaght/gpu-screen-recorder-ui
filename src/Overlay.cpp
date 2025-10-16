@@ -1446,6 +1446,10 @@ namespace gsr {
         malloc_trim(0);
     }
 
+    void Overlay::hide_next_frame() {
+        hide_ui = true;
+    }
+
     void Overlay::toggle_show() {
         if(visible) {
             //hide();

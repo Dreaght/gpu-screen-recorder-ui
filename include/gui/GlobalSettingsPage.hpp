@@ -73,6 +73,7 @@ namespace gsr {
         std::unique_ptr<List> create_notification_speed();
         std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_application_info_subsection(ScrollablePage *parent_page);
+        std::unique_ptr<Subsection> create_donate_subsection(ScrollablePage *parent_page);
         void add_widgets();
 
         Button* configure_hotkey_get_button_by_active_type();
