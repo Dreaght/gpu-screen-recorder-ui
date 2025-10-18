@@ -4,3 +4,5 @@ compile_commands.json
 
 **/xdg-output-unstable-v1-client-protocol.h
 **/xdg-output-unstable-v1-protocol.c
+
+depends/.wraplock
