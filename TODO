@@ -217,3 +217,18 @@ The UI is unusable on a vertical monitor.
 Steam overlay interfers with controller input in gsr ui. Maybe move controller handling the gsr-global-hotkeys to do a grab on the controller, to only give the key input to gsr ui.
 
 Add option to show recording status with scroll lock led (use x11 xkb). Blink when starting/stopping recording and set led on when recording is running and set led off when not recording.
+
+Use /dev/input/eventN or /dev/hidrawN for controller input since /dev/input/jsN buttons are different on different controllers, for example home button is different on ps4 (10), gamesir (8) and hori (12).
+
+For joysticks (gamepads) create a virtual device for each one (/dev/uinput) that has the same vendor, product and name. This is to make sure that it behaves the same way in applications since applications
+    access joysticks directly through /dev/input/eventN or /dev/input/jsN. It needs the same number of buttons and pretend to be a controller of the same time, for example a ps4 controller
+    so that games automatically display ps4 buttons if supported.
+    This also allows us to copy event bits and other data from the device instead of saying we support everything.
+    This should fix the issue of not being able to write to /dev/uinput with ABS_X event bit set.
+    Maybe do this for regular keyboard inputs as well?
+
+Use generic icons for controller input in settings and allow configuring them.
+
+Add option to include game name in file name (video and screenshot). Replace / with space.
+
+Check if the focused window is on top on x11 when choosing to take screenshot or show the window as the background of the overlay.
