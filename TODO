@@ -218,8 +218,6 @@ Steam overlay interfers with controller input in gsr ui. Maybe move controller h
 
 Add option to show recording status with scroll lock led (use x11 xkb). Blink when starting/stopping recording and set led on when recording is running and set led off when not recording.
 
-Use /dev/input/eventN or /dev/hidrawN for controller input since /dev/input/jsN buttons are different on different controllers, for example home button is different on ps4 (10), gamesir (8) and hori (12).
-
 For joysticks (gamepads) create a virtual device for each one (/dev/uinput) that has the same vendor, product and name. This is to make sure that it behaves the same way in applications since applications
     access joysticks directly through /dev/input/eventN or /dev/input/jsN. It needs the same number of buttons and pretend to be a controller of the same time, for example a ps4 controller
     so that games automatically display ps4 buttons if supported.

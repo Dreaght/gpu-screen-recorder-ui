@@ -234,13 +234,22 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
 /* Retarded linux takes very long time to close /dev/input/eventN files, even though they are virtual and opened read-only */
 static void* keyboard_event_close_fds_callback(void *userdata) {
     keyboard_event *self = userdata;
+    int fds_to_close_now[MAX_CLOSE_FDS];
+    int num_fds_to_close_now = 0;
+
     while(self->running) {
         pthread_mutex_lock(&self->close_dev_input_mutex);
         for(int i = 0; i < self->num_close_fds; ++i) {
-            close(self->close_fds[i]);
+            fds_to_close_now[i] = self->close_fds[i];
         }
+        num_fds_to_close_now = self->num_close_fds;
         self->num_close_fds = 0;
         pthread_mutex_unlock(&self->close_dev_input_mutex);
+
+        for(int i = 0; i < num_fds_to_close_now; ++i) {
+            close(fds_to_close_now[i]);
+        }
+        num_fds_to_close_now = 0;
 
         usleep(100 * 1000); /* 100 milliseconds */
     }
@@ -456,9 +465,13 @@ static void keyboard_event_remove_event(keyboard_event *self, int index) {
     if(index < 0 || index >= self->num_event_polls)
         return;
 
-    if(self->event_polls[index].fd > 0) {
-        ioctl(self->event_polls[index].fd, EVIOCGRAB, 0);
-        close(self->event_polls[index].fd);
+    const int poll_fd = self->event_polls[index].fd;
+    if(poll_fd > 0) {
+        ioctl(poll_fd, EVIOCGRAB, 0);
+        if(!keyboard_event_try_add_close_fd(self, poll_fd)) {
+            fprintf(stderr, "Error: failed to add immediately, closing now\n");
+            close(poll_fd);
+        }
     }
     free(self->event_extra_data[index].key_states);
     free(self->event_extra_data[index].key_presses_grabbed);

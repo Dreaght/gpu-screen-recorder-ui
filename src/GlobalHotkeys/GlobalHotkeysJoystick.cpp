@@ -3,90 +3,46 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <sys/eventfd.h>
 
 namespace gsr {
     static constexpr int button_pressed = 1;
-    static constexpr int cross_button = 0;
-    static constexpr int triangle_button = 2;
-    static constexpr int options_button = 9;
-    static constexpr int playstation_button = 10;
-    static constexpr int l3_button = 11;
-    static constexpr int r3_button = 12;
-    static constexpr int axis_up_down = 7;
-    static constexpr int axis_left_right = 6;
-
-    struct DeviceId {
-        uint16_t vendor;
-        uint16_t product;
-    };
-
-    static bool read_file_hex_number(const char *path, unsigned int *value) {
-        *value = 0;
-        FILE *f = fopen(path, "rb");
-        if(!f)
-            return false;
-
-        fscanf(f, "%x", value);
-        fclose(f);
-        return true;
-    }
-
-    static DeviceId joystick_get_device_id(const char *path) {
-        DeviceId device_id;
-        device_id.vendor = 0;
-        device_id.product = 0;
-
-        const char *js_path_id = nullptr;
-        const int len = strlen(path);
-        for(int i = len - 1; i >= 0; --i) {
-            if(path[i] == '/') {
-                js_path_id = path + i + 1;
-                break;
-            }
-        }
-
-        if(!js_path_id)
-            return device_id;
-
-        unsigned int vendor = 0;
-        unsigned int product = 0;
-        char path_buf[1024];
-
-        snprintf(path_buf, sizeof(path_buf), "/sys/class/input/%s/device/id/vendor", js_path_id);
-        if(!read_file_hex_number(path_buf, &vendor))
-            return device_id;
-
-        snprintf(path_buf, sizeof(path_buf), "/sys/class/input/%s/device/id/product", js_path_id);
-        if(!read_file_hex_number(path_buf, &product))
-            return device_id;
-
-        device_id.vendor = vendor;
-        device_id.product = product;
-        return device_id;
-    }
-
-    static bool is_ps4_controller(DeviceId device_id) {
-        return device_id.vendor == 0x054C && (device_id.product == 0x09CC || device_id.product == 0x0BA0 || device_id.product == 0x05C4);
-    }
-
-    static bool is_ps5_controller(DeviceId device_id) {
-        return device_id.vendor == 0x054C && (device_id.product == 0x0DF2 || device_id.product == 0x0CE6);
-    }
-
-    static bool is_stadia_controller(DeviceId device_id) {
-        return device_id.vendor == 0x18D1 && (device_id.product == 0x9400);
-    }
 
     // Returns -1 on error
-    static int get_js_dev_input_id_from_filepath(const char *dev_input_filepath) {
-        if(strncmp(dev_input_filepath, "/dev/input/js", 13) != 0)
+    static int get_dev_input_event_id_from_filepath(const char *dev_input_filepath) {
+        if(strncmp(dev_input_filepath, "/dev/input/event", 16) != 0)
             return -1;
 
         int dev_input_id = -1;
-        if(sscanf(dev_input_filepath + 13, "%d", &dev_input_id) == 1)
+        if(sscanf(dev_input_filepath + 16, "%d", &dev_input_id) == 1)
             return dev_input_id;
         return -1;
+    }
+
+    static inline bool supports_key(unsigned char *key_bits, unsigned int key) {
+        return key_bits[key/8] & (1 << (key % 8));
+    }
+
+    static bool supports_joystick_keys(unsigned char *key_bits) {
+        const int keys[7] = { BTN_A, BTN_B, BTN_X, BTN_Y, BTN_SELECT, BTN_START, BTN_SELECT };
+        for(int i = 0; i < 7; ++i) {
+            if(supports_key(key_bits, keys[i]))
+                return true;
+        }
+        return false;
+    }
+
+    static bool is_input_device_joystick(int input_fd) {
+        unsigned long evbit = 0;
+        ioctl(input_fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
+        if((evbit & (1 << EV_SYN)) && (evbit & (1 << EV_KEY))) {
+            unsigned char key_bits[KEY_MAX/8 + 1];
+            memset(key_bits, 0, sizeof(key_bits));
+            ioctl(input_fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
+            return supports_joystick_keys(key_bits);
+        }
+        return false;
     }
 
     GlobalHotkeysJoystick::~GlobalHotkeysJoystick() {
@@ -98,8 +54,18 @@ namespace gsr {
         if(read_thread.joinable())
             read_thread.join();
 
-        if(event_fd > 0)
+        if(event_fd > 0) {
             close(event_fd);
+            event_fd = 0;
+        }
+
+        close_fd_cv.notify_one();
+        if(close_fd_thread.joinable())
+            close_fd_thread.join();
+
+        for(int fd : fds_to_close) {
+            close(fd);
+        }
 
         for(int i = 0; i < num_poll_fd; ++i) {
             if(poll_fd[i].fd > 0)
@@ -141,16 +107,10 @@ namespace gsr {
             ++num_poll_fd;
         }
 
-        char dev_input_path[128];
-        for(int i = 0; i < 8; ++i) {
-            snprintf(dev_input_path, sizeof(dev_input_path), "/dev/input/js%d", i);
-            add_device(dev_input_path, false);
-        }
-
-        if(num_poll_fd == 0)
-            fprintf(stderr, "Info: no joysticks found, assuming they might be connected later\n");
+        add_all_joystick_devices();
 
         read_thread = std::thread(&GlobalHotkeysJoystick::read_events, this);
+        close_fd_thread = std::thread(&GlobalHotkeysJoystick::close_fds, this);
         return true;
     }
 
@@ -214,8 +174,30 @@ namespace gsr {
         }
     }
 
+    // Retarded linux takes very long time to close /dev/input/eventN files, even though they are virtual and opened read-only
+    void GlobalHotkeysJoystick::close_fds() {
+        std::vector<int> current_fds_to_close;
+        while(event_fd > 0) {
+            {
+                std::unique_lock<std::mutex> lock(close_fd_mutex);
+                close_fd_cv.wait(lock, [this]{ return !fds_to_close.empty() || event_fd <= 0; });
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(close_fd_mutex);
+                current_fds_to_close = std::move(fds_to_close);
+                fds_to_close.clear();
+            }
+
+            for(int fd : current_fds_to_close) {
+                close(fd);
+            }
+            current_fds_to_close.clear();
+        }
+    }
+
     void GlobalHotkeysJoystick::read_events() {
-        js_event event;
+        input_event event;
         while(poll(poll_fd, num_poll_fd, -1) > 0) {
             for(int i = 0; i < num_poll_fd; ++i) {
                 if(poll_fd[i].revents & (POLLHUP|POLLERR|POLLNVAL)) {
@@ -223,7 +205,7 @@ namespace gsr {
                         goto done;
 
                     char dev_input_filepath[256];
-                    snprintf(dev_input_filepath, sizeof(dev_input_filepath), "/dev/input/js%d", extra_data[i].dev_input_id);
+                    snprintf(dev_input_filepath, sizeof(dev_input_filepath), "/dev/input/event%d", extra_data[i].dev_input_id);
                     fprintf(stderr, "Info: removed joystick: %s\n", dev_input_filepath);
                     if(remove_poll_fd(i))
                         --i; // This item was removed so we want to repeat the same index to continue to the next item
@@ -240,7 +222,7 @@ namespace gsr {
                     hotplug.process_event_data(poll_fd[i].fd, [&](HotplugAction hotplug_action, const char *devname) {
                         switch(hotplug_action) {
                             case HotplugAction::ADD: {
-                                add_device(devname);
+                                add_device(devname, false);
                                 break;
                             }
                             case HotplugAction::REMOVE: {
@@ -251,7 +233,7 @@ namespace gsr {
                         }
                     });
                 } else {
-                    process_js_event(poll_fd[i].fd, event);
+                    process_input_event(poll_fd[i].fd, event);
                 }
             }
         }
@@ -260,54 +242,44 @@ namespace gsr {
         ;
     }
 
-    void GlobalHotkeysJoystick::process_js_event(int fd, js_event &event) {
+    void GlobalHotkeysJoystick::process_input_event(int fd, input_event &event) {
         if(read(fd, &event, sizeof(event)) != sizeof(event))
             return;
 
-        if((event.type & JS_EVENT_BUTTON) == JS_EVENT_BUTTON) {
-            switch(event.number) {
-                case playstation_button: {
-                    // Workaround weird steam input (in-game) behavior where steam triggers playstation button + options when pressing both l3 and r3 at the same time
-                    playstation_button_pressed = (event.value == button_pressed) && !l3_button_pressed && !r3_button_pressed;
+        if(event.type == EV_KEY) {
+            switch(event.code) {
+                case BTN_MODE: {
+                    playstation_button_pressed = (event.value == button_pressed);
                     break;
                 }
-                case options_button: {
+                case BTN_START: {
                     if(playstation_button_pressed && event.value == button_pressed)
                         toggle_show = true;
                     break;
                 }
-                case cross_button: {
+                case BTN_SOUTH: {
                     if(playstation_button_pressed && event.value == button_pressed)
                         save_1_min_replay = true;
                     break;
                 }
-                case triangle_button: {
+                case BTN_NORTH: {
                     if(playstation_button_pressed && event.value == button_pressed)
                         save_10_min_replay = true;
                     break;
                 }
-                case l3_button: {
-                    l3_button_pressed = event.value == button_pressed;
-                    break;
-                }
-                case r3_button: {
-                    r3_button_pressed = event.value == button_pressed;
-                    break;
-                }
             }
-        } else if((event.type & JS_EVENT_AXIS) == JS_EVENT_AXIS && playstation_button_pressed) {
-            const int trigger_threshold = 16383;
+        } else if(event.type == EV_ABS && playstation_button_pressed) {
             const bool prev_up_pressed = up_pressed;
             const bool prev_down_pressed = down_pressed;
             const bool prev_left_pressed = left_pressed;
             const bool prev_right_pressed = right_pressed;
 
-            if(event.number == axis_up_down) {
-                up_pressed = event.value <= -trigger_threshold;
-                down_pressed = event.value >= trigger_threshold;
-            } else if(event.number == axis_left_right) {
-                left_pressed = event.value <= -trigger_threshold;
-                right_pressed = event.value >= trigger_threshold;
+            if(event.code == ABS_HAT0Y) {
+                up_pressed = event.value == -1;
+                down_pressed = event.value == 1;
+            } else if(event.code == ABS_HAT0X) {
+                left_pressed = event.value == -1;
+                right_pressed = event.value == 1;
             }
 
             if(up_pressed && !prev_up_pressed)
@@ -321,13 +293,36 @@ namespace gsr {
         }
     }
 
+    void GlobalHotkeysJoystick::add_all_joystick_devices() {
+        DIR *dir = opendir("/dev/input");
+        if(!dir) {
+            fprintf(stderr, "Error: failed to open /dev/input, error: %s\n", strerror(errno));
+            return;
+        }
+
+        char dev_input_filepath[1024];
+        for(;;) {
+            struct dirent *entry = readdir(dir);
+            if(!entry)
+                break;
+
+            if(strncmp(entry->d_name, "event", 5) != 0)
+                continue;
+
+            snprintf(dev_input_filepath, sizeof(dev_input_filepath), "/dev/input/%s", entry->d_name);
+            add_device(dev_input_filepath, false);
+        }
+
+        closedir(dir);
+    }
+
     bool GlobalHotkeysJoystick::add_device(const char *dev_input_filepath, bool print_error) {
         if(num_poll_fd >= max_js_poll_fd) {
             fprintf(stderr, "Warning: failed to add joystick device %s, too many joysticks have been added\n", dev_input_filepath);
             return false;
         }
 
-        const int dev_input_id = get_js_dev_input_id_from_filepath(dev_input_filepath);
+        const int dev_input_id = get_dev_input_event_id_from_filepath(dev_input_filepath);
         if(dev_input_id == -1)
             return false;
 
@@ -335,6 +330,15 @@ namespace gsr {
         if(fd <= 0) {
             if(print_error)
                 fprintf(stderr, "Error: failed to add joystick %s, error: %s\n", dev_input_filepath, strerror(errno));
+            return false;
+        }
+
+        if(!is_input_device_joystick(fd)) {
+            {
+                std::lock_guard<std::mutex> lock(close_fd_mutex);
+                fds_to_close.push_back(fd);
+            }
+            close_fd_cv.notify_one();
             return false;
         }
 
@@ -356,7 +360,7 @@ namespace gsr {
     }
 
     bool GlobalHotkeysJoystick::remove_device(const char *dev_input_filepath) {
-        const int dev_input_id = get_js_dev_input_id_from_filepath(dev_input_filepath);
+        const int dev_input_id = get_dev_input_event_id_from_filepath(dev_input_filepath);
         if(dev_input_id == -1)
             return false;
 
@@ -372,8 +376,13 @@ namespace gsr {
         if(index < 0 || index >= num_poll_fd)
             return false;
 
-        if(poll_fd[index].fd > 0)
-            close(poll_fd[index].fd);
+        if(poll_fd[index].fd > 0) {
+            {
+                std::lock_guard<std::mutex> lock(close_fd_mutex);
+                fds_to_close.push_back(poll_fd[index].fd);
+            }
+            close_fd_cv.notify_one();
+        }
 
         for(int i = index + 1; i < num_poll_fd; ++i) {
             poll_fd[i - 1] = poll_fd[i];
