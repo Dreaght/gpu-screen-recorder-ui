@@ -149,26 +149,31 @@ namespace gsr {
 
         if(xselectionrequest->target == targets_atom) {
             int num_targets = 1;
-            Atom targets[3];
+            Atom targets[4];
             targets[0] = targets_atom;
 
             switch(file_type) {
                 case FileType::JPG:
-                    num_targets = 3;
+                    num_targets = 4;
                     targets[1] = image_jpg_atom;
                     targets[2] = image_jpeg_atom;
+                    targets[3] = image_png_atom;
                     break;
                 case FileType::PNG:
                     num_targets = 2;
                     targets[1] = image_png_atom;
+                    targets[2] = image_jpg_atom;
+                    targets[3] = image_jpeg_atom;
                     break;
             }
 
             XChangeProperty(dpy, selection_event.requestor, selection_event.property, XA_ATOM, 32, PropModeReplace, (unsigned char*)targets, num_targets);
         } else if(xselectionrequest->target == image_jpg_atom || xselectionrequest->target == image_jpeg_atom || xselectionrequest->target == image_png_atom) {
+            // TODO: Convert image to requested image type. Right now sending a jpg file when a png file is requested works ok in browsers (discord and element)
             if(!file_type_matches_request_atom(file_type, xselectionrequest->target)) {
-                fprintf(stderr, "gsr ui: warning: ClipboardFile::send_clipboard: requestor window " FORMAT_I64 " tried to request clipboard of type %s, but %s was expected\n", (int64_t)xselectionrequest->requestor, file_type_clipboard_get_name(xselectionrequest->target), file_type_get_name(file_type));
-                return;
+                const char *expected_file_type = file_type_get_name(file_type);
+                fprintf(stderr, "gsr ui: warning: ClipboardFile::send_clipboard: requestor window " FORMAT_I64 " tried to request clipboard of type %s, but %s was expected. Ignoring requestor and sending as %s\n", (int64_t)xselectionrequest->requestor, file_type_clipboard_get_name(xselectionrequest->target), expected_file_type, expected_file_type);
+                //return;
             }
 
             ClipboardCopy *clipboard_copy = get_clipboard_copy_by_requestor(xselectionrequest->requestor);

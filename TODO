@@ -230,3 +230,5 @@ Use generic icons for controller input in settings and allow configuring them.
 Add option to include game name in file name (video and screenshot). Replace / with space.
 
 Check if the focused window is on top on x11 when choosing to take screenshot or show the window as the background of the overlay.
+
+Convert clipboard image to requested type (from jpg to png for example).
