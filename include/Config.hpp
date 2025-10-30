@@ -65,6 +65,7 @@ namespace gsr {
     struct MainConfig {
         int32_t config_file_version = GSR_CONFIG_FILE_VERSION;
         bool software_encoding_warning_shown = false;
+        bool wayland_warning_shown = false;
         std::string hotkeys_enable_option = "enable_hotkeys";
         std::string joystick_hotkeys_enable_option = "disable_hotkeys";
         std::string tint_color;

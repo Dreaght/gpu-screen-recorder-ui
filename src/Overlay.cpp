@@ -506,6 +506,12 @@ namespace gsr {
             cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
         else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND && !this->gsr_info.gpu_info.card_path.empty())
             cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str());
+
+        if(!config.main_config.wayland_warning_shown) {
+            config.main_config.wayland_warning_shown = true;
+            save_config(config);
+            show_notification("Wayland doesn't support GPU Screen Recorder program properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+        }
     }
 
     Overlay::~Overlay() {
@@ -738,7 +744,7 @@ namespace gsr {
             if(selected_window && selected_window != DefaultRootWindow(display)) {
                 on_window_selected();
             } else {
-                show_notification("No window selected", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                show_notification("No window selected", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
             }
             on_window_selected = nullptr;
         }
@@ -789,7 +795,7 @@ namespace gsr {
             start_region_capture = false;
             hide();
             if(!region_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
                 on_region_selected = nullptr;
             }
         }
@@ -798,7 +804,7 @@ namespace gsr {
             start_window_capture = false;
             hide();
             if(!window_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start window capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                show_notification("Failed to start window capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
                 on_window_selected = nullptr;
             }
         }
@@ -1269,12 +1275,12 @@ namespace gsr {
 
                     if(exit_status == 127) {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 7.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 7.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
                     } else {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                            show_notification("Failed to add GPU Screen Recorder to system startup", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
                         else
-                            show_notification("Failed to remove GPU Screen Recorder from system startup", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE);
+                            show_notification("Failed to remove GPU Screen Recorder from system startup", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
                     }
                 };
 
@@ -1661,8 +1667,9 @@ namespace gsr {
         return focused_monitor_name;
     }
 
-    void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target) {
-        timeout_seconds *= notification_duration_multiplier;
+    void Overlay::show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target, NotificationLevel notification_level) {
+        if(notification_level != NotificationLevel::ERROR)
+            timeout_seconds *= notification_duration_multiplier;
 
         char timeout_seconds_str[32];
         snprintf(timeout_seconds_str, sizeof(timeout_seconds_str), "%f", timeout_seconds);
@@ -1961,7 +1968,7 @@ namespace gsr {
                 line[line_len - 1] = '\0';
 
             if(starts_with({line, (size_t)line_len}, "Error: ")) {
-                show_notification(line + 7, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), recording_status_to_notification_type(recording_status));
+                show_notification(line + 7, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), recording_status_to_notification_type(recording_status), nullptr, NotificationLevel::ERROR);
                 return;
             }
 
@@ -1991,17 +1998,17 @@ namespace gsr {
     void Overlay::on_gsr_process_error(int exit_code, NotificationType notification_type) {
         fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
         if(exit_code == 50) {
-            show_notification("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 51) {
-            show_notification("Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 52) {
-            show_notification("Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 53) {
-            show_notification("Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 54) {
-            show_notification("Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 60) {
-            show_notification("Stopped capture because the user canceled the desktop portal", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification("Stopped capture because the user canceled the desktop portal", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else {
             const char *prefix = "";
             switch(notification_type) {
@@ -2023,7 +2030,7 @@ namespace gsr {
 
             char msg[256];
             snprintf(msg, sizeof(msg), "%s. Verify if settings are correct", prefix);
-            show_notification(msg, notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type);
+            show_notification(msg, notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         }
     }
 
@@ -2106,7 +2113,7 @@ namespace gsr {
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
-            show_notification("Failed to take a screenshot. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
+            show_notification("Failed to take a screenshot. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
         }
 
         gpu_screen_recorder_screenshot_process = -1;
@@ -2579,10 +2586,10 @@ namespace gsr {
             case RecordingStatus::REPLAY:
                 break;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start replay when recording.\nStop recording before starting replay.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+                show_notification("Unable to start replay when recording.\nStop recording before starting replay.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
                 return false;
             case RecordingStatus::STREAM:
-                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
+                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
                 return false;
         }
 
@@ -2617,7 +2624,7 @@ namespace gsr {
         if(!validate_capture_target(config.replay_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
             return false;
         }
 
@@ -2697,7 +2704,7 @@ namespace gsr {
 
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to start replay", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
+            show_notification("Failed to launch gpu-screen-recorder to start replay", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
             return false;
         } else {
             recording_status = RecordingStatus::REPLAY;
@@ -2756,7 +2763,7 @@ namespace gsr {
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
-                    show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::REPLAY);
+                    show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
                 }
                 return;
             }
@@ -2777,7 +2784,7 @@ namespace gsr {
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
-                    show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::STREAM);
+                    show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
                 }
                 return;
             }
@@ -2812,7 +2819,7 @@ namespace gsr {
         if(!validate_capture_target(config.record_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
             return;
         }
 
@@ -2875,7 +2882,7 @@ namespace gsr {
         record_filepath = output_file;
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to start recording", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+            show_notification("Failed to launch gpu-screen-recorder to start recording", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
             return;
         } else {
             recording_status = RecordingStatus::RECORD;
@@ -2953,10 +2960,10 @@ namespace gsr {
             case RecordingStatus::STREAM:
                 break;
             case RecordingStatus::REPLAY:
-                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY);
+                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
                 return;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD);
+                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
                 return;
         }
 
@@ -2987,7 +2994,7 @@ namespace gsr {
         if(!validate_capture_target(config.streaming_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
             return;
         }
 
@@ -3058,7 +3065,7 @@ namespace gsr {
 
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to start streaming", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM);
+            show_notification("Failed to launch gpu-screen-recorder to start streaming", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
             return;
         } else {
             recording_status = RecordingStatus::STREAM;
@@ -3113,7 +3120,7 @@ namespace gsr {
         if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid.\nPlease change capture target in settings", screenshot_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
             return;
         }
 
@@ -3176,7 +3183,7 @@ namespace gsr {
         screenshot_filepath = output_file;
         gpu_screen_recorder_screenshot_process = exec_program(args.data(), nullptr);
         if(gpu_screen_recorder_screenshot_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to take a screenshot", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT);
+            show_notification("Failed to launch gpu-screen-recorder to take a screenshot", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
         }
     }
 

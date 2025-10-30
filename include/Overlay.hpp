@@ -42,6 +42,11 @@ namespace gsr {
         SCREENSHOT
     };
 
+    enum class NotificationLevel {
+        INFO,
+        ERROR,
+    };
+
     enum class ScreenshotForceType {
         NONE,
         REGION,
@@ -77,7 +82,7 @@ namespace gsr {
         void take_screenshot();
         void take_screenshot_region();
         void take_screenshot_window();
-        void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target = nullptr);
+        void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target = nullptr, NotificationLevel notification_level = NotificationLevel::INFO);
         bool is_open() const;
         bool should_exit(std::string &reason) const;
         void exit();
