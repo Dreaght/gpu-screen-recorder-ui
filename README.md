@@ -71,3 +71,6 @@ I'm looking for somebody that can create sound effects for the notifications.
 If you have previously used the flatpak version of GPU Screen Recorder with the new UI then the non-flatpak version of the systemd service will conflict with that. Run `gsr-ui` to fix that.
 ## I use a non-qwerty keyboard layout and I have an issue with incorrect keys registered in the software
 This is a KDE Plasma Wayland issue. Use `setxkbmap <language>` command, for example `setxkbmap se` to make sure X11 applications (such as this one) gets updated to use your languages keyboard layout.
+## "Save to clipboard" option doesn't work for screenshots
+Some Wayland compositors don't support copying images on the clipboard between X11 and Wayland applications. GPU Screen Recorder UI is an X11 application. It can't be done properly on Wayland
+since Wayland doesn't support a non-focused application from setting the clipboard, so it can't work with GPU Screen Recorder hotkey usage. Use X11 if you want a functioning desktop.

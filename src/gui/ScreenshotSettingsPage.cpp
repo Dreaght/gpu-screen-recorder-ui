@@ -216,7 +216,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_clipboard() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save screenshot to clipboard");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, gsr_info->system_info.display_server == DisplayServer::X11 ? "Save screenshot to clipboard" : "Save screenshot to clipboard (Not supported properly by Wayland)");
         save_screenshot_to_clipboard_checkbox_ptr = checkbox.get();
         return checkbox;
     }
