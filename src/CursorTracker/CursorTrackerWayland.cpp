@@ -403,6 +403,7 @@ namespace gsr {
     }
 
     CursorTrackerWayland::~CursorTrackerWayland() {
+        clear_monitors();
         if(drm_fd > 0)
             close(drm_fd);
     }
@@ -480,6 +481,21 @@ namespace gsr {
         wl_display_roundtrip(dpy);
     }
 
+    void CursorTrackerWayland::clear_monitors() {
+        for(WaylandOutput &monitor : monitors) {
+            if(monitor.output) {
+                wl_output_destroy(monitor.output);
+                monitor.output = nullptr;
+            }
+
+            if(monitor.xdg_output) {
+                zxdg_output_v1_destroy(monitor.xdg_output);
+                monitor.xdg_output = nullptr;
+            }
+        }
+        monitors.clear();
+    }
+
     std::optional<CursorInfo> CursorTrackerWayland::get_latest_cursor_info() {
         if(drm_fd <= 0 || latest_crtc_id == -1)
             return std::nullopt;
@@ -494,7 +510,7 @@ namespace gsr {
             return std::nullopt;
         }
 
-        monitors.clear();
+        clear_monitors();
         struct wl_registry *registry = wl_display_get_registry(dpy);
         wl_registry_add_listener(registry, &registry_listener, this);
 
@@ -508,22 +524,13 @@ namespace gsr {
 
         mgl::vec2i cursor_position = latest_cursor_position;
         const WaylandOutput *wayland_monitor = get_wayland_monitor_by_name(monitors, monitor_name);
-        if(!wayland_monitor)
+        if(!wayland_monitor) {
+            clear_monitors();
             return std::nullopt;
+        }
 
         cursor_position = wayland_monitor->pos + latest_cursor_position;
-        for(WaylandOutput &monitor : monitors) {
-            if(monitor.output) {
-                wl_output_destroy(monitor.output);
-                monitor.output = nullptr;
-            }
-
-            if(monitor.xdg_output) {
-                zxdg_output_v1_destroy(monitor.xdg_output);
-                monitor.xdg_output = nullptr;
-            }
-        }
-        monitors.clear();
+        clear_monitors();
 
         if(xdg_output_manager) {
             zxdg_output_manager_v1_destroy(xdg_output_manager);

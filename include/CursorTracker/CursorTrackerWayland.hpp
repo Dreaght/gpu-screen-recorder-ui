@@ -34,6 +34,7 @@ namespace gsr {
         std::vector<WaylandOutput> monitors;
         struct zxdg_output_manager_v1 *xdg_output_manager = nullptr;
     private:
+        void clear_monitors();
         void set_monitor_outputs_from_xdg_output(struct wl_display *dpy);
     private:
         int drm_fd = -1;
