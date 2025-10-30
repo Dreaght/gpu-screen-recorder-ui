@@ -510,7 +510,7 @@ namespace gsr {
         if(!config.main_config.wayland_warning_shown) {
             config.main_config.wayland_warning_shown = true;
             save_config(config);
-            show_notification("Wayland doesn't support GPU Screen Recorder program properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+            show_notification("Wayland doesn't support GPU Screen Recorder properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
         }
     }
 
