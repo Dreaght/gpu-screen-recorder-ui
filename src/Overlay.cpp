@@ -1449,7 +1449,9 @@ namespace gsr {
         }
 
         deinit_theme();
+#ifdef __GLIBC__
         malloc_trim(0);
+#endif
     }
 
     void Overlay::hide_next_frame() {
