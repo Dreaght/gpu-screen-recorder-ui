@@ -236,3 +236,5 @@ Convert clipboard image to requested type (from jpg to png for example).
 Save clipboard image with wayland on wayland. Some wayland compositors (such as hyprland, budgie and maybe more (wlroots based ones?)) don't support copying clipboard image data from x11 applications to wayland applications.
     This can be done because retarded wayland only supports setting clipboard when the application has focus. This doesn't work with hotkey screenshot use.
     This is specifically an issue when using wl_data_device_manager, which is a standard protocol. It can be done when using wlr specific protocol.
+
+When gsr supports pausing recording done in replay/streaming session then add support for that in gsr-ui as well.

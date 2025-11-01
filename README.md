@@ -74,3 +74,5 @@ This is a KDE Plasma Wayland issue. Use `setxkbmap <language>` command, for exam
 ## "Save to clipboard" option doesn't work for screenshots
 Some Wayland compositors don't support copying images on the clipboard between X11 and Wayland applications. GPU Screen Recorder UI is an X11 application. It can't be done properly on Wayland
 since Wayland doesn't support a non-focused application from setting the clipboard, so it can't work with GPU Screen Recorder hotkey usage. Use X11 if you want a functioning desktop.
+## The controller hotkey and steam overlap (home button brings up steam overlay)
+You can either disable the steam overlay or in steam click Steam->Settings->Controller and then click "Begin Test" under "Test Device Inputs". Click on "Setup Device Inputs" and configure controller buttons there and when you get to the home button press X to unbind it from steam.
