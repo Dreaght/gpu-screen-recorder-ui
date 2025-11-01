@@ -95,6 +95,8 @@ namespace gsr {
 
         void set_notification_speed(NotificationSpeed notification_speed);
     private:
+        void update_upause_status();
+
         void hide();
 
         void handle_keyboard_mapping_event();
@@ -199,6 +201,8 @@ namespace gsr {
 
         RecordingStatus recording_status = RecordingStatus::NONE;
         bool paused = false;
+        mgl::Clock paused_clock;
+        double paused_total_time_seconds = 0.0;
 
         mgl::Clock replay_status_update_clock;
         std::string power_supply_online_filepath;

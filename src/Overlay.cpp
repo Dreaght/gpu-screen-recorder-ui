@@ -504,13 +504,15 @@ namespace gsr {
 
         if(this->gsr_info.system_info.display_server == DisplayServer::X11)
             cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
-        else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND && !this->gsr_info.gpu_info.card_path.empty())
-            cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str());
+        else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
+            if(!this->gsr_info.gpu_info.card_path.empty())
+                cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str());
 
-        if(!config.main_config.wayland_warning_shown) {
-            config.main_config.wayland_warning_shown = true;
-            save_config(config);
-            show_notification("Wayland doesn't support GPU Screen Recorder properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+            if(!config.main_config.wayland_warning_shown) {
+                config.main_config.wayland_warning_shown = true;
+                save_config(config);
+                show_notification("Wayland doesn't support GPU Screen Recorder properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+            }
         }
     }
 
@@ -1479,18 +1481,26 @@ namespace gsr {
         if(recording_status != RecordingStatus::RECORD || gpu_screen_recorder_process <= 0)
             return;
 
+        kill(gpu_screen_recorder_process, SIGUSR2);
+        paused = !paused;
+
         if(paused) {
-            update_ui_recording_unpaused();
-            if(config.record_config.show_video_paused_notifications)
-                show_notification("Recording has been unpaused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
-        } else {
+            paused_clock.restart();
             update_ui_recording_paused();
             if(config.record_config.show_video_paused_notifications)
                 show_notification("Recording has been paused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+        } else {
+            paused_total_time_seconds += paused_clock.get_elapsed_time_seconds();
+            update_ui_recording_unpaused();
+            if(config.record_config.show_video_paused_notifications)
+                show_notification("Recording has been unpaused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
+    }
 
-        kill(gpu_screen_recorder_process, SIGUSR2);
-        paused = !paused;
+    void Overlay::update_upause_status() {
+        paused = false;
+        paused_clock.restart();
+        paused_total_time_seconds = 0.0;
     }
 
     void Overlay::toggle_stream() {
@@ -1891,7 +1901,7 @@ namespace gsr {
                 if(!config.record_config.show_video_saved_notifications)
                     return;
 
-                const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds());
+                const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
                 snprintf(msg, sizeof(msg), "Saved a %s recording of %s\nto \"%s\"",
                     duration_str.c_str(),
                     capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str(), focused_window_name.c_str());
@@ -2208,7 +2218,7 @@ namespace gsr {
             if(config.record_config.save_video_in_game_folder) {
                 save_video_in_current_game_directory(video_filepath.c_str(), NotificationType::RECORD);
             } else if(config.record_config.show_video_saved_notifications) {
-                const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds());
+                const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
 
                 char msg[512];
                 snprintf(msg, sizeof(msg), "Saved a %s recording of %s",
@@ -2264,7 +2274,7 @@ namespace gsr {
         record_dropdown_button_ptr->set_item_label("pause", "Pause");
         record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
         record_dropdown_button_ptr->set_item_enabled("pause", false);
-        paused = false;
+        update_upause_status();
         replay_recording = false;
     }
 
@@ -2595,8 +2605,7 @@ namespace gsr {
                 return false;
         }
 
-        paused = false;
-        replay_save_show_notification = false;
+        update_upause_status();
         try_replay_startup = false;
 
         close_gpu_screen_recorder_output();
@@ -2761,6 +2770,7 @@ namespace gsr {
                         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
                         // selected what to capture and accepted it.
                         recording_duration_clock.restart();
+                        update_upause_status();
                     }
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
@@ -2782,6 +2792,7 @@ namespace gsr {
                         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
                         // selected what to capture and accepted it.
                         recording_duration_clock.restart();
+                        update_upause_status();
                     }
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
@@ -2791,8 +2802,6 @@ namespace gsr {
                 return;
             }
         }
-
-        paused = false;
 
         close_gpu_screen_recorder_output();
 
@@ -2812,9 +2821,12 @@ namespace gsr {
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
             update_ui_recording_stopped();
+            update_upause_status();
             record_filepath.clear();
             return;
         }
+
+        update_upause_status();
 
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
         recording_capture_target = get_capture_target(config.record_config.record_options.record_area_option, capture_options);
@@ -2969,7 +2981,7 @@ namespace gsr {
                 return;
         }
 
-        paused = false;
+        update_upause_status();
 
         close_gpu_screen_recorder_output();
 
