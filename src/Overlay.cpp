@@ -1024,6 +1024,7 @@ namespace gsr {
         // Use Glx on Wayland to workaround this issue. This is fine since Egl is only needed for x11 to reliably get the texture of the fullscreen window on Nvidia
         // when a compositor isn't running.
         window_create_params.graphics_api = gsr_info.system_info.display_server == DisplayServer::WAYLAND ? MGL_GRAPHICS_API_GLX : MGL_GRAPHICS_API_EGL;
+        window_create_params.class_name = "gsr-ui";
 
         if(!window->create("gsr ui", window_create_params)) {
             fprintf(stderr, "error: failed to create window\n");

@@ -238,3 +238,9 @@ Save clipboard image with wayland on wayland. Some wayland compositors (such as 
     This is specifically an issue when using wl_data_device_manager, which is a standard protocol. It can be done when using wlr specific protocol.
 
 When gsr supports pausing recording done in replay/streaming session then add support for that in gsr-ui as well.
+
+Add recording timer when recording to show for how long we have been recording for. Maybe the same for live streaming and replay.
+
+Add option to trim video in the ui. Show a list of all videos recorded so you dont have to navigate to them (maybe add option to manually navigate to a video as well). Maybe use mpv to view it (embedded) in the ui and trim regions (multiple) and ffmpeg command to trim it.
+
+Show the currently recorded capture in the ui, to preview if everything looks ok. This is also good for webcam overlay. Do this when gsr supports rpc, which would also include an option to get a fd to the capture texture.
