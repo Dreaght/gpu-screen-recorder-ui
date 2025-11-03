@@ -165,6 +165,7 @@ namespace gsr {
         GsrInfo gsr_info;
         egl_functions egl_funcs;
         Config config;
+        Config current_recording_config;
 
         bool visible = false;
 
@@ -240,7 +241,6 @@ namespace gsr {
         bool try_replay_startup = true;
         bool replay_recording = false;
         int replay_save_duration_min = 0;
-        double replay_buffer_save_duration_sec = 0.0;
         mgl::Clock replay_duration_clock;
         double replay_saved_duration_sec = 0.0;
         bool replay_restart_on_save = false;

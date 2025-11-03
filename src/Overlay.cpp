@@ -463,6 +463,7 @@ namespace gsr {
         gsr_info(std::move(gsr_info)),
         egl_funcs(egl_funcs),
         config(capture_options),
+        current_recording_config(capture_options),
         bg_screenshot_overlay({0.0f, 0.0f}),
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
@@ -1857,8 +1858,8 @@ namespace gsr {
 
     double Overlay::get_time_passed_in_replay_buffer_seconds() {
         double replay_duration_sec = replay_saved_duration_sec;
-        if(replay_duration_sec > replay_buffer_save_duration_sec)
-            replay_duration_sec = replay_buffer_save_duration_sec;
+        if(replay_duration_sec > current_recording_config.replay_config.replay_time)
+            replay_duration_sec = current_recording_config.replay_config.replay_time;
         if(replay_save_duration_min > 0 && replay_duration_sec > replay_save_duration_min * 60)
             replay_duration_sec = replay_save_duration_min * 60;
         return replay_duration_sec;
@@ -2309,8 +2310,8 @@ namespace gsr {
         replay_dropdown_button_ptr->set_description("On");
         replay_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
         replay_dropdown_button_ptr->set_item_enabled("save", true);
-        replay_dropdown_button_ptr->set_item_enabled("save_1_min", true);
-        replay_dropdown_button_ptr->set_item_enabled("save_10_min", true);
+        replay_dropdown_button_ptr->set_item_enabled("save_1_min", current_recording_config.replay_config.replay_time >= 60);
+        replay_dropdown_button_ptr->set_item_enabled("save_10_min", current_recording_config.replay_config.replay_time >= 60 * 10);
     }
 
     void Overlay::update_ui_replay_stopped() {
@@ -2523,6 +2524,9 @@ namespace gsr {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
             return;
 
+        if(current_recording_config.replay_config.replay_time < 60)
+            return;
+
         replay_save_duration_min = 1;
         replay_save_show_notification = true;
         replay_save_clock.restart();
@@ -2532,6 +2536,9 @@ namespace gsr {
 
     void Overlay::on_press_save_replay_10_min_replay() {
         if(recording_status != RecordingStatus::REPLAY || gpu_screen_recorder_process <= 0)
+            return;
+
+        if(current_recording_config.replay_config.replay_time < 60 * 10)
             return;
 
         replay_save_duration_min = 10;
@@ -2714,6 +2721,8 @@ namespace gsr {
 
         args.push_back(nullptr);
 
+        current_recording_config = config;
+
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
             show_notification("Failed to launch gpu-screen-recorder to start replay", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
@@ -2746,7 +2755,6 @@ namespace gsr {
         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
         // selected what to capture and accepted it.
         replay_duration_clock.restart();
-        replay_buffer_save_duration_sec = config.replay_config.replay_time;
         return true;
     }
 
@@ -2893,6 +2901,8 @@ namespace gsr {
         add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
 
         args.push_back(nullptr);
+
+        current_recording_config = config;
 
         record_filepath = output_file;
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
@@ -3077,6 +3087,8 @@ namespace gsr {
         }
 
         args.push_back(nullptr);
+
+        current_recording_config = config;
 
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
