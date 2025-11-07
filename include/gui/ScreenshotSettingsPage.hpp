@@ -46,6 +46,7 @@ namespace gsr {
         std::unique_ptr<Widget> create_notifications();
         std::unique_ptr<Widget> create_led_indicator();
         std::unique_ptr<Widget> create_general_section();
+        std::unique_ptr<Widget> create_screenshot_indicator_section();
         std::unique_ptr<Widget> create_settings();
         void add_widgets();
 

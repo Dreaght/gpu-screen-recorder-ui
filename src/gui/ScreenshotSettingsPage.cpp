@@ -239,9 +239,14 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         list->add_widget(create_save_screenshot_in_game_folder());
         list->add_widget(create_save_screenshot_to_clipboard());
+        return std::make_unique<Subsection>("General", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+    }
+
+    std::unique_ptr<Widget> ScreenshotSettingsPage::create_screenshot_indicator_section() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         list->add_widget(create_notifications());
         list->add_widget(create_led_indicator());
-        return std::make_unique<Subsection>("General", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>("Screenshot indicator", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_settings() {
@@ -257,6 +262,7 @@ namespace gsr {
         settings_list->add_widget(create_image_section());
         settings_list->add_widget(create_file_info_section());
         settings_list->add_widget(create_general_section());
+        settings_list->add_widget(create_screenshot_indicator_section());
         settings_scrollable_page_ptr->add_widget(std::move(settings_list));
         return page_list;
     }

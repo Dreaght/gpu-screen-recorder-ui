@@ -114,6 +114,7 @@ namespace gsr {
         void update_estimated_record_file_size();
         std::unique_ptr<CheckBox> create_led_indicator(const char *type);
         std::unique_ptr<CheckBox> create_notifications(const char *type);
+        std::unique_ptr<List> create_indicator(const char *type);
         void add_replay_widgets();
         void add_record_widgets();
 

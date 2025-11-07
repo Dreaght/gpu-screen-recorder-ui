@@ -245,4 +245,4 @@ Show the currently recorded capture in the ui, to preview if everything looks ok
 
 Show a question mark beside options. When hovering the question mark show a tooltip that explains the options.
 
-Make led indicator work on wayland (set led with /sys/... blabla with root access).
+Make led indicator work on wayland (set led with /sys/... blabla with root access). Maybe add a command in gsr-global-hotkeys for that, set_led true/false <led name>. That should loop all input devices and set their led status for the led name.

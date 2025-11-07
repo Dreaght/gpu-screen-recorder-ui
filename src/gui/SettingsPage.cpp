@@ -852,6 +852,13 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<List> SettingsPage::create_indicator(const char *type) {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(create_notifications(type));
+        list->add_widget(create_led_indicator(type));
+        return list;
+    }
+
     void SettingsPage::add_replay_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
@@ -867,10 +874,9 @@ namespace gsr {
         general_list->add_widget(create_save_replay_in_game_folder());
         if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 3})
             general_list->add_widget(create_restart_replay_on_save());
-        general_list->add_widget(create_notifications("replay"));
-        general_list->add_widget(create_led_indicator("replay"));
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("Replay indicator", create_indicator("replay"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Autostart", create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
@@ -924,10 +930,9 @@ namespace gsr {
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
-        general_list->add_widget(create_notifications("recording"));
-        general_list->add_widget(create_led_indicator("recording"));
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("Recording indicator", create_indicator("recording"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             view_changed(id == "advanced");
@@ -1055,10 +1060,9 @@ namespace gsr {
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
-        general_list->add_widget(create_notifications("streaming"));
-        general_list->add_widget(create_led_indicator("streaming"));
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming indicator", create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             const bool twitch_option = id == "twitch";
