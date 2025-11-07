@@ -229,7 +229,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_led_indicator() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Blink scroll lock led when taking a screenshot");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, gsr_info->system_info.display_server == DisplayServer::X11 ? "Blink scroll lock led when taking a screenshot" : "Blink scroll lock led when taking a screenshot (not supported by Wayland)");
         checkbox->set_checked(true);
         led_indicator_checkbox_ptr = checkbox.get();
         return checkbox;

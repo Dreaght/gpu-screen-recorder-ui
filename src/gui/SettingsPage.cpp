@@ -832,7 +832,11 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_led_indicator(const char *type) {
         char label_str[256];
-        snprintf(label_str, sizeof(label_str), "Show %s status with scroll lock led", type);
+        if(gsr_info->system_info.display_server == DisplayServer::X11)
+            snprintf(label_str, sizeof(label_str), "Show %s status with scroll lock led", type);
+        else
+            snprintf(label_str, sizeof(label_str), "Show %s status with scroll lock led (not supported by Wayland)", type);
+
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
         checkbox->set_checked(false);
         led_indicator_checkbox_ptr = checkbox.get();

@@ -244,3 +244,5 @@ Add option to trim video in the ui. Show a list of all videos recorded so you do
 Show the currently recorded capture in the ui, to preview if everything looks ok. This is also good for webcam overlay. Do this when gsr supports rpc, which would also include an option to get a fd to the capture texture.
 
 Show a question mark beside options. When hovering the question mark show a tooltip that explains the options.
+
+Make led indicator work on wayland (set led with /sys/... blabla with root access).
