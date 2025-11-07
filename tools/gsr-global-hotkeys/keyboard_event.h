@@ -18,7 +18,7 @@
 
 #define MAX_EVENT_POLLS 32
 #define MAX_CLOSE_FDS 256
-#define MAX_GLOBAL_HOTKEYS 32
+#define MAX_GLOBAL_HOTKEYS 40
 
 typedef enum {
     KEYBOARD_MODKEY_LALT   = 1 << 0,
@@ -41,6 +41,7 @@ typedef struct {
     bool grabbed;
     bool is_non_keyboard_device;
     bool is_possibly_non_keyboard_device;
+    bool gsr_ui_virtual_keyboard;
     unsigned char *key_states;
     unsigned char *key_presses_grabbed;
     int num_keys_pressed;
@@ -48,7 +49,8 @@ typedef struct {
 
 typedef enum {
     KEYBOARD_GRAB_TYPE_ALL,
-    KEYBOARD_GRAB_TYPE_VIRTUAL
+    KEYBOARD_GRAB_TYPE_VIRTUAL,
+    KEYBOARD_GRAB_TYPE_NO_GRAB
 } keyboard_grab_type;
 
 typedef struct {
@@ -62,10 +64,12 @@ typedef struct {
     event_extra_data event_extra_data[MAX_EVENT_POLLS]; /* Current size is |num_event_polls| */
     int num_event_polls;
 
-    int stdin_event_index;
     int hotplug_event_index;
     int uinput_fd;
+    int timer_fd;
     bool stdin_failed;
+    bool check_grab_lock;
+    double uinput_written_time_seconds;
     keyboard_grab_type grab_type;
 
     pthread_t close_dev_input_fds_thread;

@@ -9,7 +9,8 @@ namespace gsr {
     public:
         enum class GrabType {
             ALL,
-            VIRTUAL
+            VIRTUAL,
+            NO_GRAB
         };
 
         GlobalHotkeysLinux(GrabType grab_type);
@@ -21,6 +22,8 @@ namespace gsr {
         bool bind_key_press(Hotkey hotkey, const std::string &id, GlobalHotkeyCallback callback) override;
         void unbind_all_keys() override;
         void poll_events() override;
+
+        std::function<void()> on_gsr_ui_virtual_keyboard_grabbed;
     private:
         void close_fds();
     private:

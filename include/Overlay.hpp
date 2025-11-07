@@ -94,6 +94,8 @@ namespace gsr {
         void rebind_all_keyboard_hotkeys();
 
         void set_notification_speed(NotificationSpeed notification_speed);
+
+        bool global_hotkeys_ungrab_keyboard = false;
     private:
         void update_upause_status();
 
@@ -102,6 +104,7 @@ namespace gsr {
         void handle_keyboard_mapping_event();
         void on_event(mgl::Event &event);
 
+        void recreate_global_hotkeys(const char *hotkey_option);
         void create_frontpage_ui_components();
         void xi_setup();
         void handle_xi_events();

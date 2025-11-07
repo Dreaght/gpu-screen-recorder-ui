@@ -190,11 +190,12 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> GlobalSettingsPage::create_enable_keyboard_hotkeys_button() {
-        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         enable_keyboard_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
         enable_hotkeys_radio_button->add_item("Yes", "enable_hotkeys");
+        enable_hotkeys_radio_button->add_item("Yes, but only grab virtual devices (supports some input remapping software)", "enable_hotkeys_virtual_devices");
+        enable_hotkeys_radio_button->add_item("Yes, but don't grab devices (supports all input remapping software)", "enable_hotkeys_no_grab");
         enable_hotkeys_radio_button->add_item("No", "disable_hotkeys");
-        enable_hotkeys_radio_button->add_item("Only grab virtual devices (supports input remapping software)", "enable_hotkeys_virtual_devices");
         enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
             if(on_keyboard_hotkey_changed)
                 on_keyboard_hotkey_changed(id.c_str());

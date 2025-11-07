@@ -37,8 +37,8 @@ There are also additional dependencies needed at runtime:
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
 
 ## Program behavior notes
-This program has to grab all keyboards and create a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.\
-This might cause issues for you if you use keyboard remapping software. To workaround this you can go into settings and select "Only grab virtual devices".\
+By default this program has to grab all keyboards and creates a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.\
+This might cause issues for you if you use keyboard remapping software. To workaround this you can go into settings and select "Yes, but only grab virtual devices" or "Yes, but don't grab devices".\
 If you use keyboard remapping software such as keyd then make sure to make it ignore "gsr-ui virtual keyboard" (dec0:5eba device id), otherwise your keyboard can get locked
 as gpu screen recorder tries to grab keys and keyd grabs gpu screen recorder, leading to a lock.\
 If you are stuck in such a lock where you cant press and keyboard keys you can press (left) ctrl+shift+alt+esc to close gpu screen recorder and remove it from system startup.

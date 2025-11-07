@@ -401,6 +401,9 @@ namespace gsr {
             fprintf(stderr, "error: failed to start global hotkeys\n");
 
         bind_linux_hotkeys(global_hotkeys.get(), overlay);
+        global_hotkeys->on_gsr_ui_virtual_keyboard_grabbed = [overlay]() {
+            overlay->global_hotkeys_ungrab_keyboard = true;
+        };
         return global_hotkeys;
     }
 
@@ -493,6 +496,8 @@ namespace gsr {
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
         else if(config.main_config.hotkeys_enable_option == "enable_hotkeys_virtual_devices")
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+        else if(config.main_config.hotkeys_enable_option == "enable_hotkeys_no_grab")
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB);
 
         if(config.main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
             global_hotkeys_js = register_joystick_hotkeys(this);
@@ -715,6 +720,18 @@ namespace gsr {
     }
 
     void Overlay::handle_events() {
+        if(global_hotkeys_ungrab_keyboard) {
+            global_hotkeys_ungrab_keyboard = false;
+            show_notification(
+                "Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\n"
+                "Keyboards have been ungrabbed, applications will now receive the hotkeys you press."
+                , 7.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+
+            config.main_config.hotkeys_enable_option = "enable_hotkeys_no_grab";
+            save_config(config);
+            recreate_global_hotkeys("enable_hotkeys_no_grab");
+        }
+
         if(global_hotkeys)
             global_hotkeys->poll_events();
 
@@ -1135,6 +1152,18 @@ namespace gsr {
         draw();
     }
 
+    void Overlay::recreate_global_hotkeys(const char *hotkey_option) {
+        global_hotkeys.reset();
+        if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
+        else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+        else if(strcmp(hotkey_option, "enable_hotkeys_no_grab") == 0)
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB);
+        else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+            global_hotkeys.reset();
+    }
+
     void Overlay::create_frontpage_ui_components() {
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
@@ -1294,13 +1323,7 @@ namespace gsr {
                 };
 
                 settings_page->on_keyboard_hotkey_changed = [this](const char *hotkey_option) {
-                    global_hotkeys.reset();
-                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
-                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
-                    else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
-                        global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
-                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
-                        global_hotkeys.reset();
+                    recreate_global_hotkeys(hotkey_option);
                 };
 
                 settings_page->on_joystick_hotkey_changed = [this](const char *hotkey_option) {

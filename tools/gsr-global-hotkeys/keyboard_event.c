@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 /* POSIX */
 #include <fcntl.h>
@@ -17,6 +18,7 @@
 /* LINUX */
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include <sys/timerfd.h>
 
 #define GSR_UI_VIRTUAL_KEYBOARD_NAME "gsr-ui virtual keyboard"
 
@@ -25,6 +27,14 @@
 #define KEY_REPEAT 2
 
 #define KEY_STATES_SIZE (KEY_MAX/8 + 1)
+
+static double clock_get_monotonic_seconds(void) {
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 0;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec * 0.000000001;
+}
 
 static inline int count_num_bits_set(unsigned char c) {
     int n = 0;
@@ -183,6 +193,12 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         return;
     }
 
+    if(extra_data->gsr_ui_virtual_keyboard) {
+        if(event.type == EV_KEY)
+            self->check_grab_lock = false;
+        return;
+    }
+
     if(event.type == EV_SYN && event.code == SYN_DROPPED) {
         /* TODO: Don't do this on every SYN_DROPPED to prevent spamming this, instead wait until the next event or wait for timeout */
         keyboard_event_fetch_update_key_states(self, extra_data, fd);
@@ -211,6 +227,10 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     }
 
     if(extra_data->grabbed) {
+        if(!self->check_grab_lock) {
+            self->uinput_written_time_seconds = clock_get_monotonic_seconds();
+            self->check_grab_lock = true;
+        }
         /* TODO: What to do on error? */
         if(write(self->uinput_fd, &event, sizeof(event)) != sizeof(event))
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
@@ -380,7 +400,29 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
     ioctl(fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
     const bool is_keyboard = (evbit & (1 << EV_SYN)) && (evbit & (1 << EV_KEY));
 
-    if(is_keyboard && strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) != 0) {
+    if(strcmp(device_name, GSR_UI_VIRTUAL_KEYBOARD_NAME) == 0) {
+        if(self->num_event_polls < MAX_EVENT_POLLS) {
+            self->event_polls[self->num_event_polls] = (struct pollfd) {
+                .fd = fd,
+                .events = POLLIN,
+                .revents = 0
+            };
+
+            self->event_extra_data[self->num_event_polls] = (event_extra_data) {
+                .dev_input_id = dev_input_id,
+                .grabbed = false,
+                .key_states = NULL,
+                .key_presses_grabbed = NULL,
+                .num_keys_pressed = 0,
+                .gsr_ui_virtual_keyboard = true
+            };
+
+            ++self->num_event_polls;
+            return true;
+        } else {
+            fprintf(stderr, "Error: failed to listen to gsr-ui virtual keyboard\n");
+        }
+    } else if(is_keyboard) {
         unsigned char key_bits[KEY_MAX/8 + 1] = {0};
         ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits);
 
@@ -552,7 +594,6 @@ static int setup_virtual_keyboard_input(const char *name) {
 
 bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_grab_type grab_type) {
     memset(self, 0, sizeof(*self));
-    self->stdin_event_index = -1;
     self->hotplug_event_index = -1;
     self->grab_type = grab_type;
     self->running = true;
@@ -584,8 +625,50 @@ bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_gra
         .num_keys_pressed = 0
     };
 
-    self->stdin_event_index = self->num_event_polls;
     ++self->num_event_polls;
+
+    self->timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
+    if(self->timer_fd <= 0) {
+        fprintf(stderr, "Error: timerfd_create failed\n");
+        keyboard_event_deinit(self);
+        return false;
+    }
+
+    /* 0.5 seconds */
+    const struct itimerspec timer_value = {
+        .it_value = (struct timespec) {
+            .tv_sec = 0,
+            .tv_nsec = 500000000ULL,
+        },
+        .it_interval = (struct timespec) {
+            .tv_sec = 0,
+            .tv_nsec = 500000000ULL
+        }
+    };
+
+    if(timerfd_settime(self->timer_fd, 0, &timer_value, NULL) < 0) {
+        fprintf(stderr, "Error: timerfd_settime failed\n");
+        keyboard_event_deinit(self);
+        return false;
+    }
+
+    self->event_polls[self->num_event_polls] = (struct pollfd) {
+        .fd = self->timer_fd,
+        .events = POLLIN,
+        .revents = 0
+    };
+
+    self->event_extra_data[self->num_event_polls] = (event_extra_data) {
+        .dev_input_id = -1,
+        .grabbed = false,
+        .key_states = NULL,
+        .key_presses_grabbed = NULL,
+        .num_keys_pressed = 0
+    };
+
+    ++self->num_event_polls;
+
+    self->uinput_written_time_seconds = clock_get_monotonic_seconds();
 
     if(hotplug_event_init(&self->hotplug_ev)) {
         self->event_polls[self->num_event_polls] = (struct pollfd) {
@@ -631,6 +714,11 @@ void keyboard_event_deinit(keyboard_event *self) {
         ioctl(self->uinput_fd, UI_DEV_DESTROY);
         close(self->uinput_fd);
         self->uinput_fd = -1;
+    }
+
+    if(self->timer_fd > 0) {
+        close(self->timer_fd);
+        self->timer_fd = -1;
     }
 
     for(int i = 0; i < self->num_event_polls; ++i) {
@@ -830,7 +918,7 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds) 
         return;
 
     for(int i = 0; i < self->num_event_polls; ++i) {
-        if(i == self->stdin_event_index && (self->event_polls[i].revents & (POLLHUP|POLLERR)))
+        if(self->event_polls[i].fd == STDIN_FILENO && (self->event_polls[i].revents & (POLLHUP|POLLERR)))
             self->stdin_failed = true;
 
         if(self->event_polls[i].revents & POLLHUP) { /* TODO: What if this is the hotplug fd? */
@@ -845,8 +933,17 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds) 
         if(i == self->hotplug_event_index) {
             /* Device is added to end of |event_polls| so it's ok to add while iterating it via index */
             hotplug_event_process_event_data(&self->hotplug_ev, self->event_polls[i].fd, on_device_added_callback, self);
-        } else if(i == self->stdin_event_index) {
+        } else if(self->event_polls[i].fd == STDIN_FILENO) {
             keyboard_event_process_stdin_command_data(self, self->event_polls[i].fd);
+        } else if(self->event_polls[i].fd == self->timer_fd) {
+            uint64_t timers_elapsed = 0;
+            read(self->timer_fd, &timers_elapsed, sizeof(timers_elapsed));
+
+            if(self->grab_type != KEYBOARD_GRAB_TYPE_NO_GRAB && self->check_grab_lock && clock_get_monotonic_seconds() - self->uinput_written_time_seconds >= 1.5) {
+                self->check_grab_lock = false;
+                puts("gsr-ui-virtual-keyboard-grabbed");
+                fflush(stdout);
+            }
         } else {
             keyboard_event_process_input_event_data(self, &self->event_extra_data[i], self->event_polls[i].fd);
         }

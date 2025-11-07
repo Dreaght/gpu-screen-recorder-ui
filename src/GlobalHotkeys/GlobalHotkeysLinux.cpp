@@ -19,6 +19,7 @@ namespace gsr {
         switch(grab_type) {
             case GlobalHotkeysLinux::GrabType::ALL:     return "--all";
             case GlobalHotkeysLinux::GrabType::VIRTUAL: return "--virtual";
+            case GlobalHotkeysLinux::GrabType::NO_GRAB: return "--no-grab";
         }
         return "--all";
     }
@@ -270,6 +271,8 @@ namespace gsr {
             auto it = bound_actions_by_id.find(action);
             if(it != bound_actions_by_id.end())
                 it->second(action);
+            else if(on_gsr_ui_virtual_keyboard_grabbed && action == "gsr-ui-virtual-keyboard-grabbed")
+                on_gsr_ui_virtual_keyboard_grabbed();
         }
     }
 }

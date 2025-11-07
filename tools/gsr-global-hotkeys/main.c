@@ -13,6 +13,7 @@ static void usage(void) {
     fprintf(stderr, "OPTIONS:\n");
     fprintf(stderr, "  --all        Grab all devices.\n");
     fprintf(stderr, "  --virtual    Grab all virtual devices only.\n");
+    fprintf(stderr, "  --no-grab    Don't grab devices, only listen to them.\n");
 }
 
 static bool is_gsr_global_hotkeys_already_running(void) {
@@ -43,8 +44,10 @@ int main(int argc, char **argv) {
             grab_type = KEYBOARD_GRAB_TYPE_ALL;
         } else if(strcmp(grab_type_arg, "--virtual") == 0) {
             grab_type = KEYBOARD_GRAB_TYPE_VIRTUAL;
+        } else if(strcmp(grab_type_arg, "--no-grab") == 0) {
+            grab_type = KEYBOARD_GRAB_TYPE_NO_GRAB;
         } else {
-            fprintf(stderr, "gsr-global-hotkeys error: expected --all or --virtual, got %s\n", grab_type_arg);
+            fprintf(stderr, "gsr-global-hotkeys error: expected --all, --virtual or --no-grab, got %s\n", grab_type_arg);
             usage();
             return 1;
         }
@@ -68,7 +71,7 @@ int main(int argc, char **argv) {
     }
 
     keyboard_event keyboard_ev;
-    if(!keyboard_event_init(&keyboard_ev, true, grab_type)) {
+    if(!keyboard_event_init(&keyboard_ev, grab_type != KEYBOARD_GRAB_TYPE_NO_GRAB, grab_type)) {
         fprintf(stderr, "gsr-global-hotkeys error: failed to setup hotplugging and no keyboard input devices were found\n");
         setuid(user_id);
         return 1;
