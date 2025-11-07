@@ -194,7 +194,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     }
 
     if(extra_data->gsr_ui_virtual_keyboard) {
-        if(event.type == EV_KEY)
+        if(event.type == EV_KEY || event.type == EV_MSC)
             self->check_grab_lock = false;
         return;
     }
@@ -227,10 +227,11 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     }
 
     if(extra_data->grabbed) {
-        if(!self->check_grab_lock) {
+        if(!self->check_grab_lock && (event.type == EV_KEY || event.type == EV_MSC)) {
             self->uinput_written_time_seconds = clock_get_monotonic_seconds();
             self->check_grab_lock = true;
         }
+
         /* TODO: What to do on error? */
         if(write(self->uinput_fd, &event, sizeof(event)) != sizeof(event))
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");

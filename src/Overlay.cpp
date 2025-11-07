@@ -32,6 +32,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#include <X11/XKBlib.h>
 #include <X11/cursorfont.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/XInput2.h>
@@ -502,9 +503,9 @@ namespace gsr {
         if(config.main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
             global_hotkeys_js = register_joystick_hotkeys(this);
 
-        x11_mapping_display = XOpenDisplay(nullptr);
-        if(x11_mapping_display)
-            XKeysymToKeycode(x11_mapping_display, XK_F1); // If we dont call we will never get a MappingNotify
+        x11_dpy = XOpenDisplay(nullptr);
+        if(x11_dpy)
+            XKeysymToKeycode(x11_dpy, XK_F1); // If we dont call we will never get a MappingNotify
         else
             fprintf(stderr, "Warning: XOpenDisplay failed to mapping notify\n");
 
@@ -520,6 +521,9 @@ namespace gsr {
                 show_notification("Wayland doesn't support GPU Screen Recorder properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
             }
         }
+
+        if(x11_dpy)
+            led_indicator = std::make_unique<LedIndicator>(x11_dpy);
     }
 
     Overlay::~Overlay() {
@@ -555,11 +559,13 @@ namespace gsr {
             gpu_screen_recorder_screenshot_process = -1;
         }
 
+        led_indicator.reset();
+
         close_gpu_screen_recorder_output();
         deinit_color_theme();
 
-        if(x11_mapping_display)
-            XCloseDisplay(x11_mapping_display);
+        if(x11_dpy)
+            XCloseDisplay(x11_dpy);
     }
 
     void Overlay::xi_setup() {
@@ -703,12 +709,12 @@ namespace gsr {
     }
 
     void Overlay::handle_keyboard_mapping_event() {
-        if(!x11_mapping_display)
+        if(!x11_dpy)
             return;
 
         bool mapping_updated = false;
-        while(XPending(x11_mapping_display)) {
-            XNextEvent(x11_mapping_display, &x11_mapping_xev);
+        while(XPending(x11_dpy)) {
+            XNextEvent(x11_dpy, &x11_mapping_xev);
             if(x11_mapping_xev.type == MappingNotify) {
                 XRefreshKeyboardMapping(&x11_mapping_xev.xmapping);
                 mapping_updated = true;
@@ -720,6 +726,9 @@ namespace gsr {
     }
 
     void Overlay::handle_events() {
+        if(led_indicator)
+            led_indicator->update();
+
         if(global_hotkeys_ungrab_keyboard) {
             global_hotkeys_ungrab_keyboard = false;
             show_notification(
@@ -1512,14 +1521,17 @@ namespace gsr {
         if(paused) {
             paused_clock.restart();
             update_ui_recording_paused();
-            if(config.record_config.show_video_paused_notifications)
+            if(config.record_config.record_options.show_notifications)
                 show_notification("Recording has been paused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         } else {
             paused_total_time_seconds += paused_clock.get_elapsed_time_seconds();
             update_ui_recording_unpaused();
-            if(config.record_config.show_video_paused_notifications)
+            if(config.record_config.record_options.show_notifications)
                 show_notification("Recording has been unpaused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
+
+        if(led_indicator && config.record_config.record_options.use_led_indicator)
+            led_indicator->blink();
     }
 
     void Overlay::update_upause_status() {
@@ -1923,7 +1935,10 @@ namespace gsr {
 
         switch(notification_type) {
             case NotificationType::RECORD: {
-                if(!config.record_config.show_video_saved_notifications)
+                if(led_indicator && config.record_config.record_options.use_led_indicator)
+                    led_indicator->blink();
+
+                if(!config.record_config.record_options.show_notifications)
                     return;
 
                 const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
@@ -1934,7 +1949,10 @@ namespace gsr {
                 break;
             }
             case NotificationType::REPLAY: {
-                if(!config.replay_config.show_replay_saved_notifications)
+                if(led_indicator && config.replay_config.record_options.use_led_indicator)
+                    led_indicator->blink();
+
+                if(!config.replay_config.record_options.show_notifications)
                     return;
 
                 const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
@@ -1945,7 +1963,10 @@ namespace gsr {
                 break;
             }
             case NotificationType::SCREENSHOT: {
-                if(!config.screenshot_config.show_screenshot_saved_notifications)
+                if(led_indicator && config.screenshot_config.use_led_indicator)
+                    led_indicator->blink();
+
+                if(!config.screenshot_config.show_notifications)
                     return;
 
                 snprintf(msg, sizeof(msg), "Saved a screenshot of %s\nto \"%s\"",
@@ -1977,14 +1998,20 @@ namespace gsr {
         replay_save_show_notification = false;
         if(config.replay_config.save_video_in_game_folder) {
             save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
-        } else if(config.replay_config.show_replay_saved_notifications) {
-            const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
+            return;
+        } else {
+            if(config.replay_config.record_options.show_notifications) {
+                const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
 
-            char msg[512];
-            snprintf(msg, sizeof(msg), "Saved a %s replay of %s",
-                duration_str.c_str(),
-                capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
-            show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
+                char msg[512];
+                snprintf(msg, sizeof(msg), "Saved a %s replay of %s",
+                    duration_str.c_str(),
+                    capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
+                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
+            }
+
+            if(led_indicator && config.replay_config.record_options.use_led_indicator)
+                led_indicator->blink();
         }
     }
 
@@ -2094,26 +2121,36 @@ namespace gsr {
                 replay_save_duration_min = 0;
                 update_ui_replay_stopped();
                 if(exit_code == 0) {
-                    if(config.replay_config.show_replay_stopped_notifications)
+                    if(config.replay_config.record_options.show_notifications)
                         show_notification("Replay stopped", short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 } else {
                     on_gsr_process_error(exit_code, NotificationType::REPLAY);
                 }
+
+                if(led_indicator && current_recording_config.replay_config.record_options.use_led_indicator)
+                    led_indicator->set_led(false);
+
                 break;
             }
             case RecordingStatus::RECORD: {
                 update_ui_recording_stopped();
                 on_stop_recording(exit_code, record_filepath);
+
+                if(led_indicator && current_recording_config.record_config.record_options.use_led_indicator)
+                    led_indicator->set_led(false);
                 break;
             }
             case RecordingStatus::STREAM: {
                 update_ui_streaming_stopped();
                 if(exit_code == 0) {
-                    if(config.streaming_config.show_streaming_stopped_notifications)
+                    if(config.streaming_config.record_options.show_notifications)
                         show_notification("Streaming has stopped", short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 } else {
                     on_gsr_process_error(exit_code, NotificationType::STREAM);
                 }
+
+                if(led_indicator && current_recording_config.streaming_config.record_options.use_led_indicator)
+                    led_indicator->set_led(false);
                 break;
             }
         }
@@ -2139,14 +2176,19 @@ namespace gsr {
         if(exit_code == 0) {
             if(config.screenshot_config.save_screenshot_in_game_folder) {
                 save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
-            } else if(config.screenshot_config.show_screenshot_saved_notifications) {
-                char msg[512];
-                snprintf(msg, sizeof(msg), "Saved a screenshot of %s",
-                    capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
-                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
+            } else {
+                if(config.screenshot_config.show_notifications) {
+                    char msg[512];
+                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s",
+                        capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
+                    show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
 
-                if(config.screenshot_config.save_screenshot_to_clipboard)
-                    clipboard_file.set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
+                    if(config.screenshot_config.save_screenshot_to_clipboard)
+                        clipboard_file.set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
+                }
+
+                if(led_indicator && config.screenshot_config.use_led_indicator)
+                    led_indicator->blink();
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
@@ -2242,18 +2284,24 @@ namespace gsr {
         if(exit_code == 0) {
             if(config.record_config.save_video_in_game_folder) {
                 save_video_in_current_game_directory(video_filepath.c_str(), NotificationType::RECORD);
-            } else if(config.record_config.show_video_saved_notifications) {
-                const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
+            } else {
+                if(config.record_config.record_options.show_notifications) {
+                    const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
 
-                char msg[512];
-                snprintf(msg, sizeof(msg), "Saved a %s recording of %s",
-                    duration_str.c_str(),
-                    capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
-                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
+                    char msg[512];
+                    snprintf(msg, sizeof(msg), "Saved a %s recording of %s",
+                        duration_str.c_str(),
+                        capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
+                    show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
+                }
+
+                if(led_indicator && config.record_config.record_options.use_led_indicator)
+                    led_indicator->blink();
             }
         } else {
             on_gsr_process_error(exit_code, NotificationType::RECORD);
         }
+
         update_ui_recording_stopped();
         replay_recording = false;
     }
@@ -2540,6 +2588,7 @@ namespace gsr {
         replay_saved_duration_sec = replay_duration_clock.get_elapsed_time_seconds();
         if(replay_restart_on_save)
             replay_duration_clock.restart();
+
         kill(gpu_screen_recorder_process, SIGUSR1);
     }
 
@@ -2654,8 +2703,11 @@ namespace gsr {
             replay_save_duration_min = 0;
             update_ui_replay_stopped();
 
+            if(led_indicator && current_recording_config.replay_config.record_options.use_led_indicator)
+                led_indicator->set_led(false);
+
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(!disable_notification && config.replay_config.show_replay_stopped_notifications)
+            if(!disable_notification && config.replay_config.record_options.show_notifications)
                 show_notification("Replay stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
 
             return true;
@@ -2753,6 +2805,9 @@ namespace gsr {
         } else {
             recording_status = RecordingStatus::REPLAY;
             update_ui_replay_started();
+
+            if(led_indicator && config.replay_config.record_options.use_led_indicator)
+                led_indicator->set_led(true);
         }
 
         prepare_gsr_output_for_reading();
@@ -2766,7 +2821,7 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(!disable_notification && config.replay_config.show_replay_started_notifications) {
+        if(!disable_notification && config.replay_config.record_options.show_notifications) {
             char msg[256];
             snprintf(msg, sizeof(msg), "Started replaying %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
@@ -2795,7 +2850,7 @@ namespace gsr {
 
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
                     if(!replay_recording) {
-                        if(config.record_config.show_recording_started_notifications)
+                        if(config.record_config.record_options.show_notifications)
                             show_notification("Started recording in the replay session", short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
 
@@ -2803,7 +2858,11 @@ namespace gsr {
                         // selected what to capture and accepted it.
                         recording_duration_clock.restart();
                         update_upause_status();
+
+                        if(led_indicator && config.record_config.record_options.use_led_indicator)
+                            led_indicator->blink();
                     }
+
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
@@ -2817,7 +2876,7 @@ namespace gsr {
 
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
                     if(!replay_recording) {
-                        if(config.record_config.show_recording_started_notifications)
+                        if(config.record_config.record_options.show_notifications)
                             show_notification("Started recording in the streaming session", short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
 
@@ -2825,7 +2884,11 @@ namespace gsr {
                         // selected what to capture and accepted it.
                         recording_duration_clock.restart();
                         update_upause_status();
+
+                        if(led_indicator && config.record_config.record_options.use_led_indicator)
+                            led_indicator->blink();
                     }
+
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
@@ -2855,6 +2918,9 @@ namespace gsr {
             update_ui_recording_stopped();
             update_upause_status();
             record_filepath.clear();
+
+            if(led_indicator && current_recording_config.record_config.record_options.use_led_indicator)
+                led_indicator->set_led(false);
             return;
         }
 
@@ -2935,6 +3001,9 @@ namespace gsr {
         } else {
             recording_status = RecordingStatus::RECORD;
             update_ui_recording_started();
+
+            if(led_indicator && config.record_config.record_options.use_led_indicator)
+                led_indicator->set_led(true);
         }
 
         prepare_gsr_output_for_reading();
@@ -2945,7 +3014,7 @@ namespace gsr {
         // Starting recording in 3...
         // 2...
         // 1...
-        if(config.record_config.show_recording_started_notifications) {
+        if(config.record_config.record_options.show_notifications) {
             char msg[256];
             snprintf(msg, sizeof(msg), "Started recording %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
@@ -3031,8 +3100,11 @@ namespace gsr {
             recording_status = RecordingStatus::NONE;
             update_ui_streaming_stopped();
 
+            if(led_indicator && current_recording_config.streaming_config.record_options.use_led_indicator)
+                led_indicator->set_led(false);
+
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
-            if(config.streaming_config.show_streaming_stopped_notifications)
+            if(config.streaming_config.record_options.show_notifications)
                 show_notification("Streaming has stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
             return;
         }
@@ -3120,6 +3192,9 @@ namespace gsr {
         } else {
             recording_status = RecordingStatus::STREAM;
             update_ui_streaming_started();
+
+            if(led_indicator && config.streaming_config.record_options.use_led_indicator)
+                led_indicator->set_led(true);
         }
 
         prepare_gsr_output_for_reading();
@@ -3133,7 +3208,7 @@ namespace gsr {
         // TODO: Do not run this is a daemon. Instead get the pid and when launching another notification close the current notification
         // program and start another one. This can also be used to check when the notification has finished by checking with waitpid NOWAIT
         // to see when the program has exit.
-        if(config.streaming_config.show_streaming_started_notifications) {
+        if(config.streaming_config.record_options.show_notifications) {
             char msg[256];
             snprintf(msg, sizeof(msg), "Started streaming %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, recording_capture_target.c_str());

@@ -821,14 +821,31 @@ namespace gsr {
         replay_time_label_ptr->set_text(buffer);
     }
 
-    void SettingsPage::view_changed(bool advanced_view, Subsection *notifications_subsection_ptr) {
+    void SettingsPage::view_changed(bool advanced_view) {
         color_range_list_ptr->set_visible(advanced_view);
         audio_codec_ptr->set_visible(advanced_view);
         video_codec_ptr->set_visible(advanced_view);
         framerate_mode_list_ptr->set_visible(advanced_view);
-        notifications_subsection_ptr->set_visible(advanced_view);
         set_application_audio_options_visible(audio_track_section_list_ptr, advanced_view, *gsr_info);
         settings_scrollable_page_ptr->reset_scroll();
+    }
+
+    std::unique_ptr<CheckBox> SettingsPage::create_led_indicator(const char *type) {
+        char label_str[256];
+        snprintf(label_str, sizeof(label_str), "Show %s status with scroll lock led", type);
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
+        checkbox->set_checked(false);
+        led_indicator_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
+    std::unique_ptr<CheckBox> SettingsPage::create_notifications(const char *type) {
+        char label_str[256];
+        snprintf(label_str, sizeof(label_str), "Show %s notifications", type);
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
+        checkbox->set_checked(true);
+        show_notification_checkbox_ptr = checkbox.get();
+        return checkbox;
     }
 
     void SettingsPage::add_replay_widgets() {
@@ -846,33 +863,14 @@ namespace gsr {
         general_list->add_widget(create_save_replay_in_game_folder());
         if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 3})
             general_list->add_widget(create_restart_replay_on_save());
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        general_list->add_widget(create_notifications("replay"));
+        general_list->add_widget(create_led_indicator("replay"));
 
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Autostart", create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
-
-        auto show_replay_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay started notification");
-        show_replay_started_notification_checkbox->set_checked(true);
-        show_replay_started_notification_checkbox_ptr = show_replay_started_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_replay_started_notification_checkbox));
-
-        auto show_replay_stopped_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay stopped notification");
-        show_replay_stopped_notification_checkbox->set_checked(true);
-        show_replay_stopped_notification_checkbox_ptr = show_replay_stopped_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_replay_stopped_notification_checkbox));
-
-        auto show_replay_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show replay saved notification");
-        show_replay_saved_notification_checkbox->set_checked(true);
-        show_replay_saved_notification_checkbox_ptr = show_replay_saved_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_replay_saved_notification_checkbox));
-
-        auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));        
-        Subsection *notifications_subsection_ptr = notifications_subsection.get();
-        settings_list_ptr->add_widget(std::move(notifications_subsection));
-
-        view_radio_button_ptr->on_selection_changed = [this, notifications_subsection_ptr](const std::string&, const std::string &id) {
-            view_changed(id == "advanced", notifications_subsection_ptr);
+        view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+            view_changed(id == "advanced");
             return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -917,33 +915,18 @@ namespace gsr {
         file_info_data_list->add_widget(create_container_section());
         file_info_list->add_widget(std::move(file_info_data_list));
         file_info_list->add_widget(create_estimated_record_file_size());
+
         settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", create_save_recording_in_game_folder(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        general_list->add_widget(create_save_recording_in_game_folder());
+        general_list->add_widget(create_notifications("recording"));
+        general_list->add_widget(create_led_indicator("recording"));
 
-        auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        auto show_recording_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show recording started notification");
-        show_recording_started_notification_checkbox->set_checked(true);
-        show_recording_started_notification_checkbox_ptr = show_recording_started_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_recording_started_notification_checkbox));
-
-        auto show_video_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show video saved notification");
-        show_video_saved_notification_checkbox->set_checked(true);
-        show_video_saved_notification_checkbox_ptr = show_video_saved_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_video_saved_notification_checkbox));
-
-        auto show_video_paused_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show video paused/unpaused notification");
-        show_video_paused_notification_checkbox->set_checked(true);
-        show_video_paused_notification_checkbox_ptr = show_video_paused_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_video_paused_notification_checkbox));
-
-        auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));        
-        Subsection *notifications_subsection_ptr = notifications_subsection.get();
-        settings_list_ptr->add_widget(std::move(notifications_subsection));
-
-        view_radio_button_ptr->on_selection_changed = [this, notifications_subsection_ptr](const std::string&, const std::string &id) {
-            view_changed(id == "advanced", notifications_subsection_ptr);
+        view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+            view_changed(id == "advanced");
             return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -1063,23 +1046,15 @@ namespace gsr {
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());
         streaming_info_list->add_widget(create_stream_custom_section());
+
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        auto checkboxes_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        general_list->add_widget(create_save_recording_in_game_folder());
+        general_list->add_widget(create_notifications("streaming"));
+        general_list->add_widget(create_led_indicator("streaming"));
 
-        auto show_streaming_started_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming started notification");
-        show_streaming_started_notification_checkbox->set_checked(true);
-        show_streaming_started_notification_checkbox_ptr = show_streaming_started_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_streaming_started_notification_checkbox));
-
-        auto show_streaming_stopped_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show streaming stopped notification");
-        show_streaming_stopped_notification_checkbox->set_checked(true);
-        show_streaming_stopped_notification_checkbox_ptr = show_streaming_stopped_notification_checkbox.get();
-        checkboxes_list->add_widget(std::move(show_streaming_stopped_notification_checkbox));
-
-        auto notifications_subsection = std::make_unique<Subsection>("Notifications", std::move(checkboxes_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));        
-        Subsection *notifications_subsection_ptr = notifications_subsection.get();
-        settings_list_ptr->add_widget(std::move(notifications_subsection));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             const bool twitch_option = id == "twitch";
@@ -1095,8 +1070,8 @@ namespace gsr {
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
 
-        view_radio_button_ptr->on_selection_changed = [this, notifications_subsection_ptr](const std::string&, const std::string &id) {
-            view_changed(id == "advanced", notifications_subsection_ptr);
+        view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+            view_changed(id == "advanced");
             return true;
         };
         view_radio_button_ptr->on_selection_changed("Simple", "simple");
@@ -1217,6 +1192,8 @@ namespace gsr {
         //record_options.overclock = false;
         record_cursor_checkbox_ptr->set_checked(record_options.record_cursor);
         restore_portal_session_checkbox_ptr->set_checked(record_options.restore_portal_session);
+        show_notification_checkbox_ptr->set_checked(record_options.show_notifications);
+        led_indicator_checkbox_ptr->set_checked(record_options.use_led_indicator);
 
         if(record_options.record_area_width == 0)
             record_options.record_area_width = 1920;
@@ -1262,9 +1239,7 @@ namespace gsr {
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
         if(restart_replay_on_save)
             restart_replay_on_save->set_checked(config.replay_config.restart_replay_on_save);
-        show_replay_started_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_started_notifications);
-        show_replay_stopped_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_stopped_notifications);
-        show_replay_saved_notification_checkbox_ptr->set_checked(config.replay_config.show_replay_saved_notifications);
+        
         save_directory_button_ptr->set_text(config.replay_config.save_directory);
         container_box_ptr->set_selected_item(config.replay_config.container);
 
@@ -1278,17 +1253,12 @@ namespace gsr {
     void SettingsPage::load_record() {
         load_common(config.record_config.record_options);
         save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
-        show_recording_started_notification_checkbox_ptr->set_checked(config.record_config.show_recording_started_notifications);
-        show_video_saved_notification_checkbox_ptr->set_checked(config.record_config.show_video_saved_notifications);
-        show_video_paused_notification_checkbox_ptr->set_checked(config.record_config.show_video_paused_notifications);
         save_directory_button_ptr->set_text(config.record_config.save_directory);
         container_box_ptr->set_selected_item(config.record_config.container);
     }
 
     void SettingsPage::load_stream() {
         load_common(config.streaming_config.record_options);
-        show_streaming_started_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_started_notifications);
-        show_streaming_stopped_notification_checkbox_ptr->set_checked(config.streaming_config.show_streaming_stopped_notifications);
         streaming_service_box_ptr->set_selected_item(config.streaming_config.streaming_service);
         youtube_stream_key_entry_ptr->set_text(config.streaming_config.youtube.stream_key);
         twitch_stream_key_entry_ptr->set_text(config.streaming_config.twitch.stream_key);
@@ -1354,6 +1324,8 @@ namespace gsr {
         //record_options.overclock = false;
         record_options.record_cursor = record_cursor_checkbox_ptr->is_checked();
         record_options.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
+        record_options.show_notifications = show_notification_checkbox_ptr->is_checked();
+        record_options.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
 
         if(record_options.record_area_width == 0)
             record_options.record_area_width = 1920;
@@ -1404,9 +1376,6 @@ namespace gsr {
         config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
         if(restart_replay_on_save)
             config.replay_config.restart_replay_on_save = restart_replay_on_save->is_checked();
-        config.replay_config.show_replay_started_notifications = show_replay_started_notification_checkbox_ptr->is_checked();
-        config.replay_config.show_replay_stopped_notifications = show_replay_stopped_notification_checkbox_ptr->is_checked();
-        config.replay_config.show_replay_saved_notifications = show_replay_saved_notification_checkbox_ptr->is_checked();
         config.replay_config.save_directory = save_directory_button_ptr->get_text();
         config.replay_config.container = container_box_ptr->get_selected_id();
         config.replay_config.replay_time = atoi(replay_time_entry_ptr->get_text().c_str());
@@ -1421,17 +1390,12 @@ namespace gsr {
     void SettingsPage::save_record() {
         save_common(config.record_config.record_options);
         config.record_config.save_video_in_game_folder = save_recording_in_game_folder_ptr->is_checked();
-        config.record_config.show_recording_started_notifications = show_recording_started_notification_checkbox_ptr->is_checked();
-        config.record_config.show_video_saved_notifications = show_video_saved_notification_checkbox_ptr->is_checked();
-        config.record_config.show_video_paused_notifications = show_video_paused_notification_checkbox_ptr->is_checked();
         config.record_config.save_directory = save_directory_button_ptr->get_text();
         config.record_config.container = container_box_ptr->get_selected_id();
     }
 
     void SettingsPage::save_stream() {
         save_common(config.streaming_config.record_options);
-        config.streaming_config.show_streaming_started_notifications = show_streaming_started_notification_checkbox_ptr->is_checked();
-        config.streaming_config.show_streaming_stopped_notifications = show_streaming_stopped_notification_checkbox_ptr->is_checked();
         config.streaming_config.streaming_service = streaming_service_box_ptr->get_selected_id();
         config.streaming_config.youtube.stream_key = youtube_stream_key_entry_ptr->get_text();
         config.streaming_config.twitch.stream_key = twitch_stream_key_entry_ptr->get_text();

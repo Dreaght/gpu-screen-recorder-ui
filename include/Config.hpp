@@ -60,6 +60,9 @@ namespace gsr {
         bool overclock = false;
         bool record_cursor = true;
         bool restore_portal_session = true;
+
+        bool show_notifications = true;
+        bool use_led_indicator = false;
     };
 
     struct MainConfig {
@@ -93,8 +96,6 @@ namespace gsr {
 
     struct StreamingConfig {
         RecordOptions record_options;
-        bool show_streaming_started_notifications = true;
-        bool show_streaming_stopped_notifications = true;
         std::string streaming_service = "twitch";
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
@@ -106,9 +107,6 @@ namespace gsr {
     struct RecordConfig {
         RecordOptions record_options;
         bool save_video_in_game_folder = false;
-        bool show_recording_started_notifications = true;
-        bool show_video_saved_notifications = true;
-        bool show_video_paused_notifications = true;
         std::string save_directory;
         std::string container = "mp4";
         ConfigHotkey start_stop_hotkey;
@@ -120,9 +118,6 @@ namespace gsr {
         std::string turn_on_replay_automatically_mode = "dont_turn_on_automatically";
         bool save_video_in_game_folder = false;
         bool restart_replay_on_save = false;
-        bool show_replay_started_notifications = true;
-        bool show_replay_stopped_notifications = true;
-        bool show_replay_saved_notifications = true;
         std::string save_directory;
         std::string container = "mp4";
         int32_t replay_time = 60;
@@ -145,7 +140,8 @@ namespace gsr {
 
         bool save_screenshot_in_game_folder = false;
         bool save_screenshot_to_clipboard = false;
-        bool show_screenshot_saved_notifications = true;
+        bool show_notifications = true;
+        bool use_led_indicator = false;
         std::string save_directory;
         ConfigHotkey take_screenshot_hotkey;
         ConfigHotkey take_screenshot_region_hotkey;

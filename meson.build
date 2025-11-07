@@ -50,6 +50,7 @@ src = [
     'src/AudioPlayer.cpp',
     'src/Hotplug.cpp',
     'src/ClipboardFile.cpp',
+    'src/LedIndicator.cpp',
     'src/Rpc.cpp',
     'src/main.cpp',
 ]

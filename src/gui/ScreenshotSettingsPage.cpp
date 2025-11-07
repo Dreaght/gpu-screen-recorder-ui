@@ -221,18 +221,27 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<Widget> ScreenshotSettingsPage::create_notifications() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show screenshot notifications");
+        checkbox->set_checked(true);
+        show_notification_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
+    std::unique_ptr<Widget> ScreenshotSettingsPage::create_led_indicator() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Blink scroll lock led when taking a screenshot");
+        checkbox->set_checked(true);
+        led_indicator_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_general_section() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         list->add_widget(create_save_screenshot_in_game_folder());
         list->add_widget(create_save_screenshot_to_clipboard());
+        list->add_widget(create_notifications());
+        list->add_widget(create_led_indicator());
         return std::make_unique<Subsection>("General", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
-    }
-
-    std::unique_ptr<Widget> ScreenshotSettingsPage::create_notifications_section() {
-        auto show_screenshot_saved_notification_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show screenshot saved notification");
-        show_screenshot_saved_notification_checkbox->set_checked(true);
-        show_screenshot_saved_notification_checkbox_ptr = show_screenshot_saved_notification_checkbox.get();
-        return std::make_unique<Subsection>("Notifications", std::move(show_screenshot_saved_notification_checkbox), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_settings() {
@@ -248,7 +257,6 @@ namespace gsr {
         settings_list->add_widget(create_image_section());
         settings_list->add_widget(create_file_info_section());
         settings_list->add_widget(create_general_section());
-        settings_list->add_widget(create_notifications_section());
         settings_scrollable_page_ptr->add_widget(std::move(settings_list));
         return page_list;
     }
@@ -291,7 +299,8 @@ namespace gsr {
         save_directory_button_ptr->set_text(config.screenshot_config.save_directory);
         save_screenshot_in_game_folder_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_in_game_folder);
         save_screenshot_to_clipboard_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_clipboard);
-        show_screenshot_saved_notification_checkbox_ptr->set_checked(config.screenshot_config.show_screenshot_saved_notifications);
+        show_notification_checkbox_ptr->set_checked(config.screenshot_config.show_notifications);
+        led_indicator_checkbox_ptr->set_checked(config.screenshot_config.use_led_indicator);
 
         if(config.screenshot_config.image_width == 0)
             config.screenshot_config.image_width = 1920;
@@ -320,7 +329,8 @@ namespace gsr {
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
         config.screenshot_config.save_screenshot_in_game_folder = save_screenshot_in_game_folder_checkbox_ptr->is_checked();
         config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
-        config.screenshot_config.show_screenshot_saved_notifications = show_screenshot_saved_notification_checkbox_ptr->is_checked();
+        config.screenshot_config.show_notifications = show_notification_checkbox_ptr->is_checked();
+        config.screenshot_config.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
 
         if(config.screenshot_config.image_width == 0)
             config.screenshot_config.image_width = 1920;

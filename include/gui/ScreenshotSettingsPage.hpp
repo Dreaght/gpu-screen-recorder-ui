@@ -43,8 +43,9 @@ namespace gsr {
         std::unique_ptr<Widget> create_file_info_section();
         std::unique_ptr<CheckBox> create_save_screenshot_in_game_folder();
         std::unique_ptr<CheckBox> create_save_screenshot_to_clipboard();
+        std::unique_ptr<Widget> create_notifications();
+        std::unique_ptr<Widget> create_led_indicator();
         std::unique_ptr<Widget> create_general_section();
-        std::unique_ptr<Widget> create_notifications_section();
         std::unique_ptr<Widget> create_settings();
         void add_widgets();
 
@@ -71,7 +72,8 @@ namespace gsr {
         Button *save_directory_button_ptr = nullptr;
         CheckBox *save_screenshot_in_game_folder_checkbox_ptr = nullptr;
         CheckBox *save_screenshot_to_clipboard_checkbox_ptr = nullptr;
-        CheckBox *show_screenshot_saved_notification_checkbox_ptr = nullptr;
+        CheckBox *show_notification_checkbox_ptr = nullptr;
+        CheckBox *led_indicator_checkbox_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
     };

@@ -11,6 +11,7 @@
 #include "RegionSelector.hpp"
 #include "WindowSelector.hpp"
 #include "ClipboardFile.hpp"
+#include "LedIndicator.hpp"
 #include "CursorTracker/CursorTracker.hpp"
 
 #include <mglpp/window/Window.hpp>
@@ -235,7 +236,7 @@ namespace gsr {
 
         std::unique_ptr<GlobalHotkeys> global_hotkeys = nullptr;
         std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
-        Display *x11_mapping_display = nullptr;
+        Display *x11_dpy = nullptr;
         XEvent x11_mapping_xev;
 
         mgl::Clock replay_save_clock;
@@ -269,5 +270,7 @@ namespace gsr {
         bool hide_ui = false;
         double notification_duration_multiplier = 1.0;
         ClipboardFile clipboard_file;
+
+        std::unique_ptr<LedIndicator> led_indicator = nullptr;
     };
 }

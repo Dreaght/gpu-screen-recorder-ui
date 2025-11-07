@@ -112,6 +112,8 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
         std::unique_ptr<Label> create_estimated_record_file_size();
         void update_estimated_record_file_size();
+        std::unique_ptr<CheckBox> create_led_indicator(const char *type);
+        std::unique_ptr<CheckBox> create_notifications(const char *type);
         void add_replay_widgets();
         void add_record_widgets();
 
@@ -136,7 +138,7 @@ namespace gsr {
         void save_record();
         void save_stream();
 
-        void view_changed(bool advanced_view, Subsection *notifications_subsection_ptr);
+        void view_changed(bool advanced_view);
     private:
         Type type;
         Config &config;
@@ -179,15 +181,7 @@ namespace gsr {
         CheckBox *save_replay_in_game_folder_ptr = nullptr;
         CheckBox *restart_replay_on_save = nullptr;
         Label *estimated_file_size_ptr = nullptr;
-        CheckBox *show_replay_started_notification_checkbox_ptr = nullptr;
-        CheckBox *show_replay_stopped_notification_checkbox_ptr = nullptr;
-        CheckBox *show_replay_saved_notification_checkbox_ptr = nullptr;
         CheckBox *save_recording_in_game_folder_ptr = nullptr;
-        CheckBox *show_recording_started_notification_checkbox_ptr = nullptr;
-        CheckBox *show_video_saved_notification_checkbox_ptr = nullptr;
-        CheckBox *show_video_paused_notification_checkbox_ptr = nullptr;
-        CheckBox *show_streaming_started_notification_checkbox_ptr = nullptr;
-        CheckBox *show_streaming_stopped_notification_checkbox_ptr = nullptr;
         Button *save_directory_button_ptr = nullptr;
         Entry *twitch_stream_key_entry_ptr = nullptr;
         Entry *youtube_stream_key_entry_ptr = nullptr;
@@ -200,6 +194,8 @@ namespace gsr {
         RadioButton *turn_on_replay_automatically_mode_ptr = nullptr;
         Subsection *audio_section_ptr = nullptr;
         List *audio_track_section_list_ptr = nullptr;
+        CheckBox *led_indicator_checkbox_ptr = nullptr;
+        CheckBox *show_notification_checkbox_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
     };
