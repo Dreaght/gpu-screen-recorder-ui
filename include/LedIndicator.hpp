@@ -1,12 +1,12 @@
 #pragma once
 
-#include <X11/Xlib.h>
+#include <sys/types.h>
 #include <mglpp/system/Clock.hpp>
 
 namespace gsr {
     class LedIndicator {
     public:
-        LedIndicator(Display *dpy);
+        LedIndicator();
         LedIndicator(const LedIndicator&) = delete;
         LedIndicator& operator=(const LedIndicator&) = delete;
         ~LedIndicator();
@@ -15,10 +15,10 @@ namespace gsr {
         void blink();
         void update();
     private:
+        bool run_gsr_global_hotkeys_set_leds(bool enabled);
         void update_led(bool new_state);
     private:
-        Display *dpy = nullptr;
-        Atom scroll_lock_atom = None;
+        pid_t gsr_global_hotkeys_pid = -1;
         bool led_indicator_on = false;
         bool led_enabled = false;
         bool perform_blink = false;

@@ -237,6 +237,17 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
     }
 
+    if(event.type == EV_LED) {
+        write(fd, &event, sizeof(event));
+
+        const struct input_event syn_event = {
+            .type = EV_SYN,
+            .code = 0,
+            .value = 0
+        };
+        write(fd, &syn_event, sizeof(syn_event));
+    }
+
     if(!extra_data->is_possibly_non_keyboard_device)
         return;
 
@@ -389,7 +400,7 @@ static bool keyboard_event_try_add_device_if_keyboard(keyboard_event *self, cons
     if(keyboard_event_has_event_with_dev_input_fd(self, dev_input_id))
         return false;
 
-    const int fd = open(dev_input_filepath, O_RDONLY);
+    const int fd = open(dev_input_filepath, O_RDWR);
     if(fd == -1)
         return false;
 
@@ -553,10 +564,12 @@ static int setup_virtual_keyboard_input(const char *name) {
         if(is_keyboard_key(i) || is_mouse_button(i))
             success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }
+
     for(int i = 0; i < REL_MAX; ++i) {
         success &= (ioctl(fd, UI_SET_RELBIT, i) != -1);
     }
-    // for(int i = 0; i < LED_MAX; ++i) {
+
+    // for(int i = 0; i <= LED_CHARGING; ++i) {
     //     success &= (ioctl(fd, UI_SET_LEDBIT, i) != -1);
     // }
 
@@ -635,6 +648,22 @@ bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_gra
         return false;
     }
 
+    self->event_polls[self->num_event_polls] = (struct pollfd) {
+        .fd = self->timer_fd,
+        .events = POLLIN,
+        .revents = 0
+    };
+
+    self->event_extra_data[self->num_event_polls] = (event_extra_data) {
+        .dev_input_id = -1,
+        .grabbed = false,
+        .key_states = NULL,
+        .key_presses_grabbed = NULL,
+        .num_keys_pressed = 0
+    };
+
+    ++self->num_event_polls;
+
     /* 0.5 seconds */
     const struct itimerspec timer_value = {
         .it_value = (struct timespec) {
@@ -652,22 +681,6 @@ bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_gra
         keyboard_event_deinit(self);
         return false;
     }
-
-    self->event_polls[self->num_event_polls] = (struct pollfd) {
-        .fd = self->timer_fd,
-        .events = POLLIN,
-        .revents = 0
-    };
-
-    self->event_extra_data[self->num_event_polls] = (event_extra_data) {
-        .dev_input_id = -1,
-        .grabbed = false,
-        .key_states = NULL,
-        .key_presses_grabbed = NULL,
-        .num_keys_pressed = 0
-    };
-
-    ++self->num_event_polls;
 
     self->uinput_written_time_seconds = clock_get_monotonic_seconds();
 
@@ -715,11 +728,6 @@ void keyboard_event_deinit(keyboard_event *self) {
         ioctl(self->uinput_fd, UI_DEV_DESTROY);
         close(self->uinput_fd);
         self->uinput_fd = -1;
-    }
-
-    if(self->timer_fd > 0) {
-        close(self->timer_fd);
-        self->timer_fd = -1;
     }
 
     for(int i = 0; i < self->num_event_polls; ++i) {

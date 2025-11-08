@@ -522,8 +522,8 @@ namespace gsr {
             }
         }
 
-        if(x11_dpy)
-            led_indicator = std::make_unique<LedIndicator>(x11_dpy);
+        // TODO: Only do this if led indicator is enabled (at startup or when changing recording/screenshot settings to enabled it)
+        led_indicator = std::make_unique<LedIndicator>();
     }
 
     Overlay::~Overlay() {

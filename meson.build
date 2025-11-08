@@ -94,6 +94,7 @@ executable(
         'tools/gsr-global-hotkeys/hotplug.c',
         'tools/gsr-global-hotkeys/keyboard_event.c',
         'tools/gsr-global-hotkeys/keys.c',
+        'tools/gsr-global-hotkeys/leds.c',
         'tools/gsr-global-hotkeys/main.c'
     ],
     c_args : '-fstack-protector-all',

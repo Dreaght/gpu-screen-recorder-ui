@@ -1,19 +1,26 @@
 #include "keyboard_event.h"
+#include "leds.h"
 
 /* C stdlib */
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
+#include <stdbool.h>
 
 /* POSIX */
 #include <unistd.h>
 
 static void usage(void) {
-    fprintf(stderr, "usage: gsr-global-hotkeys [--all|--virtual]\n");
+    fprintf(stderr, "usage: gsr-global-hotkeys [--all|--virtual|--no-grab|--set-led] [Scroll Lock] [on|off]\n");
     fprintf(stderr, "OPTIONS:\n");
     fprintf(stderr, "  --all        Grab all devices.\n");
     fprintf(stderr, "  --virtual    Grab all virtual devices only.\n");
     fprintf(stderr, "  --no-grab    Don't grab devices, only listen to them.\n");
+    fprintf(stderr, "  --set-led    Turn device led on/off.\n");
+    fprintf(stderr, "EXAMPLES:\n");
+    fprintf(stderr, "  gsr-global-hotkeys --all\n");
+    fprintf(stderr, "  gsr-global-hotkeys --set-led \"Scroll Lock\" on\n");
+    fprintf(stderr, "  gsr-global-hotkeys --set-led \"Scroll Lock\" off\n");
 }
 
 static bool is_gsr_global_hotkeys_already_running(void) {
@@ -38,6 +45,8 @@ int main(int argc, char **argv) {
     setlocale(LC_ALL, "C"); /* Sigh... stupid C */
 
     keyboard_grab_type grab_type = KEYBOARD_GRAB_TYPE_ALL;
+    const uid_t user_id = getuid();
+
     if(argc == 2) {
         const char *grab_type_arg = argv[1];
         if(strcmp(grab_type_arg, "--all") == 0) {
@@ -46,11 +55,42 @@ int main(int argc, char **argv) {
             grab_type = KEYBOARD_GRAB_TYPE_VIRTUAL;
         } else if(strcmp(grab_type_arg, "--no-grab") == 0) {
             grab_type = KEYBOARD_GRAB_TYPE_NO_GRAB;
+        } else if(strcmp(grab_type_arg, "--set-led") == 0) {
+            fprintf(stderr, "Error: missing led name and on/off argument to --set-led\n");
+            usage();
+            return 1;
         } else {
-            fprintf(stderr, "gsr-global-hotkeys error: expected --all, --virtual or --no-grab, got %s\n", grab_type_arg);
+            fprintf(stderr, "gsr-global-hotkeys error: expected --all, --virtual, --no-grab or --set-led, got %s\n", grab_type_arg);
             usage();
             return 1;
         }
+    } else if(argc == 4) {
+        /* It's not ideal to use gsr-global-hotkeys for leds, but we do that for now because it's a mess to create another binary for flatpak and distros */
+        const char *led_name = argv[2];
+        const char *led_enabled_str = argv[3];
+        bool led_enabled = false;
+
+        if(strcmp(led_enabled_str, "on") == 0) {
+            led_enabled = true;
+        } else if(strcmp(led_enabled_str, "off") == 0) {
+            led_enabled = false;
+        } else {
+            fprintf(stderr, "Error: expected \"on\" or \"off\" for --set-led option, got: \"%s\"", led_enabled_str);
+            usage();
+            return 1;
+        }
+
+        if(geteuid() != 0) {
+            if(setuid(0) == -1) {
+                fprintf(stderr, "gsr-global-hotkeys error: failed to change user to root, global hotkeys will not work. Make sure to set the correct capability on gsr-global-hotkeys\n");
+                return 1;
+            }
+        }
+
+        const bool success = set_leds(led_name, led_enabled);
+        setuid(user_id);
+
+        return success ? 0 : 1;
     } else if(argc != 1) {
         fprintf(stderr, "gsr-global-hotkeys error: expected 0 or 1 arguments, got %d argument(s)\n", argc);
         usage();
@@ -62,7 +102,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    const uid_t user_id = getuid();
     if(geteuid() != 0) {
         if(setuid(0) == -1) {
             fprintf(stderr, "gsr-global-hotkeys error: failed to change user to root, global hotkeys will not work. Make sure to set the correct capability on gsr-global-hotkeys\n");
