@@ -1935,8 +1935,14 @@ namespace gsr {
 
         switch(notification_type) {
             case NotificationType::RECORD: {
-                if(led_indicator && config.record_config.record_options.use_led_indicator)
-                    led_indicator->blink();
+                if(led_indicator) {
+                    if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
+                        led_indicator->set_led(false);
+                    else if(recording_status == RecordingStatus::STREAM && !current_recording_config.streaming_config.record_options.use_led_indicator)
+                        led_indicator->set_led(false);
+                    else if(config.record_config.record_options.use_led_indicator)
+                        led_indicator->blink();
+                }
 
                 if(!config.record_config.record_options.show_notifications)
                     return;
@@ -2127,7 +2133,7 @@ namespace gsr {
                     on_gsr_process_error(exit_code, NotificationType::REPLAY);
                 }
 
-                if(led_indicator && current_recording_config.replay_config.record_options.use_led_indicator)
+                if(led_indicator)
                     led_indicator->set_led(false);
 
                 break;
@@ -2136,7 +2142,7 @@ namespace gsr {
                 update_ui_recording_stopped();
                 on_stop_recording(exit_code, record_filepath);
 
-                if(led_indicator && current_recording_config.record_config.record_options.use_led_indicator)
+                if(led_indicator)
                     led_indicator->set_led(false);
                 break;
             }
@@ -2149,7 +2155,7 @@ namespace gsr {
                     on_gsr_process_error(exit_code, NotificationType::STREAM);
                 }
 
-                if(led_indicator && current_recording_config.streaming_config.record_options.use_led_indicator)
+                if(led_indicator)
                     led_indicator->set_led(false);
                 break;
             }
@@ -2295,8 +2301,14 @@ namespace gsr {
                     show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
                 }
 
-                if(led_indicator && config.record_config.record_options.use_led_indicator)
-                    led_indicator->blink();
+                if(led_indicator) {
+                    if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
+                        led_indicator->set_led(false);
+                    else if(recording_status == RecordingStatus::STREAM && !current_recording_config.streaming_config.record_options.use_led_indicator)
+                        led_indicator->set_led(false);
+                    else if(config.record_config.record_options.use_led_indicator)
+                        led_indicator->blink();
+                }
             }
         } else {
             on_gsr_process_error(exit_code, NotificationType::RECORD);
@@ -2703,7 +2715,7 @@ namespace gsr {
             replay_save_duration_min = 0;
             update_ui_replay_stopped();
 
-            if(led_indicator && current_recording_config.replay_config.record_options.use_led_indicator)
+            if(led_indicator)
                 led_indicator->set_led(false);
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
@@ -2859,8 +2871,12 @@ namespace gsr {
                         recording_duration_clock.restart();
                         update_upause_status();
 
-                        if(led_indicator && config.record_config.record_options.use_led_indicator)
-                            led_indicator->blink();
+                        if(led_indicator) {
+                            if(!current_recording_config.replay_config.record_options.use_led_indicator)
+                                led_indicator->set_led(true);
+                            else if(config.record_config.record_options.use_led_indicator)
+                                led_indicator->blink();
+                        }
                     }
 
                     replay_recording = true;
@@ -2885,8 +2901,12 @@ namespace gsr {
                         recording_duration_clock.restart();
                         update_upause_status();
 
-                        if(led_indicator && config.record_config.record_options.use_led_indicator)
-                            led_indicator->blink();
+                        if(led_indicator) {
+                            if(!current_recording_config.streaming_config.record_options.use_led_indicator)
+                                led_indicator->set_led(true);
+                            else if(config.record_config.record_options.use_led_indicator)
+                                led_indicator->blink();
+                        }
                     }
 
                     replay_recording = true;
@@ -2919,7 +2939,7 @@ namespace gsr {
             update_upause_status();
             record_filepath.clear();
 
-            if(led_indicator && current_recording_config.record_config.record_options.use_led_indicator)
+            if(led_indicator)
                 led_indicator->set_led(false);
             return;
         }
@@ -3100,7 +3120,7 @@ namespace gsr {
             recording_status = RecordingStatus::NONE;
             update_ui_streaming_stopped();
 
-            if(led_indicator && current_recording_config.streaming_config.record_options.use_led_indicator)
+            if(led_indicator)
                 led_indicator->set_led(false);
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
