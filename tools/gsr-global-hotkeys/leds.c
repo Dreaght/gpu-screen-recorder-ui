@@ -15,27 +15,37 @@
 /* LINUX */
 #include <linux/input.h>
 
-static int get_max_brightness(const char *sys_class_path, const char *filename) {
-    char path[PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s/max_brightness", sys_class_path, filename);
-
-    const int fd = open(path, O_RDONLY);
+/* Returns -1 on error */
+static int read_int_from_file(const char *filepath) {
+    const int fd = open(filepath, O_RDONLY);
     if(fd == -1) {
         fprintf(stderr, "Warning: get_max_brightness open error: %s\n", strerror(errno));
-        return false;
+        return -1;
     }
 
     bool success = false;
-    int max_brightness = 0;
+    int value = 0;
     char buffer[32];
     const ssize_t num_bytes_read = read(fd, buffer, sizeof(buffer));
     if(num_bytes_read > 0) {
         buffer[num_bytes_read] = '\0';
-        success = sscanf(buffer, "%d", &max_brightness) == 1;
+        success = sscanf(buffer, "%d", &value) == 1;
     }
 
     close(fd);
-    return success;
+    return success ? value : -1;
+}
+
+static int get_max_brightness(const char *sys_class_path, const char *filename) {
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s/%s/max_brightness", sys_class_path, filename);
+    return read_int_from_file(path);
+}
+
+static int get_brightness(const char *sys_class_path, const char *filename) {
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s/%s/brightness", sys_class_path, filename);
+    return read_int_from_file(path);
 }
 
 static bool string_starts_with(const char *str, const char *sub) {
@@ -136,4 +146,36 @@ bool set_leds(const char *led_name, bool enabled) {
         fprintf(stderr, "Error: invalid led: \"%s\", expected \"Scroll Lock\"\n", led_name);
         return false;
     }
+}
+
+bool get_leds(int event_number, ggh_leds *leds) {
+    leds->scroll_lock_brightness = -1;
+    leds->num_lock_brightness = -1;
+    leds->caps_lock_brightness = -1;
+
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "/sys/class/input/event%d/device", event_number);
+
+    DIR *dir = opendir(path);
+    if(!dir)
+        return false;
+
+    struct dirent *entry;
+    while((entry = readdir(dir)) != NULL) {
+        if(entry->d_name[0] == '.')
+            continue;
+
+        if(!string_starts_with(entry->d_name, "input"))
+            continue;
+
+        if(string_ends_with(entry->d_name, "::scrolllock"))
+            leds->scroll_lock_brightness = get_brightness(path, entry->d_name);
+        else if(string_ends_with(entry->d_name, "::numlock"))
+            leds->num_lock_brightness = get_brightness(path, entry->d_name);
+        else if(string_ends_with(entry->d_name, "::capslock"))
+            leds->caps_lock_brightness = get_brightness(path, entry->d_name);
+    }
+
+    closedir(dir);
+    return true;
 }

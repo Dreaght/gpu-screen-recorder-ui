@@ -1,5 +1,6 @@
 #include "keyboard_event.h"
 #include "keys.h"
+#include "leds.h"
 
 /* C stdlib */
 #include <stdio.h>
@@ -716,6 +717,41 @@ bool keyboard_event_init(keyboard_event *self, bool exclusive_grab, keyboard_gra
     return true;
 }
 
+static void write_led_data_to_device(int fd, uint16_t led, int value) {
+    struct input_event led_data = {
+        .type = EV_LED,
+        .code = led,
+        .value = value
+    };
+    write(fd, &led_data, sizeof(led_data));
+
+    struct input_event syn_data = {
+        .type = EV_SYN,
+        .code = 0,
+        .value = 0
+    };
+    write(fd, &syn_data, sizeof(syn_data));
+}
+
+/* When the device is ungrabbed the leds are unset for some reason. Set them back to their previous brightness */
+static void keyboard_event_device_deinit(int fd, event_extra_data *extra_data) {
+    ggh_leds leds;
+    const bool got_leds = get_leds(extra_data->dev_input_id, &leds);
+
+    ioctl(fd, EVIOCGRAB, 0);
+    if(got_leds) {
+        if(leds.scroll_lock_brightness >= 0)
+            write_led_data_to_device(fd, LED_SCROLLL, leds.scroll_lock_brightness);
+
+        if(leds.num_lock_brightness >= 0)
+            write_led_data_to_device(fd, LED_NUML, leds.num_lock_brightness);
+
+        if(leds.caps_lock_brightness >= 0)
+            write_led_data_to_device(fd, LED_CAPSL, leds.caps_lock_brightness);
+    }
+    close(fd);
+}
+
 void keyboard_event_deinit(keyboard_event *self) {
     self->running = false;
 
@@ -732,8 +768,10 @@ void keyboard_event_deinit(keyboard_event *self) {
 
     for(int i = 0; i < self->num_event_polls; ++i) {
         if(self->event_polls[i].fd > 0) {
-            ioctl(self->event_polls[i].fd, EVIOCGRAB, 0);
-            close(self->event_polls[i].fd);
+            if(self->event_extra_data[i].dev_input_id > 0 && !self->event_extra_data[i].gsr_ui_virtual_keyboard)
+                keyboard_event_device_deinit(self->event_polls[i].fd, &self->event_extra_data[i]);
+            else
+                close(self->event_polls[i].fd);
         }
         free(self->event_extra_data[i].key_states);
         free(self->event_extra_data[i].key_presses_grabbed);
