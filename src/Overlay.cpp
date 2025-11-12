@@ -2024,7 +2024,8 @@ namespace gsr {
     void Overlay::process_gsr_output() {
         if(replay_save_show_notification && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
             replay_save_show_notification = false;
-            show_notification("Saving replay, this might take some time", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+            if(config.replay_config.record_options.show_notifications)
+                show_notification("Saving replay, this might take some time", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
         }
 
         if(gpu_screen_recorder_process_output_file) {

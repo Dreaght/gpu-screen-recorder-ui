@@ -58,7 +58,7 @@ namespace gsr {
 
             perror("gsr-global-hotkeys");
             _exit(127);
-            return true;
+            return false;
         } else { // Parent
             return true;
         }
