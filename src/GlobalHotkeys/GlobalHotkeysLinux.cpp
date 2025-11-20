@@ -193,7 +193,7 @@ namespace gsr {
             return false;
         }
 
-        if(hotkey.key == 0) {
+        if(hotkey.key == 0 || hotkey.key == XK_VoidSymbol) {
             //fprintf(stderr, "Error: GlobalHotkeysLinux::bind_key_press: hotkey requires a key\n");
             return false;
         }

@@ -245,3 +245,5 @@ Show a question mark beside options. When hovering the question mark show a tool
 Remove all mgl::Clock usage in Overlay. We only need to get the time once per update in Overlay::handle_events. Also get time in other places outside handle_events.
 
 Handle stopping replay/stream when recording is running (show notification that the video is saved and move the video to folder with game name).
+
+Support translations.
