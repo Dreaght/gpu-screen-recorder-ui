@@ -918,7 +918,7 @@ namespace gsr {
     void SettingsPage::add_record_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_info_data_list->add_widget(create_save_directory("Directory to save the video:"));
+        file_info_data_list->add_widget(create_save_directory("Directory to save videos:"));
         file_info_data_list->add_widget(create_container_section());
         file_info_list->add_widget(std::move(file_info_data_list));
         file_info_list->add_widget(create_estimated_record_file_size());

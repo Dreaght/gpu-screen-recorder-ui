@@ -202,7 +202,7 @@ namespace gsr {
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_file_info_section() {
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_info_data_list->add_widget(create_save_directory("Directory to save the screenshot:"));
+        file_info_data_list->add_widget(create_save_directory("Directory to save screenshots:"));
         file_info_data_list->add_widget(create_image_format_section());
         return std::make_unique<Subsection>("File info", std::move(file_info_data_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
