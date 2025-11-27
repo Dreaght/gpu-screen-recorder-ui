@@ -3175,10 +3175,10 @@ namespace gsr {
 
         char size[64];
         size[0] = '\0';
-        if(config.record_config.record_options.record_area_option == "focused")
+        if(config.streaming_config.record_options.record_area_option == "focused")
             snprintf(size, sizeof(size), "%dx%d", (int)config.streaming_config.record_options.record_area_width, (int)config.streaming_config.record_options.record_area_height);
 
-        if(config.record_config.record_options.record_area_option != "focused" && config.streaming_config.record_options.change_video_resolution)
+        if(config.streaming_config.record_options.record_area_option != "focused" && config.streaming_config.record_options.change_video_resolution)
             snprintf(size, sizeof(size), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
 
         std::vector<const char*> args = {
@@ -3188,6 +3188,7 @@ namespace gsr {
             "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.streaming_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
+            "-k", video_codec,
             "-encoder", encoder,
             "-f", fps.c_str(),
             "-v", "no",

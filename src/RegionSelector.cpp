@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <X11/Xatom.h>
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/shape.h>
@@ -221,6 +222,9 @@ namespace gsr {
         }
         set_window_size_not_resizable(dpy, region_window, XWidthOfScreen(screen), XHeightOfScreen(screen));
 
+        unsigned char data = 2; // Prefer being composed to allow transparency. Do this to prevent the compositor from getting turned on/off when taking a screenshot
+        XChangeProperty(dpy, region_window, XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+
         if(!is_wayland) {
             cursor_window = create_cursor_window(dpy, cursor_window_size, cursor_window_size, &vinfo, border_color_x11);
             if(!cursor_window)
@@ -308,6 +312,9 @@ namespace gsr {
             XDestroyWindow(dpy, region_window);
             region_window = 0;
         }
+
+        XFlush(dpy);
+        XSync(dpy, False);
 
         XCloseDisplay(dpy);
         dpy = nullptr;
