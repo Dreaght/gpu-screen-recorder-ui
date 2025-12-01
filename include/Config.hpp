@@ -146,6 +146,8 @@ namespace gsr {
         ConfigHotkey take_screenshot_hotkey;
         ConfigHotkey take_screenshot_region_hotkey;
         ConfigHotkey take_screenshot_window_hotkey; // Or desktop portal, on wayland
+
+        std::string custom_script;
     };
 
     struct Config {

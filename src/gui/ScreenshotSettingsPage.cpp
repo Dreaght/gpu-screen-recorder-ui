@@ -139,7 +139,7 @@ namespace gsr {
 
         return list;
     }
-    
+
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_record_cursor_section() {
         auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
         record_cursor_checkbox->set_checked(true);
@@ -163,7 +163,7 @@ namespace gsr {
             auto select_directory_page = std::make_unique<GsrPage>("File", "Settings");
             select_directory_page->add_button("Save", "save", get_color_theme().tint_color);
             select_directory_page->add_button("Cancel", "cancel", get_color_theme().page_bg_color);
-            
+
             auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text().c_str(), select_directory_page->get_inner_size());
             FileChooser *file_chooser_ptr = file_chooser.get();
             select_directory_page->add_widget(std::move(file_chooser));
@@ -249,6 +249,27 @@ namespace gsr {
         return std::make_unique<Subsection>("Screenshot indicator", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
+    std::unique_ptr<List> ScreenshotSettingsPage::create_custom_script_screenshot_entry() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+
+        auto create_custom_script_screenshot_entry = std::make_unique<Entry>(&get_theme().body_font, "kolourpaint", get_theme().body_font.get_character_size() * 20);
+        create_custom_script_screenshot_entry_ptr = create_custom_script_screenshot_entry.get();
+        list->add_widget(std::move(create_custom_script_screenshot_entry));
+
+        return list;
+    }
+
+    std::unique_ptr<List> ScreenshotSettingsPage::create_custom_script_screenshot() {
+        auto custom_script_screenshot_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        custom_script_screenshot_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Program to open the screenshot with:", get_color_theme().text_color));
+        custom_script_screenshot_list->add_widget(create_custom_script_screenshot_entry());
+        return custom_script_screenshot_list;
+    }
+
+    std::unique_ptr<Widget> ScreenshotSettingsPage::create_custom_script_screenshot_section() {
+        return std::make_unique<Subsection>("Script", create_custom_script_screenshot(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+    }
+
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_settings() {
         auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
         page_list->set_spacing(0.018f);
@@ -263,6 +284,7 @@ namespace gsr {
         settings_list->add_widget(create_file_info_section());
         settings_list->add_widget(create_general_section());
         settings_list->add_widget(create_screenshot_indicator_section());
+        settings_list->add_widget(create_custom_script_screenshot_section());
         settings_scrollable_page_ptr->add_widget(std::move(settings_list));
         return page_list;
     }
@@ -321,6 +343,8 @@ namespace gsr {
         if(config.screenshot_config.image_height < 32)
             config.screenshot_config.image_height = 32;
         image_height_entry_ptr->set_text(std::to_string(config.screenshot_config.image_height));
+
+        create_custom_script_screenshot_entry_ptr->set_text(config.screenshot_config.custom_script);
     }
 
     void ScreenshotSettingsPage::save() {
@@ -337,6 +361,7 @@ namespace gsr {
         config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
         config.screenshot_config.show_notifications = show_notification_checkbox_ptr->is_checked();
         config.screenshot_config.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
+        config.screenshot_config.custom_script = create_custom_script_screenshot_entry_ptr->get_text();
 
         if(config.screenshot_config.image_width == 0)
             config.screenshot_config.image_width = 1920;

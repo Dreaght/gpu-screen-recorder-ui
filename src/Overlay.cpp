@@ -2176,6 +2176,11 @@ namespace gsr {
 
             if(led_indicator && config.screenshot_config.use_led_indicator)
                 led_indicator->blink();
+
+            if(!strip(config.screenshot_config.custom_script).empty()) {
+                const char *args[] = { config.screenshot_config.custom_script.c_str(), screenshot_filepath.c_str(), nullptr };
+                exec_program_on_host_daemonized(args);
+            }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
             show_notification("Failed to take a screenshot. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);

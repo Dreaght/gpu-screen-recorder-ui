@@ -47,6 +47,9 @@ namespace gsr {
         std::unique_ptr<Widget> create_led_indicator();
         std::unique_ptr<Widget> create_general_section();
         std::unique_ptr<Widget> create_screenshot_indicator_section();
+        std::unique_ptr<Widget> create_custom_script_screenshot_section();
+        std::unique_ptr<List> create_custom_script_screenshot_entry();
+        std::unique_ptr<List> create_custom_script_screenshot();
         std::unique_ptr<Widget> create_settings();
         void add_widgets();
 
@@ -75,6 +78,7 @@ namespace gsr {
         CheckBox *save_screenshot_to_clipboard_checkbox_ptr = nullptr;
         CheckBox *show_notification_checkbox_ptr = nullptr;
         CheckBox *led_indicator_checkbox_ptr = nullptr;
+        Entry *create_custom_script_screenshot_entry_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
     };
