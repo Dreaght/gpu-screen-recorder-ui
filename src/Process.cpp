@@ -73,6 +73,28 @@ namespace gsr {
         return true;
     }
 
+    bool exec_program_on_host_daemonized(const char **args, bool debug) {
+        if(count_num_args(args) > 64 - 3) {
+            fprintf(stderr, "Error: too many arguments when trying to launch \"%s\"\n", args[0]);
+            return -1;
+        }
+
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
+        if(inside_flatpak) {
+            // Assumes programs wont need more than 64 - 3 args
+            const char *modified_args[64] = { "flatpak-spawn", "--host", "--" };
+            for(int i = 3; i < 64; ++i) {
+                const char *arg = args[i - 3];
+                modified_args[i] = arg;
+                if(!arg)
+                    break;
+            }
+            return exec_program_daemonized(modified_args, debug);
+        } else {
+            return exec_program_daemonized(args, debug);
+        }
+    }
+
     pid_t exec_program(const char **args, int *read_fd, bool debug) {
         if(read_fd)
             *read_fd = -1;
@@ -164,11 +186,9 @@ namespace gsr {
             const char *modified_args[64] = { "flatpak-spawn", "--host", "--" };
             for(int i = 3; i < 64; ++i) {
                 const char *arg = args[i - 3];
-                if(!arg) {
-                    modified_args[i] = nullptr;
-                    break;
-                }
                 modified_args[i] = arg;
+                if(!arg)
+                    break;
             }
             return exec_program_get_stdout(modified_args, result, debug);
         } else {
