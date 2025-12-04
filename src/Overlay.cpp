@@ -1909,10 +1909,10 @@ namespace gsr {
         return ClipboardFile::FileType::PNG;
     }
 
-    void Overlay::save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type) {
+    void Overlay::save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type) {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
-        const std::string video_filename = filepath_get_filename(video_filepath);
+        const std::string video_filename = filepath_get_filename(video_filepath.c_str());
 
         const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
         std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
@@ -1923,11 +1923,12 @@ namespace gsr {
 
         string_replace_characters(focused_window_name.data(), "/\\", ' ');
 
-        std::string video_directory = filepath_get_directory(video_filepath) + "/" + focused_window_name;
+        std::string video_directory = filepath_get_directory(video_filepath.c_str()) + "/" + focused_window_name;
         create_directory_recursive(video_directory.data());
 
         const std::string new_video_filepath = video_directory + "/" + video_filename;
-        rename(video_filepath, new_video_filepath.c_str());
+        rename(video_filepath.c_str(), new_video_filepath.c_str());
+        video_filepath = new_video_filepath;
 
         truncate_string(focused_window_name, 40);
         const char *capture_target = nullptr;
@@ -1935,15 +1936,6 @@ namespace gsr {
 
         switch(notification_type) {
             case NotificationType::RECORD: {
-                if(led_indicator) {
-                    if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
-                        led_indicator->set_led(false);
-                    else if(recording_status == RecordingStatus::STREAM && !current_recording_config.streaming_config.record_options.use_led_indicator)
-                        led_indicator->set_led(false);
-                    else if(config.record_config.record_options.use_led_indicator)
-                        led_indicator->blink();
-                }
-
                 if(!config.record_config.record_options.show_notifications)
                     return;
 
@@ -1955,9 +1947,6 @@ namespace gsr {
                 break;
             }
             case NotificationType::REPLAY: {
-                if(led_indicator && config.replay_config.record_options.use_led_indicator)
-                    led_indicator->blink();
-
                 if(!config.replay_config.record_options.show_notifications)
                     return;
 
@@ -1969,18 +1958,12 @@ namespace gsr {
                 break;
             }
             case NotificationType::SCREENSHOT: {
-                if(led_indicator && config.screenshot_config.use_led_indicator)
-                    led_indicator->blink();
-
                 if(!config.screenshot_config.show_notifications)
                     return;
 
                 snprintf(msg, sizeof(msg), "Saved a screenshot of %s\nto \"%s\"",
                     capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str(), focused_window_name.c_str());
                 capture_target = screenshot_capture_target.c_str();
-
-                if(config.screenshot_config.save_screenshot_to_clipboard)
-                    clipboard_file.set_current_file(new_video_filepath, filename_to_clipboard_file_type(new_video_filepath));
                 break;
             }
             case NotificationType::NONE:
@@ -2003,22 +1986,20 @@ namespace gsr {
     void Overlay::on_replay_saved(const char *replay_saved_filepath) {
         replay_save_show_notification = false;
         if(config.replay_config.save_video_in_game_folder) {
-            save_video_in_current_game_directory(replay_saved_filepath, NotificationType::REPLAY);
-            return;
-        } else {
-            if(config.replay_config.record_options.show_notifications) {
-                const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
+            std::string filepath = replay_saved_filepath;
+            save_video_in_current_game_directory(filepath, NotificationType::REPLAY);
+        } else if(config.replay_config.record_options.show_notifications) {
+            const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
 
-                char msg[512];
-                snprintf(msg, sizeof(msg), "Saved a %s replay of %s",
-                    duration_str.c_str(),
-                    capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
-                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
-            }
-
-            if(led_indicator && config.replay_config.record_options.use_led_indicator)
-                led_indicator->blink();
+            char msg[512];
+            snprintf(msg, sizeof(msg), "Saved a %s replay of %s",
+                duration_str.c_str(),
+                capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
+            show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
+
+        if(led_indicator && config.replay_config.record_options.use_led_indicator)
+            led_indicator->blink();
     }
 
     void Overlay::process_gsr_output() {
@@ -2045,7 +2026,8 @@ namespace gsr {
 
             const std::string video_filepath = filepath_get_filename(line);
             if(starts_with(video_filepath, "Video_")) {
-                on_stop_recording(0, line);
+                record_filepath = line;
+                on_stop_recording(0, record_filepath);
                 return;
             }
 
@@ -2182,21 +2164,18 @@ namespace gsr {
 
         if(exit_code == 0) {
             if(config.screenshot_config.save_screenshot_in_game_folder) {
-                save_video_in_current_game_directory(screenshot_filepath.c_str(), NotificationType::SCREENSHOT);
-            } else {
-                if(config.screenshot_config.show_notifications) {
-                    char msg[512];
-                    snprintf(msg, sizeof(msg), "Saved a screenshot of %s",
-                        capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
-                    show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
-
-                    if(config.screenshot_config.save_screenshot_to_clipboard)
-                        clipboard_file.set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
-                }
-
-                if(led_indicator && config.screenshot_config.use_led_indicator)
-                    led_indicator->blink();
+                save_video_in_current_game_directory(screenshot_filepath, NotificationType::SCREENSHOT);
+            } else if(config.screenshot_config.show_notifications) {
+                char msg[512];
+                snprintf(msg, sizeof(msg), "Saved a screenshot of %s", capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
+                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
+
+            if(config.screenshot_config.save_screenshot_to_clipboard)
+                clipboard_file.set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
+
+            if(led_indicator && config.screenshot_config.use_led_indicator)
+                led_indicator->blink();
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
             show_notification("Failed to take a screenshot. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
@@ -2287,29 +2266,27 @@ namespace gsr {
             on_press_start_replay(true, false);
     }
 
-    void Overlay::on_stop_recording(int exit_code, const std::string &video_filepath) {
+    void Overlay::on_stop_recording(int exit_code, std::string &video_filepath) {
         if(exit_code == 0) {
             if(config.record_config.save_video_in_game_folder) {
-                save_video_in_current_game_directory(video_filepath.c_str(), NotificationType::RECORD);
-            } else {
-                if(config.record_config.record_options.show_notifications) {
-                    const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
+                save_video_in_current_game_directory(video_filepath, NotificationType::RECORD);
+            } else if(config.record_config.record_options.show_notifications) {
+                const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
 
-                    char msg[512];
-                    snprintf(msg, sizeof(msg), "Saved a %s recording of %s",
-                        duration_str.c_str(),
-                        capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
-                    show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
-                }
+                char msg[512];
+                snprintf(msg, sizeof(msg), "Saved a %s recording of %s",
+                    duration_str.c_str(),
+                    capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
+                show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
+            }
 
-                if(led_indicator) {
-                    if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
-                        led_indicator->set_led(false);
-                    else if(recording_status == RecordingStatus::STREAM && !current_recording_config.streaming_config.record_options.use_led_indicator)
-                        led_indicator->set_led(false);
-                    else if(config.record_config.record_options.use_led_indicator)
-                        led_indicator->blink();
-                }
+            if(led_indicator) {
+                if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
+                    led_indicator->set_led(false);
+                else if(recording_status == RecordingStatus::STREAM && !current_recording_config.streaming_config.record_options.use_led_indicator)
+                    led_indicator->set_led(false);
+                else if(config.record_config.record_options.use_led_indicator)
+                    led_indicator->blink();
             }
         } else {
             on_gsr_process_error(exit_code, NotificationType::RECORD);

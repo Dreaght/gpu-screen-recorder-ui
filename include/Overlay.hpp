@@ -117,7 +117,7 @@ namespace gsr {
 
         double get_time_passed_in_replay_buffer_seconds();
         void update_notification_process_status();
-        void save_video_in_current_game_directory(const char *video_filepath, NotificationType notification_type);
+        void save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type);
         void on_replay_saved(const char *replay_saved_filepath);
         void process_gsr_output();
         void on_gsr_process_error(int exit_code, NotificationType notification_type);
@@ -129,7 +129,7 @@ namespace gsr {
         void update_power_supply_status();
         void update_system_startup_status();
 
-        void on_stop_recording(int exit_code, const std::string &video_filepath);
+        void on_stop_recording(int exit_code, std::string &video_filepath);
 
         void update_ui_recording_paused();
         void update_ui_recording_unpaused();
