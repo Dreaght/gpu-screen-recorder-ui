@@ -247,5 +247,3 @@ Remove all mgl::Clock usage in Overlay. We only need to get the time once per up
 Handle stopping replay/stream when recording is running (show notification that the video is saved and move the video to folder with game name).
 
 Support translations.
-
-Apply patch from email that adds support for launching screenshot image with external program, such as kolourpaint. Or implement simple video/image editing in gsr ui.

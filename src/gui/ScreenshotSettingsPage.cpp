@@ -252,7 +252,7 @@ namespace gsr {
     std::unique_ptr<List> ScreenshotSettingsPage::create_custom_script_screenshot_entry() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
 
-        auto create_custom_script_screenshot_entry = std::make_unique<Entry>(&get_theme().body_font, "kolourpaint", get_theme().body_font.get_character_size() * 20);
+        auto create_custom_script_screenshot_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         create_custom_script_screenshot_entry_ptr = create_custom_script_screenshot_entry.get();
         list->add_widget(std::move(create_custom_script_screenshot_entry));
 
