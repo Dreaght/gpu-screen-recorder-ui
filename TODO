@@ -247,3 +247,9 @@ Remove all mgl::Clock usage in Overlay. We only need to get the time once per up
 Handle stopping replay/stream when recording is running (show notification that the video is saved and move the video to folder with game name).
 
 Support translations.
+
+Sometimes when opening gpu screen recorder ui gsr-global-hotkeys incorrectly detects that keyboard input is locked.
+
+When running replay for a long time and then stopping it it takes a while. Improve this.
+
+When adding webcamera make replay auto start wait for camera to be available (when /dev/video device exists and can be initialized), just like audio device.

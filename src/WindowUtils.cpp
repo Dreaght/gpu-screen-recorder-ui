@@ -121,7 +121,7 @@ namespace gsr {
         return root_pos;
     }
 
-    Window get_focused_window(Display *dpy, WindowCaptureType cap_type) {
+    Window get_focused_window(Display *dpy, WindowCaptureType cap_type, bool fallback_cursor_focused) {
         //const Atom net_active_window_atom = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
         Window focused_window = None;
 
@@ -146,6 +146,9 @@ namespace gsr {
             XGetInputFocus(dpy, &focused_window, &revert_to);
             if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
                 return focused_window;
+
+            if(!fallback_cursor_focused)
+                return None;
         }
 
         get_cursor_position(dpy, &focused_window);
@@ -213,9 +216,9 @@ namespace gsr {
         return result;
     }
 
-    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type) {
+    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused) {
         std::string result;
-        const Window focused_window = get_focused_window(dpy, window_capture_type);
+        const Window focused_window = get_focused_window(dpy, window_capture_type, fallback_cursor_focused);
         if(focused_window == None)
             return result;
 

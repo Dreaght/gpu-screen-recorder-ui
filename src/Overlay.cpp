@@ -17,6 +17,7 @@
 #include "../include/CursorTracker/CursorTrackerX11.hpp"
 #include "../include/CursorTracker/CursorTrackerWayland.hpp"
 
+#include <iomanip>
 #include <string.h>
 #include <assert.h>
 #include <sys/wait.h>
@@ -1022,7 +1023,10 @@ namespace gsr {
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
-        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND || (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor)) || is_wlroots || is_hyprland;
+        const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND
+            || (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor) && get_focused_window(display, WindowCaptureType::FOCUSED, false) == x11_cursor_window)
+            || is_wlroots
+            || is_hyprland;
 
         if(prevent_game_minimizing) {
             window_pos = focused_monitor->position;
@@ -1917,7 +1921,7 @@ namespace gsr {
         const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
         std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
         if(focused_window_name.empty())
-            focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED);
+            focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
         if(focused_window_name.empty())
             focused_window_name = "Game";
 
@@ -2178,7 +2182,10 @@ namespace gsr {
                 led_indicator->blink();
 
             if(!strip(config.screenshot_config.custom_script).empty()) {
-                const char *args[] = { config.screenshot_config.custom_script.c_str(), screenshot_filepath.c_str(), nullptr };
+                std::stringstream ss;
+                ss << config.screenshot_config.custom_script << " " << std::quoted(screenshot_filepath);
+                const std::string command = ss.str();
+                const char *args[] = { "/bin/sh", "-c", command.c_str(), nullptr };
                 exec_program_on_host_daemonized(args);
             }
         } else {
@@ -2230,7 +2237,7 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
-        const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED);
+        const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
         if(window && focused_window == (Window)window->get_system_handle())
             return;
 

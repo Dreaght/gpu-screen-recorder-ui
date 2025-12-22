@@ -19,8 +19,8 @@ namespace gsr {
     };
 
     std::optional<std::string> get_window_title(Display *dpy, Window window);
-    Window get_focused_window(Display *dpy, WindowCaptureType cap_type);
-    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type);
+    Window get_focused_window(Display *dpy, WindowCaptureType cap_type, bool fallback_cursor_focused = true);
+    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused = true);
     std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, Window ignore_window);
     std::string get_window_name_at_cursor_position(Display *dpy, Window ignore_window);
     void set_window_size_not_resizable(Display *dpy, Window window, int width, int height);

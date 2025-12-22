@@ -261,7 +261,7 @@ namespace gsr {
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_custom_script_screenshot() {
         auto custom_script_screenshot_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        custom_script_screenshot_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Program to open the screenshot with:", get_color_theme().text_color));
+        custom_script_screenshot_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Command to open the screenshot with:", get_color_theme().text_color));
         custom_script_screenshot_list->add_widget(create_custom_script_screenshot_entry());
         return custom_script_screenshot_list;
     }
