@@ -23,8 +23,10 @@ extern "C" {
 }
 
 static sig_atomic_t running = 1;
+static sig_atomic_t killed = 0;
 static void sigint_handler(int signal) {
     (void)signal;
+    killed = 1;
     running = 0;
 }
 
@@ -331,6 +333,8 @@ int main(int argc, char **argv) {
         }
     }
 
+    const bool connected_to_display_server = mgl_is_connected_to_display_server();
+
     fprintf(stderr, "Info: shutting down!\n");
     rpc.reset();
     overlay.reset();
@@ -344,5 +348,11 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    return mgl_is_connected_to_display_server() ? 0 : 1;
+    if(killed)
+        return 0;
+
+    if(connected_to_display_server)
+        return 1;
+
+    return 0;
 }
