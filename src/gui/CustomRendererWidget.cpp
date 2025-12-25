@@ -1,4 +1,5 @@
 #include "../../include/gui/CustomRendererWidget.hpp"
+#include "../../include/gui/Utils.hpp"
 
 #include <mglpp/window/Window.hpp>
 
@@ -17,11 +18,14 @@ namespace gsr {
 
         const mgl::vec2f draw_pos = position + offset;
 
-        const mgl::Scissor prev_scissor = window.get_scissor();
-        window.set_scissor({draw_pos.to_vec2i(), size.to_vec2i()});
+        const mgl::Scissor parent_scissor = window.get_scissor();
+        const mgl::Scissor scissor = scissor_get_sub_area(parent_scissor, {draw_pos.to_vec2i(), size.to_vec2i()});
+        window.set_scissor(scissor);
+
         if(draw_handler)
             draw_handler(window, draw_pos, size);
-        window.set_scissor(prev_scissor);
+
+        window.set_scissor(parent_scissor);
     }
 
     mgl::vec2f CustomRendererWidget::get_size() {

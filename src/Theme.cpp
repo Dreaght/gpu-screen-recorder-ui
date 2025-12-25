@@ -48,6 +48,9 @@ namespace gsr {
         if(!theme->body_font.load_from_file(theme->body_font_file, std::max(13.0f, window_size.y * 0.015f)))
             return false;
 
+        if(!theme->camera_setup_font.load_from_file(theme->body_font_file, 24))
+            return false;
+
         return true;
     }
 

@@ -2220,6 +2220,18 @@ namespace gsr {
         return true;
     }
 
+    static bool is_webcam_available_to_capture(const RecordOptions &record_options) {
+        if(record_options.webcam_source.empty())
+            return true;
+
+        const auto cameras = get_v4l2_devices();
+        for(const GsrCamera &camera : cameras) {
+            if(camera.path == record_options.webcam_source)
+                return true;
+        }
+        return false;
+    }
+
     void Overlay::replay_status_update_status() {
         if(replay_status_update_clock.get_elapsed_time_seconds() < replay_status_update_check_timeout_seconds)
             return;
@@ -2245,7 +2257,7 @@ namespace gsr {
         focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
             if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
-                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list))
+                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
                     on_press_start_replay(false, false);
             } else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen) {
                 on_press_start_replay(true, false);
@@ -2262,7 +2274,7 @@ namespace gsr {
         power_supply_connected = power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str());
         if(power_supply_connected != prev_power_supply_status) {
             if(recording_status == RecordingStatus::NONE && power_supply_connected) {
-                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list))
+                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
                     on_press_start_replay(false, false);
             } else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected) {
                 on_press_start_replay(false, false);
@@ -2274,7 +2286,7 @@ namespace gsr {
         if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || recording_status != RecordingStatus::NONE || !try_replay_startup)
             return;
 
-        if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list))
+        if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
             on_press_start_replay(true, false);
     }
 
@@ -2671,6 +2683,66 @@ namespace gsr {
         return framerate_mode;
     }
 
+    struct CameraAlignment {
+        std::string halign;
+        std::string valign;
+        mgl::vec2i pos;
+    };
+
+    static CameraAlignment position_to_alignment(mgl::vec2i pos, mgl::vec2i size) {
+        const mgl::vec2i pos_overflow = mgl::vec2i(100, 100) - (pos + size);
+        if(pos_overflow.x < 0)
+            pos.x += pos_overflow.x;
+        if(pos_overflow.y < 0)
+            pos.y += pos_overflow.y;
+
+        if(pos.x < 0)
+            pos.x = 0;
+        if(pos.y < 0)
+            pos.y = 0;
+
+        CameraAlignment camera_alignment;
+        const mgl::vec2i center = pos + size/2;
+
+        if(center.x < 50) {
+            camera_alignment.halign = "start";
+            camera_alignment.pos.x = pos.x;
+        } else {
+            camera_alignment.halign = "end";
+            camera_alignment.pos.x = -(100 - (pos.x + size.x));
+        }
+
+        if(center.y < 50) {
+            camera_alignment.valign = "start";
+            camera_alignment.pos.y = pos.y;
+        } else {
+            camera_alignment.valign = "end";
+            camera_alignment.pos.y = -(100 - (pos.y + size.y));
+        }
+
+        return camera_alignment;
+    }
+
+    static std::string compose_capture_source_arg(const std::string &capture_target, const RecordOptions &record_options) {
+        std::string capture_source_arg = capture_target;
+        if(!record_options.webcam_source.empty()) {
+            const mgl::vec2i webcam_size(record_options.webcam_width, record_options.webcam_height);
+            const CameraAlignment camera_alignment = position_to_alignment(mgl::vec2i(record_options.webcam_x, record_options.webcam_y), webcam_size);
+
+            capture_source_arg += "|" + record_options.webcam_source;
+            capture_source_arg += ";halign=" + camera_alignment.halign;
+            capture_source_arg += ";valign=" + camera_alignment.valign;
+            capture_source_arg += ";x=" + std::to_string(camera_alignment.pos.x) + "%";
+            capture_source_arg += ";y=" + std::to_string(camera_alignment.pos.y) + "%";
+            capture_source_arg += ";width=" + std::to_string(webcam_size.x) + "%";
+            capture_source_arg += ";height=" + std::to_string(webcam_size.y) + "%";
+            capture_source_arg += ";pixfmt=" + record_options.webcam_video_format;
+            if(record_options.webcam_flip_horizontally)
+                capture_source_arg += ";hflip=true";
+        }
+        return capture_source_arg;
+    }
+
     bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection) {
         if(region_selector.is_started() || window_selector.is_started())
             return false;
@@ -2760,8 +2832,10 @@ namespace gsr {
         if(config.replay_config.record_options.record_area_option != "focused" && config.replay_config.record_options.change_video_resolution)
             snprintf(size, sizeof(size), "%dx%d", (int)config.replay_config.record_options.video_width, (int)config.replay_config.record_options.video_height);
 
+        const std::string capture_source_arg = compose_capture_source_arg(recording_capture_target, config.replay_config.record_options);
+
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
+            "gpu-screen-recorder", "-w", capture_source_arg.c_str(),
             "-c", container,
             "-ac", config.replay_config.record_options.audio_codec.c_str(),
             "-cursor", config.replay_config.record_options.record_cursor ? "yes" : "no",
@@ -2982,8 +3056,10 @@ namespace gsr {
         if(config.record_config.record_options.record_area_option != "focused" && config.record_config.record_options.change_video_resolution)
             snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
 
+        const std::string capture_source_arg = compose_capture_source_arg(recording_capture_target, config.record_config.record_options);
+
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
+            "gpu-screen-recorder", "-w", capture_source_arg.c_str(),
             "-c", container,
             "-ac", config.record_config.record_options.audio_codec.c_str(),
             "-cursor", config.record_config.record_options.record_cursor ? "yes" : "no",
@@ -3170,8 +3246,10 @@ namespace gsr {
         if(config.streaming_config.record_options.record_area_option != "focused" && config.streaming_config.record_options.change_video_resolution)
             snprintf(size, sizeof(size), "%dx%d", (int)config.streaming_config.record_options.video_width, (int)config.streaming_config.record_options.video_height);
 
+        const std::string capture_source_arg = compose_capture_source_arg(recording_capture_target, config.streaming_config.record_options);
+
         std::vector<const char*> args = {
-            "gpu-screen-recorder", "-w", recording_capture_target.c_str(),
+            "gpu-screen-recorder", "-w", capture_source_arg.c_str(),
             "-c", container,
             "-ac", config.streaming_config.record_options.audio_codec.c_str(),
             "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
@@ -3301,7 +3379,7 @@ namespace gsr {
             args.push_back("yes");
         }
 
-        const std::string hotkey_window_capture_portal_session_token_filepath = get_config_dir() + "/gpu-screen-recorder/gsr-ui-window-capture-token";
+        const std::string hotkey_window_capture_portal_session_token_filepath = get_config_dir() + "/gsr-ui-window-capture-token";
         if(record_area_option == "portal") {
             hide_ui = true;
             if(force_type == ScreenshotForceType::WINDOW) {

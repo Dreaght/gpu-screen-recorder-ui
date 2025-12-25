@@ -19,6 +19,8 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         void add_item(const std::string &text, const std::string &id);
+        void clear_items();
+
         // The item can only be selected if it's enabled
         void set_selected_item(const std::string &id, bool trigger_event = true, bool trigger_event_even_if_selection_not_changed = true);
         void set_item_enabled(const std::string &id, bool enabled);

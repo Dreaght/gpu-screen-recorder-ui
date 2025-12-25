@@ -24,6 +24,7 @@ namespace gsr {
         mgl::Font body_font;
         mgl::Font title_font;
         mgl::Font top_bar_font;
+        mgl::Font camera_setup_font;
 
         mgl::Texture combobox_arrow_texture;
         mgl::Texture settings_texture;

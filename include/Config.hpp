@@ -61,6 +61,14 @@ namespace gsr {
         bool record_cursor = true;
         bool restore_portal_session = true;
 
+        std::string webcam_source = "";
+        bool webcam_flip_horizontally = false;
+        std::string webcam_video_format = "auto";
+        int32_t webcam_x = 0; // A value between 0 and 100 (percentage)
+        int32_t webcam_y = 0; // A value between 0 and 100 (percentage)
+        int32_t webcam_width = 30; // A value between 0 and 100 (percentage), 0 = Don't scale it
+        int32_t webcam_height = 30; // A value between 0 and 100 (percentage), 0 = Don't scale it
+
         bool show_notifications = true;
         bool use_led_indicator = false;
     };

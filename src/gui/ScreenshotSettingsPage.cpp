@@ -54,7 +54,7 @@ namespace gsr {
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_record_area() {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture target:", get_color_theme().text_color));
+        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture source:", get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box());
         return record_area_list;
     }

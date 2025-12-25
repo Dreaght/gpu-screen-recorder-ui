@@ -50,7 +50,9 @@ namespace gsr {
             return false;
         }
 
-        if(event.type == mgl::Event::MouseButtonPressed || event.type == mgl::Event::MouseButtonReleased) {
+        // Pass release to children even if outside area, because we want to be able to release mouse when moved outside,
+        // for example in Entry when selecting text
+        if(event.type == mgl::Event::MouseButtonPressed/* || event.type == mgl::Event::MouseButtonReleased*/) {
             if(!mgl::IntRect(scissor_pos, scissor_size).contains({event.mouse_button.x, event.mouse_button.y}))
                 return true;
         } else if(event.type == mgl::Event::MouseMoved) {

@@ -253,3 +253,5 @@ Sometimes when opening gpu screen recorder ui gsr-global-hotkeys incorrectly det
 When running replay for a long time and then stopping it it takes a while. Improve this.
 
 When adding webcamera make replay auto start wait for camera to be available (when /dev/video device exists and can be initialized), just like audio device.
+
+Make it possible to resize webcam box from top left, top right and bottom left as well.

@@ -25,6 +25,14 @@ namespace gsr {
         INPUT
     };
 
+    enum class WebcamBoxResizeCorner {
+        NONE,
+        //TOP_LEFT,
+        //TOP_RIGHT,
+        //BOTTOM_LEFT,
+        BOTTOM_RIGHT
+    };
+
     class SettingsPage : public StaticPage {
     public:
         enum class Type {
@@ -58,6 +66,9 @@ namespace gsr {
         std::unique_ptr<List> create_restore_portal_session_section();
         std::unique_ptr<Widget> create_change_video_resolution_section();
         std::unique_ptr<Widget> create_capture_target_section();
+        std::unique_ptr<List> create_webcam_sources();
+        std::unique_ptr<List> create_webcam_video_format();
+        std::unique_ptr<Widget> create_webcam_section();
         std::unique_ptr<ComboBox> create_audio_device_selection_combobox(AudioDeviceType device_type);
         std::unique_ptr<Button> create_remove_audio_device_button(List *audio_input_list_ptr, List *audio_device_list_ptr);
         std::unique_ptr<List> create_audio_device(AudioDeviceType device_type, List *audio_input_list_ptr);
@@ -140,6 +151,8 @@ namespace gsr {
         void save_stream();
 
         void view_changed(bool advanced_view);
+
+        RecordOptions& get_current_record_options();
     private:
         Type type;
         Config &config;
@@ -197,7 +210,29 @@ namespace gsr {
         List *audio_track_section_list_ptr = nullptr;
         CheckBox *led_indicator_checkbox_ptr = nullptr;
         CheckBox *show_notification_checkbox_ptr = nullptr;
+        ComboBox *webcam_sources_box_ptr = nullptr;
+        ComboBox *webcam_video_format_box_ptr = nullptr;
+        List *webcam_body_list_ptr = nullptr;
+        CheckBox *flip_camera_horizontally_checkbox_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
+
+        mgl::vec2f webcam_box_pos;
+        mgl::vec2f webcam_box_size;
+
+        mgl::vec2f webcam_box_drawn_pos;
+        mgl::vec2f webcam_box_drawn_size;
+        mgl::vec2f webcam_box_grab_offset;
+
+        mgl::vec2f camera_screen_size;
+        mgl::vec2f screen_inner_size;
+        bool moving_webcam_box = false;
+
+        WebcamBoxResizeCorner webcam_resize_corner = WebcamBoxResizeCorner::NONE;
+        mgl::vec2f webcam_resize_start_pos;
+        mgl::vec2f webcam_box_pos_resize_start;
+        mgl::vec2f webcam_box_size_resize_start;
+
+        std::optional<GsrCamera> selected_camera;
     };
 }

@@ -288,6 +288,56 @@ namespace gsr {
         return application_audio;
     }
 
+    struct KeyValue3 {
+        std::string_view value1;
+        std::string_view value2;
+        std::string_view value3;
+    };
+
+    static std::optional<KeyValue3> parse_3(std::string_view line) {
+        const size_t space_index1 = line.find('|');
+        if(space_index1 == std::string_view::npos)
+            return std::nullopt;
+
+        const size_t space_index2 = line.find('|', space_index1 + 1);
+        if(space_index2 == std::string_view::npos)
+            return std::nullopt;
+
+        return KeyValue3{
+            line.substr(0, space_index1),
+            line.substr(space_index1 + 1, space_index2 - (space_index1 + 1)),
+            line.substr(space_index2 + 1),
+        };
+    }
+
+    static SupportedCameraPixelFormats parse_supported_camera_pixel_formats(std::string_view line) {
+        SupportedCameraPixelFormats result;
+        string_split_char(line, ',', [&](std::string_view column) {
+            if(column == "yuyv")
+                result.yuyv = true;
+            else if(column == "mjpeg")
+                result.mjpeg = true;
+            return true;
+        });
+        return result;
+    }
+
+    static std::optional<GsrCamera> capture_option_line_to_camera(std::string_view line) {
+        std::optional<GsrCamera> camera;
+        const std::optional<KeyValue3> key_value3 = parse_3(line);
+        if(!key_value3)
+            return camera;
+
+        mgl::vec2i size;
+        char value_buffer[256];
+        snprintf(value_buffer, sizeof(value_buffer), "%.*s", (int)key_value3->value2.size(), key_value3->value2.data());
+        if(sscanf(value_buffer, "%dx%d", &size.x, &size.y) != 2)
+            return camera;
+
+        camera = GsrCamera{std::string(key_value3->value1), size, parse_supported_camera_pixel_formats(key_value3->value3)};
+        return camera;
+    }
+
     static std::optional<GsrMonitor> capture_option_line_to_monitor(std::string_view line) {
         std::optional<GsrMonitor> monitor;
         const std::optional<KeyValue> key_value = parse_key_value(line);
@@ -305,15 +355,19 @@ namespace gsr {
     }
 
     static void parse_capture_options_line(SupportedCaptureOptions &capture_options, std::string_view line) {
-        if(line == "window")
+        if(line == "window") {
             capture_options.window = true;
-        else if(line == "region")
+        } else if(line == "region") {
             capture_options.region = true;
-        else if(line == "focused")
+        } else if(line == "focused") {
             capture_options.focused = true;
-        else if(line == "portal")
+        } else if(line == "portal") {
             capture_options.portal = true;
-        else {
+        } else if(!line.empty() && line[0] == '/') {
+            std::optional<GsrCamera> camera = capture_option_line_to_camera(line);
+            if(camera)
+                capture_options.cameras.push_back(std::move(camera.value()));
+        } else {
             std::optional<GsrMonitor> monitor = capture_option_line_to_monitor(line);
             if(monitor)
                 capture_options.monitors.push_back(std::move(monitor.value()));
@@ -347,5 +401,25 @@ namespace gsr {
         });
 
         return capture_options;
+    }
+
+    std::vector<GsrCamera> get_v4l2_devices() {
+        std::vector<GsrCamera> cameras;
+
+        std::string stdout_str;
+        const char *args[] = { "gpu-screen-recorder", "--list-v4l2-devices", nullptr };
+        if(exec_program_get_stdout(args, stdout_str) != 0) {
+            fprintf(stderr, "error: 'gpu-screen-recorder --list-v4l2-devices' failed\n");
+            return cameras;
+        }
+
+        string_split_char(stdout_str, '\n', [&](std::string_view line) {
+            std::optional<GsrCamera> camera = capture_option_line_to_camera(line);
+            if(camera)
+                cameras.push_back(std::move(camera.value()));
+            return true;
+        });
+
+        return cameras;
     }
 }

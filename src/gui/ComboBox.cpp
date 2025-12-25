@@ -90,6 +90,13 @@ namespace gsr {
         dirty = true;
     }
 
+    void ComboBox::clear_items() {
+        items.clear();
+        selected_item = 0;
+        show_dropdown = false;
+        dirty = true;
+    }
+
     void ComboBox::set_selected_item(const std::string &id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];

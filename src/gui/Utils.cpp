@@ -5,15 +5,15 @@
 namespace gsr {
     static double frame_delta_seconds = 1.0;
 
-    static mgl::vec2i min_vec2i(mgl::vec2i a, mgl::vec2i b) {
+    mgl::vec2i min_vec2i(mgl::vec2i a, mgl::vec2i b) {
         return { std::min(a.x, b.x), std::min(a.y, b.y) };
     }
 
-    static mgl::vec2i max_vec2i(mgl::vec2i a, mgl::vec2i b) {
+    mgl::vec2i max_vec2i(mgl::vec2i a, mgl::vec2i b) {
         return { std::max(a.x, b.x), std::max(a.y, b.y) };
     }
 
-    static mgl::vec2i clamp_vec2i(mgl::vec2i value, mgl::vec2i min, mgl::vec2i max) {
+    mgl::vec2i clamp_vec2i(mgl::vec2i value, mgl::vec2i min, mgl::vec2i max) {
         return min_vec2i(max, max_vec2i(value, min));
     }
 
@@ -91,7 +91,7 @@ namespace gsr {
         const mgl::vec2i pos = clamp_vec2i(child.position, parent.position, parent.position + parent.size);
         return mgl::Scissor{
             pos,
-            min_vec2i(child.size, parent.position + parent.size - pos)
+            max_vec2i(mgl::vec2i(0, 0), min_vec2i(child.position + child.size - pos, parent.position + parent.size - pos))
         };
     }
 }

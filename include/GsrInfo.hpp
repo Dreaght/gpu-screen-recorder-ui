@@ -25,9 +25,20 @@ namespace gsr {
         bool png = false;
     };
 
+    struct SupportedCameraPixelFormats {
+        bool yuyv = false;
+        bool mjpeg = false;
+    };
+
     struct GsrMonitor {
         std::string name;
         mgl::vec2i size;
+    };
+
+    struct GsrCamera {
+        std::string path;
+        mgl::vec2i size;
+        SupportedCameraPixelFormats supported_pixel_formats;
     };
 
     struct GsrVersion {
@@ -51,6 +62,7 @@ namespace gsr {
         bool focused = false;
         bool portal = false;
         std::vector<GsrMonitor> monitors;
+        std::vector<GsrCamera> cameras;
     };
 
     enum class DisplayServer {
@@ -103,4 +115,5 @@ namespace gsr {
     std::vector<AudioDevice> get_audio_devices();
     std::vector<std::string> get_application_audio();
     SupportedCaptureOptions get_supported_capture_options(const GsrInfo &gsr_info);
+    std::vector<GsrCamera> get_v4l2_devices();
 }

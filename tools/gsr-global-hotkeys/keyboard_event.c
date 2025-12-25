@@ -195,10 +195,13 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     }
 
     if(extra_data->gsr_ui_virtual_keyboard) {
-        if(event.type == EV_KEY || event.type == EV_MSC)
+        if(event.type == EV_KEY)
             self->check_grab_lock = false;
         return;
     }
+
+    if(extra_data->is_non_keyboard_device)
+        return;
 
     if(event.type == EV_SYN && event.code == SYN_DROPPED) {
         /* TODO: Don't do this on every SYN_DROPPED to prevent spamming this, instead wait until the next event or wait for timeout */
@@ -209,6 +212,8 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     //if(event.type == EV_KEY && event.code == KEY_A && event.value == KEY_PRESS) {
         //fprintf(stderr, "fd: %d, type: %d, pressed %d, value: %d\n", fd, event.type, event.code, event.value);
     //}
+
+    const bool prev_grabbed = extra_data->grabbed;
 
     const bool keyboard_key = is_keyboard_key(event.code);
     if(event.type == EV_KEY && keyboard_key) {
@@ -228,7 +233,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
     }
 
     if(extra_data->grabbed) {
-        if(!self->check_grab_lock && (event.type == EV_KEY || event.type == EV_MSC)) {
+        if(prev_grabbed && !self->check_grab_lock && event.type == EV_KEY) {
             self->uinput_written_time_seconds = clock_get_monotonic_seconds();
             self->check_grab_lock = true;
         }
