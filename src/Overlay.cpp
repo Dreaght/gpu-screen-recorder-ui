@@ -2936,10 +2936,12 @@ namespace gsr {
                         update_upause_status();
 
                         if(led_indicator) {
-                            if(!current_recording_config.replay_config.record_options.use_led_indicator)
-                                led_indicator->set_led(true);
-                            else if(config.record_config.record_options.use_led_indicator)
-                                led_indicator->blink();
+                            if(config.record_config.record_options.use_led_indicator) {
+                                if(!current_recording_config.replay_config.record_options.use_led_indicator)
+                                    led_indicator->set_led(true);
+                                else
+                                    led_indicator->blink();
+                            }
                         }
                     }
 
@@ -2966,10 +2968,12 @@ namespace gsr {
                         update_upause_status();
 
                         if(led_indicator) {
-                            if(!current_recording_config.streaming_config.record_options.use_led_indicator)
-                                led_indicator->set_led(true);
-                            else if(config.record_config.record_options.use_led_indicator)
-                                led_indicator->blink();
+                            if(config.record_config.record_options.use_led_indicator) {
+                                if(!current_recording_config.streaming_config.record_options.use_led_indicator)
+                                    led_indicator->set_led(true);
+                                else
+                                    led_indicator->blink();
+                            }
                         }
                     }
 
