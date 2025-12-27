@@ -148,6 +148,7 @@ namespace gsr {
 
         bool save_screenshot_in_game_folder = false;
         bool save_screenshot_to_clipboard = false;
+        bool save_screenshot_to_disk = true;
         bool show_notifications = true;
         bool use_led_indicator = false;
         std::string save_directory;

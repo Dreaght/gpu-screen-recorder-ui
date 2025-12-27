@@ -68,6 +68,9 @@ namespace gsr {
         std::unique_ptr<Widget> create_capture_target_section();
         std::unique_ptr<List> create_webcam_sources();
         std::unique_ptr<List> create_webcam_video_format();
+        std::unique_ptr<Widget> create_webcam_location_widget();
+        std::unique_ptr<CheckBox> create_flip_camera_checkbox();
+        std::unique_ptr<List> create_webcam_body();
         std::unique_ptr<Widget> create_webcam_section();
         std::unique_ptr<ComboBox> create_audio_device_selection_combobox(AudioDeviceType device_type);
         std::unique_ptr<Button> create_remove_audio_device_button(List *audio_input_list_ptr, List *audio_device_list_ptr);

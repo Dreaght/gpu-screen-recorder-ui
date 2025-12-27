@@ -221,6 +221,13 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_disk() {
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save screenshot to disk");
+        save_screenshot_to_disk_checkbox_ptr = checkbox.get();
+        checkbox->set_checked(true);
+        return checkbox;
+    }
+
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_notifications() {
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show screenshot notifications");
         checkbox->set_checked(true);
@@ -239,6 +246,7 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         list->add_widget(create_save_screenshot_in_game_folder());
         list->add_widget(create_save_screenshot_to_clipboard());
+        list->add_widget(create_save_screenshot_to_disk());
         return std::make_unique<Subsection>("General", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
@@ -273,7 +281,7 @@ namespace gsr {
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_settings() {
         auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
         page_list->set_spacing(0.018f);
-        auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size() - mgl::vec2f(0.0f, page_list->get_size().y + 0.018f * get_theme().window_height));
+        auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size() - mgl::vec2f(0.0f, page_list->get_size().y));
         settings_scrollable_page_ptr = scrollable_page.get();
         page_list->add_widget(std::move(scrollable_page));
 
@@ -327,6 +335,7 @@ namespace gsr {
         save_directory_button_ptr->set_text(config.screenshot_config.save_directory);
         save_screenshot_in_game_folder_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_in_game_folder);
         save_screenshot_to_clipboard_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_clipboard);
+        save_screenshot_to_disk_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_disk);
         show_notification_checkbox_ptr->set_checked(config.screenshot_config.show_notifications);
         led_indicator_checkbox_ptr->set_checked(config.screenshot_config.use_led_indicator);
 
@@ -358,7 +367,8 @@ namespace gsr {
         config.screenshot_config.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
         config.screenshot_config.save_screenshot_in_game_folder = save_screenshot_in_game_folder_checkbox_ptr->is_checked();
-        config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
+        config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_disk_checkbox_ptr->is_checked();
+        config.screenshot_config.save_screenshot_to_disk = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
         config.screenshot_config.show_notifications = show_notification_checkbox_ptr->is_checked();
         config.screenshot_config.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
         config.screenshot_config.custom_script = create_custom_script_screenshot_entry_ptr->get_text();

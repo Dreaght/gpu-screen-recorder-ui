@@ -2167,7 +2167,7 @@ namespace gsr {
             exit_code = WEXITSTATUS(status);
 
         if(exit_code == 0) {
-            if(config.screenshot_config.save_screenshot_in_game_folder) {
+            if(config.screenshot_config.save_screenshot_in_game_folder && config.screenshot_config.save_screenshot_to_disk) {
                 save_video_in_current_game_directory(screenshot_filepath, NotificationType::SCREENSHOT);
             } else if(config.screenshot_config.show_notifications) {
                 char msg[512];
@@ -3359,7 +3359,12 @@ namespace gsr {
         }
 
         // TODO: Validate input, fallback to valid values
-        const std::string output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
+        std::string output_file;
+        if(config.screenshot_config.save_screenshot_to_disk)
+            output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
+        else
+            output_file = "/tmp/gsr_ui_clipboard_screenshot." + config.screenshot_config.image_format;
+
         const bool capture_cursor = force_type == ScreenshotForceType::NONE && config.screenshot_config.record_cursor;
 
         std::vector<const char*> args = {

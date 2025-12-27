@@ -305,6 +305,7 @@ namespace gsr {
             {"screenshot.restore_portal_session", &config.screenshot_config.restore_portal_session},
             {"screenshot.save_screenshot_in_game_folder", &config.screenshot_config.save_screenshot_in_game_folder},
             {"screenshot.save_screenshot_to_clipboard", &config.screenshot_config.save_screenshot_to_clipboard},
+            {"screenshot.save_screenshot_to_disk", &config.screenshot_config.save_screenshot_to_disk},
             {"screenshot.show_notifications", &config.screenshot_config.show_notifications},
             {"screenshot.use_led_indicator", &config.screenshot_config.use_led_indicator},
             {"screenshot.save_directory", &config.screenshot_config.save_directory},
