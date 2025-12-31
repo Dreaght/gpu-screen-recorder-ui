@@ -165,9 +165,10 @@ static void set_display_server_environment_variables() {
 static void usage() {
     printf("usage: gsr-ui [action]\n");
     printf("OPTIONS:\n");
-    printf("  action  The launch action. Should be either \"launch-show\", \"launch-hide\" or \"launch-daemon\". Optional, defaults to \"launch-hide\".\n");
+    printf("  action  The launch action. Should be either \"launch-show\", \"launch-hide\", \"launch-hide-announce\" or \"launch-daemon\". Optional, defaults to \"launch-hide\".\n");
     printf("          If \"launch-show\" is used then the program starts and the UI is immediately opened and can be shown/hidden with Alt+Z.\n");
     printf("          If \"launch-hide\" is used then the program starts but the UI is not opened until Alt+Z is pressed. The UI will be opened if the program is already running in another process.\n");
+    printf("          If \"launch-hide-announce\" is used then the program starts but the UI is not opened until Alt+Z is pressed and a notification tells the user to press Alt+Z. The UI will be opened if the program is already running in another process.\n");
     printf("          If \"launch-daemon\" is used then the program starts but the UI is not opened until Alt+Z is pressed. The UI will not be opened if the program is already running in another process.\n");
     exit(1);
 }
@@ -204,7 +205,7 @@ int main(int argc, char **argv) {
         } else if(strcmp(launch_action_opt, "launch-daemon") == 0) {
             launch_action = LaunchAction::LAUNCH_DAEMON;
         } else {
-            printf("error: invalid action \"%s\", expected \"launch-show\", \"launch-hide\" or \"launch-daemon\".\n", launch_action_opt);
+            printf("error: invalid action \"%s\", expected \"launch-show\", \"launch-hide\", \"launch-hide-announce\" or \"launch-daemon\".\n", launch_action_opt);
             usage();
         }
     } else {
