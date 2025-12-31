@@ -40,7 +40,8 @@ namespace gsr {
         RECORD,
         REPLAY,
         STREAM,
-        SCREENSHOT
+        SCREENSHOT,
+        NOTICE
     };
 
     enum class NotificationLevel {
@@ -98,6 +99,7 @@ namespace gsr {
 
         bool global_hotkeys_ungrab_keyboard = false;
     private:
+        const char* notification_type_to_string(NotificationType notification_type);
         void update_upause_status();
 
         void hide();
@@ -170,6 +172,8 @@ namespace gsr {
         egl_functions egl_funcs;
         Config config;
         Config current_recording_config;
+
+        std::string gsr_icon_path;
 
         bool visible = false;
 

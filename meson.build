@@ -64,6 +64,7 @@ mglpp_dep = mglpp_proj.get_variable('mglpp_dep')
 prefix = get_option('prefix')
 datadir = get_option('datadir')
 gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
+icons_path = join_paths(prefix, datadir, 'icons')
 
 add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', language: ['c', 'cpp'])
 add_project_arguments('-DGSR_FLATPAK_VERSION="5.11.1"', language: ['c', 'cpp'])
@@ -111,6 +112,12 @@ executable(
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
+
+install_data(files('gpu-screen-recorder.desktop'), install_dir : join_paths(prefix, datadir, 'applications'))
+install_subdir('icons/hicolor', install_dir : icons_path)
+
+gnome = import('gnome')
+gnome.post_install(update_desktop_database : true)
 
 if get_option('systemd') == true
     install_data(files('extra/gpu-screen-recorder-ui.service'), install_dir : 'lib/systemd/user')

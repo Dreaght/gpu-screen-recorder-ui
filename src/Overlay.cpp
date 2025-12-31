@@ -473,6 +473,8 @@ namespace gsr {
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
     {
+        gsr_icon_path = this->resources_path + "images/gpu_screen_recorder_logo.png";
+
         key_bindings[0].key_event.code = mgl::Keyboard::Escape;
         key_bindings[0].key_event.alt = false;
         key_bindings[0].key_event.control = false;
@@ -519,7 +521,7 @@ namespace gsr {
             if(!config.main_config.wayland_warning_shown) {
                 config.main_config.wayland_warning_shown = true;
                 save_config(config);
-                show_notification("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                show_notification("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             }
         }
 
@@ -735,7 +737,7 @@ namespace gsr {
             show_notification(
                 "Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\n"
                 "Keyboards have been ungrabbed, applications will now receive the hotkeys you press."
-                , 7.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                , 7.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
 
             config.main_config.hotkeys_enable_option = "enable_hotkeys_no_grab";
             save_config(config);
@@ -774,7 +776,7 @@ namespace gsr {
             if(selected_window && selected_window != DefaultRootWindow(display)) {
                 on_window_selected();
             } else {
-                show_notification("No window selected", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                show_notification("No window selected", notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             }
             on_window_selected = nullptr;
         }
@@ -825,7 +827,7 @@ namespace gsr {
             start_region_capture = false;
             hide();
             if(!region_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_region_selected = nullptr;
             }
         }
@@ -834,7 +836,7 @@ namespace gsr {
             start_window_capture = false;
             hide();
             if(!window_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start window capture", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                show_notification("Failed to start window capture", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_window_selected = nullptr;
             }
         }
@@ -1321,12 +1323,12 @@ namespace gsr {
 
                     if(exit_status == 127) {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 7.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 7.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                     } else {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                            show_notification("Failed to add GPU Screen Recorder to system startup", notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                         else
-                            show_notification("Failed to remove GPU Screen Recorder from system startup", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NONE, nullptr, NotificationLevel::ERROR);
+                            show_notification("Failed to remove GPU Screen Recorder from system startup", notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                     }
                 };
 
@@ -1576,13 +1578,14 @@ namespace gsr {
         on_press_take_screenshot(false, ScreenshotForceType::WINDOW);
     }
 
-    static const char* notification_type_to_string(NotificationType notification_type) {
+    const char* Overlay::notification_type_to_string(NotificationType notification_type) {
         switch(notification_type) {
             case NotificationType::NONE:       return nullptr;
             case NotificationType::RECORD:     return "record";
             case NotificationType::REPLAY:     return "replay";
             case NotificationType::STREAM:     return "stream";
             case NotificationType::SCREENSHOT: return "screenshot";
+            case NotificationType::NOTICE:     return gsr_icon_path.c_str();
         }
         return nullptr;
     }
@@ -1972,6 +1975,7 @@ namespace gsr {
             }
             case NotificationType::NONE:
             case NotificationType::STREAM:
+            case NotificationType::NOTICE:
                 break;
         }
         show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type, capture_target);
@@ -2070,6 +2074,7 @@ namespace gsr {
             const char *prefix = "";
             switch(notification_type) {
                 case NotificationType::NONE:
+                case NotificationType::NOTICE:
                     break;
                 case NotificationType::SCREENSHOT:
                     prefix = "Failed to take a screenshot";

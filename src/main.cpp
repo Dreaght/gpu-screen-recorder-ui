@@ -3,6 +3,7 @@
 #include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
+#include "../include/Theme.hpp"
 
 #include <signal.h>
 #include <string.h>
@@ -174,6 +175,7 @@ static void usage() {
 enum class LaunchAction {
     LAUNCH_SHOW,
     LAUNCH_HIDE,
+    LAUNCH_HIDE_ANNOUNCE,
     LAUNCH_DAEMON
 };
 
@@ -197,6 +199,8 @@ int main(int argc, char **argv) {
             launch_action = LaunchAction::LAUNCH_SHOW;
         } else if(strcmp(launch_action_opt, "launch-hide") == 0) {
             launch_action = LaunchAction::LAUNCH_HIDE;
+        } else if(strcmp(launch_action_opt, "launch-hide-announce") == 0) {
+            launch_action = LaunchAction::LAUNCH_HIDE_ANNOUNCE;
         } else if(strcmp(launch_action_opt, "launch-daemon") == 0) {
             launch_action = LaunchAction::LAUNCH_DAEMON;
         } else {
@@ -209,6 +213,19 @@ int main(int argc, char **argv) {
 
     set_display_server_environment_variables();
 
+    std::string resources_path;
+    if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
+        resources_path = "./";
+    } else {
+#ifdef GSR_UI_RESOURCES_PATH
+        resources_path = GSR_UI_RESOURCES_PATH "/";
+#else
+        resources_path = "/usr/share/gsr-ui/";
+#endif
+    }
+
+    const std::string gsr_icon_path = resources_path + "images/gpu_screen_recorder_logo.png";
+
     auto rpc = std::make_unique<gsr::Rpc>();
     const gsr::RpcOpenResult rpc_open_result = rpc->open("gsr-ui");
 
@@ -220,7 +237,10 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
         } else {
             fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
-            const char *args[] = { "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
+            const char *args[] = {
+                "gsr-notify", "--text", "Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.", "--timeout", "5.0",
+                "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
+            };
             gsr::exec_program_daemonized(args);
         }
         return 1;
@@ -230,7 +250,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Error: Failed to create rpc\n");
 
     if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
-        const char *args[] = { "gsr-notify", "--text", "GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.", "--timeout", "5.0", "--icon-color", "ff0000", "--bg-color", "ff0000", nullptr };
+        const char *args[] = {
+            "gsr-notify", "--text", "GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.",
+            "--timeout", "5.0", "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
+        };
         gsr::exec_program_daemonized(args);
     }
 
@@ -284,17 +307,6 @@ int main(int argc, char **argv) {
 
     gsr::SupportedCaptureOptions capture_options = gsr::get_supported_capture_options(gsr_info);
 
-    std::string resources_path;
-    if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
-        resources_path = "./";
-    } else {
-#ifdef GSR_UI_RESOURCES_PATH
-        resources_path = GSR_UI_RESOURCES_PATH "/";
-#else
-        resources_path = "/usr/share/gsr-ui/";
-#endif
-    }
-
     mgl_context *context = mgl_get_context();
 
     egl_functions egl_funcs;
@@ -313,6 +325,8 @@ int main(int argc, char **argv) {
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
     if(launch_action == LaunchAction::LAUNCH_SHOW)
         overlay->show();
+    else if(launch_action == LaunchAction::LAUNCH_HIDE_ANNOUNCE)
+        overlay->show_notification("Press Alt+Z to open the GPU Screen Recorder UI", 5.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color, gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
 
     rpc_add_commands(rpc.get(), overlay.get());
 
