@@ -113,11 +113,13 @@ executable(
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
 
-install_data(files('gpu-screen-recorder.desktop'), install_dir : join_paths(prefix, datadir, 'applications'))
-install_subdir('icons/hicolor', install_dir : icons_path)
+if get_option('desktop-files') == true
+    install_data(files('gpu-screen-recorder.desktop'), install_dir : join_paths(prefix, datadir, 'applications'))
+    install_subdir('icons/hicolor', install_dir : icons_path)
 
-gnome = import('gnome')
-gnome.post_install(update_desktop_database : true)
+    gnome = import('gnome')
+    gnome.post_install(update_desktop_database : true)
+endif
 
 if get_option('systemd') == true
     install_data(files('extra/gpu-screen-recorder-ui.service'), install_dir : 'lib/systemd/user')

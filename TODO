@@ -127,8 +127,6 @@ Add option to do screen-direct recording. But make it clear that it should not b
 
 Add systray for recording status.
 
-Add a desktop icon when gsr-ui has a window mode option (which should be the default launch option).
-
 Verify if cursor tracker monitor name is always correct. It uses the wayland monitor name for recording, but gpu screen recorder uses a custom name created from the drm connector name.
 
 Notification with the focused monitor (with CursorTrackerWayland) assumes that the x11 monitor name is the same as the drm monitor name. Same for find_monitor_by_name.
