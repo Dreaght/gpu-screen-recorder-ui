@@ -3408,6 +3408,8 @@ namespace gsr {
 
         args.push_back(nullptr);
 
+        clipboard_file.set_current_file("", ClipboardFile::FileType::JPG);
+
         screenshot_filepath = output_file;
         gpu_screen_recorder_screenshot_process = exec_program(args.data(), nullptr);
         if(gpu_screen_recorder_screenshot_process == -1) {

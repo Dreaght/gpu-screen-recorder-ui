@@ -367,8 +367,8 @@ namespace gsr {
         config.screenshot_config.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
         config.screenshot_config.save_screenshot_in_game_folder = save_screenshot_in_game_folder_checkbox_ptr->is_checked();
-        config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_disk_checkbox_ptr->is_checked();
-        config.screenshot_config.save_screenshot_to_disk = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
+        config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
+        config.screenshot_config.save_screenshot_to_disk = save_screenshot_to_disk_checkbox_ptr->is_checked();
         config.screenshot_config.show_notifications = show_notification_checkbox_ptr->is_checked();
         config.screenshot_config.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
         config.screenshot_config.custom_script = create_custom_script_screenshot_entry_ptr->get_text();

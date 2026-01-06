@@ -48,11 +48,18 @@ namespace gsr {
                     XNextEvent(dpy, &xev);
                     switch(xev.type) {
                         case SelectionClear: {
-                            should_clear_selection = true;
-                            if(clipboard_copies.empty()) {
-                                should_clear_selection = false;
-                                set_current_file("", file_type);
+                            bool clear_current_file = false;
+                            {
+                                std::lock_guard<std::mutex> lock(mutex);
+                                should_clear_selection = true;
+                                if(clipboard_copies.empty()) {
+                                    should_clear_selection = false;
+                                    clear_current_file = true;
+                                }
                             }
+
+                            if(clear_current_file)
+                                set_current_file("", file_type);
                             break;
                         }
                         case SelectionRequest:
@@ -205,6 +212,9 @@ namespace gsr {
         uint8_t file_buffer[1<<16];
         ssize_t file_bytes_read = 0;
 
+        if(file_fd <= 0)
+            return;
+
         if(lseek(file_fd, clipboard_copy->file_offset, SEEK_SET) == -1) {
             fprintf(stderr, "gsr ui: error: ClipboardFile::send_clipboard: failed to seek in clipboard file to offset " FORMAT_U64 " for requestor window " FORMAT_I64 ", error: %s\n", (uint64_t)clipboard_copy->file_offset, (int64_t)xselectionrequest->requestor, strerror(errno));
             clipboard_copy->file_offset = 0;
@@ -262,7 +272,11 @@ namespace gsr {
         }
         clipboard_copies.clear();
 
+        if(XGetSelectionOwner(dpy, clipboard_atom) == clipboard_window)
+            XSetSelectionOwner(dpy, clipboard_atom, None, CurrentTime);
+
         if(filepath.empty()) {
+            // TODO: Cancel transfer
             if(file_fd > 0) {
                 close(file_fd);
                 file_fd = -1;
