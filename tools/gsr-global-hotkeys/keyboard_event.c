@@ -243,17 +243,6 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
             fprintf(stderr, "Error: failed to write event data to virtual keyboard for exclusively grabbed device\n");
     }
 
-    if(event.type == EV_LED) {
-        write(fd, &event, sizeof(event));
-
-        const struct input_event syn_event = {
-            .type = EV_SYN,
-            .code = 0,
-            .value = 0
-        };
-        write(fd, &syn_event, sizeof(syn_event));
-    }
-
     if(!extra_data->is_possibly_non_keyboard_device)
         return;
 

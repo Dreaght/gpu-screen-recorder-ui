@@ -152,19 +152,24 @@ namespace gsr {
         if(read_led_brightness_timer.get_elapsed_time_seconds() > 0.2) {
             read_led_brightness_timer.restart();
 
-            bool led_status_outdated = false;
+            bool any_keyboard_with_led_enabled = false;
+            bool any_keyboard_with_led_disabled = false;
             char buffer[32];
             for(int led_brightness_file_fd : led_brightness_files) {
                 const ssize_t bytes_read = read(led_brightness_file_fd, buffer, sizeof(buffer));
                 if(bytes_read > 0) {
                     if(buffer[0] == '0')
-                        led_status_outdated = true;
+                        any_keyboard_with_led_disabled = true;
+                    else
+                        any_keyboard_with_led_enabled = true;
                     lseek(led_brightness_file_fd, 0, SEEK_SET);
                 }
             }
 
-            if(led_status_outdated && led_enabled)
+            if(led_enabled && any_keyboard_with_led_disabled)
                 run_gsr_global_hotkeys_set_leds(true);
+            else if(!led_enabled && any_keyboard_with_led_enabled)
+                run_gsr_global_hotkeys_set_leds(false);
         }
     }
 }
