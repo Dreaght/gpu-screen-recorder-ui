@@ -357,6 +357,8 @@ namespace gsr {
     }
 
     void ScreenshotSettingsPage::save() {
+        Config prev_config = config;
+
         config.screenshot_config.record_area_option = record_area_box_ptr->get_selected_id();
         config.screenshot_config.image_width = atoi(image_width_entry_ptr->get_text().c_str());
         config.screenshot_config.image_height = atoi(image_height_entry_ptr->get_text().c_str());
@@ -390,5 +392,8 @@ namespace gsr {
         }
 
         save_config(config);
+
+        if(on_config_changed && config != prev_config)
+            on_config_changed();
     }
 }

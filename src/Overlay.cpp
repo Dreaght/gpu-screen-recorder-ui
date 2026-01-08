@@ -525,8 +525,7 @@ namespace gsr {
             }
         }
 
-        // TODO: Only do this if led indicator is enabled (at startup or when changing recording/screenshot settings to enabled it)
-        led_indicator = std::make_unique<LedIndicator>();
+        update_led_indicator_after_settings_change();
     }
 
     Overlay::~Overlay() {
@@ -1179,6 +1178,15 @@ namespace gsr {
             global_hotkeys.reset();
     }
 
+    void Overlay::update_led_indicator_after_settings_change() {
+        if(config.record_config.record_options.use_led_indicator || config.replay_config.record_options.use_led_indicator || config.streaming_config.record_options.use_led_indicator || config.screenshot_config.use_led_indicator) {
+            if(!led_indicator)
+                led_indicator = std::make_unique<LedIndicator>();
+        } else {
+            led_indicator.reset();
+        }
+    }
+
     void Overlay::create_frontpage_ui_components() {
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
@@ -1269,6 +1277,8 @@ namespace gsr {
                     record_settings_page->on_config_changed = [this]() {
                         if(recording_status == RecordingStatus::RECORD)
                             show_notification("Recording settings have been modified.\nYou may need to restart recording to apply the changes.", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+
+                            update_led_indicator_after_settings_change();
                     };
                     page_stack.push(std::move(record_settings_page));
                 } else if(id == "pause") {
@@ -1294,6 +1304,8 @@ namespace gsr {
                     stream_settings_page->on_config_changed = [this]() {
                         if(recording_status == RecordingStatus::STREAM)
                             show_notification("Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+
+                        update_led_indicator_after_settings_change();
                     };
                     page_stack.push(std::move(stream_settings_page));
                 } else if(id == "start") {
@@ -1376,6 +1388,9 @@ namespace gsr {
             button->set_icon_padding_scale(1.2f);
             button->on_click = [&]() {
                 auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack);
+                screenshot_settings_page->on_config_changed = [this]() {
+                    update_led_indicator_after_settings_change();
+                };
                 page_stack.push(std::move(screenshot_settings_page));
             };
             front_page_ptr->add_widget(std::move(button));

@@ -23,6 +23,8 @@ namespace gsr {
         void load();
         void save();
         void on_navigate_away_from_page() override;
+
+        std::function<void()> on_config_changed;
     private:
         std::unique_ptr<ComboBox> create_record_area_box();
         std::unique_ptr<Widget> create_record_area();

@@ -108,6 +108,7 @@ namespace gsr {
         void on_event(mgl::Event &event);
 
         void recreate_global_hotkeys(const char *hotkey_option);
+        void update_led_indicator_after_settings_change();
         void create_frontpage_ui_components();
         void xi_setup();
         void handle_xi_events();
