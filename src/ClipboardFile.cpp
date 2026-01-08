@@ -272,8 +272,10 @@ namespace gsr {
         }
         clipboard_copies.clear();
 
-        if(XGetSelectionOwner(dpy, clipboard_atom) == clipboard_window)
+        if(XGetSelectionOwner(dpy, clipboard_atom) == clipboard_window) {
             XSetSelectionOwner(dpy, clipboard_atom, None, CurrentTime);
+            XFlush(dpy);
+        }
 
         if(filepath.empty()) {
             // TODO: Cancel transfer
