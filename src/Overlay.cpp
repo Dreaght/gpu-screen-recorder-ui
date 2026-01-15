@@ -1278,7 +1278,7 @@ namespace gsr {
                         if(recording_status == RecordingStatus::RECORD)
                             show_notification("Recording settings have been modified.\nYou may need to restart recording to apply the changes.", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
 
-                            update_led_indicator_after_settings_change();
+                        update_led_indicator_after_settings_change();
                     };
                     page_stack.push(std::move(record_settings_page));
                 } else if(id == "pause") {

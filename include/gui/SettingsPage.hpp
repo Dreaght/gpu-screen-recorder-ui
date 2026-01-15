@@ -237,5 +237,6 @@ namespace gsr {
         mgl::vec2f webcam_box_size_resize_start;
 
         std::optional<GsrCamera> selected_camera;
+        std::optional<GsrCameraSetup> selected_camera_setup;
     };
 }

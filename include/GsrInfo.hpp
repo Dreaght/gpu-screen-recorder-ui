@@ -25,9 +25,9 @@ namespace gsr {
         bool png = false;
     };
 
-    struct SupportedCameraPixelFormats {
-        bool yuyv = false;
-        bool mjpeg = false;
+    enum GsrCameraPixelFormat {
+        YUYV,
+        MJPEG
     };
 
     struct GsrMonitor {
@@ -35,10 +35,16 @@ namespace gsr {
         mgl::vec2i size;
     };
 
+    struct GsrCameraSetup {
+        mgl::vec2i resolution;
+        int fps;
+        //GsrCameraPixelFormat pixel_format;
+    };
+
     struct GsrCamera {
         std::string path;
-        mgl::vec2i size;
-        SupportedCameraPixelFormats supported_pixel_formats;
+        std::vector<GsrCameraSetup> yuyv_setups;
+        std::vector<GsrCameraSetup> mjpeg_setups;
     };
 
     struct GsrVersion {

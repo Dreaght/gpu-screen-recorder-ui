@@ -310,32 +310,34 @@ namespace gsr {
         };
     }
 
-    static SupportedCameraPixelFormats parse_supported_camera_pixel_formats(std::string_view line) {
-        SupportedCameraPixelFormats result;
-        string_split_char(line, ',', [&](std::string_view column) {
-            if(column == "yuyv")
-                result.yuyv = true;
-            else if(column == "mjpeg")
-                result.mjpeg = true;
+    static bool parse_camera_pixel_format(std::string_view line, GsrCameraPixelFormat &pixel_format) {
+        if(line == "yuyv") {
+            pixel_format = YUYV;
             return true;
-        });
-        return result;
+        } else if(line == "mjpeg") {
+            pixel_format = MJPEG;
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    static std::optional<GsrCamera> capture_option_line_to_camera(std::string_view line) {
-        std::optional<GsrCamera> camera;
+    static bool capture_option_line_to_camera(std::string_view line, std::string &path, GsrCameraSetup &camera_setup, GsrCameraPixelFormat &pixel_format) {
         const std::optional<KeyValue3> key_value3 = parse_3(line);
         if(!key_value3)
-            return camera;
+            return false;
 
-        mgl::vec2i size;
+        path = key_value3->value1;
+
         char value_buffer[256];
         snprintf(value_buffer, sizeof(value_buffer), "%.*s", (int)key_value3->value2.size(), key_value3->value2.data());
-        if(sscanf(value_buffer, "%dx%d", &size.x, &size.y) != 2)
-            return camera;
+        if(sscanf(value_buffer, "%dx%d@%dhz", &camera_setup.resolution.x, &camera_setup.resolution.y, &camera_setup.fps) != 3)
+            return false;
 
-        camera = GsrCamera{std::string(key_value3->value1), size, parse_supported_camera_pixel_formats(key_value3->value3)};
-        return camera;
+        if(!parse_camera_pixel_format(key_value3->value3, pixel_format))
+            return false;
+
+        return true;
     }
 
     static std::optional<GsrMonitor> capture_option_line_to_monitor(std::string_view line) {
@@ -354,6 +356,37 @@ namespace gsr {
         return monitor;
     }
 
+    static GsrCamera* get_gsr_camera_by_path(std::vector<GsrCamera> &cameras, const std::string &path) {
+        for(GsrCamera &camera : cameras) {
+            if(camera.path == path)
+                return &camera;
+        }
+        return nullptr;
+    }
+
+    static void parse_camera_line(std::string_view line, std::vector<GsrCamera> &cameras) {
+        std::string camera_path;
+        GsrCameraSetup camera_setup;
+        GsrCameraPixelFormat pixel_format;
+        if(!capture_option_line_to_camera(line, camera_path, camera_setup, pixel_format))
+            return;
+
+        GsrCamera *existing_camera = get_gsr_camera_by_path(cameras, camera_path);
+        if(!existing_camera) {
+            cameras.push_back(GsrCamera{camera_path, std::vector<GsrCameraSetup>{}, std::vector<GsrCameraSetup>{}});
+            existing_camera = &cameras.back();
+        }
+
+        switch(pixel_format) {
+            case YUYV:
+                existing_camera->yuyv_setups.push_back(camera_setup);
+                break;
+            case MJPEG:
+                existing_camera->mjpeg_setups.push_back(camera_setup);
+                break;
+        }
+    }
+
     static void parse_capture_options_line(SupportedCaptureOptions &capture_options, std::string_view line) {
         if(line == "window") {
             capture_options.window = true;
@@ -364,9 +397,7 @@ namespace gsr {
         } else if(line == "portal") {
             capture_options.portal = true;
         } else if(!line.empty() && line[0] == '/') {
-            std::optional<GsrCamera> camera = capture_option_line_to_camera(line);
-            if(camera)
-                capture_options.cameras.push_back(std::move(camera.value()));
+            parse_camera_line(line, capture_options.cameras);
         } else {
             std::optional<GsrMonitor> monitor = capture_option_line_to_monitor(line);
             if(monitor)
@@ -414,9 +445,7 @@ namespace gsr {
         }
 
         string_split_char(stdout_str, '\n', [&](std::string_view line) {
-            std::optional<GsrCamera> camera = capture_option_line_to_camera(line);
-            if(camera)
-                cameras.push_back(std::move(camera.value()));
+            parse_camera_line(line, cameras);
             return true;
         });
 

@@ -205,6 +205,7 @@ namespace gsr {
 
         webcam_sources_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             selected_camera = std::nullopt;
+            selected_camera_setup = std::nullopt;
             webcam_video_format_box_ptr->clear_items();
             if(id == "") {
                 webcam_body_list_ptr->set_visible(false);
@@ -220,14 +221,26 @@ namespace gsr {
             webcam_body_list_ptr->set_visible(true);
             webcam_video_format_box_ptr->add_item("Auto (recommended)", "auto");
 
-            if(it->supported_pixel_formats.yuyv)
+            if(!it->yuyv_setups.empty())
                 webcam_video_format_box_ptr->add_item("YUYV", "yuyv");
 
-            if(it->supported_pixel_formats.mjpeg)
+            if(!it->mjpeg_setups.empty())
                 webcam_video_format_box_ptr->add_item("Motion-JPEG", "mjpeg");
 
             webcam_video_format_box_ptr->set_selected_item(get_current_record_options().webcam_video_format);
             selected_camera = *it;
+
+            // TODO: Set from config
+            if(webcam_video_format_box_ptr->get_selected_id() == "yuyv" && !it->yuyv_setups.empty())
+                selected_camera_setup = selected_camera->yuyv_setups.front();
+            else if(webcam_video_format_box_ptr->get_selected_id() == "mjpeg" && !it->mjpeg_setups.empty())
+                selected_camera_setup = selected_camera->mjpeg_setups.front();
+            else if(webcam_video_format_box_ptr->get_selected_id() == "auto") {
+                if(!it->mjpeg_setups.empty())
+                    selected_camera_setup = selected_camera->mjpeg_setups.front();
+                else if(!it->yuyv_setups.empty())
+                    selected_camera_setup = selected_camera->yuyv_setups.front();
+            }
         };
 
         ll->add_widget(std::move(combobox));
@@ -261,13 +274,13 @@ namespace gsr {
 
         auto camera_location_widget = std::make_unique<CustomRendererWidget>(camera_screen_size);
         camera_location_widget->draw_handler = [this, screen_border_size, screen_border](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
-            if(!selected_camera.has_value())
+            if(!selected_camera.has_value() || !selected_camera_setup.has_value())
                 return;
 
             pos = pos.floor();
             size = size.floor();
             const mgl::vec2i mouse_pos = window.get_mouse_position();
-            const mgl::vec2f webcam_box_min_size = clamp_keep_aspect_ratio(selected_camera->size.to_vec2f(), screen_inner_size * 0.2f);
+            const mgl::vec2f webcam_box_min_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), screen_inner_size * 0.2f);
 
             if(moving_webcam_box) {
                 webcam_box_pos = mouse_pos.to_vec2f() - screen_border_size - webcam_box_grab_offset - pos;
@@ -276,7 +289,7 @@ namespace gsr {
                 webcam_box_size = webcam_box_size_resize_start + mouse_diff;
             }
 
-            webcam_box_size = clamp_keep_aspect_ratio(selected_camera->size.to_vec2f(), webcam_box_size);
+            webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
 
             if(webcam_box_pos.x < 0.0f)
                 webcam_box_pos.x = 0.0f;
@@ -300,7 +313,7 @@ namespace gsr {
             else if(webcam_box_pos.y + webcam_box_size.y > screen_inner_size.y)
                 webcam_box_size.y = screen_inner_size.y - webcam_box_pos.y;
 
-            webcam_box_size = clamp_keep_aspect_ratio(selected_camera->size.to_vec2f(), webcam_box_size);
+            webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
 
             {
                 draw_rectangle_outline(window, pos, size, mgl::Color(255, 0, 0, 255), screen_border);
@@ -310,7 +323,7 @@ namespace gsr {
             }
 
             {
-                webcam_box_drawn_size = clamp_keep_aspect_ratio(selected_camera->size.to_vec2f(), webcam_box_size);
+                webcam_box_drawn_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
                 webcam_box_drawn_pos = (pos + screen_border_size + webcam_box_pos).floor();
 
                 draw_rectangle_outline(window, webcam_box_drawn_pos, webcam_box_drawn_size, mgl::Color(0, 255, 0, 255), screen_border);
@@ -1280,11 +1293,6 @@ namespace gsr {
         streaming_info_list->add_widget(create_stream_custom_section());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-
-        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_save_recording_in_game_folder());
-
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming indicator", create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
@@ -1434,8 +1442,8 @@ namespace gsr {
         webcam_box_size.x = ((float)record_options.webcam_width / 100.0f * screen_inner_size.x);
         webcam_box_size.y = ((float)record_options.webcam_height / 100.0f * screen_inner_size.y);
 
-        if(selected_camera.has_value())
-            webcam_box_size = clamp_keep_aspect_ratio(selected_camera->size.to_vec2f(), webcam_box_size);
+        if(selected_camera_setup.has_value())
+            webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
 
         if(record_options.record_area_width == 0)
             record_options.record_area_width = 1920;
@@ -1569,8 +1577,8 @@ namespace gsr {
         record_options.show_notifications = show_notification_checkbox_ptr->is_checked();
         record_options.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
 
-        if(selected_camera.has_value())
-            webcam_box_size = clamp_keep_aspect_ratio(selected_camera->size.to_vec2f(), webcam_box_size);
+        if(selected_camera_setup.has_value())
+            webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
 
         record_options.webcam_source = webcam_sources_box_ptr->get_selected_id();
         record_options.webcam_flip_horizontally = flip_camera_horizontally_checkbox_ptr->is_checked();
