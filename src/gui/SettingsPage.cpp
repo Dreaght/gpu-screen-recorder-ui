@@ -1095,6 +1095,14 @@ namespace gsr {
         return list;
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_low_power_mode_checkbox() {
+        // TODO: Show hint that states: May affect recording performance, recommended to use with sync to content frame rate mode
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record in low-power mode");
+        checkbox->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
+        low_power_mode_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
     void SettingsPage::add_replay_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
@@ -1110,6 +1118,7 @@ namespace gsr {
         general_list->add_widget(create_save_replay_in_game_folder());
         if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 3})
             general_list->add_widget(create_restart_replay_on_save());
+        general_list->add_widget(create_low_power_mode_checkbox());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Replay indicator", create_indicator("replay"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1166,6 +1175,7 @@ namespace gsr {
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
+        general_list->add_widget(create_low_power_mode_checkbox());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Recording indicator", create_indicator("recording"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1293,6 +1303,11 @@ namespace gsr {
         streaming_info_list->add_widget(create_stream_custom_section());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+
+        auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        general_list->add_widget(create_low_power_mode_checkbox());
+
+        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming indicator", create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
@@ -1433,6 +1448,7 @@ namespace gsr {
         restore_portal_session_checkbox_ptr->set_checked(record_options.restore_portal_session);
         show_notification_checkbox_ptr->set_checked(record_options.show_notifications);
         led_indicator_checkbox_ptr->set_checked(record_options.use_led_indicator);
+        low_power_mode_checkbox_ptr->set_checked(record_options.low_power_mode);
 
         webcam_sources_box_ptr->set_selected_item(record_options.webcam_source);
         flip_camera_horizontally_checkbox_ptr->set_checked(record_options.webcam_flip_horizontally);
@@ -1576,6 +1592,7 @@ namespace gsr {
         record_options.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         record_options.show_notifications = show_notification_checkbox_ptr->is_checked();
         record_options.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
+        record_options.low_power_mode = low_power_mode_checkbox_ptr->is_checked();
 
         if(selected_camera_setup.has_value())
             webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);

@@ -129,6 +129,7 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_led_indicator(const char *type);
         std::unique_ptr<CheckBox> create_notifications(const char *type);
         std::unique_ptr<List> create_indicator(const char *type);
+        std::unique_ptr<CheckBox> create_low_power_mode_checkbox();
         void add_replay_widgets();
         void add_record_widgets();
 
@@ -217,6 +218,7 @@ namespace gsr {
         ComboBox *webcam_video_format_box_ptr = nullptr;
         List *webcam_body_list_ptr = nullptr;
         CheckBox *flip_camera_horizontally_checkbox_ptr = nullptr;
+        CheckBox *low_power_mode_checkbox_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 

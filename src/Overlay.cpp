@@ -2529,6 +2529,11 @@ namespace gsr {
             args.push_back("yes");
         }
 
+        if(record_options.low_power_mode) {
+            args.push_back("-low-power");
+            args.push_back("yes");
+        }
+
         if(record_options.record_area_option == "region")
             add_region_command(args, region_str, region_str_size, region_selector);
     }

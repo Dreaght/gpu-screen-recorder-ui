@@ -60,6 +60,7 @@ namespace gsr {
         bool overclock = false;
         bool record_cursor = true;
         bool restore_portal_session = true;
+        bool low_power_mode = false;
 
         std::string webcam_source = "";
         bool webcam_flip_horizontally = false;
