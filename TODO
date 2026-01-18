@@ -256,6 +256,4 @@ Add kick streaming option (add /app at the end of the url).
 
 The flatpak version can for some get stuck at shutdown when instant replay is running. It only happens in the flatpak version and only when instant replay is running and it happens always. Manual SIGINT on gsr-ui stops gsr-ui properly, so why does it fail when shutting down the computer when the systemd stop signal is SIGINT? Maybe its related to the flatpak version being launched through gsr-gtk. I cant personally reproduce it.
 
-Show warning in the UI (with a warning icon) when adding audio output device and application audio in the same audio track.
-
 Redesign the UI to allow capturing multiple video sources. Move webcam to capture sources as well then. Maybe design the UI to work more like obs studio then, where you start recording and then add sources at capture time, with a preview.

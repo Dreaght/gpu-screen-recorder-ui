@@ -460,8 +460,9 @@ namespace gsr {
         auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 0));
         remove_audio_track_button->set_icon(&get_theme().trash_texture);
         remove_audio_track_button->set_icon_padding_scale(0.75f);
-        remove_audio_track_button->on_click = [audio_input_list_ptr, audio_device_list_ptr]() {
+        remove_audio_track_button->on_click = [this, audio_input_list_ptr, audio_device_list_ptr]() {
             audio_input_list_ptr->remove_widget(audio_device_list_ptr);
+            update_application_audio_warning_visibility();
         };
         return remove_audio_track_button;
     }
@@ -484,11 +485,47 @@ namespace gsr {
         return button;
     }
 
+    void SettingsPage::update_application_audio_warning_visibility() {
+        audio_track_section_list_ptr->for_each_child_widget([](std::unique_ptr<Widget> &child_widget) {
+            Subsection *audio_subsection = dynamic_cast<Subsection*>(child_widget.get());
+            List *audio_track_section_items_list_ptr = dynamic_cast<List*>(audio_subsection->get_inner_widget());
+            List *audio_input_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(2));
+            List *application_audio_warning_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(4));
+
+            int num_output_devices = 0;
+            int num_application_audio = 0;
+
+            audio_input_list_ptr->for_each_child_widget([&num_output_devices, &num_application_audio](std::unique_ptr<Widget> &child_widget){
+                List *audio_track_line = dynamic_cast<List*>(child_widget.get());
+                const AudioTrackType audio_track_type = (AudioTrackType)(uintptr_t)audio_track_line->userdata;
+                switch(audio_track_type) {
+                    case AudioTrackType::DEVICE: {
+                        Label *label = dynamic_cast<Label*>(audio_track_line->get_child_widget_by_index(0));
+                        const bool is_output_device = starts_with(label->get_text().c_str(), "Output device");
+                        if(is_output_device)
+                            num_output_devices++;
+                        break;
+                    }
+                    case AudioTrackType::APPLICATION:
+                    case AudioTrackType::APPLICATION_CUSTOM: {
+                        num_application_audio++;
+                        break;
+                    }
+                }
+                return true;
+            });
+
+            application_audio_warning_list_ptr->set_visible(num_output_devices > 0 && num_application_audio > 0);
+            return true;
+        });
+    }
+
     std::unique_ptr<Button> SettingsPage::create_add_audio_output_device_button(List *audio_input_list_ptr) {
         auto button = std::make_unique<Button>(&get_theme().body_font, "Add output device", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this, audio_input_list_ptr]() {
             audio_devices = get_audio_devices();
             audio_input_list_ptr->add_widget(create_audio_device(AudioDeviceType::OUTPUT, audio_input_list_ptr));
+            update_application_audio_warning_visibility();
         };
         return button;
     }
@@ -547,6 +584,8 @@ namespace gsr {
                 audio_input_list_ptr->add_widget(create_custom_application_audio(audio_input_list_ptr));
             else
                 audio_input_list_ptr->add_widget(create_application_audio(audio_input_list_ptr));
+
+            update_application_audio_warning_visibility();
         };
         return add_audio_track_button;
     }
@@ -569,6 +608,18 @@ namespace gsr {
         auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record audio from all applications except the selected ones");
         application_audio_invert_checkbox->set_checked(false);
         return application_audio_invert_checkbox;
+    }
+
+    std::unique_ptr<Widget> SettingsPage::create_application_audio_warning() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->set_spacing(0.003f);
+        list->set_visible(false);
+
+        const int font_character_size = get_theme().body_font.get_character_size();
+        list->add_widget(std::make_unique<Image>(&get_theme().warning_texture, mgl::vec2f(font_character_size, font_character_size), Image::ScaleBehavior::SCALE));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.", get_color_theme().text_color));
+
+        return list;
     }
 
     static void update_audio_track_titles(List *audio_track_section_list_ptr) {
@@ -618,6 +669,7 @@ namespace gsr {
         list_ptr->add_widget(create_add_audio_buttons(audio_input_section_ptr));
         list_ptr->add_widget(std::move(audio_input_section));
         list_ptr->add_widget(create_application_audio_invert_checkbox());
+        list_ptr->add_widget(create_application_audio_warning());
 
         set_application_audio_options_visible(subsection.get(), view_radio_button_ptr->get_selected_id() == "advanced", *gsr_info);
         return subsection;
@@ -1097,7 +1149,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Widget> SettingsPage::create_low_power_mode() {
-        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record in low-power mode");
         checkbox->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
@@ -1450,6 +1502,8 @@ namespace gsr {
             auto audio_track_section = create_audio_track_section(audio_section_ptr);
             audio_track_section_list_ptr->add_widget(std::move(audio_track_section));
         }
+
+        update_application_audio_warning_visibility();
     }
 
     void SettingsPage::load_common(RecordOptions &record_options) {

@@ -76,6 +76,7 @@ namespace gsr {
         std::unique_ptr<Button> create_remove_audio_device_button(List *audio_input_list_ptr, List *audio_device_list_ptr);
         std::unique_ptr<List> create_audio_device(AudioDeviceType device_type, List *audio_input_list_ptr);
         std::unique_ptr<Button> create_add_audio_track_button();
+        void update_application_audio_warning_visibility();
         std::unique_ptr<Button> create_add_audio_output_device_button(List *audio_input_list_ptr);
         std::unique_ptr<Button> create_add_audio_input_device_button(List *audio_input_list_ptr);
         std::unique_ptr<ComboBox> create_application_audio_selection_combobox(List *application_audio_row);
@@ -85,6 +86,7 @@ namespace gsr {
         std::unique_ptr<List> create_add_audio_buttons(List *audio_input_list_ptr);
         std::unique_ptr<List> create_audio_input_section();
         std::unique_ptr<CheckBox> create_application_audio_invert_checkbox();
+        std::unique_ptr<Widget> create_application_audio_warning();
         std::unique_ptr<List> create_audio_track_title_and_remove(Subsection *audio_track_subsection, const char *title);
         std::unique_ptr<Subsection> create_audio_track_section(Widget *parent_widget);
         std::unique_ptr<List> create_audio_track_section_list();
