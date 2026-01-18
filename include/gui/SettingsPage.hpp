@@ -206,6 +206,8 @@ namespace gsr {
         Entry *twitch_stream_key_entry_ptr = nullptr;
         Entry *youtube_stream_key_entry_ptr = nullptr;
         Entry *rumble_stream_key_entry_ptr = nullptr;
+        Entry *kick_stream_url_entry_ptr = nullptr;
+        Entry *kick_stream_key_entry_ptr = nullptr;
         Entry *stream_url_entry_ptr = nullptr;
         Entry *stream_key_entry_ptr = nullptr;
         Entry *replay_time_entry_ptr = nullptr;

@@ -97,6 +97,11 @@ namespace gsr {
         std::string stream_key;
     };
 
+    struct KickStreamConfig {
+        std::string stream_url;
+        std::string stream_key;
+    };
+
     struct CustomStreamConfig {
         std::string url;
         std::string key;
@@ -109,6 +114,7 @@ namespace gsr {
         YoutubeStreamConfig youtube;
         TwitchStreamConfig twitch;
         RumbleStreamConfig rumble;
+        KickStreamConfig kick;
         CustomStreamConfig custom;
         ConfigHotkey start_stop_hotkey;
     };

@@ -1268,6 +1268,7 @@ namespace gsr {
         streaming_service_box->add_item("Twitch", "twitch");
         streaming_service_box->add_item("YouTube", "youtube");
         streaming_service_box->add_item("Rumble", "rumble");
+        streaming_service_box->add_item("Kick", "kick");
         streaming_service_box->add_item("Custom", "custom");
         streaming_service_box_ptr = streaming_service_box.get();
         return streaming_service_box;
@@ -1311,6 +1312,8 @@ namespace gsr {
         twitch_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
         youtube_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
         rumble_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
+        kick_stream_url_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
+        kick_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
 
         stream_key_list_ptr = stream_key_list.get();
         return stream_key_list;
@@ -1386,12 +1389,15 @@ namespace gsr {
             const bool twitch_option = id == "twitch";
             const bool youtube_option = id == "youtube";
             const bool rumble_option = id == "rumble";
+            const bool kick_option = id == "kick";
             const bool custom_option = id == "custom";
             stream_key_list_ptr->set_visible(!custom_option);
             custom_stream_list_ptr->set_visible(custom_option);
             twitch_stream_key_entry_ptr->get_parent_widget()->set_visible(twitch_option);
             youtube_stream_key_entry_ptr->get_parent_widget()->set_visible(youtube_option);
             rumble_stream_key_entry_ptr->get_parent_widget()->set_visible(rumble_option);
+            kick_stream_url_entry_ptr->get_parent_widget()->set_visible(kick_option);
+            kick_stream_key_entry_ptr->get_parent_widget()->set_visible(kick_option);
             return true;
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
@@ -1603,6 +1609,8 @@ namespace gsr {
         youtube_stream_key_entry_ptr->set_text(config.streaming_config.youtube.stream_key);
         twitch_stream_key_entry_ptr->set_text(config.streaming_config.twitch.stream_key);
         rumble_stream_key_entry_ptr->set_text(config.streaming_config.rumble.stream_key);
+        kick_stream_url_entry_ptr->set_text(config.streaming_config.kick.stream_url);
+        kick_stream_key_entry_ptr->set_text(config.streaming_config.kick.stream_key);
         stream_url_entry_ptr->set_text(config.streaming_config.custom.url);
         stream_key_entry_ptr->set_text(config.streaming_config.custom.key);
         container_box_ptr->set_selected_item(config.streaming_config.custom.container);
@@ -1752,6 +1760,8 @@ namespace gsr {
         config.streaming_config.youtube.stream_key = youtube_stream_key_entry_ptr->get_text();
         config.streaming_config.twitch.stream_key = twitch_stream_key_entry_ptr->get_text();
         config.streaming_config.rumble.stream_key = rumble_stream_key_entry_ptr->get_text();
+        config.streaming_config.kick.stream_url = kick_stream_url_entry_ptr->get_text();
+        config.streaming_config.kick.stream_key = kick_stream_key_entry_ptr->get_text();
         config.streaming_config.custom.url = stream_url_entry_ptr->get_text();
         config.streaming_config.custom.key = stream_key_entry_ptr->get_text();
         config.streaming_config.custom.container = container_box_ptr->get_selected_id();

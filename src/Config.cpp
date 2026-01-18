@@ -213,6 +213,8 @@ namespace gsr {
             {"streaming.youtube.key", &config.streaming_config.youtube.stream_key},
             {"streaming.twitch.key", &config.streaming_config.twitch.stream_key},
             {"streaming.rumble.key", &config.streaming_config.rumble.stream_key},
+            {"streaming.kick.url", &config.streaming_config.kick.stream_url},
+            {"streaming.kick.key", &config.streaming_config.kick.stream_key},
             {"streaming.custom.url", &config.streaming_config.custom.url},
             {"streaming.custom.key", &config.streaming_config.custom.key},
             {"streaming.custom.container", &config.streaming_config.custom.container},

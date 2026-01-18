@@ -3146,6 +3146,7 @@ namespace gsr {
 
     static std::string streaming_get_url(const Config &config) {
         std::string url;
+        fprintf(stderr, "streaming service: %s\n", config.streaming_config.streaming_service.c_str());
         if(config.streaming_config.streaming_service == "twitch") {
             url += "rtmp://live.twitch.tv/app/";
             url += config.streaming_config.twitch.stream_key;
@@ -3155,6 +3156,13 @@ namespace gsr {
         } else if(config.streaming_config.streaming_service == "rumble") {
             url += "rtmp://rtmp.rumble.com/live/";
             url += config.streaming_config.rumble.stream_key;
+        } else if(config.streaming_config.streaming_service == "kick") {
+            fprintf(stderr, "kick: %s, %s\n", config.streaming_config.kick.stream_url.c_str(), config.streaming_config.kick.stream_key.c_str());
+            url += config.streaming_config.kick.stream_url;
+            if(!url.empty() && url.back() != '/')
+                url += "/";
+            url += "app/";
+            url += config.streaming_config.kick.stream_key;
         } else if(config.streaming_config.streaming_service == "custom") {
             url = config.streaming_config.custom.url;
             if(url.size() >= 7 && strncmp(url.c_str(), "rtmp://", 7) == 0)
