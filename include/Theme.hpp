@@ -47,6 +47,9 @@ namespace gsr {
         mgl::Texture trash_texture;
         mgl::Texture masked_texture;
         mgl::Texture unmasked_texture;
+        mgl::Texture warning_texture;
+        mgl::Texture info_texture;
+        mgl::Texture question_mark_texture;
 
         mgl::Texture ps4_home_texture;
         mgl::Texture ps4_options_texture;

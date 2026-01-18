@@ -129,7 +129,7 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_led_indicator(const char *type);
         std::unique_ptr<CheckBox> create_notifications(const char *type);
         std::unique_ptr<List> create_indicator(const char *type);
-        std::unique_ptr<CheckBox> create_low_power_mode_checkbox();
+        std::unique_ptr<Widget> create_low_power_mode();
         void add_replay_widgets();
         void add_record_widgets();
 

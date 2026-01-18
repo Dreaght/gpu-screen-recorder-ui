@@ -34,6 +34,7 @@ src = [
     'src/gui/GlobalSettingsPage.cpp',
     'src/gui/GsrPage.cpp',
     'src/gui/Subsection.cpp',
+    'src/gui/Tooltip.cpp',
     'src/GlobalHotkeys/GlobalHotkeysX11.cpp',
     'src/GlobalHotkeys/GlobalHotkeysLinux.cpp',
     'src/GlobalHotkeys/GlobalHotkeysJoystick.cpp',

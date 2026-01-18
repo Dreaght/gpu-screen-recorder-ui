@@ -5,6 +5,7 @@
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/Subsection.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
+#include "../../include/gui/Image.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
@@ -1095,12 +1096,31 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_low_power_mode_checkbox() {
-        // TODO: Show hint that states: May affect recording performance, recommended to use with sync to content frame rate mode
+    std::unique_ptr<Widget> SettingsPage::create_low_power_mode() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record in low-power mode");
         checkbox->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
         low_power_mode_checkbox_ptr = checkbox.get();
-        return checkbox;
+
+        list->add_widget(std::move(checkbox));
+
+        auto info = std::make_unique<Image>(&get_theme().question_mark_texture, low_power_mode_checkbox_ptr->get_size(), Image::ScaleBehavior::SCALE);
+        info->set_tooltip_text(
+            "Do not force the GPU to go into high performance mode when recording.\n"
+            "May affect recording performance, especially when playing a video at the same time.\n"
+            "If enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle."
+        );
+        Image *info_ptr = info.get();
+        info->on_mouse_move = [info_ptr](bool inside) {
+            if(inside)
+                set_current_tooltip(info_ptr);
+            else
+                remove_as_current_tooltip(info_ptr);
+        };
+        list->add_widget(std::move(info));
+
+        return list;
     }
 
     void SettingsPage::add_replay_widgets() {
@@ -1118,7 +1138,7 @@ namespace gsr {
         general_list->add_widget(create_save_replay_in_game_folder());
         if(gsr_info->system_info.gsr_version >= GsrVersion{5, 0, 3})
             general_list->add_widget(create_restart_replay_on_save());
-        general_list->add_widget(create_low_power_mode_checkbox());
+        general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Replay indicator", create_indicator("replay"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1175,7 +1195,7 @@ namespace gsr {
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
-        general_list->add_widget(create_low_power_mode_checkbox());
+        general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Recording indicator", create_indicator("recording"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1305,7 +1325,7 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_low_power_mode_checkbox());
+        general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming indicator", create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));

@@ -3,6 +3,7 @@
 #include "Widget.hpp"
 
 #include <mglpp/graphics/Sprite.hpp>
+#include <functional>
 
 namespace gsr {
     class Image : public Widget {
@@ -21,6 +22,8 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
+
+        std::function<void(bool inside)> on_mouse_move;
     private:
         mgl::Sprite sprite;
         mgl::vec2f size;

@@ -40,6 +40,8 @@ namespace gsr {
         if(!visible)
             return true;
 
+        handle_tooltip_event(event, position + offset, get_size());
+
         if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
             const bool clicked_inside = mgl::FloatRect(position + offset, get_size()).contains({ (float)event.mouse_button.x, (float)event.mouse_button.y });
             if(clicked_inside) {

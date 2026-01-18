@@ -1,8 +1,16 @@
 #include "../../include/gui/Widget.hpp"
+#include "../../include/gui/Tooltip.hpp"
+#include "../../include/Theme.hpp"
 #include <vector>
+
+#include <mglpp/window/Event.hpp>
 
 namespace gsr {
     static std::vector<std::unique_ptr<Widget>> widgets_to_remove;
+    static Widget *current_tooltip_widget = nullptr;
+    static std::unique_ptr<Tooltip> tooltip;
+
+    static void set_current_tooltip_text(Widget *widget);
 
     Widget::Widget() {
         
@@ -10,6 +18,7 @@ namespace gsr {
 
     Widget::~Widget() {
         remove_widget_as_selected_in_parent();
+        remove_as_current_tooltip(this);
     }
 
     void Widget::set_position(mgl::vec2f position) {
@@ -64,8 +73,32 @@ namespace gsr {
         this->visible = visible;
     }
 
+    bool Widget::is_visible() const {
+        return visible;
+    }
+
     Widget* Widget::get_parent_widget() {
         return parent_widget;
+    }
+
+    void Widget::set_tooltip_text(std::string text) {
+        tooltip_text = std::move(text);
+        if(current_tooltip_widget == this)
+            set_current_tooltip_text(current_tooltip_widget);
+    }
+
+    const std::string& Widget::get_tooltip_text() const {
+        return tooltip_text;
+    }
+
+    void Widget::handle_tooltip_event(mgl::Event &event, mgl::vec2f position, mgl::vec2f size) {
+        if(event.type == mgl::Event::MouseMoved) {
+            if(mgl::FloatRect(position, size).contains(mgl::vec2f(event.mouse_move.x, event.mouse_move.y))) {
+                set_current_tooltip(this);
+            } else {
+                remove_as_current_tooltip(this);
+            }
+        }
     }
 
     void add_widget_to_remove(std::unique_ptr<Widget> widget) {
@@ -77,5 +110,41 @@ namespace gsr {
             widgets_to_remove[i].reset();
         }
         widgets_to_remove.clear();
+    }
+
+    void set_current_tooltip(Widget *widget) {
+        if(current_tooltip_widget == widget)
+            return;
+
+        set_current_tooltip_text(widget);
+    }
+
+    void remove_as_current_tooltip(Widget *widget) {
+        if(current_tooltip_widget == widget)
+            set_current_tooltip_text(nullptr);
+    }
+
+    void set_current_tooltip_text(Widget *widget) {
+        if(widget && !widget->get_tooltip_text().empty()) {
+            current_tooltip_widget = widget;
+            if(!tooltip)
+                tooltip = std::make_unique<Tooltip>(&get_theme().body_font);
+            tooltip->set_text(current_tooltip_widget->get_tooltip_text());
+        } else {
+            current_tooltip_widget = nullptr;
+            tooltip.reset();
+        }
+    }
+
+    void draw_tooltip(mgl::Window &window) {
+        if(!tooltip)
+            return;
+
+        if(!current_tooltip_widget->is_visible()) {
+            set_current_tooltip(nullptr);
+            return;
+        }
+
+        tooltip->draw(window, mgl::vec2f(0.0f, 0.0f));
     }
 }

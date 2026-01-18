@@ -2,6 +2,7 @@
 
 #include <mglpp/system/vec.hpp>
 #include <memory>
+#include <string>
 
 namespace mgl {
     class Event;
@@ -44,8 +45,13 @@ namespace gsr {
         Alignment get_vertical_alignment() const;
 
         void set_visible(bool visible);
+        bool is_visible() const;
 
         Widget* get_parent_widget();
+
+        void set_tooltip_text(std::string text);
+        const std::string& get_tooltip_text() const;
+        void handle_tooltip_event(mgl::Event &event, mgl::vec2f position, mgl::vec2f size);
 
         void *userdata = nullptr;
     protected:
@@ -61,8 +67,13 @@ namespace gsr {
         Alignment vertical_aligment = Alignment::START;
 
         bool visible = true;
+        std::string tooltip_text;
     };
 
     void add_widget_to_remove(std::unique_ptr<Widget> widget);
     void remove_widgets_to_be_removed();
+
+    void set_current_tooltip(Widget *widget);
+    void remove_as_current_tooltip(Widget *widget);
+    void draw_tooltip(mgl::Window &window);
 }

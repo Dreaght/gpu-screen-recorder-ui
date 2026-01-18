@@ -2,6 +2,8 @@
 #include "../../include/gui/Utils.hpp"
 
 #include <mglpp/window/Window.hpp>
+#include <mglpp/window/Event.hpp>
+#include <mglpp/system/FloatRect.hpp>
 #include <mglpp/graphics/Texture.hpp>
 
 namespace gsr {
@@ -19,8 +21,15 @@ namespace gsr {
         if(!visible)
             return;
 
+        const mgl::vec2f draw_pos = (position + offset).floor();
+
+        if(on_mouse_move) {
+            const bool mouse_inside = mgl::FloatRect(draw_pos, get_size()).contains(window.get_mouse_position().to_vec2f());
+            on_mouse_move(mouse_inside);
+        }
+
         sprite.set_size(get_size());
-        sprite.set_position((position + offset).floor());
+        sprite.set_position(draw_pos);
         window.draw(sprite);
     }
 

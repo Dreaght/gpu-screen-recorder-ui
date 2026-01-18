@@ -879,6 +879,7 @@ namespace gsr {
 
             close_button_widget.draw(*window, mgl::vec2f(0.0f, 0.0f));
             page_stack.draw(*window, mgl::vec2f(0.0f, 0.0f));
+            draw_tooltip(*window);
 
             if(cursor_texture.is_valid()) {
                 cursor_sprite.set_position((window->get_mouse_position() - cursor_hotspot).to_vec2f());
