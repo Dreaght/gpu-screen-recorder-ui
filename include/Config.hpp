@@ -65,6 +65,9 @@ namespace gsr {
         std::string webcam_source = "";
         bool webcam_flip_horizontally = false;
         std::string webcam_video_format = "auto";
+        int32_t webcam_camera_width = 0;
+        int32_t webcam_camera_height = 0;
+        int32_t webcam_camera_fps = 0;
         int32_t webcam_x = 0; // A value between 0 and 100 (percentage)
         int32_t webcam_y = 0; // A value between 0 and 100 (percentage)
         int32_t webcam_width = 30; // A value between 0 and 100 (percentage), 0 = Don't scale it

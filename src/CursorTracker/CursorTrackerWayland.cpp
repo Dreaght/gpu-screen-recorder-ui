@@ -368,8 +368,7 @@ namespace gsr {
             if(!properties)
                 goto next_crtc;
 
-            if(!get_drm_property_by_name(drm_fd, properties, "VRR_ENABLED", &vrr_enabled))
-                goto next_crtc;
+            get_drm_property_by_name(drm_fd, properties, "VRR_ENABLED", &vrr_enabled);
 
             connector = get_drm_connector_by_crtc_id(drm_connectors, crtc->crtc_id);
             if(!connector)

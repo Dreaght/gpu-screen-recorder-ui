@@ -83,7 +83,14 @@ namespace gsr {
             draw_unselected(window, draw_pos);
     }
 
-    void ComboBox::add_item(const std::string &text, const std::string &id) {
+    void ComboBox::add_item(const std::string &text, const std::string &id, bool allow_duplicate) {
+        if(!allow_duplicate) {
+            for(const auto &item : items) {
+                if(item.id == id)
+                    return;
+            }
+        }
+
         items.push_back({mgl::Text(text, *font), id, {0.0f, 0.0f}});
         items.back().text.set_max_width(font->get_character_size() * 20); // TODO: Make a proper solution
         //items.back().text.set_max_rows(1);

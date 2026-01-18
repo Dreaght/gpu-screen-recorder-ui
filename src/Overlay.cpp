@@ -2763,6 +2763,9 @@ namespace gsr {
             capture_source_arg += ";width=" + std::to_string(webcam_size.x) + "%";
             capture_source_arg += ";height=" + std::to_string(webcam_size.y) + "%";
             capture_source_arg += ";pixfmt=" + record_options.webcam_video_format;
+            capture_source_arg += ";camera_width=" + std::to_string(record_options.webcam_camera_width);
+            capture_source_arg += ";camera_height=" + std::to_string(record_options.webcam_camera_height);
+            capture_source_arg += ";camera_fps=" + std::to_string(record_options.webcam_camera_fps);
             if(record_options.webcam_flip_horizontally)
                 capture_source_arg += ";hflip=true";
         }

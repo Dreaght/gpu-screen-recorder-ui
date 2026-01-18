@@ -248,6 +248,27 @@ namespace gsr {
         return ll;
     }
 
+    std::unique_ptr<List> SettingsPage::create_webcam_video_setups() {
+        auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
+        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video setup:", get_color_theme().text_color));
+
+        auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
+        webcam_video_setup_box_ptr = combobox.get();
+
+        ll->add_widget(std::move(combobox));
+        return ll;
+    }
+
+    static std::vector<GsrCameraSetup> sort_camera_setup(const std::vector<GsrCameraSetup> &setups) {
+        auto result = setups;
+        std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) {
+            const uint64_t score_a = (uint64_t)a.resolution.x * (uint64_t)a.resolution.y * (uint64_t)a.fps;
+            const uint64_t score_b = (uint64_t)b.resolution.x * (uint64_t)b.resolution.y * (uint64_t)b.fps;
+            return score_a > score_b;
+        });
+        return result;
+    }
+
     std::unique_ptr<List> SettingsPage::create_webcam_video_format() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
         ll->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video format:", get_color_theme().text_color));
@@ -257,10 +278,50 @@ namespace gsr {
 
         webcam_video_format_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             get_current_record_options().webcam_video_format = id;
+
+            auto it = std::find_if(capture_options.cameras.begin(), capture_options.cameras.end(), [&](const GsrCamera &camera) {
+                return camera.path == webcam_sources_box_ptr->get_selected_id();
+            });
+            if(it == capture_options.cameras.end())
+                return;
+
+            webcam_video_setup_box_ptr->clear_items();
+            if(id == "yuyv") {
+                const auto setups = sort_camera_setup(it->yuyv_setups);
+                for(const auto &setup : setups) {
+                    char setup_str[256];
+                    snprintf(setup_str, sizeof(setup_str), "%dx%d@%dhz", setup.resolution.x, setup.resolution.y, setup.fps);
+                    webcam_video_setup_box_ptr->add_item(setup_str, setup_str, false);
+                }
+            } else if(id == "mjpeg") {
+                const auto setups = sort_camera_setup(it->mjpeg_setups);
+                for(const auto &setup : setups) {
+                    char setup_str[256];
+                    snprintf(setup_str, sizeof(setup_str), "%dx%d@%dhz", setup.resolution.x, setup.resolution.y, setup.fps);
+                    webcam_video_setup_box_ptr->add_item(setup_str, setup_str, false);
+                }
+            } else if(id == "auto") {
+                auto setups = it->yuyv_setups;
+                setups.insert(setups.end(), it->mjpeg_setups.begin(), it->mjpeg_setups.end());
+                setups = sort_camera_setup(setups);
+
+                for(const auto &setup : setups) {
+                    char setup_str[256];
+                    snprintf(setup_str, sizeof(setup_str), "%dx%d@%dhz", setup.resolution.x, setup.resolution.y, setup.fps);
+                    webcam_video_setup_box_ptr->add_item(setup_str, setup_str, false);
+                }
+            }
         };
 
         ll->add_widget(std::move(combobox));
         return ll;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_webcam_video_setup_list() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->add_widget(create_webcam_video_format());
+        list->add_widget(create_webcam_video_setups());
+        return list;
     }
 
     std::unique_ptr<Widget> SettingsPage::create_webcam_location_widget() {
@@ -405,7 +466,7 @@ namespace gsr {
         body_list->add_widget(create_webcam_location_widget());
         body_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "* Right click in the bottom right corner to resize the webcam", get_color_theme().text_color));
         body_list->add_widget(create_flip_camera_checkbox());
-        body_list->add_widget(create_webcam_video_format());
+        body_list->add_widget(create_webcam_video_setup_list());
         return body_list;
     }
 
@@ -1530,9 +1591,13 @@ namespace gsr {
         led_indicator_checkbox_ptr->set_checked(record_options.use_led_indicator);
         low_power_mode_checkbox_ptr->set_checked(record_options.low_power_mode);
 
+        char webcam_setup_str[256];
+        snprintf(webcam_setup_str, sizeof(webcam_setup_str), "%dx%d@%dhz", record_options.webcam_camera_width, record_options.webcam_camera_height, record_options.webcam_camera_fps);
+
         webcam_sources_box_ptr->set_selected_item(record_options.webcam_source);
         flip_camera_horizontally_checkbox_ptr->set_checked(record_options.webcam_flip_horizontally);
         webcam_video_format_box_ptr->set_selected_item(record_options.webcam_video_format);
+        webcam_video_setup_box_ptr->set_selected_item(webcam_setup_str);
         webcam_box_pos.x = ((float)record_options.webcam_x / 100.0f) * screen_inner_size.x;
         webcam_box_pos.y = ((float)record_options.webcam_y / 100.0f) * screen_inner_size.y;
         webcam_box_size.x = ((float)record_options.webcam_width / 100.0f * screen_inner_size.x);
@@ -1679,9 +1744,17 @@ namespace gsr {
         if(selected_camera_setup.has_value())
             webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
 
+        int camera_width = 0;
+        int camera_height = 0;
+        int camera_fps = 0;
+        sscanf(webcam_video_setup_box_ptr->get_selected_id().c_str(), "%dx%d@%dhz", &camera_width, &camera_height, &camera_fps);
+
         record_options.webcam_source = webcam_sources_box_ptr->get_selected_id();
         record_options.webcam_flip_horizontally = flip_camera_horizontally_checkbox_ptr->is_checked();
         record_options.webcam_video_format = webcam_video_format_box_ptr->get_selected_id();
+        record_options.webcam_camera_width = camera_width;
+        record_options.webcam_camera_height = camera_height;
+        record_options.webcam_camera_fps = camera_fps;
         record_options.webcam_x = std::round((webcam_box_pos.x / screen_inner_size.x) * 100.0f);
         record_options.webcam_y = std::round((webcam_box_pos.y / screen_inner_size.y) * 100.0f);
         record_options.webcam_width = std::round((webcam_box_size.x / screen_inner_size.x) * 100.0f);

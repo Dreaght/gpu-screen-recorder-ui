@@ -67,7 +67,9 @@ namespace gsr {
         std::unique_ptr<Widget> create_change_video_resolution_section();
         std::unique_ptr<Widget> create_capture_target_section();
         std::unique_ptr<List> create_webcam_sources();
+        std::unique_ptr<List> create_webcam_video_setups();
         std::unique_ptr<List> create_webcam_video_format();
+        std::unique_ptr<List> create_webcam_video_setup_list();
         std::unique_ptr<Widget> create_webcam_location_widget();
         std::unique_ptr<CheckBox> create_flip_camera_checkbox();
         std::unique_ptr<List> create_webcam_body();
@@ -219,6 +221,7 @@ namespace gsr {
         CheckBox *led_indicator_checkbox_ptr = nullptr;
         CheckBox *show_notification_checkbox_ptr = nullptr;
         ComboBox *webcam_sources_box_ptr = nullptr;
+        ComboBox *webcam_video_setup_box_ptr = nullptr;
         ComboBox *webcam_video_format_box_ptr = nullptr;
         List *webcam_body_list_ptr = nullptr;
         CheckBox *flip_camera_horizontally_checkbox_ptr = nullptr;
