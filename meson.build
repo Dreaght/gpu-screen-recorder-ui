@@ -1,4 +1,4 @@
-project('gsr-ui', ['c', 'cpp'], version : '1.9.3', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-ui', ['c', 'cpp'], version : '1.10.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 add_project_arguments('-D_FILE_OFFSET_BITS=64', language : ['c', 'cpp'])
 
@@ -68,7 +68,7 @@ gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
 icons_path = join_paths(prefix, datadir, 'icons')
 
 add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', language: ['c', 'cpp'])
-add_project_arguments('-DGSR_FLATPAK_VERSION="5.11.5"', language: ['c', 'cpp'])
+add_project_arguments('-DGSR_FLATPAK_VERSION="5.12.0"', language: ['c', 'cpp'])
 
 executable(
     meson.project_name(),
