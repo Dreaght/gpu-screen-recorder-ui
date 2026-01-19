@@ -26,6 +26,8 @@ namespace gsr {
         REPLAY_SAVE_10_MIN,
         RECORD_START_STOP,
         RECORD_PAUSE_UNPAUSE,
+        RECORD_START_STOP_REGION,
+        RECORD_START_STOP_WINDOW,
         STREAM_START_STOP,
         TAKE_SCREENSHOT,
         TAKE_SCREENSHOT_REGION,
@@ -61,6 +63,7 @@ namespace gsr {
         std::unique_ptr<List> create_replay_hotkey_options();
         std::unique_ptr<List> create_replay_partial_save_hotkey_options();
         std::unique_ptr<List> create_record_hotkey_options();
+        std::unique_ptr<List> create_record_hotkey_window_region_options();
         std::unique_ptr<List> create_stream_hotkey_options();
         std::unique_ptr<List> create_screenshot_hotkey_options();
         std::unique_ptr<List> create_screenshot_region_hotkey_options();
@@ -100,6 +103,8 @@ namespace gsr {
         Button *save_replay_10_min_button_ptr = nullptr;
         Button *start_stop_recording_button_ptr = nullptr;
         Button *pause_unpause_recording_button_ptr = nullptr;
+        Button *start_stop_recording_region_button_ptr = nullptr;
+        Button *start_stop_recording_window_button_ptr = nullptr;
         Button *start_stop_streaming_button_ptr = nullptr;
         Button *take_screenshot_button_ptr = nullptr;
         Button *take_screenshot_region_button_ptr = nullptr;

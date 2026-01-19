@@ -323,7 +323,7 @@ namespace gsr {
             config_hotkey_to_hotkey(overlay->get_config().record_config.start_stop_hotkey),
             "record", [overlay](const std::string &id) {
                 fprintf(stderr, "pressed %s\n", id.c_str());
-                overlay->toggle_record();
+                overlay->toggle_record(RecordForceType::NONE);
             });
 
         global_hotkeys->bind_key_press(
@@ -331,6 +331,20 @@ namespace gsr {
             "pause", [overlay](const std::string &id) {
                 fprintf(stderr, "pressed %s\n", id.c_str());
                 overlay->toggle_pause();
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().record_config.start_stop_region_hotkey),
+            "record_region", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_record(RecordForceType::REGION);
+            });
+
+        global_hotkeys->bind_key_press(
+            config_hotkey_to_hotkey(overlay->get_config().record_config.start_stop_window_hotkey),
+            "record_window", [overlay](const std::string &id) {
+                fprintf(stderr, "pressed %s\n", id.c_str());
+                overlay->toggle_record(RecordForceType::WINDOW);
             });
 
         global_hotkeys->bind_key_press(
@@ -441,7 +455,7 @@ namespace gsr {
 
         global_hotkeys_js->bind_action("toggle_record", [overlay](const std::string &id) {
             fprintf(stderr, "pressed %s\n", id.c_str());
-            overlay->toggle_record();
+            overlay->toggle_record(RecordForceType::NONE);
         });
 
         global_hotkeys_js->bind_action("toggle_replay", [overlay](const std::string &id) {
@@ -1285,7 +1299,7 @@ namespace gsr {
                 } else if(id == "pause") {
                     toggle_pause();
                 } else if(id == "start") {
-                    on_press_start_record(false);
+                    on_press_start_record(false, RecordForceType::NONE);
                 }
             };
             button->set_item_enabled("pause", false);
@@ -1529,8 +1543,8 @@ namespace gsr {
         }
     }
 
-    void Overlay::toggle_record() {
-        on_press_start_record(false);
+    void Overlay::toggle_record(RecordForceType force_type) {
+        on_press_start_record(false, force_type);
     }
 
     void Overlay::toggle_pause() {
@@ -2504,7 +2518,7 @@ namespace gsr {
         args.push_back(region_str);
     }
 
-    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const RegionSelector &region_selector) {
+    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const RegionSelector &region_selector, const std::string &region_area_option) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -2515,7 +2529,7 @@ namespace gsr {
             args.push_back(record_options.video_quality.c_str());
         }
 
-        if(record_options.record_area_option == "focused" || record_options.change_video_resolution) {
+        if(region_area_option == "focused" || record_options.change_video_resolution) {
             args.push_back("-s");
             args.push_back(region);
         }
@@ -2535,7 +2549,7 @@ namespace gsr {
             args.push_back("yes");
         }
 
-        if(record_options.record_area_option == "region")
+        if(region_area_option == "region")
             add_region_command(args, region_str, region_str_size, region_selector);
     }
 
@@ -2892,7 +2906,7 @@ namespace gsr {
         }
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
+        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector, config.replay_config.record_options.record_area_option);
 
         if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
             args.push_back("-ro");
@@ -2941,7 +2955,7 @@ namespace gsr {
         return true;
     }
 
-    void Overlay::on_press_start_record(bool finished_selection) {
+    void Overlay::on_press_start_record(bool finished_selection, RecordForceType force_type) {
         if(region_selector.is_started() || window_selector.is_started())
             return;
 
@@ -3043,27 +3057,40 @@ namespace gsr {
 
         update_upause_status();
 
+        std::string record_area_option;
+        switch(force_type) {
+            case RecordForceType::NONE:
+                record_area_option = config.record_config.record_options.record_area_option;
+                break;
+            case RecordForceType::REGION:
+                record_area_option = "region";
+                break;
+            case RecordForceType::WINDOW:
+                record_area_option = gsr_info.system_info.display_server == DisplayServer::X11 ? "window" : "portal";
+                break;
+        }
+
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        recording_capture_target = get_capture_target(config.record_config.record_options.record_area_option, capture_options);
-        if(!validate_capture_target(config.record_config.record_options.record_area_option, capture_options)) {
+        recording_capture_target = get_capture_target(record_area_option, capture_options);
+        if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
             return;
         }
 
-        if(config.record_config.record_options.record_area_option == "region" && !finished_selection) {
+        if(record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
-            on_region_selected = [this]() {
-                on_press_start_record(true);
+            on_region_selected = [this, force_type]() {
+                on_press_start_record(true, force_type);
             };
             return;
         }
 
-        if(config.record_config.record_options.record_area_option == "window" && !finished_selection) {
+        if(record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_window_selected = [this]() {
-                on_press_start_record(true);
+            on_window_selected = [this, force_type]() {
+                on_press_start_record(true, force_type);
             };
             return;
         }
@@ -3083,10 +3110,10 @@ namespace gsr {
 
         char size[64];
         size[0] = '\0';
-        if(config.record_config.record_options.record_area_option == "focused")
+        if(record_area_option == "focused")
             snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.record_area_width, (int)config.record_config.record_options.record_area_height);
 
-        if(config.record_config.record_options.record_area_option != "focused" && config.record_config.record_options.change_video_resolution)
+        if(record_area_option != "focused" && config.record_config.record_options.change_video_resolution)
             snprintf(size, sizeof(size), "%dx%d", (int)config.record_config.record_options.video_width, (int)config.record_config.record_options.video_height);
 
         const std::string capture_source_arg = compose_capture_source_arg(recording_capture_target, config.record_config.record_options);
@@ -3106,7 +3133,7 @@ namespace gsr {
         };
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
+        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector, record_area_option);
 
         args.push_back(nullptr);
 
@@ -3139,7 +3166,7 @@ namespace gsr {
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
 
-        if(config.record_config.record_options.record_area_option == "portal")
+        if(record_area_option == "portal")
             hide_ui = true;
 
         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
@@ -3304,7 +3331,7 @@ namespace gsr {
         };
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector);
+        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector, config.streaming_config.record_options.record_area_option);
 
         if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
             args.push_back("-ro");

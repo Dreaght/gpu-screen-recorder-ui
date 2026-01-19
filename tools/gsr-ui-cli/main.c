@@ -52,6 +52,10 @@ static void usage(void) {
     printf("      Start/stop recording.\n");
     printf("  toggle-pause\n");
     printf("      Pause/unpause recording. Only applies to regular recording.\n");
+    printf("  toggle-record-region\n");
+    printf("      Start/stop recording a region.\n");
+    printf("  toggle-record-window\n");
+    printf("      Start/stop recording a window (or desktop portal on Wayland).\n");
     printf("  toggle-stream\n");
     printf("      Start/stop streaming.\n");
     printf("  toggle-replay\n");
@@ -80,6 +84,8 @@ static bool is_valid_command(const char *command) {
         "toggle-show",
         "toggle-record",
         "toggle-pause",
+        "toggle-record-region",
+        "toggle-record-window",
         "toggle-stream",
         "toggle-replay",
         "replay-save",

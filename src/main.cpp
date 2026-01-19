@@ -56,12 +56,22 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
 
     rpc->add_handler("toggle-record", [overlay](const std::string &name) {
         fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_record();
+        overlay->toggle_record(gsr::RecordForceType::NONE);
     });
 
     rpc->add_handler("toggle-pause", [overlay](const std::string &name) {
         fprintf(stderr, "rpc command executed: %s\n", name.c_str());
         overlay->toggle_pause();
+    });
+
+    rpc->add_handler("toggle-record-region", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_record(gsr::RecordForceType::REGION);
+    });
+
+    rpc->add_handler("toggle-record-window", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->toggle_record(gsr::RecordForceType::WINDOW);
     });
 
     rpc->add_handler("toggle-stream", [overlay](const std::string &name) {

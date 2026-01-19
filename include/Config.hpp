@@ -129,6 +129,8 @@ namespace gsr {
         std::string container = "mp4";
         ConfigHotkey start_stop_hotkey;
         ConfigHotkey pause_unpause_hotkey;
+        ConfigHotkey start_stop_region_hotkey;
+        ConfigHotkey start_stop_window_hotkey;
     };
 
     struct ReplayConfig {

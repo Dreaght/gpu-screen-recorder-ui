@@ -228,6 +228,7 @@ namespace gsr {
             if(!it->mjpeg_setups.empty())
                 webcam_video_format_box_ptr->add_item("Motion-JPEG", "mjpeg");
 
+            webcam_video_format_box_ptr->set_selected_item("auto");
             webcam_video_format_box_ptr->set_selected_item(get_current_record_options().webcam_video_format);
             selected_camera = *it;
 
@@ -551,6 +552,7 @@ namespace gsr {
             Subsection *audio_subsection = dynamic_cast<Subsection*>(child_widget.get());
             List *audio_track_section_items_list_ptr = dynamic_cast<List*>(audio_subsection->get_inner_widget());
             List *audio_input_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(2));
+            CheckBox *application_audio_invert_checkbox_ptr = dynamic_cast<CheckBox*>(audio_track_section_items_list_ptr->get_child_widget_by_index(3));
             List *application_audio_warning_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(4));
 
             int num_output_devices = 0;
@@ -576,7 +578,7 @@ namespace gsr {
                 return true;
             });
 
-            application_audio_warning_list_ptr->set_visible(num_output_devices > 0 && num_application_audio > 0);
+            application_audio_warning_list_ptr->set_visible(num_output_devices > 0 && (num_application_audio > 0 || application_audio_invert_checkbox_ptr->is_checked()));
             return true;
         });
     }
@@ -668,6 +670,9 @@ namespace gsr {
     std::unique_ptr<CheckBox> SettingsPage::create_application_audio_invert_checkbox() {
         auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record audio from all applications except the selected ones");
         application_audio_invert_checkbox->set_checked(false);
+        application_audio_invert_checkbox->on_changed = [this](bool) {
+            update_application_audio_warning_visibility();
+        };
         return application_audio_invert_checkbox;
     }
 
@@ -1740,6 +1745,8 @@ namespace gsr {
         record_options.show_notifications = show_notification_checkbox_ptr->is_checked();
         record_options.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
         record_options.low_power_mode = low_power_mode_checkbox_ptr->is_checked();
+
+        // TODO: Set selected_camera_setup properly when updating and shit
 
         if(selected_camera_setup.has_value())
             webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);

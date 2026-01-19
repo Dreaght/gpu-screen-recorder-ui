@@ -145,6 +145,8 @@ namespace gsr {
 
         record_config.start_stop_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LALT};
         record_config.pause_unpause_hotkey = {mgl::Keyboard::F7, HOTKEY_MOD_LALT};
+        record_config.start_stop_region_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LCTRL};
+        record_config.start_stop_window_hotkey = {mgl::Keyboard::F9, HOTKEY_MOD_LSHIFT};
 
         replay_config.start_stop_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT | HOTKEY_MOD_LSHIFT};
         replay_config.save_hotkey = {mgl::Keyboard::F10, HOTKEY_MOD_LALT};
@@ -262,6 +264,8 @@ namespace gsr {
             {"record.container", &config.record_config.container},
             {"record.start_stop_hotkey", &config.record_config.start_stop_hotkey},
             {"record.pause_unpause_hotkey", &config.record_config.pause_unpause_hotkey},
+            {"record.start_stop_region_hotkey", &config.record_config.start_stop_region_hotkey},
+            {"record.start_stop_window_hotkey", &config.record_config.start_stop_window_hotkey},
 
             {"replay.record_options.record_area_option", &config.replay_config.record_options.record_area_option},
             {"replay.record_options.record_area_width", &config.replay_config.record_options.record_area_width},

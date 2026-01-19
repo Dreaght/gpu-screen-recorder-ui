@@ -49,6 +49,12 @@ namespace gsr {
         ERROR,
     };
 
+    enum class RecordForceType {
+        NONE,
+        REGION,
+        WINDOW
+    };
+
     enum class ScreenshotForceType {
         NONE,
         REGION,
@@ -74,7 +80,7 @@ namespace gsr {
         void show();
         void hide_next_frame();
         void toggle_show();
-        void toggle_record();
+        void toggle_record(RecordForceType force_type);
         void toggle_pause();
         void toggle_stream();
         void toggle_replay();
@@ -151,7 +157,7 @@ namespace gsr {
         void on_press_save_replay_1_min_replay();
         void on_press_save_replay_10_min_replay();
         bool on_press_start_replay(bool disable_notification, bool finished_selection);
-        void on_press_start_record(bool finished_selection);
+        void on_press_start_record(bool finished_selection, RecordForceType force_type);
         void on_press_start_stream(bool finished_selection);
         void on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type);
         bool update_compositor_texture(const Monitor &monitor);
