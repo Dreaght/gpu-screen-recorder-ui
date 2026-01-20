@@ -8,6 +8,9 @@
 #include <X11/extensions/shapeconst.h>
 #include <X11/extensions/Xrandr.h>
 
+#include <wayland-client.h>
+#include "xdg-output-unstable-v1-client-protocol.h"
+
 #include <mglpp/system/Utf8.hpp>
 
 extern "C" {
@@ -23,6 +26,209 @@ extern "C" {
 #define MAX_PROPERTY_VALUE_LEN 4096
 
 namespace gsr {
+    struct WaylandOutput {
+        uint32_t wl_name;
+        struct wl_output *output;
+        struct zxdg_output_v1 *xdg_output;
+        mgl::vec2i pos;
+        mgl::vec2i size;
+        int32_t transform;
+        std::string name;
+    };
+
+    struct Wayland {
+        std::vector<WaylandOutput> outputs;
+        struct zxdg_output_manager_v1 *xdg_output_manager = nullptr;
+    };
+
+    static WaylandOutput* get_wayland_monitor_by_output(Wayland &wayland, struct wl_output *output) {
+        for(WaylandOutput &monitor : wayland.outputs) {
+            if(monitor.output == output)
+                return &monitor;
+        }
+        return nullptr;
+    }
+
+    static void output_handle_geometry(void *data, struct wl_output *wl_output,
+        int32_t x, int32_t y, int32_t phys_width, int32_t phys_height,
+        int32_t subpixel, const char *make, const char *model,
+        int32_t transform) {
+        (void)wl_output;
+        (void)phys_width;
+        (void)phys_height;
+        (void)subpixel;
+        (void)make;
+        (void)model;
+        Wayland *wayland = (Wayland*)data;
+        WaylandOutput *monitor = get_wayland_monitor_by_output(*wayland, wl_output);
+        if(!monitor)
+            return;
+
+        monitor->pos.x = x;
+        monitor->pos.y = y;
+        monitor->transform = transform;
+    }
+
+    static void output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
+        (void)wl_output;
+        (void)flags;
+        (void)refresh;
+        Wayland *wayland = (Wayland*)data;
+        WaylandOutput *monitor = get_wayland_monitor_by_output(*wayland, wl_output);
+        if(!monitor)
+            return;
+
+        monitor->size.x = width;
+        monitor->size.y = height;
+    }
+
+    static void output_handle_done(void *data, struct wl_output *wl_output) {
+        (void)data;
+        (void)wl_output;
+    }
+
+    static void output_handle_scale(void* data, struct wl_output *wl_output, int32_t factor) {
+        (void)data;
+        (void)wl_output;
+        (void)factor;
+    }
+
+    static void output_handle_name(void *data, struct wl_output *wl_output, const char *name) {
+        (void)wl_output;
+        Wayland *wayland = (Wayland*)data;
+        WaylandOutput *monitor = get_wayland_monitor_by_output(*wayland, wl_output);
+        if(!monitor)
+            return;
+
+        monitor->name = name;
+    }
+
+    static void output_handle_description(void *data, struct wl_output *wl_output, const char *description) {
+        (void)data;
+        (void)wl_output;
+        (void)description;
+    }
+
+    static const struct wl_output_listener output_listener = {
+        output_handle_geometry,
+        output_handle_mode,
+        output_handle_done,
+        output_handle_scale,
+        output_handle_name,
+        output_handle_description,
+    };
+
+    static void registry_add_object(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
+        (void)version;
+        Wayland *wayland = (Wayland*)data;
+        if(strcmp(interface, wl_output_interface.name) == 0) {
+            if(version < 4) {
+                fprintf(stderr, "Warning: wl output interface version is < 4, expected >= 4\n");
+                return;
+            }
+
+            struct wl_output *output = (struct wl_output*)wl_registry_bind(registry, name, &wl_output_interface, 4);
+            wayland->outputs.push_back(
+                WaylandOutput{
+                    name,
+                    output,
+                    nullptr,
+                    mgl::vec2i{0, 0},
+                    mgl::vec2i{0, 0},
+                    0,
+                    ""
+                });
+            wl_output_add_listener(output, &output_listener, wayland);
+        } else if(strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
+            if(version < 1) {
+                fprintf(stderr, "Warning: xdg output interface version is < 1, expected >= 1\n");
+                return;
+            }
+
+            if(wayland->xdg_output_manager) {
+                zxdg_output_manager_v1_destroy(wayland->xdg_output_manager);
+                wayland->xdg_output_manager = NULL;
+            }
+            wayland->xdg_output_manager = (struct zxdg_output_manager_v1*)wl_registry_bind(registry, name, &zxdg_output_manager_v1_interface, 1);
+        }
+    }
+
+    static void registry_remove_object(void *data, struct wl_registry *registry, uint32_t name) {
+        (void)data;
+        (void)registry;
+        (void)name;
+        // TODO: Remove output
+    }
+
+    static struct wl_registry_listener registry_listener = {
+        registry_add_object,
+        registry_remove_object,
+    };
+
+    static void xdg_output_logical_position(void *data, struct zxdg_output_v1 *zxdg_output_v1, int32_t x, int32_t y) {
+        (void)zxdg_output_v1;
+        WaylandOutput *monitor = (WaylandOutput*)data;
+        monitor->pos.x = x;
+        monitor->pos.y = y;
+    }
+
+    static void xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output, int32_t width, int32_t height) {
+        (void)xdg_output;
+        WaylandOutput *monitor = (WaylandOutput*)data;
+        monitor->size.x = width;
+        monitor->size.y = height;
+    }
+
+    static void xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {
+        (void)data;
+        (void)xdg_output;
+    }
+
+    static void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output, const char *name) {
+        (void)data;
+        (void)xdg_output;
+        (void)name;
+    }
+
+    static void xdg_output_handle_description(void *data, struct zxdg_output_v1 *xdg_output, const char *description) {
+        (void)data;
+        (void)xdg_output;
+        (void)description;
+    }
+
+    static const struct zxdg_output_v1_listener xdg_output_listener = {
+        xdg_output_logical_position,
+        xdg_output_handle_logical_size,
+        xdg_output_handle_done,
+        xdg_output_handle_name,
+        xdg_output_handle_description,
+    };
+
+    static const int transform_90 = 1;
+    static const int transform_270 = 3;
+
+    static void transform_monitors(Wayland &wayland) {
+        for(WaylandOutput &output : wayland.outputs) {
+            if(output.transform == transform_90 || output.transform == transform_270)
+                std::swap(output.size.x, output.size.y);
+        }
+    }
+
+    static void set_monitor_outputs_from_xdg_output(Wayland &wayland, struct wl_display *dpy) {
+        if(!wayland.xdg_output_manager) {
+            fprintf(stderr, "Warning: WindowUtils::set_monitor_outputs_from_xdg_output: zxdg_output_manager not found. Registered monitor positions might be incorrect\n");
+            return;
+        }
+
+        for(WaylandOutput &monitor : wayland.outputs) {
+            monitor.xdg_output = zxdg_output_manager_v1_get_xdg_output(wayland.xdg_output_manager, monitor.output);
+            zxdg_output_v1_add_listener(monitor.xdg_output, &xdg_output_listener, &monitor);
+        }
+
+        // Fetch xdg_output
+        wl_display_roundtrip(dpy);
+    }
+
     static unsigned char* window_get_property(Display *dpy, Window window, Atom property_type, const char *property_name, unsigned int *property_size) {
         Atom ret_property_type = None;
         int ret_format = 0;
@@ -516,6 +722,47 @@ namespace gsr {
             }
             XRRFreeMonitors(monitor_info);
         }
+        return monitors;
+    }
+
+    std::vector<Monitor> get_monitors_wayland(struct wl_display *dpy) {
+        Wayland wayland;
+
+        struct wl_registry *registry = wl_display_get_registry(dpy);
+        wl_registry_add_listener(registry, &registry_listener, &wayland);
+
+        // Fetch globals
+        wl_display_roundtrip(dpy);
+
+        // Fetch wl_output
+        wl_display_roundtrip(dpy);
+
+        transform_monitors(wayland);
+        set_monitor_outputs_from_xdg_output(wayland, dpy);
+
+        std::vector<Monitor> monitors;
+        for(WaylandOutput &output : wayland.outputs) {
+            monitors.push_back(Monitor{output.pos, output.size, std::move(output.name)});
+
+            if(output.output) {
+                wl_output_destroy(output.output);
+                output.output = nullptr;
+            }
+
+            if(output.xdg_output) {
+                zxdg_output_v1_destroy(output.xdg_output);
+                output.xdg_output = nullptr;
+            }
+        }
+        wayland.outputs.clear();
+
+        if(wayland.xdg_output_manager) {
+            zxdg_output_manager_v1_destroy(wayland.xdg_output_manager);
+            wayland.xdg_output_manager = nullptr;
+        }
+
+        wl_registry_destroy(registry);
+
         return monitors;
     }
 

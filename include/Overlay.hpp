@@ -24,6 +24,8 @@
 
 #include <array>
 
+struct wl_display;
+
 namespace gsr {
     class DropdownButton;
     class GlobalHotkeys;
@@ -162,6 +164,9 @@ namespace gsr {
         void on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type);
         bool update_compositor_texture(const Monitor &monitor);
 
+        void add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size);
+        void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option);
+
         std::string get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options);
 
         void force_window_on_top();
@@ -249,6 +254,8 @@ namespace gsr {
         std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
         Display *x11_dpy = nullptr;
         XEvent x11_mapping_xev;
+
+        struct wl_display *wayland_dpy = nullptr;
 
         mgl::Clock replay_save_clock;
         bool replay_save_show_notification = false;

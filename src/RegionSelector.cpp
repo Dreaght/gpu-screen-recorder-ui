@@ -166,6 +166,62 @@ namespace gsr {
         return ((uint32_t)color.a << 24) | (((uint32_t)color.r * color.a / 0xFF) << 16) | (((uint32_t)color.g * color.a / 0xFF) << 8) | ((uint32_t)color.b * color.a / 0xFF);
     }
 
+    static const Monitor* get_monitor_by_region_center(const std::vector<Monitor> &monitors, Region region) {
+        const mgl::vec2i center = {region.pos.x + region.size.x / 2, region.pos.y + region.size.y / 2};
+        for(const Monitor &monitor : monitors) {
+            if(center.x >= monitor.position.x && center.x <= monitor.position.x + monitor.size.x
+                && center.y >= monitor.position.y && center.y <= monitor.position.y + monitor.size.y)
+            {
+                return &monitor;
+            }
+        }
+        return nullptr;
+    }
+
+    // Name is the x11 name. TODO: verify if this works on all wayland compositors
+    static const Monitor* get_wayland_monitor_by_name(const std::vector<Monitor> &monitors, const std::string &name) {
+        for(const Monitor &monitor : monitors) {
+            if(monitor.name == name)
+                return &monitor;
+        }
+        return nullptr;
+    }
+
+    static mgl::vec2d to_vec2d(mgl::vec2i v) {
+        return { (double)v.x, (double)v.y };
+    }
+
+    static Region x11_region_to_wayland_region(Display *dpy, struct wl_display *wayland_dpy, Region x11_region) {
+        const std::vector<Monitor> x11_monitors = get_monitors(dpy);
+        const Monitor *x11_selected_monitor = get_monitor_by_region_center(x11_monitors, x11_region);
+        if(!x11_selected_monitor) {
+            fprintf(stderr, "Warning: RegionSelector: failed to get x11 monitor\n");
+            return x11_region;
+        }
+
+        const std::vector<Monitor> wayland_monitors = get_monitors_wayland(wayland_dpy);
+        const Monitor *wayland_monitor = get_wayland_monitor_by_name(wayland_monitors, x11_selected_monitor->name);
+        if(!wayland_monitor) {
+            fprintf(stderr, "Warning: RegionSelector: failed to get wayland monitor\n");
+            return x11_region;
+        }
+
+        const mgl::vec2d region_relative_pos = {
+            (double)(x11_region.pos.x - x11_selected_monitor->position.x) / (double)x11_selected_monitor->size.x,
+            (double)(x11_region.pos.y - x11_selected_monitor->position.y) / (double)x11_selected_monitor->size.y,
+        };
+
+        const mgl::vec2d region_relative_size = {
+            (double)x11_region.size.x / (double)x11_selected_monitor->size.x,
+            (double)x11_region.size.y / (double)x11_selected_monitor->size.y,
+        };
+
+        return Region {
+            wayland_monitor->position + (region_relative_pos * to_vec2d(wayland_monitor->size)).to_vec2i(),
+            (region_relative_size * to_vec2d(wayland_monitor->size)).to_vec2i(),
+        };
+    }
+
     RegionSelector::RegionSelector() {
         
     }
@@ -385,8 +441,11 @@ namespace gsr {
         return result;
     }
 
-    Region RegionSelector::get_selection() const {
-        return region;
+    Region RegionSelector::get_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const {
+        Region returned_region = region;
+        if(is_wayland && x11_dpy && wayland_dpy)
+            returned_region = x11_region_to_wayland_region(x11_dpy, wayland_dpy, returned_region);
+        return returned_region;
     }
 
     void RegionSelector::on_button_press(const void *de) {

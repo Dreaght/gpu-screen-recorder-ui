@@ -7,6 +7,8 @@
 
 #include <X11/Xlib.h>
 
+struct wl_display;
+
 namespace gsr {
     struct Region {
         mgl::vec2i pos;
@@ -28,7 +30,7 @@ namespace gsr {
         bool poll_events();
         bool take_selection();
         bool take_canceled();
-        Region get_selection() const;
+        Region get_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const;
     private:
         void on_button_press(const void *de);
         void on_button_release(const void *de);

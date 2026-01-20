@@ -39,6 +39,9 @@
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/shapeconst.h>
 #include <X11/Xcursor/Xcursor.h>
+
+#include <wayland-client.h>
+
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/Utf8.hpp>
@@ -487,6 +490,14 @@ namespace gsr {
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
     {
+        if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
+            wayland_dpy = wl_display_connect(nullptr);
+            if(!wayland_dpy)
+                fprintf(stderr, "Warning: failed to connect to the wayland server\n");
+        } else {
+            wayland_dpy = nullptr;
+        }
+
         gsr_icon_path = this->resources_path + "images/gpu_screen_recorder_logo.png";
 
         key_bindings[0].key_event.code = mgl::Keyboard::Escape;
@@ -530,7 +541,7 @@ namespace gsr {
             cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
         else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             if(!this->gsr_info.gpu_info.card_path.empty())
-                cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str());
+                cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
 
             if(!config.main_config.wayland_warning_shown) {
                 config.main_config.wayland_warning_shown = true;
@@ -582,6 +593,9 @@ namespace gsr {
 
         if(x11_dpy)
             XCloseDisplay(x11_dpy);
+
+        if(wayland_dpy)
+            wl_display_disconnect(wayland_dpy);
     }
 
     void Overlay::xi_setup() {
@@ -2507,8 +2521,8 @@ namespace gsr {
         return result;
     }
 
-    static void add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size, const RegionSelector &region_selector) {
-        Region region = region_selector.get_selection();
+    void Overlay::add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size) {
+        Region region = region_selector.get_selection(x11_dpy, wayland_dpy);
         if(region.size.x <= 32 && region.size.y <= 32) {
             region.size.x = 0;
             region.size.y = 0;
@@ -2518,7 +2532,7 @@ namespace gsr {
         args.push_back(region_str);
     }
 
-    static void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const RegionSelector &region_selector, const std::string &region_area_option) {
+    void Overlay::add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -2550,7 +2564,7 @@ namespace gsr {
         }
 
         if(region_area_option == "region")
-            add_region_command(args, region_str, region_str_size, region_selector);
+            add_region_command(args, region_str, region_str_size);
     }
 
     static bool validate_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
@@ -2906,7 +2920,7 @@ namespace gsr {
         }
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector, config.replay_config.record_options.record_area_option);
+        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.replay_config.record_options.record_area_option);
 
         if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
             args.push_back("-ro");
@@ -3133,7 +3147,7 @@ namespace gsr {
         };
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector, record_area_option);
+        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), record_area_option);
 
         args.push_back(nullptr);
 
@@ -3331,7 +3345,7 @@ namespace gsr {
         };
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), region_selector, config.streaming_config.record_options.record_area_option);
+        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.streaming_config.record_options.record_area_option);
 
         if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
             args.push_back("-ro");
@@ -3463,7 +3477,7 @@ namespace gsr {
 
         char region_str[128];
         if(record_area_option == "region")
-            add_region_command(args, region_str, sizeof(region_str), region_selector);
+            add_region_command(args, region_str, sizeof(region_str));
 
         args.push_back(nullptr);
 

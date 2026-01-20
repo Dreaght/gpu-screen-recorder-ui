@@ -1,11 +1,10 @@
 #include "../../include/CursorTracker/CursorTrackerWayland.hpp"
+#include "../../include/WindowUtils.hpp"
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
-#include <wayland-client.h>
-#include "xdg-output-unstable-v1-client-protocol.h"
 
 namespace gsr {
     static const int MAX_CONNECTORS = 32;
@@ -136,176 +135,13 @@ namespace gsr {
     }
 
     // Name is the crtc name. TODO: verify if this works on all wayland compositors
-    static const WaylandOutput* get_wayland_monitor_by_name(const std::vector<WaylandOutput> &monitors, const std::string &name) {
-        for(const WaylandOutput &monitor : monitors) {
+    static const Monitor* get_wayland_monitor_by_name(const std::vector<Monitor> &monitors, const std::string &name) {
+        for(const Monitor &monitor : monitors) {
             if(monitor.name == name)
                 return &monitor;
         }
         return nullptr;
     }
-
-    static WaylandOutput* get_wayland_monitor_by_output(CursorTrackerWayland &cursor_tracker_wayland, struct wl_output *output) {
-        for(WaylandOutput &monitor : cursor_tracker_wayland.monitors) {
-            if(monitor.output == output)
-                return &monitor;
-        }
-        return nullptr;
-    }
-
-    static void output_handle_geometry(void *data, struct wl_output *wl_output,
-        int32_t x, int32_t y, int32_t phys_width, int32_t phys_height,
-        int32_t subpixel, const char *make, const char *model,
-        int32_t transform) {
-        (void)wl_output;
-        (void)phys_width;
-        (void)phys_height;
-        (void)subpixel;
-        (void)make;
-        (void)model;
-        CursorTrackerWayland *cursor_tracker_wayland = (CursorTrackerWayland*)data;
-        WaylandOutput *monitor = get_wayland_monitor_by_output(*cursor_tracker_wayland, wl_output);
-        if(!monitor)
-            return;
-
-        monitor->pos.x = x;
-        monitor->pos.y = y;
-        monitor->transform = transform;
-    }
-
-    static void output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
-        (void)wl_output;
-        (void)flags;
-        (void)refresh;
-        CursorTrackerWayland *cursor_tracker_wayland = (CursorTrackerWayland*)data;
-        WaylandOutput *monitor = get_wayland_monitor_by_output(*cursor_tracker_wayland, wl_output);
-        if(!monitor)
-            return;
-
-        monitor->size.x = width;
-        monitor->size.y = height;
-    }
-
-    static void output_handle_done(void *data, struct wl_output *wl_output) {
-        (void)data;
-        (void)wl_output;
-    }
-
-    static void output_handle_scale(void* data, struct wl_output *wl_output, int32_t factor) {
-        (void)data;
-        (void)wl_output;
-        (void)factor;
-    }
-
-    static void output_handle_name(void *data, struct wl_output *wl_output, const char *name) {
-        (void)wl_output;
-        CursorTrackerWayland *cursor_tracker_wayland = (CursorTrackerWayland*)data;
-        WaylandOutput *monitor = get_wayland_monitor_by_output(*cursor_tracker_wayland, wl_output);
-        if(!monitor)
-            return;
-
-        monitor->name = name;
-    }
-
-    static void output_handle_description(void *data, struct wl_output *wl_output, const char *description) {
-        (void)data;
-        (void)wl_output;
-        (void)description;
-    }
-
-    static const struct wl_output_listener output_listener = {
-        output_handle_geometry,
-        output_handle_mode,
-        output_handle_done,
-        output_handle_scale,
-        output_handle_name,
-        output_handle_description,
-    };
-
-    static void registry_add_object(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
-        (void)version;
-        CursorTrackerWayland *cursor_tracker_wayland = (CursorTrackerWayland*)data;
-        if(strcmp(interface, wl_output_interface.name) == 0) {
-            if(version < 4) {
-                fprintf(stderr, "Warning: wl output interface version is < 4, expected >= 4\n");
-                return;
-            }
-
-            struct wl_output *output = (struct wl_output*)wl_registry_bind(registry, name, &wl_output_interface, 4);
-            cursor_tracker_wayland->monitors.push_back(
-                WaylandOutput{
-                    name,
-                    output,
-                    nullptr,
-                    mgl::vec2i{0, 0},
-                    mgl::vec2i{0, 0},
-                    0,
-                    ""
-                });
-            wl_output_add_listener(output, &output_listener, cursor_tracker_wayland);
-        } else if(strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
-            if(version < 1) {
-                fprintf(stderr, "Warning: xdg output interface version is < 1, expected >= 1\n");
-                return;
-            }
-
-            if(cursor_tracker_wayland->xdg_output_manager) {
-                zxdg_output_manager_v1_destroy(cursor_tracker_wayland->xdg_output_manager);
-                cursor_tracker_wayland->xdg_output_manager = NULL;
-            }
-            cursor_tracker_wayland->xdg_output_manager = (struct zxdg_output_manager_v1*)wl_registry_bind(registry, name, &zxdg_output_manager_v1_interface, 1);
-        }
-    }
-
-    static void registry_remove_object(void *data, struct wl_registry *registry, uint32_t name) {
-        (void)data;
-        (void)registry;
-        (void)name;
-        // TODO: Remove output
-    }
-
-    static struct wl_registry_listener registry_listener = {
-        registry_add_object,
-        registry_remove_object,
-    };
-
-    static void xdg_output_logical_position(void *data, struct zxdg_output_v1 *zxdg_output_v1, int32_t x, int32_t y) {
-        (void)zxdg_output_v1;
-        WaylandOutput *monitor = (WaylandOutput*)data;
-        monitor->pos.x = x;
-        monitor->pos.y = y;
-    }
-
-    static void xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output, int32_t width, int32_t height) {
-        (void)data;
-        (void)xdg_output;
-        (void)width;
-        (void)height;
-    }
-
-    static void xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {
-        (void)data;
-        (void)xdg_output;
-    }
-
-    static void xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output, const char *name) {
-        (void)data;
-        (void)xdg_output;
-        (void)name;
-    }
-
-    static void xdg_output_handle_description(void *data, struct zxdg_output_v1 *xdg_output, const char *description) {
-        (void)data;
-        (void)xdg_output;
-        (void)description;
-    }
-
-    static const struct zxdg_output_v1_listener xdg_output_listener = {
-        xdg_output_logical_position,
-        xdg_output_handle_logical_size,
-        xdg_output_handle_done,
-        xdg_output_handle_name,
-        xdg_output_handle_description,
-    };
 
     /* Returns nullptr if not found */
     static drm_connector* get_drm_connector_by_crtc_id(drm_connectors *connectors, uint32_t crtc_id) {
@@ -390,7 +226,7 @@ namespace gsr {
         drmModeFreeResources(resources);
     }
 
-    CursorTrackerWayland::CursorTrackerWayland(const char *card_path) {
+    CursorTrackerWayland::CursorTrackerWayland(const char *card_path, struct wl_display *wayland_dpy) : wayland_dpy(wayland_dpy) {
         drm_fd = open(card_path, O_RDONLY);
         if(drm_fd <= 0) {
             fprintf(stderr, "Error: CursorTrackerWayland: failed to open %s\n", card_path);
@@ -402,7 +238,6 @@ namespace gsr {
     }
 
     CursorTrackerWayland::~CursorTrackerWayland() {
-        clear_monitors();
         if(drm_fd > 0)
             close(drm_fd);
     }
@@ -465,80 +300,19 @@ namespace gsr {
         drmModeFreePlaneResources(planes);
     }
 
-    void CursorTrackerWayland::set_monitor_outputs_from_xdg_output(struct wl_display *dpy) {
-        if(!xdg_output_manager) {
-            fprintf(stderr, "Warning: CursorTrackerWayland::set_monitor_outputs_from_xdg_output: zxdg_output_manager not found. Registered monitor positions might be incorrect\n");
-            return;
-        }
-
-        for(WaylandOutput &monitor : monitors) {
-            monitor.xdg_output = zxdg_output_manager_v1_get_xdg_output(xdg_output_manager, monitor.output);
-            zxdg_output_v1_add_listener(monitor.xdg_output, &xdg_output_listener, &monitor);
-        }
-
-        // Fetch xdg_output
-        wl_display_roundtrip(dpy);
-    }
-
-    void CursorTrackerWayland::clear_monitors() {
-        for(WaylandOutput &monitor : monitors) {
-            if(monitor.output) {
-                wl_output_destroy(monitor.output);
-                monitor.output = nullptr;
-            }
-
-            if(monitor.xdg_output) {
-                zxdg_output_v1_destroy(monitor.xdg_output);
-                monitor.xdg_output = nullptr;
-            }
-        }
-        monitors.clear();
-    }
-
     std::optional<CursorInfo> CursorTrackerWayland::get_latest_cursor_info() {
-        if(drm_fd <= 0 || latest_crtc_id == -1)
+        if(drm_fd <= 0 || latest_crtc_id == -1 || !wayland_dpy)
             return std::nullopt;
 
         std::string monitor_name = get_monitor_name_from_crtc_id(drm_fd, latest_crtc_id);
         if(monitor_name.empty())
             return std::nullopt;
 
-        struct wl_display *dpy = wl_display_connect(nullptr);
-        if(!dpy) {
-            fprintf(stderr, "Error: CursorTrackerWayland::get_latest_cursor_info: failed to connect to the wayland server\n");
+        const std::vector<Monitor> wayland_monitors = get_monitors_wayland(wayland_dpy);
+        const Monitor *wayland_monitor = get_wayland_monitor_by_name(wayland_monitors, monitor_name);
+        if(!wayland_monitor)
             return std::nullopt;
-        }
 
-        clear_monitors();
-        struct wl_registry *registry = wl_display_get_registry(dpy);
-        wl_registry_add_listener(registry, &registry_listener, this);
-
-        // Fetch globals
-        wl_display_roundtrip(dpy);
-
-        // Fetch wl_output
-        wl_display_roundtrip(dpy);
-
-        set_monitor_outputs_from_xdg_output(dpy);
-
-        mgl::vec2i cursor_position = latest_cursor_position;
-        const WaylandOutput *wayland_monitor = get_wayland_monitor_by_name(monitors, monitor_name);
-        if(!wayland_monitor) {
-            clear_monitors();
-            return std::nullopt;
-        }
-
-        cursor_position = wayland_monitor->pos + latest_cursor_position;
-        clear_monitors();
-
-        if(xdg_output_manager) {
-            zxdg_output_manager_v1_destroy(xdg_output_manager);
-            xdg_output_manager = nullptr;
-        }
-
-        wl_registry_destroy(registry);
-        wl_display_disconnect(dpy);
-
-        return CursorInfo{ cursor_position, std::move(monitor_name) };
+        return CursorInfo{ wayland_monitor->position + latest_cursor_position, std::move(monitor_name) };
     }
 }

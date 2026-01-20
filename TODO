@@ -257,3 +257,5 @@ The flatpak version can for some get stuck at shutdown when instant replay is ru
 Redesign the UI to allow capturing multiple video sources. Move webcam to capture sources as well then. Maybe design the UI to work more like obs studio then, where you start recording and then add sources at capture time, with a preview.
 
 Add option to choose video container (either flv or mpegts) for youtube livestreaming.
+
+Get wayland cursor position for region selector, otherwise the start position before the cursor moves is off.

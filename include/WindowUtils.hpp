@@ -6,6 +6,8 @@
 #include <optional>
 #include <X11/Xlib.h>
 
+struct wl_display;
+
 namespace gsr {
     enum class WindowCaptureType {
         FOCUSED,
@@ -13,8 +15,8 @@ namespace gsr {
     };
 
     struct Monitor {
-        mgl::vec2i position;
-        mgl::vec2i size;
+        mgl::vec2i position; // Logical position on Wayland
+        mgl::vec2i size;     // Logical size on Wayland
         std::string name;
     };
 
@@ -30,6 +32,7 @@ namespace gsr {
     std::string get_window_manager_name(Display *display);
     bool is_compositor_running(Display *dpy, int screen);
     std::vector<Monitor> get_monitors(Display *dpy);
+    std::vector<Monitor> get_monitors_wayland(struct wl_display *dpy);
     void xi_grab_all_mouse_devices(Display *dpy);
     void xi_ungrab_all_mouse_devices(Display *dpy);
     void xi_warp_all_mouse_devices(Display *dpy, mgl::vec2i position);
