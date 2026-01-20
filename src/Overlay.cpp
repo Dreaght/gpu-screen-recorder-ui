@@ -3201,7 +3201,6 @@ namespace gsr {
             url += "rtmp://rtmp.rumble.com/live/";
             url += config.streaming_config.rumble.stream_key;
         } else if(config.streaming_config.streaming_service == "kick") {
-            fprintf(stderr, "kick: %s, %s\n", config.streaming_config.kick.stream_url.c_str(), config.streaming_config.kick.stream_key.c_str());
             url += config.streaming_config.kick.stream_url;
             if(!url.empty() && url.back() != '/')
                 url += "/";
@@ -3319,6 +3318,10 @@ namespace gsr {
         choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
 
         const std::string url = streaming_get_url(config);
+        if(config.streaming_config.streaming_service == "rumble" || config.streaming_config.streaming_service == "kick") {
+            fprintf(stderr, "Info: forcing video codec to h264 as rumble/kick supports only h264\n");
+            video_codec = "h264";
+        }
 
         char size[64];
         size[0] = '\0';
