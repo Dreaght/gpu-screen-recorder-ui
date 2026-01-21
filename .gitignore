@@ -6,3 +6,6 @@ compile_commands.json
 **/xdg-output-unstable-v1-protocol.c
 
 depends/.wraplock
+
+.cache
+build/

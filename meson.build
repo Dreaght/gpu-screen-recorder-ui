@@ -41,6 +41,7 @@ src = [
     'src/CursorTracker/CursorTrackerX11.cpp',
     'src/CursorTracker/CursorTrackerWayland.cpp',
     'src/Utils.cpp',
+    'src/HyprlandWorkaround.cpp',
     'src/WindowUtils.cpp',
     'src/RegionSelector.cpp',
     'src/WindowSelector.cpp',

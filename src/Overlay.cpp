@@ -10,6 +10,7 @@
 #include "../include/gui/ScreenshotSettingsPage.hpp"
 #include "../include/gui/GlobalSettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
+#include "../include/HyprlandWorkaround.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
@@ -547,6 +548,10 @@ namespace gsr {
                 config.main_config.wayland_warning_shown = true;
                 save_config(config);
                 show_notification("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+            }
+
+            if (get_window_manager_name(x11_dpy).find("Hyprland") != std::string::npos) {
+                start_hyprland_listener_thread();
             }
         }
 
@@ -1092,7 +1097,6 @@ namespace gsr {
             window.reset();
             return;
         }
-
         //window->set_low_latency(true);
 
         unsigned char data = 2; // Prefer being composed to allow transparency
@@ -1967,10 +1971,19 @@ namespace gsr {
 
         const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
         std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
-        if(focused_window_name.empty())
-            focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
-        if(focused_window_name.empty())
-            focused_window_name = "Game";
+        
+        const std::string wm_name = get_window_manager_name(display);
+        const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+
+        if (is_hyprland) {
+            focused_window_name = get_current_hyprland_window_title();
+        }
+        else {
+            if(focused_window_name.empty())
+                focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
+            if(focused_window_name.empty())
+                focused_window_name = "Game";
+        }
 
         string_replace_characters(focused_window_name.data(), "/\\", ' ');
 
