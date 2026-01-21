@@ -2532,7 +2532,7 @@ namespace gsr {
         args.push_back(region_str);
     }
 
-    void Overlay::add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option) {
+    void Overlay::add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option, RecordForceType force_type) {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -2553,7 +2553,7 @@ namespace gsr {
             args.push_back(audio_track.c_str());
         }
 
-        if(record_options.restore_portal_session) {
+        if(record_options.restore_portal_session && force_type != RecordForceType::WINDOW) {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }
@@ -3146,8 +3146,17 @@ namespace gsr {
             "-o", output_file.c_str()
         };
 
+        const std::string hotkey_window_capture_portal_session_token_filepath = get_config_dir() + "/gsr-ui-window-capture-token";
+        if(record_area_option == "portal") {
+            hide_ui = true;
+            if(force_type == RecordForceType::WINDOW) {
+                args.push_back("-portal-session-token-filepath");
+                args.push_back(hotkey_window_capture_portal_session_token_filepath.c_str());
+            }
+        }
+
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), record_area_option);
+        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), record_area_option, force_type);
 
         args.push_back(nullptr);
 
@@ -3179,9 +3188,6 @@ namespace gsr {
             snprintf(msg, sizeof(msg), "Started recording %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
-
-        if(record_area_option == "portal")
-            hide_ui = true;
 
         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
         // selected what to capture and accepted it.

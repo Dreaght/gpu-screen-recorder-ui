@@ -165,7 +165,7 @@ namespace gsr {
         bool update_compositor_texture(const Monitor &monitor);
 
         void add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size);
-        void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option);
+        void add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option, RecordForceType force_type = RecordForceType::NONE);
 
         std::string get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options);
 

@@ -1216,9 +1216,9 @@ namespace gsr {
 
     std::unique_ptr<Widget> SettingsPage::create_low_power_mode() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        list->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
 
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record in low-power mode");
-        checkbox->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
         low_power_mode_checkbox_ptr = checkbox.get();
 
         list->add_widget(std::move(checkbox));
