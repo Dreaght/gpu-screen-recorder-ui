@@ -51,6 +51,11 @@ namespace gsr {
             size_t pos = line.find(prefix);
             if (pos != std::string::npos) {
                 std::string title = line.substr(pos + prefix.length());
+
+                if (title == "gsr ui") {
+                    continue; // ignore the overlay
+                }
+
                 active_kwin_window->title = title;
             }
         }
