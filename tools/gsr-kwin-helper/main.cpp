@@ -1,0 +1,225 @@
+#include "dbus/dbus.h"
+#include <iostream>
+#include <string>
+#include <cstring>
+
+const char* INTROSPECTION_XML = 
+    "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n"
+    "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
+    "<node>\n"
+    "  <interface name='com.dec05eba.gsr_kwin_helper'>\n"
+    "    <method name='setActiveWindowTitle'>\n"
+    "      <arg type='s' name='title' direction='in'/>\n"
+    "    </method>\n"
+    "  </interface>\n"
+    "  <interface name='org.freedesktop.DBus.Introspectable'>\n"
+    "    <method name='Introspect'>\n"
+    "      <arg type='s' name='data' direction='out'/>\n"
+    "    </method>\n"
+    "  </interface>\n"
+    "</node>\n";
+
+
+class GsrKwinHelper {
+public:
+    std::string active_window_title;
+    DBusConnection* connection = nullptr;
+    DBusError err;
+
+    bool init() {
+        dbus_error_init(&err);
+
+        connection = dbus_bus_get(DBUS_BUS_SESSION, &err);
+        if (dbus_error_is_set(&err)) {
+            std::cerr << "Failed to connect to session bus: " << err.message << "\n";
+            dbus_error_free(&err);
+            return false;
+        }
+
+        if (!connection) {
+            std::cerr << "Connection is null\n";
+            return false;
+        }
+
+        int ret = dbus_bus_request_name(connection, "com.dec05eba.gsr_kwin_helper",
+                                       DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
+        if (dbus_error_is_set(&err)) {
+            std::cerr << "Failed to request name: " << err.message << "\n";
+            dbus_error_free(&err);
+            return false;
+        }
+
+        if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
+            std::cerr << "Not primary owner of the name\n";
+            return false;
+        }
+
+        std::cout << "DBus server initialized on com.dec05eba.gsr_kwin_helper\n";
+
+        if (!load_kwin_script(connection, KWIN_HELPER_SCRIPT_PATH)) {
+            std::cerr << "Warning: Failed to load KWin script\n";
+        }
+
+        return true;
+    }
+
+    void run() {
+        while (true) {
+            dbus_connection_read_write(connection, 100);
+            DBusMessage* msg = dbus_connection_pop_message(connection);
+
+            if (!msg) {
+                continue;
+            }
+
+            if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Introspectable", "Introspect")) {
+                handle_introspect(msg);
+            } else if (dbus_message_is_method_call(msg, "com.dec05eba.gsr_kwin_helper", "setActiveWindowTitle")) {
+                handle_set_title(msg);
+            }
+
+            dbus_message_unref(msg);
+        }
+    }
+
+    void handle_introspect(DBusMessage* msg) {
+        DBusMessage* reply = dbus_message_new_method_return(msg);
+        if (!reply) return;
+
+        DBusMessageIter args;
+        dbus_message_iter_init_append(reply, &args);
+        
+        if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &INTROSPECTION_XML)) {
+            dbus_message_unref(reply);
+            return;
+        }
+
+        dbus_connection_send(connection, reply, nullptr);
+        dbus_connection_flush(connection);
+        dbus_message_unref(reply);
+    }
+
+    void handle_set_title(DBusMessage* msg) {
+        DBusMessageIter args;
+        const char* title = nullptr;
+
+        if (!dbus_message_iter_init(msg, &args)) {
+            send_error_reply(msg, "No arguments provided");
+            return;
+        }
+
+        if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_STRING) {
+            send_error_reply(msg, "Expected string argument");
+            return;
+        }
+
+        dbus_message_iter_get_basic(&args, &title);
+        
+        if (title) {
+            active_window_title = title;
+            std::cout << "Active window title set to: " << active_window_title << "\n";
+            std::cout.flush();
+            send_success_reply(msg);
+        } else {
+            send_error_reply(msg, "Failed to read string");
+        }
+    }
+
+    void send_success_reply(DBusMessage* msg) {
+        DBusMessage* reply = dbus_message_new_method_return(msg);
+        if (reply) {
+            dbus_connection_send(connection, reply, nullptr);
+            dbus_connection_flush(connection);
+            dbus_message_unref(reply);
+        }
+    }
+
+    void send_error_reply(DBusMessage* msg, const char* error_msg) {
+        DBusMessage* reply = dbus_message_new_error(msg, "com.dec05eba.gsr_kwin_helper.Error", error_msg);
+        if (reply) {
+            dbus_connection_send(connection, reply, nullptr);
+            dbus_connection_flush(connection);
+            dbus_message_unref(reply);
+        }
+    }
+
+    bool call_kwin_method(DBusConnection* conn, const char* method, 
+                      const char* arg1 = nullptr, const char* arg2 = nullptr) {
+        DBusMessage* msg = dbus_message_new_method_call(
+            "org.kde.KWin",        
+            "/Scripting",              
+            "org.kde.kwin.Scripting", 
+            method 
+        );
+        
+        if (!msg) {
+            std::cerr << "Failed to create message for " << method << "\n";
+            return false;
+        }
+        
+        if (arg1) {
+            dbus_message_append_args(msg, DBUS_TYPE_STRING, &arg1, DBUS_TYPE_INVALID);
+            if (arg2) {
+                dbus_message_append_args(msg, DBUS_TYPE_STRING, &arg2, DBUS_TYPE_INVALID);
+            }
+        }
+        
+        DBusError err;
+        dbus_error_init(&err);
+        
+        // Send message and wait for reply (with 1 second timeout)
+        DBusMessage* reply = dbus_connection_send_with_reply_and_block(conn, msg, 1000, &err);
+        
+        dbus_message_unref(msg);
+        
+        if (dbus_error_is_set(&err)) {
+            std::cerr << "Error calling " << method << ": " << err.message << "\n";
+            dbus_error_free(&err);
+            return false;
+        }
+        
+        if (reply) {
+            dbus_message_unref(reply);
+        }
+        
+        return true;
+    }
+
+    bool load_kwin_script(DBusConnection* conn, const char* script_path) {
+        // Unload existing script
+        call_kwin_method(conn, "unloadScript", "gsrkwinhelper");
+        
+        if (!call_kwin_method(conn, "loadScript", script_path, "gsrkwinhelper")) {
+            std::cerr << "Failed to load KWin script\n";
+            return false;
+        }
+        
+        if (!call_kwin_method(conn, "start")) {
+            std::cerr << "Failed to start KWin script\n";
+            return false;
+        }
+        
+        std::cout << "KWin script loaded and started successfully\n";
+        return true;
+    }
+
+    ~GsrKwinHelper() {
+        if (connection) {
+            dbus_bus_release_name(connection, "com.dec05eba.gsr_kwin_helper", nullptr);
+            dbus_connection_unref(connection);
+        }
+    }
+};
+
+int main(int argc, char** argv) {
+    GsrKwinHelper helper;
+    
+    if (!helper.init()) {
+        return 1;
+    }
+
+    std::cout << "Server running. Helper script path: " << KWIN_HELPER_SCRIPT_PATH << "\n";
+    helper.run();
+    
+    return 0;
+}

@@ -10,6 +10,7 @@
 #include "../include/gui/ScreenshotSettingsPage.hpp"
 #include "../include/gui/GlobalSettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
+#include "../include/KwinWorkaround.hpp"
 #include "../include/HyprlandWorkaround.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
@@ -552,6 +553,10 @@ namespace gsr {
 
             if (get_window_manager_name(x11_dpy).find("Hyprland") != std::string::npos) {
                 start_hyprland_listener_thread();
+            }
+
+            if (get_window_manager_name(x11_dpy) == "KWin") {
+                start_kwin_helper_thread();
             }
         }
 
@@ -1974,9 +1979,15 @@ namespace gsr {
         
         const std::string wm_name = get_window_manager_name(display);
         const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+        const bool is_kwin = wm_name == "KWin";
+
+        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
 
         if (is_hyprland) {
             focused_window_name = get_current_hyprland_window_title();
+        }
+        else if (is_kwin && !inside_flatpak) {
+            focused_window_name = get_current_kwin_window_title();
         }
         else {
             if(focused_window_name.empty())

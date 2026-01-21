@@ -42,6 +42,7 @@ src = [
     'src/CursorTracker/CursorTrackerWayland.cpp',
     'src/Utils.cpp',
     'src/HyprlandWorkaround.cpp',
+    'src/KwinWorkaround.cpp',
     'src/WindowUtils.cpp',
     'src/RegionSelector.cpp',
     'src/WindowSelector.cpp',
@@ -70,6 +71,8 @@ icons_path = join_paths(prefix, datadir, 'icons')
 
 add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', language: ['c', 'cpp'])
 add_project_arguments('-DGSR_FLATPAK_VERSION="5.12.0"', language: ['c', 'cpp'])
+
+add_project_arguments('-DKWIN_HELPER_SCRIPT_PATH="' + gsr_ui_resources_path + '/gsrkwinhelper.js"', language: ['c', 'cpp'])
 
 executable(
     meson.project_name(),
@@ -110,6 +113,23 @@ executable(
         'tools/gsr-ui-cli/main.c'
     ],
     install : true
+)
+
+executable(
+    'gsr-kwin-helper',
+    [
+        'tools/gsr-kwin-helper/main.cpp'
+    ],
+    install : true,
+    dependencies: [
+        dependency('dbus-1'),
+    ]
+)
+
+install_data(
+    'tools/gsr-kwin-helper/gsrkwinhelper.js',
+    install_dir: gsr_ui_resources_path,
+    install_mode: 'rwxr-xr-x'
 )
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
