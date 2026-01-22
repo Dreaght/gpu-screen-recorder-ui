@@ -1,4 +1,5 @@
 #include "dbus/dbus.h"
+#include <unistd.h>
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -56,7 +57,17 @@ public:
 
         std::cout << "DBus server initialized on com.dec05eba.gsr_kwin_helper\n";
 
-        if (!load_kwin_script(connection, KWIN_HELPER_SCRIPT_PATH)) {
+        const bool inside_flatpak = access("/app/manifest.json", F_OK) == 0;
+
+        std::string helper_path = (
+            !inside_flatpak 
+            ? KWIN_HELPER_SCRIPT_PATH 
+            : "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gsr-ui/gsrkwinhelper.js"
+        );
+
+        std::cout << "KWin script path: " << helper_path << std::endl;
+
+        if (!load_kwin_script(connection, helper_path.c_str())) {
             std::cerr << "Warning: Failed to load KWin script\n";
         }
 
@@ -218,7 +229,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::cout << "Server running. Helper script path: " << KWIN_HELPER_SCRIPT_PATH << "\n";
     helper.run();
     
     return 0;

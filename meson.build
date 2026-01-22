@@ -132,6 +132,14 @@ install_data(
     install_mode: 'rwxr-xr-x'
 )
 
+executable(
+    'gsr-hyprland-helper',
+    [
+        'tools/gsr-hyprland-helper/main.c'
+    ],
+    install : true
+)
+
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
 

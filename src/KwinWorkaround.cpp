@@ -24,13 +24,11 @@ namespace gsr {
     }
 
     void kwin_script_thread() {
-        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-        if(inside_flatpak) {
-            std::cerr << "Sorry, KWin workaround isn't available for Flatpak yet. Stay tuned!\n";
-            return;
-        }
+        const bool inside_flatpak = access("/app/manifest.json", F_OK) == 0;
 
-        FILE* pipe = popen("/usr/bin/gsr-kwin-helper", "r");
+        const std::string kwin_helper_bin = inside_flatpak ? "/app/bin/gsr-kwin-helper" : "/usr/bin/gsr-kwin-helper";
+
+        FILE* pipe = popen(kwin_helper_bin.c_str(), "r");
         if (!pipe) {
             std::cerr << "Failed to start gsr-kwin-helper process\n";
             return;
