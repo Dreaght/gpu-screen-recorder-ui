@@ -551,11 +551,13 @@ namespace gsr {
                 show_notification("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             }
 
-            if (get_window_manager_name(x11_dpy).find("Hyprland") != std::string::npos) {
+            const std::string wm_name = get_window_manager_name(x11_dpy);
+
+            if (wm_name.find("Hyprland") != std::string::npos) {
                 start_hyprland_listener_thread();
             }
 
-            if (get_window_manager_name(x11_dpy) == "KWin") {
+            if (wm_name == "KWin") {
                 start_kwin_helper_thread();
             }
         }
@@ -1981,15 +1983,11 @@ namespace gsr {
         const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
         const bool is_kwin = wm_name == "KWin";
 
-        const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-
         if (is_hyprland) {
             focused_window_name = get_current_hyprland_window_title();
-        }
-        else if (is_kwin && !inside_flatpak) {
+        } else if (is_kwin) {
             focused_window_name = get_current_kwin_window_title();
-        }
-        else {
+        } else {
             if(focused_window_name.empty())
                 focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
             if(focused_window_name.empty())

@@ -1,5 +1,5 @@
 #include "../include/HyprlandWorkaround.hpp"
-#include "include/Process.hpp"
+#include "../include/Process.hpp"
 
 #include <cstddef>
 #include <iostream>
@@ -7,7 +7,6 @@
 #include <thread>
 #include <cstdlib>
 #include <cstring>
-#include <array>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
