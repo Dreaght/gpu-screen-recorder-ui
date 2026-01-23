@@ -555,9 +555,7 @@ namespace gsr {
 
             if (wm_name.find("Hyprland") != std::string::npos) {
                 start_hyprland_listener_thread();
-            }
-
-            if (wm_name == "KWin") {
+            } else if (wm_name == "KWin") {
                 start_kwin_helper_thread();
             }
         }
@@ -1975,24 +1973,26 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
         const std::string video_filename = filepath_get_filename(video_filepath.c_str());
-
-        const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
-        std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
         
         const std::string wm_name = get_window_manager_name(display);
         const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
         const bool is_kwin = wm_name == "KWin";
 
+        std::string focused_window_name;
         if (is_hyprland) {
             focused_window_name = get_current_hyprland_window_title();
         } else if (is_kwin) {
             focused_window_name = get_current_kwin_window_title();
         } else {
+            const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
+            std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
+
             if(focused_window_name.empty())
                 focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
-            if(focused_window_name.empty())
-                focused_window_name = "Game";
         }
+
+        if(focused_window_name.empty())
+            focused_window_name = "Game";
 
         string_replace_characters(focused_window_name.data(), "/\\", ' ');
 

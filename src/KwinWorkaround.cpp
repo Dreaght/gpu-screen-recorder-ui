@@ -6,29 +6,16 @@
 #include <thread>
 #include <cstdlib>
 #include <cstring>
-#include <array>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
 namespace gsr {
-    static ActiveKwinWindow *active_kwin_window = nullptr;
+    static ActiveKwinWindow active_kwin_window;
     static bool kwin_helper_thread_started = false;
 
-    std::string get_current_kwin_window_title() {
-        if (active_kwin_window == nullptr) {
-            return "Game";
-        }
-
-        return active_kwin_window->title;
-    }
-
     void kwin_script_thread() {
-        const bool inside_flatpak = access("/app/manifest.json", F_OK) == 0;
-
-        const std::string kwin_helper_bin = inside_flatpak ? "/app/bin/gsr-kwin-helper" : "/usr/bin/gsr-kwin-helper";
-
-        FILE* pipe = popen(kwin_helper_bin.c_str(), "r");
+        FILE* pipe = popen("gsr-kwin-helper", "r");
         if (!pipe) {
             std::cerr << "Failed to start gsr-kwin-helper process\n";
             return;
@@ -39,8 +26,9 @@ namespace gsr {
         char buffer[4096];
         const std::string prefix = "Active window title set to: ";
 
+        std::string line;
         while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            std::string line(buffer);
+            line = buffer;
 
             if (!line.empty() && line.back() == '\n') {
                 line.pop_back();
@@ -50,24 +38,24 @@ namespace gsr {
             if (pos != std::string::npos) {
                 std::string title = line.substr(pos + prefix.length());
 
-                if (title == "gsr ui") {
-                    continue; // ignore the overlay
+                if (title == "gsr ui" || title == "gsr notify") {
+                    continue; // ignore the overlay and notification
                 }
 
-                active_kwin_window->title = title;
+                active_kwin_window.title = std::move(title);
             }
         }
 
         pclose(pipe);
     }
 
+    std::string get_current_kwin_window_title() {
+        return active_kwin_window.title;
+    }
+
     void start_kwin_helper_thread() {
         if (kwin_helper_thread_started) {
             return;
-        }
-
-        if (active_kwin_window == nullptr) {
-            active_kwin_window = new ActiveKwinWindow();
         }
 
         kwin_helper_thread_started = true;

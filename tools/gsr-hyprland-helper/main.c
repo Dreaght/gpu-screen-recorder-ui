@@ -1,243 +1,95 @@
-#include "unistd.h"
-#include "string.h"
+#include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-
-struct ActiveHyprlandWindow {
-    char* window_id;
-    char* title;
-};
-
-
-struct ActiveHyprlandWindow* active_window;
-
-
-const char* get_hyprland_socket_path() {
+static bool get_hyprland_socket_path(char *path, int path_len) {
     const char* xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
     const char* instance_sig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
     if (!xdg_runtime_dir || !instance_sig) {
-        fprintf(stderr, "Error: Env vars not set.\n");
-        exit(1);
+        fprintf(stderr, "Error: gsr-hypland-helper: environment variables not set\n");
+        return false;
     }
     
-    // allocate buffer for the full path
-    size_t path_len = strlen(xdg_runtime_dir) + strlen(instance_sig) + 32;
-    char* socket_path = malloc(path_len);
-    if (!socket_path) {
-        fprintf(stderr, "Error: Memory allocation failed.\n");
-        exit(1);
+    if (snprintf(path, path_len, "%s/hypr/%s/.socket2.sock", xdg_runtime_dir, instance_sig) >= path_len) {
+        fprintf(stderr, "Error: gsr-hypland-helper: path to hyprland socket (%s/hypr/%s/.socket2.sock) is more than %d characters long\n", xdg_runtime_dir, instance_sig, path_len);
+        return false;
     }
-    
-    snprintf(socket_path, path_len, "%s/hypr/%s/.socket2.sock", xdg_runtime_dir, instance_sig);
-    return socket_path;
+
+    return true;
 }
 
-
-void print_window_title(void) {
-    if (strlen(active_window->title) == 0) {
+static void print_window_title(const char *window_title) {
+    if (window_title[0] == 0) {
         printf("Window title changed: %s\n", "Desktop");
         fflush(stdout);
         return;
     }
-    printf("Window title changed: %s\n", active_window->title);
+    printf("Window title changed: %s\n", window_title);
     fflush(stdout);
 }
 
-
-void handle_ipc(void) {
-    int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+static int handle_ipc(void) {
+    const int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd == -1) {
-        perror("socket");
-        return;
+        perror("Error: gsr-hyprland-helper: socket");
+        return 1;
     }
-
-
-    active_window = malloc(sizeof(struct ActiveHyprlandWindow));
-    active_window->window_id = NULL;
-    active_window->title = NULL;
-
 
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
 
-
-    const char* socket_path = get_hyprland_socket_path();
-    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
-
+    if (!get_hyprland_socket_path(addr.sun_path, sizeof(addr.sun_path))) {
+        return 1;
+    }
 
     if (connect(sock_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("connect");
+        perror("Error: gsr-hyprland-helper: connect");
         close(sock_fd);
-        free((void*)socket_path);
-        return;
+        return 1;
     }
 
+    fprintf(stderr, "Info: gsr-hyprland-helper: connected to Hyprland socket: %s\n", addr.sun_path);
 
-    printf("Connected to Hyprland socket: %s\n", socket_path);
-    fflush(stdout);
-    free((void*)socket_path);
-
-
-    char buffer[4096];
-    char* incomplete_line = NULL;
-    size_t incomplete_len = 0;
-
-
-    while (1) {
-        ssize_t bytes_read = read(sock_fd, buffer, sizeof(buffer));
-
-
-        if (bytes_read == 0) {
-            fprintf(stderr, "Connection closed by Hyprland\n");
-            break;
-        }
-
-
-        if (bytes_read < 0) {
-            perror("read");
-            break;
-        }
-
-
-        size_t total_len = incomplete_len + bytes_read;
-        char *data = malloc(total_len + 1);
-        if (!data) {
-            perror("malloc");
-            break;
-        }
-
-
-        if (incomplete_line) {
-            memcpy(data, incomplete_line, incomplete_len);
-            fflush(stdout);
-            free(incomplete_line);
-            incomplete_line = NULL;
-        }
-        memcpy(data + incomplete_len, buffer, bytes_read);
-        data[total_len] = '\0';
-
-
-        char* line_start = data;
-        char* newline_pos;
-
-
-        while ((newline_pos = strchr(line_start, '\n')) != NULL) {
-            *newline_pos = '\0';
-            char *line = line_start;
-
-
-            char *delimiter = strstr(line, ">>");
-
-
-            if (delimiter != NULL) {
-                *delimiter = '\0';
-                char *event_name = line;
-                char *event_data = delimiter + 2;
-
-
-                if (strcmp(event_name, "activewindowv2") == 0) {
-                    fflush(stdout);
-                    if (active_window->window_id) {
-                        free(active_window->window_id);
-                    }
-                    active_window->window_id = strdup(event_data);
-                }
-
-
-                if (strcmp(event_name, "activewindow") == 0) {
-                    char *title_delimiter = strchr(event_data, ',');
-                    if (title_delimiter != NULL) {
-                        char *window_title = title_delimiter + 1;
-                        if (strcmp(window_title, "gsr ui") == 0 || 
-                            strcmp(window_title, "gsr notify") == 0) {
-                            line_start = newline_pos + 1;
-                            continue;
-                        }
-                        fflush(stdout);
-                        if (active_window->title) {
-                            free(active_window->title);
-                        }
-                        active_window->title = strdup(window_title);
-                        print_window_title();
-                    }
-                }
-
-
-                if (strcmp(event_name, "windowtitlev2") == 0) {
-                    char *data_delimiter = strchr(event_data, ',');
-                    if (data_delimiter != NULL) {
-                        *data_delimiter = '\0';
-                        char *win_id = event_data;
-                        char *new_window_title = data_delimiter + 1;
-                        
-                        if (strcmp(new_window_title, "gsr ui") == 0 || 
-                            strcmp(new_window_title, "gsr notify") == 0) {
-                            line_start = newline_pos + 1;
-                            continue;
-                        }
-                        
-                        if (strcmp(active_window->window_id, win_id) != 0) {
-                            line_start = newline_pos + 1;
-                            continue;
-                        }
-                        
-                        fflush(stdout);
-                        if (active_window->title) {
-                            free(active_window->title);
-                        }
-                        active_window->title = strdup(new_window_title);
-                        print_window_title();
-                    }
-                }
-            }
-
-
-            line_start = newline_pos + 1;
-        }
-
-
-        size_t remaining = strlen(line_start);
-        if (remaining > 0) {
-            incomplete_line = malloc(remaining + 1);
-            if (incomplete_line) {
-                memcpy(incomplete_line, line_start, remaining);
-                incomplete_line[remaining] = '\0';
-                incomplete_len = remaining;
-            }
-        } else {
-            incomplete_len = 0;
-        }
-
-
-        fflush(stdout);
-        free(data);
+    FILE *sock_file = fdopen(sock_fd, "r");
+    if (!sock_file) {
+        perror("Error: gsr-hyprland-helper: fdopen");
+        close(sock_fd);
+        return 1;
     }
 
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), sock_file)) {
+        int line_len = strlen(buffer);
+        if(line_len > 0 && buffer[line_len - 1] == '\n') {
+            buffer[line_len - 1] = '\0';
+            line_len -= 1;
+        }
 
-    if (incomplete_line) {
-        fflush(stdout);
-        free(incomplete_line);
+        if(line_len >= 14 && memcmp(buffer, "activewindow>>", 14) == 0) {
+            char *window_id = buffer + 14;
+            char *window_title = strchr(buffer + 14, ',');
+            if(!window_title)
+                continue;
+
+            window_title[0] = '\0';
+            window_title += 1;
+            if(strcmp(window_id, "gsr-ui") == 0 || strcmp(window_id, "gsr-notify") == 0)
+                continue;
+
+            print_window_title(window_title);
+        }
     }
     
-    if (active_window) {
-        if (active_window->window_id) {
-            free(active_window->window_id);
-        }
-        if (active_window->title) {
-            free(active_window->title);
-        }
-        free(active_window);
-    }
-    
-    close(sock_fd);
+    fclose(sock_file);
+    return 0;
 }
 
 
-int main(int argc, char** argv) {
-    handle_ipc();
-    return 0;
+int main(void) {
+    return handle_ipc();
 }

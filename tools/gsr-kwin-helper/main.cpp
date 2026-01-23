@@ -1,10 +1,9 @@
-#include "dbus/dbus.h"
+#include <dbus/dbus.h>
 #include <unistd.h>
 #include <iostream>
 #include <string>
-#include <cstring>
 
-const char* INTROSPECTION_XML = 
+static const char* INTROSPECTION_XML =
     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n"
     "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
     "<node>\n"
@@ -32,43 +31,42 @@ public:
 
         connection = dbus_bus_get(DBUS_BUS_SESSION, &err);
         if (dbus_error_is_set(&err)) {
-            std::cerr << "Failed to connect to session bus: " << err.message << "\n";
+            std::cerr << "Error: gsr-kwin-helper: failed to connect to session bus: " << err.message << "\n";
             dbus_error_free(&err);
             return false;
         }
 
         if (!connection) {
-            std::cerr << "Connection is null\n";
+            std::cerr << "Error: gsr-kwin-helper: connection is null\n";
             return false;
         }
 
         int ret = dbus_bus_request_name(connection, "com.dec05eba.gsr_kwin_helper",
                                        DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
         if (dbus_error_is_set(&err)) {
-            std::cerr << "Failed to request name: " << err.message << "\n";
+            std::cerr << "Error: gsr-kwin-helper: failed to request name: " << err.message << "\n";
             dbus_error_free(&err);
             return false;
         }
 
         if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-            std::cerr << "Not primary owner of the name\n";
+            std::cerr << "Error: gsr-kwin-helper: not primary owner of the name\n";
             return false;
         }
 
-        std::cout << "DBus server initialized on com.dec05eba.gsr_kwin_helper\n";
+        std::cerr << "Info: gsr-kwin-helper: DBus server initialized on com.dec05eba.gsr_kwin_helper\n";
 
         const bool inside_flatpak = access("/app/manifest.json", F_OK) == 0;
 
-        std::string helper_path = (
+        const char *helper_path =
             !inside_flatpak 
             ? KWIN_HELPER_SCRIPT_PATH 
-            : "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gsr-ui/gsrkwinhelper.js"
-        );
+            : "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gsr-ui/gsrkwinhelper.js";
 
-        std::cout << "KWin script path: " << helper_path << std::endl;
+        std::cerr << "Info: gsr-kwin-helper: KWin script path: " << helper_path << std::endl;
 
-        if (!load_kwin_script(connection, helper_path.c_str())) {
-            std::cerr << "Warning: Failed to load KWin script\n";
+        if (!load_kwin_script(connection, helper_path)) {
+            std::cerr << "Warning: gsr-kwin-helper: failed to load KWin script\n";
         }
 
         return true;
@@ -164,7 +162,7 @@ public:
         );
         
         if (!msg) {
-            std::cerr << "Failed to create message for " << method << "\n";
+            std::cerr << "Error: gsr-kwin-helper: failed to create message for " << method << "\n";
             return false;
         }
         
@@ -184,7 +182,7 @@ public:
         dbus_message_unref(msg);
         
         if (dbus_error_is_set(&err)) {
-            std::cerr << "Error calling " << method << ": " << err.message << "\n";
+            std::cerr << "Error: gsr-kwin-helper: error calling " << method << ": " << err.message << "\n";
             dbus_error_free(&err);
             return false;
         }
@@ -201,16 +199,16 @@ public:
         call_kwin_method(conn, "unloadScript", "gsrkwinhelper");
         
         if (!call_kwin_method(conn, "loadScript", script_path, "gsrkwinhelper")) {
-            std::cerr << "Failed to load KWin script\n";
+            std::cerr << "Error: gsr-kwin-helper: failed to load KWin script\n";
             return false;
         }
         
         if (!call_kwin_method(conn, "start")) {
-            std::cerr << "Failed to start KWin script\n";
+            std::cerr << "Error: gsr-kwin-helper: failed to start KWin script\n";
             return false;
         }
         
-        std::cout << "KWin script loaded and started successfully\n";
+        std::cerr << "Info: gsr-kwin-helper: KWin script loaded and started successfully\n";
         return true;
     }
 
