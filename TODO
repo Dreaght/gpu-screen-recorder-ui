@@ -259,3 +259,5 @@ Redesign the UI to allow capturing multiple video sources. Move webcam to captur
 Add option to choose video container (either flv or mpegts) for youtube livestreaming.
 
 Get wayland cursor position for region selector, otherwise the start position before the cursor moves is off.
+
+Add option to set preset on nvidia. Use -ffmpeg-video-opts for that.

@@ -6,15 +6,19 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include <mglpp/system/Rect.hpp>
+
 namespace gsr {
     static const int MAX_CONNECTORS = 32;
-    static const uint32_t plane_property_all = 0xF;
+    static const uint32_t plane_property_all = 0x3F;
 
     typedef enum {
         PLANE_PROPERTY_CRTC_X      = 1 << 0,
         PLANE_PROPERTY_CRTC_Y      = 1 << 1,
-        PLANE_PROPERTY_CRTC_ID     = 1 << 2,
-        PLANE_PROPERTY_TYPE_CURSOR = 1 << 3,
+        PLANE_PROPERTY_CRTC_W      = 1 << 2,
+        PLANE_PROPERTY_CRTC_H      = 1 << 3,
+        PLANE_PROPERTY_CRTC_ID     = 1 << 4,
+        PLANE_PROPERTY_TYPE_CURSOR = 1 << 5,
     } plane_property_mask;
 
     typedef struct {
@@ -29,10 +33,17 @@ namespace gsr {
         bool has_any_crtc_with_vrr_enabled;
     } drm_connectors;
 
+    static bool rectangles_intersect(mgl::IntRect rect1, mgl::IntRect rect2) {
+        return rect1.position.x < rect2.position.x + rect2.size.x && rect1.position.x + rect1.size.x > rect2.position.x &&
+            rect1.position.y < rect2.position.y + rect2.size.y && rect1.position.y + rect1.size.y > rect2.position.y;
+    }
+
     /* Returns plane_property_mask */
-    static uint32_t plane_get_properties(int drm_fd, uint32_t plane_id, int *crtc_x, int *crtc_y, int *crtc_id) {
+    static uint32_t plane_get_properties(int drm_fd, uint32_t plane_id, int *crtc_x, int *crtc_y, int *crtc_w, int *crtc_h, int *crtc_id) {
         *crtc_x = 0;
         *crtc_y = 0;
+        *crtc_w = 0;
+        *crtc_h = 0;
         *crtc_id = 0;
 
         uint32_t property_mask = 0;
@@ -54,6 +65,12 @@ namespace gsr {
             } else if((type & DRM_MODE_PROP_SIGNED_RANGE) && strcmp(prop->name, "CRTC_Y") == 0) {
                 *crtc_y = (int)props->prop_values[i];
                 property_mask |= PLANE_PROPERTY_CRTC_Y;
+            } else if((type & DRM_MODE_PROP_RANGE) && strcmp(prop->name, "CRTC_W") == 0) {
+                *crtc_w = (int)props->prop_values[i];
+                property_mask |= PLANE_PROPERTY_CRTC_W;
+            } else if((type & DRM_MODE_PROP_RANGE) && strcmp(prop->name, "CRTC_H") == 0) {
+                *crtc_h = (int)props->prop_values[i];
+                property_mask |= PLANE_PROPERTY_CRTC_H;
             } else if((type & DRM_MODE_PROP_OBJECT) && strcmp(prop->name, "CRTC_ID") == 0) {
                 *crtc_id = (int)props->prop_values[i];
                 property_mask |= PLANE_PROPERTY_CRTC_ID;
@@ -259,10 +276,16 @@ namespace gsr {
         for(uint32_t i = 0; i < planes->count_planes; ++i) {
             drmModePlanePtr plane = nullptr;
             const drm_connector *connector = nullptr;
+
             int crtc_x = 0;
             int crtc_y = 0;
+            int crtc_w = 0;
+            int crtc_h = 0;
             int crtc_id = 0;
             uint32_t property_mask = 0;
+
+            mgl::IntRect monitor_rect;
+            mgl::IntRect cursor_rect;
 
             plane = drmModeGetPlane(drm_fd, planes->planes[i]);
             if(!plane)
@@ -271,7 +294,7 @@ namespace gsr {
             if(!plane->fb_id)
                 goto next;
 
-            property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_id);
+            property_mask = plane_get_properties(drm_fd, planes->planes[i], &crtc_x, &crtc_y, &crtc_w, &crtc_h, &crtc_id);
             if(property_mask != plane_property_all || crtc_id <= 0)
                 goto next;
 
@@ -279,7 +302,10 @@ namespace gsr {
             if(!connector)
                 goto next;
 
-            if(crtc_x >= 0 && crtc_x <= connector->size.x && crtc_y >= 0 && crtc_y <= connector->size.y) {
+            monitor_rect = { mgl::vec2i(0, 0), connector->size };
+            cursor_rect = { mgl::vec2i(crtc_x, crtc_y), mgl::vec2i(crtc_w, crtc_h) };
+
+            if(rectangles_intersect(cursor_rect, cursor_rect)) {
                 latest_cursor_position.x = crtc_x;
                 latest_cursor_position.y = crtc_y;
                 latest_crtc_id = crtc_id;

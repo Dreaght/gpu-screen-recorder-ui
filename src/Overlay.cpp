@@ -1052,7 +1052,6 @@ namespace gsr {
             focused_monitor = find_monitor_by_name(monitors, cursor_info->monitor_name);
             if(!focused_monitor)
                 focused_monitor = &monitors.front();
-            cursor_position = cursor_info->position;
         } else {
             const mgl::vec2i monitor_position_query_value = (x11_cursor_window || gsr_info.system_info.display_server != DisplayServer::WAYLAND) ? cursor_position : create_window_get_center_position(display);
             focused_monitor = find_monitor_at_position(monitors, monitor_position_query_value);
@@ -1068,6 +1067,10 @@ namespace gsr {
             || (x11_focused_window && is_window_fullscreen_on_monitor(display, x11_focused_window, *focused_monitor))
             || is_wlroots
             || is_hyprland;
+
+        const bool drm_cursor_pos = !prevent_game_minimizing && cursor_info;
+        if(drm_cursor_pos)
+            cursor_position = cursor_info->position;
 
         if(prevent_game_minimizing) {
             window_pos = focused_monitor->position;
@@ -1162,7 +1165,7 @@ namespace gsr {
         // The real cursor doesn't move when all devices are grabbed, so we create our own cursor and diplay that while grabbed
         cursor_hotspot = {0, 0};
         xi_setup_fake_cursor();
-        if(cursor_info && gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
+        if(drm_cursor_pos) {
             win->cursor_position.x += cursor_hotspot.x;
             win->cursor_position.y += cursor_hotspot.y;
         }
