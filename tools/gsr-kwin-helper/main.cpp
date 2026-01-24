@@ -7,7 +7,7 @@ static const char* INTROSPECTION_XML =
     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n"
     "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
     "<node>\n"
-    "  <interface name='com.dec05eba.gsr_kwin_helper'>\n"
+    "  <interface name='com.dec05eba.gpu_screen_recorder.gsr_kwin_helper'>\n"
     "    <method name='setActiveWindowTitle'>\n"
     "      <arg type='s' name='title' direction='in'/>\n"
     "    </method>\n"
@@ -41,7 +41,7 @@ public:
             return false;
         }
 
-        int ret = dbus_bus_request_name(connection, "com.dec05eba.gsr_kwin_helper",
+        int ret = dbus_bus_request_name(connection, "com.dec05eba.gpu_screen_recorder.gsr_kwin_helper",
                                        DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
         if (dbus_error_is_set(&err)) {
             std::cerr << "Error: gsr-kwin-helper: failed to request name: " << err.message << "\n";
@@ -54,7 +54,7 @@ public:
             return false;
         }
 
-        std::cerr << "Info: gsr-kwin-helper: DBus server initialized on com.dec05eba.gsr_kwin_helper\n";
+        std::cerr << "Info: gsr-kwin-helper: DBus server initialized on com.dec05eba.gpu_screen_recorder.gsr_kwin_helper\n";
 
         const bool inside_flatpak = access("/app/manifest.json", F_OK) == 0;
 
@@ -83,7 +83,7 @@ public:
 
             if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Introspectable", "Introspect")) {
                 handle_introspect(msg);
-            } else if (dbus_message_is_method_call(msg, "com.dec05eba.gsr_kwin_helper", "setActiveWindowTitle")) {
+            } else if (dbus_message_is_method_call(msg, "com.dec05eba.gpu_screen_recorder.gsr_kwin_helper", "setActiveWindowTitle")) {
                 handle_set_title(msg);
             }
 
@@ -144,7 +144,7 @@ public:
     }
 
     void send_error_reply(DBusMessage* msg, const char* error_msg) {
-        DBusMessage* reply = dbus_message_new_error(msg, "com.dec05eba.gsr_kwin_helper.Error", error_msg);
+        DBusMessage* reply = dbus_message_new_error(msg, "com.dec05eba.gpu_screen_recorder.gsr_kwin_helper.Error", error_msg);
         if (reply) {
             dbus_connection_send(connection, reply, nullptr);
             dbus_connection_flush(connection);
@@ -214,7 +214,7 @@ public:
 
     ~GsrKwinHelper() {
         if (connection) {
-            dbus_bus_release_name(connection, "com.dec05eba.gsr_kwin_helper", nullptr);
+            dbus_bus_release_name(connection, "com.dec05eba.gpu_screen_recorder.gsr_kwin_helper", nullptr);
             dbus_connection_unref(connection);
         }
     }
