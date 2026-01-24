@@ -285,7 +285,7 @@ namespace gsr {
     static bool is_hyprland_waybar_running_as_dock() {
         const char *args[] = { "hyprctl", "layers", nullptr };
         std::string stdout_str;
-        if(exec_program_on_host_get_stdout(args, stdout_str) != 0)
+        if(exec_program_on_host_get_stdout(args, stdout_str, false) != 0)
             return false;
 
         int waybar_layer_level = -1;
@@ -1068,7 +1068,7 @@ namespace gsr {
             || is_wlroots
             || is_hyprland;
 
-        const bool drm_cursor_pos = !prevent_game_minimizing && cursor_info;
+        const bool drm_cursor_pos = (!prevent_game_minimizing || is_wlroots || is_hyprland) && cursor_info;
         if(drm_cursor_pos)
             cursor_position = cursor_info->position;
 
