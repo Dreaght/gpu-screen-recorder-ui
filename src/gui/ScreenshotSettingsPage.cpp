@@ -209,7 +209,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save screenshot in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "Save screenshot in a folder based on the focused applications name%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_screenshot_in_game_folder_checkbox_ptr = checkbox.get();
         return checkbox;

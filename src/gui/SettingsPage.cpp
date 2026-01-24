@@ -1141,7 +1141,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "Save video in a folder based on the focused applications name%s", supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
@@ -1294,7 +1294,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "Save video in a folder based on the focused applications name%s", supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
