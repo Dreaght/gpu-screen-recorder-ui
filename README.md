@@ -27,6 +27,7 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * linux-api-headers
 * libpulse (libpulse-simple)
 * libdrm
+* libdbus
 * wayland (wayland-client, wayland-egl, wayland-scanner)
 * setcap (libcap)
 
