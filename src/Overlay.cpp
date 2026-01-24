@@ -1063,8 +1063,9 @@ namespace gsr {
         // Wayland doesn't allow XGrabPointer/XGrabKeyboard when a wayland application is focused.
         // If the focused window is a wayland application then don't use override redirect and instead create
         // a fullscreen window for the ui.
+        const Window x11_focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
         const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND
-            || (x11_cursor_window && is_window_fullscreen_on_monitor(display, x11_cursor_window, *focused_monitor) && get_focused_window(display, WindowCaptureType::FOCUSED, false) == x11_cursor_window)
+            || (x11_focused_window && is_window_fullscreen_on_monitor(display, x11_focused_window, *focused_monitor))
             || is_wlroots
             || is_hyprland;
 
