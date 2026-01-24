@@ -247,5 +247,7 @@ namespace gsr {
 
         std::optional<GsrCamera> selected_camera;
         std::optional<GsrCameraSetup> selected_camera_setup;
+
+        bool supports_window_title = false;
     };
 }

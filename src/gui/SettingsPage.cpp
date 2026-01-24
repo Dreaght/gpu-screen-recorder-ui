@@ -10,8 +10,13 @@
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Utils.hpp"
-#include "mglpp/window/Window.hpp"
-#include "mglpp/window/Event.hpp"
+#include "../../include/WindowUtils.hpp"
+
+#include <mglpp/window/Window.hpp>
+#include <mglpp/window/Event.hpp>
+extern "C" {
+#include <mgl/mgl.h>
+}
 
 #include <algorithm>
 #include <cmath>
@@ -45,6 +50,14 @@ namespace gsr {
         audio_devices = get_audio_devices();
         application_audio = get_application_audio();
         capture_options = get_supported_capture_options(*gsr_info);
+
+        mgl_context *context = mgl_get_context();
+        Display *display = (Display*)context->connection;
+
+        const std::string wm_name = get_window_manager_name(display);
+        const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+        const bool is_kwin = wm_name == "KWin";
+        supports_window_title = gsr_info->system_info.display_server == DisplayServer::X11 || is_hyprland || is_kwin;
 
         auto content_page = std::make_unique<GsrPage>(settings_page_type_to_title_text(type), "Settings");
         content_page->add_button("Back", "back", get_color_theme().page_bg_color);
@@ -1113,6 +1126,7 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
+        // TODO: Support kde plasma wayland and hyprland (same ones that support getting window title)
         char fullscreen_text[256];
         snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
 
@@ -1127,7 +1141,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
@@ -1280,7 +1294,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "Save video in a folder with the name of the game%s", supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
