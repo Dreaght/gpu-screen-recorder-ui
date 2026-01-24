@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
         usage();
     }
 
-    set_display_server_environment_variables();
+    //set_display_server_environment_variables();
 
     std::string resources_path;
     if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
