@@ -239,6 +239,8 @@ int main(int argc, char **argv) {
     }
 
     set_display_server_environment_variables();
+    // Workaround a flatpak issue where if a flatpak tries to connect to the X server before an X server has started
+    // on Wayland that will break flatpak-spawn --host environment variables, with missing WAYLAND_DISPLAY, etc
     if(is_flatpak() && !is_x_server_running())
         return 1;
 
