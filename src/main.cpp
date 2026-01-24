@@ -172,6 +172,22 @@ static void set_display_server_environment_variables() {
     }
 }
 
+static bool is_x_server_running() {
+    const char *display = getenv("DISPLAY");
+    if(!display)
+        display = ":0";
+
+    const char *port_start = strrchr(display, ':');
+    if(!port_start)
+        return true;
+
+    port_start += 1;
+
+    char path[256];
+    snprintf(path, sizeof(path), "/tmp/.X11-unix/X%s", port_start);
+    return access(path, F_OK) == 0;
+}
+
 static void usage() {
     printf("usage: gsr-ui [action]\n");
     printf("OPTIONS:\n");
@@ -223,6 +239,8 @@ int main(int argc, char **argv) {
     }
 
     set_display_server_environment_variables();
+    if(is_flatpak() && !is_x_server_running())
+        return 1;
 
     std::string resources_path;
     if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
