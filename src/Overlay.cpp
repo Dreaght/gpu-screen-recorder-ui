@@ -10,6 +10,7 @@
 #include "../include/gui/ScreenshotSettingsPage.hpp"
 #include "../include/gui/GlobalSettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
+#include "../include/Translation.hpp"
 #include "../include/KwinWorkaround.hpp"
 #include "../include/HyprlandWorkaround.hpp"
 #include "../include/gui/PageStack.hpp"
@@ -20,6 +21,7 @@
 #include "../include/CursorTracker/CursorTrackerWayland.hpp"
 
 #include <iomanip>
+#include <iostream>
 #include <string.h>
 #include <assert.h>
 #include <sys/wait.h>
@@ -549,7 +551,7 @@ namespace gsr {
             if(!config.main_config.wayland_warning_shown) {
                 config.main_config.wayland_warning_shown = true;
                 save_config(config);
-                show_notification("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues."), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             }
 
             const std::string wm_name = get_window_manager_name(x11_dpy);
@@ -775,8 +777,8 @@ namespace gsr {
         if(global_hotkeys_ungrab_keyboard) {
             global_hotkeys_ungrab_keyboard = false;
             show_notification(
-                "Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\n"
-                "Keyboards have been ungrabbed, applications will now receive the hotkeys you press."
+                TR("Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\n"
+                "Keyboards have been ungrabbed, applications will now receive the hotkeys you press.")
                 , 7.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
 
             config.main_config.hotkeys_enable_option = "enable_hotkeys_no_grab";
@@ -816,7 +818,7 @@ namespace gsr {
             if(selected_window && selected_window != DefaultRootWindow(display)) {
                 on_window_selected();
             } else {
-                show_notification("No window selected", notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("No window selected"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             }
             on_window_selected = nullptr;
         }
@@ -867,7 +869,7 @@ namespace gsr {
             start_region_capture = false;
             hide();
             if(!region_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start region capture", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Failed to start region capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_region_selected = nullptr;
             }
         }
@@ -876,7 +878,7 @@ namespace gsr {
             start_window_capture = false;
             hide();
             if(!window_selector.start(get_color_theme().tint_color)) {
-                show_notification("Failed to start window capture", notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Failed to start window capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_window_selected = nullptr;
             }
         }
@@ -1244,16 +1246,16 @@ namespace gsr {
         List * main_buttons_list_ptr = main_buttons_list.get();
         main_buttons_list->set_spacing(0.0f);
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Instant Replay", "Off", &get_theme().replay_button_texture,
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, TR("Instant Replay"), TR("Off"), &get_theme().replay_button_texture,
                 mgl::vec2f(button_width, button_height));
             replay_dropdown_button_ptr = button.get();
-            button->add_item("Turn on", "start", config.replay_config.start_stop_hotkey.to_string(false, false));
-            button->add_item("Save", "save", config.replay_config.save_hotkey.to_string(false, false));
+            button->add_item(TR("Turn on"), "start", config.replay_config.start_stop_hotkey.to_string(false, false));
+            button->add_item(TR("Save"), "save", config.replay_config.save_hotkey.to_string(false, false));
             if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-                button->add_item("Save 1 min", "save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
-                button->add_item("Save 10 min", "save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
+                button->add_item(TR("Save 1 min"), "save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
+                button->add_item(TR("Save 10 min"), "save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
             }
-            button->add_item("Settings", "settings");
+            button->add_item(TR("Settings"), "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("save", &get_theme().save_texture);
             button->set_item_icon("save_1_min", &get_theme().save_texture);
@@ -1265,7 +1267,7 @@ namespace gsr {
                     replay_settings_page->on_config_changed = [this]() {
                         replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
                         if(recording_status == RecordingStatus::REPLAY)
-                            show_notification("Replay settings have been modified.\nYou may need to restart replay to apply the changes.", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                            show_notification(TR("Replay settings have been modified.\nYou may need to restart replay to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                     };
                     page_stack.push(std::move(replay_settings_page));
                 } else if(id == "save") {
@@ -1284,12 +1286,12 @@ namespace gsr {
             main_buttons_list->add_widget(std::move(button));
         }
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Record", "Not recording", &get_theme().record_button_texture,
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, TR("Record"), TR("Not recording"), &get_theme().record_button_texture,
                 mgl::vec2f(button_width, button_height));
             record_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start", config.record_config.start_stop_hotkey.to_string(false, false));
-            button->add_item("Pause", "pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
-            button->add_item("Settings", "settings");
+            button->add_item(TR("Start"), "start", config.record_config.start_stop_hotkey.to_string(false, false));
+            button->add_item(TR("Pause"), "pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
+            button->add_item(TR("Settings"), "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("pause", &get_theme().pause_texture);
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
@@ -1298,7 +1300,7 @@ namespace gsr {
                     auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack, supports_window_title);
                     record_settings_page->on_config_changed = [this]() {
                         if(recording_status == RecordingStatus::RECORD)
-                            show_notification("Recording settings have been modified.\nYou may need to restart recording to apply the changes.", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                            show_notification(TR("Recording settings have been modified.\nYou may need to restart recording to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
 
                         update_led_indicator_after_settings_change();
                     };
@@ -1313,11 +1315,11 @@ namespace gsr {
             main_buttons_list->add_widget(std::move(button));
         }
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, "Livestream", "Not streaming", &get_theme().stream_button_texture,
+            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, TR("Livestream"), TR("Not streaming"), &get_theme().stream_button_texture,
                 mgl::vec2f(button_width, button_height));
             stream_dropdown_button_ptr = button.get();
-            button->add_item("Start", "start", config.streaming_config.start_stop_hotkey.to_string(false, false));
-            button->add_item("Settings", "settings");
+            button->add_item(TR("Start"), "start", config.streaming_config.start_stop_hotkey.to_string(false, false));
+            button->add_item(TR("Settings"), "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
@@ -1325,7 +1327,7 @@ namespace gsr {
                     auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack, supports_window_title);
                     stream_settings_page->on_config_changed = [this]() {
                         if(recording_status == RecordingStatus::STREAM)
-                            show_notification("Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                            show_notification(TR("Streaming settings have been modified.\nYou may need to restart streaming to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
 
                         update_led_indicator_after_settings_change();
                     };
@@ -1357,12 +1359,12 @@ namespace gsr {
 
                     if(exit_status == 127) {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system.", 7.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                            show_notification(TR("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system."), 7.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                     } else {
                         if(enable)
-                            show_notification("Failed to add GPU Screen Recorder to system startup", notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                            show_notification(TR("Failed to add GPU Screen Recorder to system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                         else
-                            show_notification("Failed to remove GPU Screen Recorder from system startup", notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                            show_notification(TR("Failed to remove GPU Screen Recorder from system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                     }
                 };
 
@@ -1587,12 +1589,12 @@ namespace gsr {
             paused_clock.restart();
             update_ui_recording_paused();
             if(config.record_config.record_options.show_notifications)
-                show_notification("Recording has been paused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                show_notification(TR("Recording has been paused"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         } else {
             paused_total_time_seconds += paused_clock.get_elapsed_time_seconds();
             update_ui_recording_unpaused();
             if(config.record_config.record_options.show_notifications)
-                show_notification("Recording has been unpaused", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+                show_notification(TR("Recording has been unpaused"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
         }
 
         if(led_indicator && config.record_config.record_options.use_led_indicator)
@@ -1715,7 +1717,7 @@ namespace gsr {
     static std::string capture_target_get_notification_name(const char *capture_target, bool save) {
         std::string result;
         if(is_capture_target_monitor(capture_target)) {
-            result = "this monitor";
+            result = TR("this monitor");
         } else if(is_number(capture_target)) {
             mgl_context *context = mgl_get_context();
             Display *display = (Display*)context->connection;
@@ -1725,16 +1727,16 @@ namespace gsr {
 
             const std::optional<std::string> window_title = get_window_title(display, window_id);
             if(save) {
-                result = "window";
+                result = TR("window");
             } else if(window_title) {
                 result = strip(window_title.value());
                 truncate_string(result, 30);
-                result = "window \"" + result + "\"";
+                result = TRF("window \"%s\"", result.c_str());
             } else {
-                result = std::string("window ") + capture_target;
+                result = TRF("window %s", capture_target);
             }
         } else {
-            result = capture_target;
+            result = TR(capture_target);
         }
         return result;
     }
@@ -1939,19 +1941,46 @@ namespace gsr {
         seconds -= (minutes * 60);
 
         std::string result;
-        if(hours > 0)
-            result += std::to_string(hours) + " hour" + (hours == 1 ? "" : "s");
+        if(hours > 0) {
+            if (Translation::instance().plural_numbers_are_complex()) {
+                result += TRPF("%d hour", hours, hours);
+            }
+            else {
+                if(hours == 1)
+                    result += TRF("%d hour", hours);
+                else
+                    result += TRF("%d hours", hours);
+            }
+        }
 
         if(minutes > 0) {
             if(!result.empty())
                 result += " ";
-            result += std::to_string(minutes) + " minute" + (minutes == 1 ? "" : "s");
+
+            if (Translation::instance().plural_numbers_are_complex()) {
+                result += TRPF("%d minute", minutes, minutes);
+            }
+            else {
+                if(minutes == 1)
+                    result += TRF("%d minute", minutes);
+                else
+                    result += TRF("%d minutes", minutes);
+            }
         }
 
         if(seconds > 0 || (hours == 0 && minutes == 0)) {
             if(!result.empty())
                 result += " ";
-            result += std::to_string(seconds) + " second" + (seconds == 1 ? "" : "s");
+
+            if (Translation::instance().plural_numbers_are_complex()) {
+                result += TRPF("%d second", seconds, seconds);
+            }
+            else {
+                if(seconds == 1)
+                    result += TRF("%d second", seconds);
+                else
+                    result += TRF("%d seconds", seconds);
+            }
         }
 
         return result;
@@ -2019,7 +2048,7 @@ namespace gsr {
                     return;
 
                 const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
-                snprintf(msg, sizeof(msg), "Saved a %s recording of %s\nto \"%s\"",
+                snprintf(msg, sizeof(msg), TR("Saved a %s recording of %s\nto \"%s\""),
                     duration_str.c_str(),
                     capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str(), focused_window_name.c_str());
                 capture_target = recording_capture_target.c_str();
@@ -2030,7 +2059,7 @@ namespace gsr {
                     return;
 
                 const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
-                snprintf(msg, sizeof(msg), "Saved a %s replay of %s\nto \"%s\"",
+                snprintf(msg, sizeof(msg), TR("Saved a %s replay of %s\nto \"%s\""),
                     duration_str.c_str(),
                     capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str(), focused_window_name.c_str());
                 capture_target = recording_capture_target.c_str();
@@ -2040,7 +2069,7 @@ namespace gsr {
                 if(!config.screenshot_config.show_notifications)
                     return;
 
-                snprintf(msg, sizeof(msg), "Saved a screenshot of %s\nto \"%s\"",
+                snprintf(msg, sizeof(msg), TR("Saved a screenshot of %s\nto \"%s\""),
                     capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str(), focused_window_name.c_str());
                 capture_target = screenshot_capture_target.c_str();
                 break;
@@ -2072,7 +2101,7 @@ namespace gsr {
             const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
 
             char msg[512];
-            snprintf(msg, sizeof(msg), "Saved a %s replay of %s",
+            snprintf(msg, sizeof(msg), TR("Saved a %s replay of %s"),
                 duration_str.c_str(),
                 capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
             show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
@@ -2086,7 +2115,7 @@ namespace gsr {
         if(replay_save_show_notification && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
             replay_save_show_notification = false;
             if(config.replay_config.record_options.show_notifications)
-                show_notification("Saving replay, this might take some time", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                show_notification(TR("Saving replay, this might take some time"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
         }
 
         if(gpu_screen_recorder_process_output_file) {
@@ -2131,17 +2160,17 @@ namespace gsr {
     void Overlay::on_gsr_process_error(int exit_code, NotificationType notification_type) {
         fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_process, exit_code);
         if(exit_code == 50) {
-            show_notification("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 51) {
-            show_notification("Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 52) {
-            show_notification("Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec."), 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 53) {
-            show_notification("Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.", 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264."), 10.0, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 54) {
-            show_notification("Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else if(exit_code == 60) {
-            show_notification("Stopped capture because the user canceled the desktop portal", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Stopped capture because the user canceled the desktop portal"), notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         } else {
             const char *prefix = "";
             switch(notification_type) {
@@ -2149,21 +2178,21 @@ namespace gsr {
                 case NotificationType::NOTICE:
                     break;
                 case NotificationType::SCREENSHOT:
-                    prefix = "Failed to take a screenshot";
+                    prefix = TR("Failed to take a screenshot");
                     break;
                 case NotificationType::RECORD:
-                    prefix = "Failed to start/save recording";
+                    prefix = TR("Failed to start/save recording");
                     break;
                 case NotificationType::REPLAY:
-                    prefix = "Replay stopped because of an error";
+                    prefix = TR("Replay stopped because of an error");
                     break;
                 case NotificationType::STREAM:
-                    prefix = "Streaming stopped because of an error";
+                    prefix = TR("Streaming stopped because of an error");
                     break;
             }
 
             char msg[256];
-            snprintf(msg, sizeof(msg), "%s. Verify if settings are correct", prefix);
+            snprintf(msg, sizeof(msg), TR("%s. Verify if settings are correct"), prefix);
             show_notification(msg, notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), notification_type, nullptr, NotificationLevel::ERROR);
         }
     }
@@ -2192,7 +2221,7 @@ namespace gsr {
                 update_ui_replay_stopped();
                 if(exit_code == 0) {
                     if(config.replay_config.record_options.show_notifications)
-                        show_notification("Replay stopped", short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                        show_notification(TR("Replay stopped"), short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
                 } else {
                     on_gsr_process_error(exit_code, NotificationType::REPLAY);
                 }
@@ -2214,7 +2243,7 @@ namespace gsr {
                 update_ui_streaming_stopped();
                 if(exit_code == 0) {
                     if(config.streaming_config.record_options.show_notifications)
-                        show_notification("Streaming has stopped", short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                        show_notification(TR("Streaming has stopped"), short_notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
                 } else {
                     on_gsr_process_error(exit_code, NotificationType::STREAM);
                 }
@@ -2248,7 +2277,7 @@ namespace gsr {
                 save_video_in_current_game_directory(screenshot_filepath, NotificationType::SCREENSHOT);
             } else if(config.screenshot_config.show_notifications) {
                 char msg[512];
-                snprintf(msg, sizeof(msg), "Saved a screenshot of %s", capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
+                snprintf(msg, sizeof(msg), TR("Saved a screenshot of %s"), capture_target_get_notification_name(screenshot_capture_target.c_str(), true).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
 
@@ -2267,7 +2296,7 @@ namespace gsr {
             }
         } else {
             fprintf(stderr, "Warning: gpu-screen-recorder (%d) exited with exit status %d\n", (int)gpu_screen_recorder_screenshot_process, exit_code);
-            show_notification("Failed to take a screenshot. Verify if settings are correct", notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Failed to take a screenshot. Verify if settings are correct"), notification_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
         }
 
         gpu_screen_recorder_screenshot_process = -1;
@@ -2375,7 +2404,7 @@ namespace gsr {
                 const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
 
                 char msg[512];
-                snprintf(msg, sizeof(msg), "Saved a %s recording of %s",
+                snprintf(msg, sizeof(msg), TR("Saved a %s recording of %s"),
                     duration_str.c_str(),
                     capture_target_get_notification_name(recording_capture_target.c_str(), true).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
@@ -2401,8 +2430,8 @@ namespace gsr {
         if(!visible || recording_status != RecordingStatus::RECORD)
             return;
 
-        record_dropdown_button_ptr->set_description("Paused");
-        record_dropdown_button_ptr->set_item_label("pause", "Unpause");
+        record_dropdown_button_ptr->set_description(TR("Paused"));
+        record_dropdown_button_ptr->set_item_label("pause", TR("Unpause"));
         record_dropdown_button_ptr->set_item_icon("pause", &get_theme().play_texture);
     }
 
@@ -2410,8 +2439,8 @@ namespace gsr {
         if(!visible || recording_status != RecordingStatus::RECORD)
             return;
 
-        record_dropdown_button_ptr->set_description("Recording");
-        record_dropdown_button_ptr->set_item_label("pause", "Pause");
+        record_dropdown_button_ptr->set_description(TR("Recording"));
+        record_dropdown_button_ptr->set_item_label("pause", TR("Pause"));
         record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
     }
 
@@ -2419,9 +2448,9 @@ namespace gsr {
         if(!visible)
             return;
 
-        record_dropdown_button_ptr->set_item_label("start", "Stop and save");
+        record_dropdown_button_ptr->set_item_label("start", TR("Stop and save"));
         record_dropdown_button_ptr->set_activated(true);
-        record_dropdown_button_ptr->set_description("Recording");
+        record_dropdown_button_ptr->set_description(TR("Recording"));
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
         record_dropdown_button_ptr->set_item_enabled("pause", recording_status == RecordingStatus::RECORD);
     }
@@ -2430,12 +2459,12 @@ namespace gsr {
         if(!visible)
             return;
 
-        record_dropdown_button_ptr->set_item_label("start", "Start");
+        record_dropdown_button_ptr->set_item_label("start", TR("Start"));
         record_dropdown_button_ptr->set_activated(false);
-        record_dropdown_button_ptr->set_description("Not recording");
+        record_dropdown_button_ptr->set_description(TR("Not recording"));
         record_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
 
-        record_dropdown_button_ptr->set_item_label("pause", "Pause");
+        record_dropdown_button_ptr->set_item_label("pause", TR("Pause"));
         record_dropdown_button_ptr->set_item_icon("pause", &get_theme().pause_texture);
         record_dropdown_button_ptr->set_item_enabled("pause", false);
         update_upause_status();
@@ -2446,9 +2475,9 @@ namespace gsr {
         if(!visible)
             return;
 
-        stream_dropdown_button_ptr->set_item_label("start", "Stop");
+        stream_dropdown_button_ptr->set_item_label("start", TR("Stop"));
         stream_dropdown_button_ptr->set_activated(true);
-        stream_dropdown_button_ptr->set_description("Streaming");
+        stream_dropdown_button_ptr->set_description(TR("Streaming"));
         stream_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
     }
 
@@ -2456,9 +2485,9 @@ namespace gsr {
         if(!visible)
             return;
 
-        stream_dropdown_button_ptr->set_item_label("start", "Start");
+        stream_dropdown_button_ptr->set_item_label("start", TR("Start"));
         stream_dropdown_button_ptr->set_activated(false);
-        stream_dropdown_button_ptr->set_description("Not streaming");
+        stream_dropdown_button_ptr->set_description(TR("Not streaming"));
         stream_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
         update_ui_recording_stopped();
     }
@@ -2467,9 +2496,9 @@ namespace gsr {
         if(!visible)
             return;
 
-        replay_dropdown_button_ptr->set_item_label("start", "Turn off");
+        replay_dropdown_button_ptr->set_item_label("start", TR("Turn off"));
         replay_dropdown_button_ptr->set_activated(true);
-        replay_dropdown_button_ptr->set_description("On");
+        replay_dropdown_button_ptr->set_description(TR("On"));
         replay_dropdown_button_ptr->set_item_icon("start", &get_theme().stop_texture);
         replay_dropdown_button_ptr->set_item_enabled("save", true);
         replay_dropdown_button_ptr->set_item_enabled("save_1_min", current_recording_config.replay_config.replay_time >= 60);
@@ -2480,9 +2509,9 @@ namespace gsr {
         if(!visible)
             return;
 
-        replay_dropdown_button_ptr->set_item_label("start", "Turn on");
+        replay_dropdown_button_ptr->set_item_label("start", TR("Turn on"));
         replay_dropdown_button_ptr->set_activated(false);
-        replay_dropdown_button_ptr->set_description("Off");
+        replay_dropdown_button_ptr->set_description(TR("Off"));
         replay_dropdown_button_ptr->set_item_icon("start", &get_theme().play_texture);
         replay_dropdown_button_ptr->set_item_enabled("save", false);
         replay_dropdown_button_ptr->set_item_enabled("save_1_min", false);
@@ -2837,10 +2866,10 @@ namespace gsr {
             case RecordingStatus::REPLAY:
                 break;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start replay when recording.\nStop recording before starting replay.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Unable to start replay when recording.\nStop recording before starting replay."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
                 return false;
             case RecordingStatus::STREAM:
-                show_notification("Unable to start replay when streaming.\nStop streaming before starting replay.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Unable to start replay when streaming.\nStop streaming before starting replay."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
                 return false;
         }
 
@@ -2867,7 +2896,7 @@ namespace gsr {
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(!disable_notification && config.replay_config.record_options.show_notifications)
-                show_notification("Replay stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+                show_notification(TR("Replay stopped"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
 
             return true;
         }
@@ -2876,7 +2905,7 @@ namespace gsr {
         recording_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.replay_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
             return false;
         }
@@ -2961,7 +2990,7 @@ namespace gsr {
 
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to start replay", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Failed to launch gpu-screen-recorder to start replay"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
             return false;
         } else {
             recording_status = RecordingStatus::REPLAY;
@@ -2984,7 +3013,7 @@ namespace gsr {
         // to see when the program has exit.
         if(!disable_notification && config.replay_config.record_options.show_notifications) {
             char msg[256];
-            snprintf(msg, sizeof(msg), "Started replaying %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
+            snprintf(msg, sizeof(msg), TR("Started replaying %s"), capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
 
@@ -3012,7 +3041,7 @@ namespace gsr {
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
                     if(!replay_recording) {
                         if(config.record_config.record_options.show_notifications)
-                            show_notification("Started recording in the replay session", short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+                            show_notification(TR("Started recording in the replay session"), short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
 
                         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
@@ -3033,7 +3062,7 @@ namespace gsr {
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
-                    show_notification("Unable to start recording when replay is turned on.\nTurn off replay before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
+                    show_notification(TR("Unable to start recording when replay is turned on.\nTurn off replay before starting recording."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
                 }
                 return;
             }
@@ -3044,7 +3073,7 @@ namespace gsr {
                 if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
                     if(!replay_recording) {
                         if(config.record_config.record_options.show_notifications)
-                            show_notification("Started recording in the streaming session", short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+                            show_notification(TR("Started recording in the streaming session"), short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
                         update_ui_recording_started();
 
                         // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
@@ -3065,7 +3094,7 @@ namespace gsr {
                     replay_recording = true;
                     kill(gpu_screen_recorder_process, SIGRTMIN);
                 } else {
-                    show_notification("Unable to start recording when streaming.\nStop streaming before starting recording.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
+                    show_notification(TR("Unable to start recording when streaming.\nStop streaming before starting recording."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
                 }
                 return;
             }
@@ -3116,7 +3145,7 @@ namespace gsr {
         recording_capture_target = get_capture_target(record_area_option, capture_options);
         if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
             return;
         }
@@ -3193,7 +3222,7 @@ namespace gsr {
         record_filepath = output_file;
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to start recording", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Failed to launch gpu-screen-recorder to start recording"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
             return;
         } else {
             recording_status = RecordingStatus::RECORD;
@@ -3213,7 +3242,7 @@ namespace gsr {
         // 1...
         if(config.record_config.record_options.show_notifications) {
             char msg[256];
-            snprintf(msg, sizeof(msg), "Started recording %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
+            snprintf(msg, sizeof(msg), TR("Started recording %s"), capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
         }
 
@@ -3278,10 +3307,10 @@ namespace gsr {
             case RecordingStatus::STREAM:
                 break;
             case RecordingStatus::REPLAY:
-                show_notification("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
                 return;
             case RecordingStatus::RECORD:
-                show_notification("Unable to start streaming when recording.\nStop recording before starting streaming.", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
+                show_notification(TR("Unable to start streaming when recording.\nStop recording before starting streaming."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
                 return;
         }
 
@@ -3306,7 +3335,7 @@ namespace gsr {
 
             // TODO: Show this with a slight delay to make sure it doesn't show up in the video
             if(config.streaming_config.record_options.show_notifications)
-                show_notification("Streaming has stopped", notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+                show_notification(TR("Streaming has stopped"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
             return;
         }
 
@@ -3314,7 +3343,7 @@ namespace gsr {
         recording_capture_target = get_capture_target(config.streaming_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.streaming_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to start streaming, capture target \"%s\" is invalid.\nPlease change capture target in settings", recording_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to start streaming, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
             return;
         }
@@ -3395,7 +3424,7 @@ namespace gsr {
 
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
         if(gpu_screen_recorder_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to start streaming", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Failed to launch gpu-screen-recorder to start streaming"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
             return;
         } else {
             recording_status = RecordingStatus::STREAM;
@@ -3418,7 +3447,7 @@ namespace gsr {
         // to see when the program has exit.
         if(config.streaming_config.record_options.show_notifications) {
             char msg[256];
-            snprintf(msg, sizeof(msg), "Started streaming %s", capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
+            snprintf(msg, sizeof(msg), TR("Started streaming %s"), capture_target_get_notification_name(recording_capture_target.c_str(), false).c_str());
             show_notification(msg, short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::STREAM, recording_capture_target.c_str());
         }
 
@@ -3452,7 +3481,7 @@ namespace gsr {
         screenshot_capture_target = get_capture_target(record_area_option, capture_options);
         if(!validate_capture_target(record_area_option, capture_options)) {
             char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), "Failed to take a screenshot, capture target \"%s\" is invalid.\nPlease change capture target in settings", screenshot_capture_target.c_str());
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to take a screenshot, capture target \"%s\" is invalid.\nPlease change capture target in settings"), screenshot_capture_target.c_str());
             show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
             return;
         }
@@ -3523,7 +3552,7 @@ namespace gsr {
         screenshot_filepath = output_file;
         gpu_screen_recorder_screenshot_process = exec_program(args.data(), nullptr);
         if(gpu_screen_recorder_screenshot_process == -1) {
-            show_notification("Failed to launch gpu-screen-recorder to take a screenshot", notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
+            show_notification(TR("Failed to launch gpu-screen-recorder to take a screenshot"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
         }
     }
 

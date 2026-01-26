@@ -1,7 +1,10 @@
 #include "../include/Translation.hpp"
+#include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <unordered_map>
 #include <fstream>
+
 
 namespace gsr {
     std::string Translation::get_system_language() {
@@ -35,8 +38,38 @@ namespace gsr {
         return str.substr(start, end - start + 1);
     }
 
+    void Translation::process_escapes(std::string& str) {
+        size_t pos = 0;
+        while ((pos = str.find("\\n", pos)) != std::string::npos) {
+            str.replace(pos, 2, "\n");
+            pos += 1;
+        }
+    }
+
+    bool Translation::is_language_supported(const char* lang) {
+        std::string paths[] = {
+            std::string("translations/") + lang + ".txt",
+            std::string(this->translations_directory) + lang + ".txt"
+        };
+
+        for (const auto& path : paths) {
+            std::ifstream file(path);
+            if (file.is_open()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool Translation::load_language(const char* lang) {
         translations.clear();
+
+        if (!is_language_supported(lang)) {
+            fprintf(stderr, "Warning: language '%s' is not supported\n", lang);
+            return false;
+        }
+
         current_language = lang;
 
         if (strcmp(lang, "en") == 0) {
@@ -61,18 +94,17 @@ namespace gsr {
                 size_t eq_pos = line.find('=');
                 if (eq_pos == std::string::npos) continue;
 
-                std::string key = trim(line.substr(0, eq_pos));
-                std::string value = trim(line.substr(eq_pos + 1));
+                std::string key = line.substr(0, eq_pos);
+                std::string value = line.substr(eq_pos + 1);
 
-                size_t pos = 0;
-                while ((pos = value.find("\\n", pos)) != std::string::npos) {
-                    value.replace(pos, 2, "\n");
-                    pos += 1;
-                }
+                // Process escape sequences in both key and value
+                process_escapes(key);
+                process_escapes(value);
 
                 translations[key] = value;
             }
 
+            fprintf(stderr, "Info: Loaded translation file for '%s' from %s\n", lang, path.c_str());
             return true;
         }
 
@@ -91,11 +123,65 @@ namespace gsr {
         load_language(initial_language == nullptr ? get_system_language().c_str() : initial_language);
     }
 
+    bool Translation::plural_numbers_are_complex() {
+        if (
+            current_language == "ru" ||
+            current_language == "uk" ||
+            current_language == "pl" ||
+            current_language == "cs" ||
+            current_language == "sk" ||
+            current_language == "hr" ||
+            current_language == "sl"
+        ) {
+            return true;
+        }
+
+        return current_language != "en";
+    }
+
+    std::string Translation::get_complex_plural_number_key(const char* key, int number) {
+        std::string s_key = key;
+        if (current_language == "ru" || current_language == "uk") {
+            int n = number % 100;
+            if (n >= 11 && n <= 14) {
+                return s_key + "_many";
+            }
+            n = number % 10;
+            if (n == 1) {
+                return s_key + "_one";
+            }
+            if (n >= 2 && n <= 4) {
+                return s_key + "_few";
+            }
+            return s_key + "_many";
+        } else if (current_language == "pl") {
+            int n = number % 100;
+            if (n >= 12 && n <= 14) {
+                return s_key + "_many";
+            }
+            n = number % 10;
+            if (n == 1) {
+                return s_key + "_one";
+            }
+            if (n >= 2 && n <= 4) {
+                return s_key + "_few";
+            }
+            return s_key + "_many";
+        }
+        // Add more languages as needed
+
+        return key; // default fallback
+    }
+
     const char* Translation::translate(const char* key) {
         auto it = translations.find(key);
         if (it != translations.end()) {
             return it->second.c_str();
         }
+#ifndef DNDEBUG
+        if(current_language != "en")
+            fprintf(stderr, "Warning: translation key '%s' not found\n", key);
+#endif
         return key; // falling back if nothing found
     }
 }

@@ -10,6 +10,7 @@
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Utils.hpp"
+#include "../../include/Translation.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -29,9 +30,9 @@ namespace gsr {
 
     static const char* settings_page_type_to_title_text(SettingsPage::Type type) {
         switch(type) {
-            case SettingsPage::Type::REPLAY: return "Instant Replay";
-            case SettingsPage::Type::RECORD: return "Record";
-            case SettingsPage::Type::STREAM: return "Livestream";
+            case SettingsPage::Type::REPLAY: return TR("Instant Replay");
+            case SettingsPage::Type::RECORD: return TR("Record");
+            case SettingsPage::Type::STREAM: return TR("Livestream");
         }
         return "";
     }
@@ -48,8 +49,8 @@ namespace gsr {
         application_audio = get_application_audio();
         capture_options = get_supported_capture_options(*gsr_info);
 
-        auto content_page = std::make_unique<GsrPage>(settings_page_type_to_title_text(type), "Settings");
-        content_page->add_button("Back", "back", get_color_theme().page_bg_color);
+        auto content_page = std::make_unique<GsrPage>(settings_page_type_to_title_text(type), TR("Settings"));
+        content_page->add_button(TR("Back"), "back", get_color_theme().page_bg_color);
         content_page->on_click = [page_stack](const std::string &id) {
             if(id == "back")
                 page_stack->pop();
@@ -64,8 +65,8 @@ namespace gsr {
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
         auto view_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
-        view_radio_button->add_item("Simple view", "simple");
-        view_radio_button->add_item("Advanced view", "advanced");
+        view_radio_button->add_item(TR("Simple view"), "simple");
+        view_radio_button->add_item(TR("Advanced view"), "advanced");
         view_radio_button->set_horizontal_alignment(Widget::Alignment::CENTER);
         view_radio_button_ptr = view_radio_button.get();
         return view_radio_button;
@@ -75,27 +76,27 @@ namespace gsr {
         auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them
         if(capture_options.window)
-            record_area_box->add_item("Window", "window");
+            record_area_box->add_item(TR("Window"), "window");
         if(capture_options.focused)
-            record_area_box->add_item("Follow focused window", "focused");
+            record_area_box->add_item(TR("Follow focused window"), "focused");
         if(capture_options.region)
-            record_area_box->add_item("Region", "region");
+            record_area_box->add_item(TR("Region"), "region");
         if(!capture_options.monitors.empty())
-            record_area_box->add_item("Focused monitor", "focused_monitor");
+            record_area_box->add_item(TR("Focused monitor"), "focused_monitor");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
-            snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
+            snprintf(name, sizeof(name), TR("Monitor %s (%dx%d)"), monitor.name.c_str(), monitor.size.x, monitor.size.y);
             record_area_box->add_item(name, monitor.name);
         }
         if(capture_options.portal)
-            record_area_box->add_item("Desktop portal", "portal");
+            record_area_box->add_item(TR("Desktop portal"), "portal");
         record_area_box_ptr = record_area_box.get();
         return record_area_box;
     }
 
     std::unique_ptr<Widget> SettingsPage::create_record_area() {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture source:", get_color_theme().text_color));
+        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Capture source:"), get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box());
         return record_area_list;
     }
@@ -124,7 +125,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_area_size_section() {
         auto area_size_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        area_size_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Area size:", get_color_theme().text_color));
+        area_size_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Area size:"), get_color_theme().text_color));
         area_size_list->add_widget(create_area_size());
         area_size_list_ptr = area_size_list.get();
         return area_size_list;
@@ -154,14 +155,14 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_resolution_section() {
         auto video_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video resolution limit:", get_color_theme().text_color));
+        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video resolution limit:"), get_color_theme().text_color));
         video_resolution_list->add_widget(create_video_resolution());
         video_resolution_list_ptr = video_resolution_list.get();
         return video_resolution_list;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_restore_portal_session_checkbox() {
-        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Restore portal session");
+        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Restore portal session"));
         restore_portal_session_checkbox->set_checked(true);
         restore_portal_session_checkbox_ptr = restore_portal_session_checkbox.get();
         return restore_portal_session_checkbox;
@@ -176,7 +177,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Widget> SettingsPage::create_change_video_resolution_section() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Change video resolution");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Change video resolution"));
         change_video_resolution_checkbox_ptr = checkbox.get();
         return checkbox;
     }
@@ -192,15 +193,15 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_video_resolution_section());
-        return std::make_unique<Subsection>("Capture", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Capture"), std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<List> SettingsPage::create_webcam_sources() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
-        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, "Webcam source:", get_color_theme().text_color));
+        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Webcam source:"), get_color_theme().text_color));
 
         auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
-        combobox->add_item("None", "");
+        combobox->add_item(TR("None"), "");
         for(const GsrCamera &camera : capture_options.cameras) {
             combobox->add_item(camera.path, camera.path);
         }
@@ -222,13 +223,13 @@ namespace gsr {
                 return;
 
             webcam_body_list_ptr->set_visible(true);
-            webcam_video_format_box_ptr->add_item("Auto (recommended)", "auto");
+            webcam_video_format_box_ptr->add_item(TR("Auto (recommended)"), "auto");
 
             if(!it->yuyv_setups.empty())
-                webcam_video_format_box_ptr->add_item("YUYV", "yuyv");
+                webcam_video_format_box_ptr->add_item(TR("YUYV"), "yuyv");
 
             if(!it->mjpeg_setups.empty())
-                webcam_video_format_box_ptr->add_item("Motion-JPEG", "mjpeg");
+                webcam_video_format_box_ptr->add_item(TR("Motion-JPEG"), "mjpeg");
 
             webcam_video_format_box_ptr->set_selected_item("auto");
             webcam_video_format_box_ptr->set_selected_item(get_current_record_options().webcam_video_format);
@@ -253,7 +254,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_webcam_video_setups() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
-        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video setup:", get_color_theme().text_color));
+        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video setup:"), get_color_theme().text_color));
 
         auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
         webcam_video_setup_box_ptr = combobox.get();
@@ -274,7 +275,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_webcam_video_format() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
-        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video format:", get_color_theme().text_color));
+        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video format:"), get_color_theme().text_color));
 
         auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
         webcam_video_format_box_ptr = combobox.get();
@@ -382,7 +383,7 @@ namespace gsr {
 
             {
                 draw_rectangle_outline(window, pos, size, mgl::Color(255, 0, 0, 255), screen_border);
-                mgl::Text screen_text("Screen", get_theme().camera_setup_font);
+                mgl::Text screen_text(TR("Screen"), get_theme().camera_setup_font);
                 screen_text.set_position((pos + size * 0.5f - screen_text.get_bounds().size * 0.5f).floor());
                 window.draw(screen_text);
             }
@@ -397,7 +398,7 @@ namespace gsr {
                 // resize_area.set_color(mgl::Color(0, 0, 255, 255));
                 // window.draw(resize_area);
 
-                mgl::Text webcam_text("Webcam", get_theme().camera_setup_font);
+                mgl::Text webcam_text(TR("Webcam"), get_theme().camera_setup_font);
                 webcam_text.set_position((webcam_box_drawn_pos + webcam_box_drawn_size * 0.5f - webcam_text.get_bounds().size * 0.5f).floor());
                 window.draw(webcam_text);
             }
@@ -457,7 +458,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_flip_camera_checkbox() {
-        auto flip_camera_horizontally_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Flip camera horizontally");
+        auto flip_camera_horizontally_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Flip camera horizontally"));
         flip_camera_horizontally_checkbox_ptr = flip_camera_horizontally_checkbox.get();
         return flip_camera_horizontally_checkbox;
     }
@@ -467,7 +468,7 @@ namespace gsr {
         webcam_body_list_ptr = body_list.get();
         body_list->set_visible(false);
         body_list->add_widget(create_webcam_location_widget());
-        body_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "* Right click in the bottom right corner to resize the webcam", get_color_theme().text_color));
+        body_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("* Right click in the bottom right corner to resize the webcam"), get_color_theme().text_color));
         body_list->add_widget(create_flip_camera_checkbox());
         body_list->add_widget(create_webcam_video_setup_list());
         return body_list;
@@ -477,7 +478,7 @@ namespace gsr {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
         ll->add_widget(create_webcam_sources());
         ll->add_widget(create_webcam_body());
-        return std::make_unique<Subsection>("Webcam", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Webcam"), std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     static bool audio_device_is_output(const std::string &audio_device_id) {
@@ -534,14 +535,14 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_audio_device(AudioDeviceType device_type, List *audio_input_list_ptr) {
         auto audio_device_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         audio_device_list->userdata = (void*)(uintptr_t)AudioTrackType::DEVICE;
-        audio_device_list->add_widget(std::make_unique<Label>(&get_theme().body_font, device_type == AudioDeviceType::OUTPUT ? "Output device:" : "Input device:   ", get_color_theme().text_color));
+        audio_device_list->add_widget(std::make_unique<Label>(&get_theme().body_font, device_type == AudioDeviceType::OUTPUT ? TR("Output device:") : TR("Input device:   "), get_color_theme().text_color));
         audio_device_list->add_widget(create_audio_device_selection_combobox(device_type));
         audio_device_list->add_widget(create_remove_audio_device_button(audio_input_list_ptr, audio_device_list.get()));
         return audio_device_list;
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_audio_track_button() {
-        auto button = std::make_unique<Button>(&get_theme().body_font, "Add audio track", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto button = std::make_unique<Button>(&get_theme().body_font, TR("Add audio track"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this]() {
             audio_track_section_list_ptr->add_widget(create_audio_track_section(audio_section_ptr));
         };
@@ -566,7 +567,7 @@ namespace gsr {
                 switch(audio_track_type) {
                     case AudioTrackType::DEVICE: {
                         Label *label = dynamic_cast<Label*>(audio_track_line->get_child_widget_by_index(0));
-                        const bool is_output_device = starts_with(label->get_text().c_str(), "Output device");
+                        const bool is_output_device = starts_with(label->get_text().c_str(), TR("Output device"));
                         if(is_output_device)
                             num_output_devices++;
                         break;
@@ -586,7 +587,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_audio_output_device_button(List *audio_input_list_ptr) {
-        auto button = std::make_unique<Button>(&get_theme().body_font, "Add output device", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto button = std::make_unique<Button>(&get_theme().body_font, TR("Add output device"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this, audio_input_list_ptr]() {
             audio_devices = get_audio_devices();
             audio_input_list_ptr->add_widget(create_audio_device(AudioDeviceType::OUTPUT, audio_input_list_ptr));
@@ -596,7 +597,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_audio_input_device_button(List *audio_input_list_ptr) {
-        auto button = std::make_unique<Button>(&get_theme().body_font, "Add input device", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto button = std::make_unique<Button>(&get_theme().body_font, TR("Add input device"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this, audio_input_list_ptr]() {
             audio_devices = get_audio_devices();
             audio_input_list_ptr->add_widget(create_audio_device(AudioDeviceType::INPUT, audio_input_list_ptr));
@@ -610,7 +611,7 @@ namespace gsr {
         for(const auto &app_audio : application_audio) {
             audio_device_box->add_item(app_audio, app_audio);
         }
-        audio_device_box->add_item("Custom...", custom_app_audio_tag);
+        audio_device_box->add_item(TR("Custom..."), custom_app_audio_tag);
 
         audio_device_box->on_selection_changed = [application_audio_row, audio_device_box_ptr](const std::string&, const std::string &id) {
             if(id == custom_app_audio_tag) {
@@ -626,7 +627,7 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_application_audio(List *audio_input_list_ptr) {
         auto application_audio_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         application_audio_list->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION;
-        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Application:     ", get_color_theme().text_color));
+        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Application:     "), get_color_theme().text_color));
         application_audio_list->add_widget(create_application_audio_selection_combobox(application_audio_list.get()));
         application_audio_list->add_widget(create_remove_audio_device_button(audio_input_list_ptr, application_audio_list.get()));
         return application_audio_list;
@@ -635,14 +636,14 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_custom_application_audio(List *audio_input_list_ptr) {
         auto application_audio_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         application_audio_list->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION_CUSTOM;
-        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Application:     ", get_color_theme().text_color));
+        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Application:     "), get_color_theme().text_color));
         application_audio_list->add_widget(std::make_unique<Entry>(&get_theme().body_font, "", (int)(get_theme().body_font.get_character_size() * 10.0f)));
         application_audio_list->add_widget(create_remove_audio_device_button(audio_input_list_ptr, application_audio_list.get()));
         return application_audio_list;
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_application_audio_button(List *audio_input_list_ptr) {
-        auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "Add application audio", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, TR("Add application audio"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         add_audio_track_button->on_click = [this, audio_input_list_ptr]() {
             application_audio = get_application_audio();
             if(application_audio.empty())
@@ -670,7 +671,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_application_audio_invert_checkbox() {
-        auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record audio from all applications except the selected ones");
+        auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record audio from all applications except the selected ones"));
         application_audio_invert_checkbox->set_checked(false);
         application_audio_invert_checkbox->on_changed = [this](bool) {
             update_application_audio_warning_visibility();
@@ -685,7 +686,7 @@ namespace gsr {
 
         const int font_character_size = get_theme().body_font.get_character_size();
         list->add_widget(std::make_unique<Image>(&get_theme().warning_texture, mgl::vec2f(font_character_size, font_character_size), Image::ScaleBehavior::SCALE));
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices."), get_color_theme().text_color));
 
         return list;
     }
@@ -694,7 +695,7 @@ namespace gsr {
         int index = 0;
         audio_track_section_list_ptr->for_each_child_widget([&index](std::unique_ptr<Widget> &widget) {
             char audio_track_name[32];
-            snprintf(audio_track_name, sizeof(audio_track_name), "Audio track #%d", 1 + index);
+            snprintf(audio_track_name, sizeof(audio_track_name), TR("Audio track #%d"), 1 + index);
             ++index;
 
             Subsection *subsection = dynamic_cast<Subsection*>(widget.get());
@@ -723,7 +724,7 @@ namespace gsr {
 
     std::unique_ptr<Subsection> SettingsPage::create_audio_track_section(Widget *parent_widget) {
         char audio_track_name[32];
-        snprintf(audio_track_name, sizeof(audio_track_name), "Audio track #%d", 1 + (int)audio_track_section_list_ptr->get_num_children());
+        snprintf(audio_track_name, sizeof(audio_track_name), TR("Audio track #%d"), 1 + (int)audio_track_section_list_ptr->get_num_children());
 
         auto audio_input_section = create_audio_input_section();
         List *audio_input_section_ptr = audio_input_section.get();
@@ -753,7 +754,7 @@ namespace gsr {
         auto audio_device_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         List *audio_device_section_list_ptr = audio_device_section_list.get();
 
-        auto subsection = std::make_unique<Subsection>("Audio", std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        auto subsection = std::make_unique<Subsection>(TR("Audio"), std::move(audio_device_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
         audio_section_ptr = subsection.get();
         audio_device_section_list_ptr->add_widget(create_add_audio_track_button());
         audio_device_section_list_ptr->add_widget(create_audio_track_section_list());
@@ -763,20 +764,20 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_quality_box() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video quality:", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video quality:"), get_color_theme().text_color));
 
         auto video_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
         if(type == Type::REPLAY || type == Type::STREAM)
-            video_quality_box->add_item("Constant bitrate (Recommended)", "custom");
+            video_quality_box->add_item(TR("Constant bitrate (Recommended)"), "custom");
         else
-            video_quality_box->add_item("Constant bitrate", "custom");
-        video_quality_box->add_item("Medium", "medium");
-        video_quality_box->add_item("High", "high");
+            video_quality_box->add_item(TR("Constant bitrate"), "custom");
+        video_quality_box->add_item(TR("Medium"), "medium");
+        video_quality_box->add_item(TR("High"), "high");
         if(type == Type::REPLAY || type == Type::STREAM)
-            video_quality_box->add_item("Very high", "very_high");
+            video_quality_box->add_item(TR("Very high"), "very_high");
         else
-            video_quality_box->add_item("Very high (Recommended)", "very_high");
-        video_quality_box->add_item("Ultra", "ultra");
+            video_quality_box->add_item(TR("Very high (Recommended)"), "very_high");
+        video_quality_box->add_item(TR("Ultra"), "ultra");
 
         if(type == Type::REPLAY || type == Type::STREAM)
             video_quality_box->set_selected_item("custom");
@@ -814,7 +815,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate() {
         auto video_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video bitrate (Kbps):", get_color_theme().text_color));
+        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video bitrate (Kbps):"), get_color_theme().text_color));
         video_bitrate_list->add_widget(create_video_bitrate_entry());
         video_bitrate_list_ptr = video_bitrate_list.get();
         return video_bitrate_list;
@@ -822,15 +823,15 @@ namespace gsr {
 
     std::unique_ptr<ComboBox> SettingsPage::create_color_range_box() {
         auto color_range_box = std::make_unique<ComboBox>(&get_theme().body_font);
-        color_range_box->add_item("Limited", "limited");
-        color_range_box->add_item("Full", "full");
+        color_range_box->add_item(TR("Limited"), "limited");
+        color_range_box->add_item(TR("Full"), "full");
         color_range_box_ptr = color_range_box.get();
         return color_range_box;
     }
 
     std::unique_ptr<List> SettingsPage::create_color_range() {
         auto color_range_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        color_range_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Color range:", get_color_theme().text_color));
+        color_range_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Color range:"), get_color_theme().text_color));
         color_range_list->add_widget(create_color_range_box());
         color_range_list_ptr = color_range_list.get();
         return color_range_list;
@@ -849,34 +850,34 @@ namespace gsr {
         // TODO: Show options not supported but disable them.
         // TODO: Show error if no encoders are supported.
         // TODO: Show warning (once) if only software encoder is available.
-        video_codec_box->add_item("Auto (Recommended)", "auto");
+        video_codec_box->add_item(TR("Auto (Recommended)"), "auto");
         if(gsr_info->supported_video_codecs.h264)
-            video_codec_box->add_item("H264", "h264");
+            video_codec_box->add_item(TR("H264"), "h264");
         if(gsr_info->supported_video_codecs.hevc)
-            video_codec_box->add_item("HEVC", "hevc");
+            video_codec_box->add_item(TR("HEVC"), "hevc");
         if(gsr_info->supported_video_codecs.hevc_10bit)
-            video_codec_box->add_item("HEVC (10 bit, reduces banding)", "hevc_10bit");
+            video_codec_box->add_item(TR("HEVC (10 bit, reduces banding)"), "hevc_10bit");
         if(gsr_info->supported_video_codecs.hevc_hdr)
-            video_codec_box->add_item("HEVC (HDR)", "hevc_hdr");
+            video_codec_box->add_item(TR("HEVC (HDR)"), "hevc_hdr");
         if(gsr_info->supported_video_codecs.av1)
-            video_codec_box->add_item("AV1", "av1");
+            video_codec_box->add_item(TR("AV1"), "av1");
         if(gsr_info->supported_video_codecs.av1_10bit)
-            video_codec_box->add_item("AV1 (10 bit, reduces banding)", "av1_10bit");
+            video_codec_box->add_item(TR("AV1 (10 bit, reduces banding)"), "av1_10bit");
         if(gsr_info->supported_video_codecs.av1_hdr)
-            video_codec_box->add_item("AV1 (HDR)", "av1_hdr");
+            video_codec_box->add_item(TR("AV1 (HDR)"), "av1_hdr");
         if(gsr_info->supported_video_codecs.vp8)
-            video_codec_box->add_item("VP8", "vp8");
+            video_codec_box->add_item(TR("VP8"), "vp8");
         if(gsr_info->supported_video_codecs.vp9)
-            video_codec_box->add_item("VP9", "vp9");
+            video_codec_box->add_item(TR("VP9"), "vp9");
         if(gsr_info->supported_video_codecs.h264_software)
-            video_codec_box->add_item("H264 Software Encoder (Slow, not recommended)", "h264_software");
+            video_codec_box->add_item(TR("H264 Software Encoder (Slow, not recommended)"), "h264_software");
         video_codec_box_ptr = video_codec_box.get();
         return video_codec_box;
     }
 
     std::unique_ptr<List> SettingsPage::create_video_codec() {
         auto video_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Video codec:", get_color_theme().text_color));
+        video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video codec:"), get_color_theme().text_color));
         video_codec_list->add_widget(create_video_codec_box());
         video_codec_ptr = video_codec_list.get();
         return video_codec_list;
@@ -884,15 +885,15 @@ namespace gsr {
 
     std::unique_ptr<ComboBox> SettingsPage::create_audio_codec_box() {
         auto audio_codec_box = std::make_unique<ComboBox>(&get_theme().body_font);
-        audio_codec_box->add_item("Opus (Recommended)", "opus");
-        audio_codec_box->add_item("AAC", "aac");
+        audio_codec_box->add_item(TR("Opus (Recommended)"), "opus");
+        audio_codec_box->add_item(TR("AAC"), "aac");
         audio_codec_box_ptr = audio_codec_box.get();
         return audio_codec_box;
     }
 
     std::unique_ptr<List> SettingsPage::create_audio_codec() {
         auto audio_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Audio codec:", get_color_theme().text_color));
+        audio_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Audio codec:"), get_color_theme().text_color));
         audio_codec_list->add_widget(create_audio_codec_box());
         audio_codec_ptr = audio_codec_list.get();
         return audio_codec_list;
@@ -907,27 +908,27 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_framerate() {
         auto framerate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        framerate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate:", get_color_theme().text_color));
+        framerate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Frame rate:"), get_color_theme().text_color));
         framerate_list->add_widget(create_framerate_entry());
         return framerate_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_framerate_mode_box() {
         auto framerate_mode_box = std::make_unique<ComboBox>(&get_theme().body_font);
-        framerate_mode_box->add_item("Auto (Recommended)", "auto");
-        framerate_mode_box->add_item("Constant", "cfr");
-        framerate_mode_box->add_item("Variable", "vfr");
+        framerate_mode_box->add_item(TR("Auto (Recommended)"), "auto");
+        framerate_mode_box->add_item(TR("Constant"), "cfr");
+        framerate_mode_box->add_item(TR("Variable"), "vfr");
         if(gsr_info->system_info.display_server == DisplayServer::X11)
-            framerate_mode_box->add_item("Sync to content", "content");
+            framerate_mode_box->add_item(TR("Sync to content"), "content");
         else
-            framerate_mode_box->add_item("Sync to content (Only X11 or desktop portal capture)", "content");
+            framerate_mode_box->add_item(TR("Sync to content (Only X11 or desktop portal capture)"), "content");
         framerate_mode_box_ptr = framerate_mode_box.get();
         return framerate_mode_box;
     }
 
     std::unique_ptr<List> SettingsPage::create_framerate_mode() {
         auto framerate_mode_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        framerate_mode_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Frame rate mode:", get_color_theme().text_color));
+        framerate_mode_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Frame rate mode:"), get_color_theme().text_color));
         framerate_mode_list->add_widget(create_framerate_mode_box());
         framerate_mode_list_ptr = framerate_mode_list.get();
         return framerate_mode_list;
@@ -941,7 +942,7 @@ namespace gsr {
     }
     
     std::unique_ptr<Widget> SettingsPage::create_record_cursor_section() {
-        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record cursor"));
         record_cursor_checkbox->set_checked(true);
         record_cursor_checkbox_ptr = record_cursor_checkbox.get();
         return record_cursor_checkbox;
@@ -953,7 +954,7 @@ namespace gsr {
         video_section_list->add_widget(create_video_codec());
         video_section_list->add_widget(create_framerate_section());
         video_section_list->add_widget(create_record_cursor_section());
-        return std::make_unique<Subsection>("Video", std::move(video_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Video"), std::move(video_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Widget> SettingsPage::create_settings() {
@@ -1034,10 +1035,10 @@ namespace gsr {
         auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
-            auto select_directory_page = std::make_unique<GsrPage>("File", "Settings");
-            select_directory_page->add_button("Save", "save", get_color_theme().tint_color);
-            select_directory_page->add_button("Cancel", "cancel", get_color_theme().page_bg_color);
-            
+            auto select_directory_page = std::make_unique<GsrPage>(TR("File"), "Settings");
+            select_directory_page->add_button(TR("Save"), "save", get_color_theme().tint_color);
+            select_directory_page->add_button(TR("Cancel"), "cancel", get_color_theme().page_bg_color);
+
             auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text().c_str(), select_directory_page->get_inner_size());
             FileChooser *file_chooser_ptr = file_chooser.get();
             select_directory_page->add_widget(std::move(file_chooser));
@@ -1069,7 +1070,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_container_section() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_color_theme().text_color));
+        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Container:"), get_color_theme().text_color));
         container_list->add_widget(create_container_box());
         return container_list;
     }
@@ -1091,18 +1092,18 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_replay_time() {
         auto replay_time_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Replay duration in seconds:", get_color_theme().text_color));
+        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Replay duration in seconds:"), get_color_theme().text_color));
         replay_time_list->add_widget(create_replay_time_entry());
         return replay_time_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_replay_storage() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Where should temporary replay data be stored?", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Where should temporary replay data be stored?"), get_color_theme().text_color));
         auto replay_storage_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
         replay_storage_button_ptr = replay_storage_button.get();
-        replay_storage_button->add_item("RAM", "ram");
-        replay_storage_button->add_item("Disk (Not recommended on SSDs)", "disk");
+        replay_storage_button->add_item(TR("RAM"), "ram");
+        replay_storage_button->add_item(TR("Disk (Not recommended on SSDs)"), "disk");
 
         replay_storage_button->on_selection_changed = [this](const std::string&, const std::string &id) {
             update_estimated_replay_file_size(id);
@@ -1117,33 +1118,33 @@ namespace gsr {
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
         // TODO: Support kde plasma wayland and hyprland (same ones that support getting window title)
         char fullscreen_text[256];
-        snprintf(fullscreen_text, sizeof(fullscreen_text), "Turn on replay when starting a fullscreen application%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
+        snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
 
         auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
-        radiobutton->add_item("Don't turn on replay automatically", "dont_turn_on_automatically");
-        radiobutton->add_item("Turn on replay when this program starts", "turn_on_at_system_startup");
+        radiobutton->add_item(TR("Don't turn on replay automatically"), "dont_turn_on_automatically");
+        radiobutton->add_item(TR("Turn on replay when this program starts"), "turn_on_at_system_startup");
         radiobutton->add_item(fullscreen_text, "turn_on_at_fullscreen");
-        radiobutton->add_item("Turn on replay when power supply is connected", "turn_on_at_power_supply_connected");
+        radiobutton->add_item(TR("Turn on replay when power supply is connected"), "turn_on_at_power_supply_connected");
         turn_on_replay_automatically_mode_ptr = radiobutton.get();
         return radiobutton;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder based on the focused applications name%s", supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), TR("Save video in a folder based on the focused applications name%s"), supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_restart_replay_on_save() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Restart replay on save");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Restart replay on save"));
         restart_replay_on_save = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_replay_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 57.60MB", get_color_theme().text_color);
+        auto label = std::make_unique<Label>(&get_theme().body_font, TR("Estimated video max file size in RAM: 57.60MB"), get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
@@ -1154,7 +1155,7 @@ namespace gsr {
         const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
         char buffer[256];
-        snprintf(buffer, sizeof(buffer), "Estimated video max file size %s: %.2fMB.\nChange video bitrate or replay duration to change file size.", replay_storage_type == "ram" ? "in RAM" : "on disk", video_filesize_mb);
+        snprintf(buffer, sizeof(buffer), TR("Estimated video max file size %s: %.2fMB.\nChange video bitrate or replay duration to change file size."), replay_storage_type == "ram" ? TR("in RAM") : TR("on disk"), video_filesize_mb);
         estimated_file_size_ptr->set_text(buffer);
     }
 
@@ -1193,7 +1194,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_led_indicator(const char *type) {
         char label_str[256];
-        snprintf(label_str, sizeof(label_str), "Show %s status with scroll lock led", type);
+        snprintf(label_str, sizeof(label_str), TR("Show %s status with scroll lock led"), type);
 
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
         checkbox->set_checked(false);
@@ -1203,7 +1204,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_notifications(const char *type) {
         char label_str[256];
-        snprintf(label_str, sizeof(label_str), "Show %s notifications", type);
+        snprintf(label_str, sizeof(label_str), TR("Show %s notifications"), type);
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
         checkbox->set_checked(true);
         show_notification_checkbox_ptr = checkbox.get();
@@ -1221,16 +1222,16 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         list->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
 
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record in low-power mode");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record in low-power mode"));
         low_power_mode_checkbox_ptr = checkbox.get();
 
         list->add_widget(std::move(checkbox));
 
         auto info = std::make_unique<Image>(&get_theme().question_mark_texture, low_power_mode_checkbox_ptr->get_size(), Image::ScaleBehavior::SCALE);
         info->set_tooltip_text(
-            "Do not force the GPU to go into high performance mode when recording.\n"
-            "May affect recording performance, especially when playing a video at the same time.\n"
-            "If enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle."
+            TR("Do not force the GPU to go into high performance mode when recording.\n"
+               "May affect recording performance, especially when playing a video at the same time.\n"
+               "If enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.")
         );
         Image *info_ptr = info.get();
         info->on_mouse_move = [info_ptr](bool inside) {
@@ -1247,12 +1248,12 @@ namespace gsr {
     void SettingsPage::add_replay_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_info_data_list->add_widget(create_save_directory("Directory to save replays:"));
+        file_info_data_list->add_widget(create_save_directory(TR("Directory to save replays:")));
         file_info_data_list->add_widget(create_container_section());
         file_info_data_list->add_widget(create_replay_time());
         file_info_list->add_widget(std::move(file_info_data_list));
         file_info_list->add_widget(create_estimated_replay_file_size());
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("File info"), std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_replay_storage());
@@ -1261,15 +1262,15 @@ namespace gsr {
             general_list->add_widget(create_restart_replay_on_save());
         general_list->add_widget(create_low_power_mode());
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("Replay indicator", create_indicator("replay"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("Autostart", create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator("replay"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             view_changed(id == "advanced");
             return true;
         };
-        view_radio_button_ptr->on_selection_changed("Simple", "simple");
+        view_radio_button_ptr->on_selection_changed(TR("Simple"), "simple");
 
         replay_time_entry_ptr->on_changed = [this](const std::string&) {
             update_estimated_replay_file_size(replay_storage_button_ptr->get_selected_id());
@@ -1283,14 +1284,14 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save video in a folder based on the focused applications name%s", supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), TR("Save video in a folder based on the focused applications name%s"), supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_record_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video file size per minute (excluding audio): 345.60MB", get_color_theme().text_color);
+        auto label = std::make_unique<Label>(&get_theme().body_font, TR("Estimated video file size per minute (excluding audio): 345.60MB"), get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
@@ -1300,32 +1301,32 @@ namespace gsr {
         const double video_filesize_mb_per_minute = (60.0 * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
         char buffer[512];
-        snprintf(buffer, sizeof(buffer), "Estimated video file size per minute (excluding audio): %.2fMB", video_filesize_mb_per_minute);
+        snprintf(buffer, sizeof(buffer), TR("Estimated video file size per minute (excluding audio): %.2fMB"), video_filesize_mb_per_minute);
         estimated_file_size_ptr->set_text(buffer);
     }
 
     void SettingsPage::add_record_widgets() {
         auto file_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_info_data_list->add_widget(create_save_directory("Directory to save videos:"));
+        file_info_data_list->add_widget(create_save_directory(TR("Directory to save videos:")));
         file_info_data_list->add_widget(create_container_section());
         file_info_list->add_widget(std::move(file_info_data_list));
         file_info_list->add_widget(create_estimated_record_file_size());
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("File info", std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("File info"), std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
         general_list->add_widget(create_low_power_mode());
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("Recording indicator", create_indicator("recording"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator("recording"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             view_changed(id == "advanced");
             return true;
         };
-        view_radio_button_ptr->on_selection_changed("Simple", "simple");
+        view_radio_button_ptr->on_selection_changed(TR("Simple"), "simple");
 
         video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
             update_estimated_record_file_size();
@@ -1334,18 +1335,18 @@ namespace gsr {
 
     std::unique_ptr<ComboBox> SettingsPage::create_streaming_service_box() {
         auto streaming_service_box = std::make_unique<ComboBox>(&get_theme().body_font);
-        streaming_service_box->add_item("Twitch", "twitch");
-        streaming_service_box->add_item("YouTube", "youtube");
-        streaming_service_box->add_item("Rumble", "rumble");
-        streaming_service_box->add_item("Kick", "kick");
-        streaming_service_box->add_item("Custom", "custom");
+        streaming_service_box->add_item(TR("Twitch"), "twitch");
+        streaming_service_box->add_item(TR("YouTube"), "youtube");
+        streaming_service_box->add_item(TR("Rumble"), "rumble");
+        streaming_service_box->add_item(TR("Kick"), "kick");
+        streaming_service_box->add_item(TR("Custom"), "custom");
         streaming_service_box_ptr = streaming_service_box.get();
         return streaming_service_box;
     }
 
     std::unique_ptr<List> SettingsPage::create_streaming_service_section() {
         auto streaming_service_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        streaming_service_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream service:", get_color_theme().text_color));
+        streaming_service_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream service:"), get_color_theme().text_color));
         streaming_service_list->add_widget(create_streaming_service_box());
         return streaming_service_list;
     }
@@ -1376,7 +1377,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_stream_key_section() {
         auto stream_key_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
+        stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream key:"), get_color_theme().text_color));
 
         twitch_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
         youtube_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
@@ -1392,7 +1393,7 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto stream_url_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
         stream_url_entry_ptr = stream_url_entry.get();
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream URL:", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream URL:"), get_color_theme().text_color));
         list->add_widget(std::move(stream_url_entry));
         return list;
     }
@@ -1416,7 +1417,7 @@ namespace gsr {
         stream_url_list->add_widget(create_stream_container());
 
         custom_stream_list->add_widget(std::move(stream_url_list));
-        custom_stream_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Stream key:", get_color_theme().text_color));
+        custom_stream_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream key:"), get_color_theme().text_color));
         custom_stream_list->add_widget(create_stream_custom_key());
 
         custom_stream_list_ptr = custom_stream_list.get();
@@ -1435,7 +1436,7 @@ namespace gsr {
     
     std::unique_ptr<List> SettingsPage::create_stream_container() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Container:", get_color_theme().text_color));
+        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Container:"), get_color_theme().text_color));
         container_list->add_widget(create_stream_container_box());
         return container_list;
     }
@@ -1446,13 +1447,13 @@ namespace gsr {
         streaming_info_list->add_widget(create_stream_key_section());
         streaming_info_list->add_widget(create_stream_custom_section());
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming info", std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming info"), std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_low_power_mode());
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("General", std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>("Streaming indicator", create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming indicator"), create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             const bool twitch_option = id == "twitch";
@@ -1475,7 +1476,7 @@ namespace gsr {
             view_changed(id == "advanced");
             return true;
         };
-        view_radio_button_ptr->on_selection_changed("Simple", "simple");
+        view_radio_button_ptr->on_selection_changed(TR("Simple"), "simple");
     }
 
     void SettingsPage::on_navigate_away_from_page() {

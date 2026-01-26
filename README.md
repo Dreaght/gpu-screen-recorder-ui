@@ -37,6 +37,11 @@ There are also additional dependencies needed at runtime:
 * [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/) (version 5.0.0 or later)
 * [GPU Screen Recorder Notification](https://git.dec05eba.com/gpu-screen-recorder-notification/)
 
+## Translation guide
+GPU Screen Recorder UI uses its own translation system for it. See the `translations/template.txt` file for the translation template.
+
+You can even translate the program without building it from source code by just creating a translation file in `/usr/share/gsr-ui/translations/` folder (if installed as a system package).
+
 ## Program behavior notes
 By default this program has to grab all keyboards and creates a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.\
 This might cause issues for you if you use keyboard remapping software. To workaround this you can go into settings and select "Yes, but only grab virtual devices" or "Yes, but don't grab devices".\

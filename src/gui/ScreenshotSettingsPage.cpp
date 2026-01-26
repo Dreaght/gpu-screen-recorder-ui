@@ -4,6 +4,7 @@
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Utils.hpp"
+#include "../../include/Translation.hpp"
 #include "../../include/gui/List.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/Label.hpp"
@@ -20,8 +21,8 @@ namespace gsr {
     {
         capture_options = get_supported_capture_options(*gsr_info);
 
-        auto content_page = std::make_unique<GsrPage>("Screenshot", "Settings");
-        content_page->add_button("Back", "back", get_color_theme().page_bg_color);
+        auto content_page = std::make_unique<GsrPage>(TR("Screenshot"), TR("Settings"));
+        content_page->add_button(TR("Back"), "back", get_color_theme().page_bg_color);
         content_page->on_click = [page_stack](const std::string &id) {
             if(id == "back")
                 page_stack->pop();
@@ -37,25 +38,25 @@ namespace gsr {
         auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
         // TODO: Show options not supported but disable them
         if(capture_options.window)
-            record_area_box->add_item("Window", "window");
+            record_area_box->add_item(TR("Window"), "window");
         if(capture_options.region)
-            record_area_box->add_item("Region", "region");
+            record_area_box->add_item(TR("Region"), "region");
         if(!capture_options.monitors.empty())
-            record_area_box->add_item("Focused monitor", "focused_monitor");
+            record_area_box->add_item(TR("Focused monitor"), "focused_monitor");
         for(const auto &monitor : capture_options.monitors) {
             char name[256];
-            snprintf(name, sizeof(name), "Monitor %s (%dx%d)", monitor.name.c_str(), monitor.size.x, monitor.size.y);
+            snprintf(name, sizeof(name), TR("Monitor %s (%dx%d)"), monitor.name.c_str(), monitor.size.x, monitor.size.y);
             record_area_box->add_item(name, monitor.name);
         }
         if(capture_options.portal)
-            record_area_box->add_item("Desktop portal", "portal");
+            record_area_box->add_item(TR("Desktop portal"), "portal");
         record_area_box_ptr = record_area_box.get();
         return record_area_box;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_record_area() {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Capture source:", get_color_theme().text_color));
+        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Capture source:"), get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box());
         return record_area_list;
     }
@@ -84,14 +85,14 @@ namespace gsr {
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_image_resolution_section() {
         auto image_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        image_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Image resolution limit:", get_color_theme().text_color));
+        image_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Image resolution limit:"), get_color_theme().text_color));
         image_resolution_list->add_widget(create_image_resolution());
         image_resolution_list_ptr = image_resolution_list.get();
         return image_resolution_list;
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_restore_portal_session_checkbox() {
-        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Restore portal session");
+        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Restore portal session"));
         restore_portal_session_checkbox->set_checked(true);
         restore_portal_session_checkbox_ptr = restore_portal_session_checkbox.get();
         return restore_portal_session_checkbox;
@@ -106,7 +107,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_change_image_resolution_section() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Change image resolution");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Change image resolution"));
         change_image_resolution_checkbox_ptr = checkbox.get();
         return checkbox;
     }
@@ -121,18 +122,18 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_image_resolution_section());
-        return std::make_unique<Subsection>("Capture", std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Capture"), std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_image_quality_section() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Image quality:", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Image quality:"), get_color_theme().text_color));
 
         auto image_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
-        image_quality_box->add_item("Medium", "medium");
-        image_quality_box->add_item("High", "high");
-        image_quality_box->add_item("Very high (Recommended)", "very_high");
-        image_quality_box->add_item("Ultra", "ultra");
+        image_quality_box->add_item(TR("Medium"), "medium");
+        image_quality_box->add_item(TR("High"), "high");
+        image_quality_box->add_item(TR("Very high (Recommended)"), "very_high");
+        image_quality_box->add_item(TR("Ultra"), "ultra");
         image_quality_box->set_selected_item("very_high");
 
         image_quality_box_ptr = image_quality_box.get();
@@ -142,7 +143,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_record_cursor_section() {
-        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Record cursor");
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record cursor"));
         record_cursor_checkbox->set_checked(true);
         record_cursor_checkbox_ptr = record_cursor_checkbox.get();
         return record_cursor_checkbox;
@@ -152,7 +153,7 @@ namespace gsr {
         auto image_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         image_section_list->add_widget(create_image_quality_section());
         image_section_list->add_widget(create_record_cursor_section());
-        return std::make_unique<Subsection>("Image", std::move(image_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Image"), std::move(image_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_save_directory(const char *label) {
@@ -161,9 +162,9 @@ namespace gsr {
         auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_pictures_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
-            auto select_directory_page = std::make_unique<GsrPage>("File", "Settings");
-            select_directory_page->add_button("Save", "save", get_color_theme().tint_color);
-            select_directory_page->add_button("Cancel", "cancel", get_color_theme().page_bg_color);
+            auto select_directory_page = std::make_unique<GsrPage>(TR("File"), TR("Settings"));
+            select_directory_page->add_button(TR("Save"), "save", get_color_theme().tint_color);
+            select_directory_page->add_button(TR("Cancel"), "cancel", get_color_theme().page_bg_color);
 
             auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text().c_str(), select_directory_page->get_inner_size());
             FileChooser *file_chooser_ptr = file_chooser.get();
@@ -196,48 +197,48 @@ namespace gsr {
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_image_format_section() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Image format:", get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Image format:"), get_color_theme().text_color));
         list->add_widget(create_image_format_box());
         return list;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_file_info_section() {
         auto file_info_data_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        file_info_data_list->add_widget(create_save_directory("Directory to save screenshots:"));
+        file_info_data_list->add_widget(create_save_directory(TR("Directory to save screenshots:")));
         file_info_data_list->add_widget(create_image_format_section());
-        return std::make_unique<Subsection>("File info", std::move(file_info_data_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("File info"), std::move(file_info_data_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save screenshot in a folder based on the focused applications name%s", supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "%s%s", TR("Save screenshot in a folder based on the focused applications name"), supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_screenshot_in_game_folder_checkbox_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_clipboard() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, gsr_info->system_info.display_server == DisplayServer::X11 ? "Save screenshot to clipboard" : "Save screenshot to clipboard (Not supported properly by Wayland)");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, gsr_info->system_info.display_server == DisplayServer::X11 ? TR("Save screenshot to clipboard") : TR("Save screenshot to clipboard (Not supported properly by Wayland)"));
         save_screenshot_to_clipboard_checkbox_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_disk() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Save screenshot to disk");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Save screenshot to disk"));
         save_screenshot_to_disk_checkbox_ptr = checkbox.get();
         checkbox->set_checked(true);
         return checkbox;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_notifications() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Show screenshot notifications");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Show screenshot notifications"));
         checkbox->set_checked(true);
         show_notification_checkbox_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_led_indicator() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, "Blink scroll lock led when taking a screenshot");
+        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Blink scroll lock led when taking a screenshot"));
         checkbox->set_checked(true);
         led_indicator_checkbox_ptr = checkbox.get();
         return checkbox;
@@ -248,14 +249,14 @@ namespace gsr {
         list->add_widget(create_save_screenshot_in_game_folder());
         list->add_widget(create_save_screenshot_to_clipboard());
         list->add_widget(create_save_screenshot_to_disk());
-        return std::make_unique<Subsection>("General", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("General"), std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_screenshot_indicator_section() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         list->add_widget(create_notifications());
         list->add_widget(create_led_indicator());
-        return std::make_unique<Subsection>("Screenshot indicator", std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Screenshot indicator"), std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_custom_script_screenshot_entry() {
@@ -270,13 +271,13 @@ namespace gsr {
 
     std::unique_ptr<List> ScreenshotSettingsPage::create_custom_script_screenshot() {
         auto custom_script_screenshot_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        custom_script_screenshot_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "Command to open the screenshot with:", get_color_theme().text_color));
+        custom_script_screenshot_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Command to open the screenshot with:"), get_color_theme().text_color));
         custom_script_screenshot_list->add_widget(create_custom_script_screenshot_entry());
         return custom_script_screenshot_list;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_custom_script_screenshot_section() {
-        return std::make_unique<Subsection>("Script", create_custom_script_screenshot(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Script"), create_custom_script_screenshot(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_settings() {
