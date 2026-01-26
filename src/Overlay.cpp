@@ -1139,6 +1139,7 @@ namespace gsr {
 
         update_compositor_texture(*focused_monitor);
 
+        visible = true;
         create_frontpage_ui_components();
 
         // The focused application can be an xwayland application but the cursor can hover over a wayland application.
@@ -1179,30 +1180,6 @@ namespace gsr {
 
         if(!is_wlroots && !hyprland_waybar_is_dock)
             window->set_fullscreen(true);
-
-        visible = true;
-
-        if(gpu_screen_recorder_process > 0) {
-            switch(recording_status) {
-                case RecordingStatus::NONE:
-                    break;
-                case RecordingStatus::REPLAY:
-                    update_ui_replay_started();
-                    break;
-                case RecordingStatus::RECORD:
-                    update_ui_recording_started();
-                    break;
-                case RecordingStatus::STREAM:
-                    update_ui_streaming_started();
-                    break;
-            }
-        }
-
-        if(paused)
-            update_ui_recording_paused();
-
-        if(replay_recording)
-            update_ui_recording_started();
 
         // Wayland compositors have retarded fullscreen animations that we cant disable in a proper way
         // without messing up window position.
@@ -1467,6 +1444,28 @@ namespace gsr {
             }
             return true;
         };
+
+        if(gpu_screen_recorder_process > 0) {
+            switch(recording_status) {
+                case RecordingStatus::NONE:
+                    break;
+                case RecordingStatus::REPLAY:
+                    update_ui_replay_started();
+                    break;
+                case RecordingStatus::RECORD:
+                    update_ui_recording_started();
+                    break;
+                case RecordingStatus::STREAM:
+                    update_ui_streaming_started();
+                    break;
+            }
+        }
+
+        if(paused)
+            update_ui_recording_paused();
+
+        if(replay_recording)
+            update_ui_recording_started();
     }
 
     void Overlay::hide() {
