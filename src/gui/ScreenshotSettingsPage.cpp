@@ -11,11 +11,12 @@
 #include "../../include/gui/FileChooser.hpp"
 
 namespace gsr {
-    ScreenshotSettingsPage::ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
+    ScreenshotSettingsPage::ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         config(config),
         gsr_info(gsr_info),
-        page_stack(page_stack)
+        page_stack(page_stack),
+        supports_window_title(supports_window_title)
     {
         capture_options = get_supported_capture_options(*gsr_info);
 
@@ -209,7 +210,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "Save screenshot in a folder based on the focused applications name%s", gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "Save screenshot in a folder based on the focused applications name%s", supports_window_title ? "" : " (X11 applications only)");
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_screenshot_in_game_folder_checkbox_ptr = checkbox.get();
         return checkbox;

@@ -41,7 +41,7 @@ namespace gsr {
             STREAM
         };
 
-        SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack);
+        SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title);
         SettingsPage(const SettingsPage&) = delete;
         SettingsPage& operator=(const SettingsPage&) = delete;
 

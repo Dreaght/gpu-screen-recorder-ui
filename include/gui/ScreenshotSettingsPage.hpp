@@ -16,7 +16,7 @@ namespace gsr {
 
     class ScreenshotSettingsPage : public StaticPage {
     public:
-        ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack);
+        ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title);
         ScreenshotSettingsPage(const ScreenshotSettingsPage&) = delete;
         ScreenshotSettingsPage& operator=(const ScreenshotSettingsPage&) = delete;
 
@@ -85,5 +85,7 @@ namespace gsr {
         Entry *create_custom_script_screenshot_entry_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
+
+        bool supports_window_title = false;
     };
 }

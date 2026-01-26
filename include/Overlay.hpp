@@ -290,5 +290,7 @@ namespace gsr {
         ClipboardFile clipboard_file;
 
         std::unique_ptr<LedIndicator> led_indicator = nullptr;
+
+        bool supports_window_title = false;
     };
 }

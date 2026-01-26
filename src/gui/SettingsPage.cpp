@@ -10,13 +10,9 @@
 #include "../../include/Theme.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Utils.hpp"
-#include "../../include/WindowUtils.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
-extern "C" {
-#include <mgl/mgl.h>
-}
 
 #include <algorithm>
 #include <cmath>
@@ -40,24 +36,17 @@ namespace gsr {
         return "";
     }
 
-    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
         gsr_info(gsr_info),
-        page_stack(page_stack)
+        page_stack(page_stack),
+        supports_window_title(supports_window_title)
     {
         audio_devices = get_audio_devices();
         application_audio = get_application_audio();
         capture_options = get_supported_capture_options(*gsr_info);
-
-        mgl_context *context = mgl_get_context();
-        Display *display = (Display*)context->connection;
-
-        const std::string wm_name = get_window_manager_name(display);
-        const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
-        const bool is_kwin = wm_name == "KWin";
-        supports_window_title = gsr_info->system_info.display_server == DisplayServer::X11 || is_hyprland || is_kwin;
 
         auto content_page = std::make_unique<GsrPage>(settings_page_type_to_title_text(type), "Settings");
         content_page->add_button("Back", "back", get_color_theme().page_bg_color);
