@@ -4,6 +4,7 @@
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
 #include "../include/Theme.hpp"
+#include "../include/Translation.hpp"
 
 #include <signal.h>
 #include <string.h>

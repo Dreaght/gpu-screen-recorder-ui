@@ -55,6 +55,7 @@ src = [
     'src/ClipboardFile.cpp',
     'src/LedIndicator.cpp',
     'src/Rpc.cpp',
+    'src/Translation.cpp',
     'src/main.cpp',
 ]
 
@@ -142,6 +143,7 @@ executable(
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('fonts', install_dir : gsr_ui_resources_path)
+install_subdir('translations', install_dir : gsr_ui_resources_path)
 
 if get_option('desktop-files') == true
     install_data(files('gpu-screen-recorder.desktop'), install_dir : join_paths(prefix, datadir, 'applications'))

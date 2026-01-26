@@ -1,0 +1,5 @@
+# Testing formatted translations
+Test of %s and %s=Тест %1$s и %2$s
+
+# General
+Record=Запись
