@@ -197,6 +197,19 @@ int main(int argc, char **argv) {
     mallopt(M_MMAP_THRESHOLD, 65536);
 #endif
 
+    std::string resources_path;
+    if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
+        resources_path = "./";
+    } else {
+#ifdef GSR_UI_RESOURCES_PATH
+        resources_path = GSR_UI_RESOURCES_PATH "/";
+#else
+        resources_path = "/usr/share/gsr-ui/";
+#endif
+    }
+
+    gsr::Translation::instance().init((resources_path + "translations/").c_str(), nullptr);
+
     if(geteuid() == 0) {
         fprintf(stderr, "Error: don't run gsr-ui as the root user\n");
         return 1;
@@ -224,17 +237,6 @@ int main(int argc, char **argv) {
     }
 
     set_display_server_environment_variables();
-
-    std::string resources_path;
-    if(access("sibs-build/linux_x86_64/debug/gsr-ui", F_OK) == 0) {
-        resources_path = "./";
-    } else {
-#ifdef GSR_UI_RESOURCES_PATH
-        resources_path = GSR_UI_RESOURCES_PATH "/";
-#else
-        resources_path = "/usr/share/gsr-ui/";
-#endif
-    }
 
     const std::string gsr_icon_path = resources_path + "images/gpu_screen_recorder_logo.png";
 
