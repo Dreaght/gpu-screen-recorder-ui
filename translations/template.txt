@@ -59,6 +59,8 @@ Saved a screenshot of %s=
 Failed to take a screenshot=
 
 # Error messages
+Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=
+GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=
 Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=
 Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=
 Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=
@@ -163,6 +165,8 @@ Take a screenshot:=
 Take a screenshot of a region:=
 Start/stop recording with desktop portal:=
 Take a screenshot with desktop portal:=
+Start/stop recording a window:=
+Take a screenshot of a window:=
 
 Clear hotkeys=
 Reset hotkeys to default=
@@ -253,6 +257,7 @@ Window=
 Region=
 Desktop portal=
 Monitor %s (%dx%d)=
+Screen=
 
 Image resolution limit:=
 Change image resolution=

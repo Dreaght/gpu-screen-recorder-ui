@@ -56,6 +56,8 @@ Saved a screenshot of %s=Збережено знімок %s
 Failed to take a screenshot=Не вдалося зробити знімок екрана
 
 # Error messages
+Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=Один екземпляр GPU Screen Recorder UI вже запущено.\nНатисніть Alt+Z, щоб відкрити інтерфейс.
+GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=GPU Screen Recorder CLI вже запущено в іншому процесі.\nБудь ласка, закрийте його перед використанням GPU Screen Recorder UI.
 Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося розпочати повтор, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
 Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося розпочати запис, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
 Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося розпочати трансляцію, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
@@ -152,6 +154,8 @@ Take a screenshot:=Зробити знімок екрана:
 Take a screenshot of a region:=Зробити знімок регіону:
 Start/stop recording with desktop portal:=Запис через портал:
 Take a screenshot with desktop portal:=Зробити знімок через портал робочого стола:
+Start/stop recording a window:=Розпочати/зупинити запис вікна:
+Take a screenshot of a window:=Зробити знімок вікна:
 
 Clear hotkeys=Очистити гарячі клавіші
 Reset hotkeys to default=Скинути гарячі клавіші за замовчуванням
@@ -241,6 +245,7 @@ Window=Вікно
 Region=Регіон
 Desktop portal=Портал робочого стола
 Monitor %s (%dx%d)=Монітор %s (%dx%d)
+Screen=Екран
 
 Image resolution limit:=Обмеження роздільної здатності зображення:
 Change image resolution=Змінювати роздільну здатність зображення
@@ -360,7 +365,7 @@ Container:=Формат:
 Record in low-power mode=Записувати в режимі низького енергоспоживання
 Record cursor=Записувати курсор
 
-Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=Не змушувати GPU переходити в режим високої продуктивності при записі.\nМоже вплинути на продуктивність запису, особливо при одночасному відтворенні відео.\nЯкщо увімкнено, рекомендується використовувати режим частоти кадрів синхронізації з контентом для зниження енергоспоживання в режимі очікування.
+Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=Не змушувати GPU переходити в режим високої продуктивності при записі.\nМоже вплинути на продуктивність запису, особливо при одночасному відтворенні відео.\nЯкщо увімкнено, рекомендується використовувати режим частоти кадрів синхронізації з контентом\nдля зниження енергоспоживання в режимі очікування.
 
 Show %s notifications=Показувати сповіщення %s
 Show %s status with scroll lock led=Показувати статус %s за допомогою індикатора Scroll Lock
