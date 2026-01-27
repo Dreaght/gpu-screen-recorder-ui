@@ -1,26 +1,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-
-static bool get_hyprland_socket_path(char *path, int path_len) {
-    const char* xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
-    const char* instance_sig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
-    if (!xdg_runtime_dir || !instance_sig) {
-        fprintf(stderr, "Error: gsr-hypland-helper: environment variables not set\n");
-        return false;
-    }
-    
-    if (snprintf(path, path_len, "%s/hypr/%s/.socket2.sock", xdg_runtime_dir, instance_sig) >= path_len) {
-        fprintf(stderr, "Error: gsr-hypland-helper: path to hyprland socket (%s/hypr/%s/.socket2.sock) is more than %d characters long\n", xdg_runtime_dir, instance_sig, path_len);
-        return false;
-    }
-
-    return true;
-}
 
 static void print_window_title(const char *window_title) {
     if (window_title[0] == 0) {
@@ -32,7 +15,7 @@ static void print_window_title(const char *window_title) {
     fflush(stdout);
 }
 
-static int handle_ipc(void) {
+static int handle_ipc(const char *hyprland_socket_path) {
     const int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd == -1) {
         perror("Error: gsr-hyprland-helper: socket");
@@ -43,8 +26,9 @@ static int handle_ipc(void) {
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
 
-    if (!get_hyprland_socket_path(addr.sun_path, sizeof(addr.sun_path))) {
-        return 1;
+    if (snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", hyprland_socket_path) >= (int)sizeof(addr.sun_path)) {
+        fprintf(stderr, "Error: gsr-hypland-helper: path to hyprland socket (%s) is more than %d characters long\n", hyprland_socket_path, (int)sizeof(addr.sun_path));
+        return false;
     }
 
     if (connect(sock_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
@@ -90,6 +74,10 @@ static int handle_ipc(void) {
 }
 
 
-int main(void) {
-    return handle_ipc();
+int main(int argc, char **argv) {
+    if(argc != 2) {
+        fprintf(stderr, "usage: gsr-hyprland-helper <hyprland-socket-path>\n");
+        return 1;
+    }
+    return handle_ipc(argv[1]);
 }
