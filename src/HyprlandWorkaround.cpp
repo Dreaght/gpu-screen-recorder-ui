@@ -41,12 +41,22 @@ namespace gsr {
         }
 
         const bool inside_flatpak = access("/app/manifest.json", F_OK) == 0;
-        const char *hyprland_helper_bin =
-            inside_flatpak ? 
-            "flatpak-spawn --host -- /var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/gsr-hyprland-helper" 
-            : "gsr-hyprland-helper";
 
-        const char *args[] = { hyprland_helper_bin, hyprland_socket_path, nullptr };
+        size_t arg_index = 0;
+        const char *args[6];
+
+        if(inside_flatpak) {
+            args[arg_index++] = "flatpak-spawn";
+            args[arg_index++] = "--host";
+            args[arg_index++] = "--";
+            args[arg_index++] = "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/gsr-hyprland-helper";
+        } else {
+            args[arg_index++] = "gsr-hyprland-helper";
+        }
+
+        args[arg_index++] = hyprland_socket_path;
+        args[arg_index++] = nullptr;
+
         int read_fd = -1;
         const pid_t process_id = exec_program(args, &read_fd, false);
         if(process_id == -1) {
