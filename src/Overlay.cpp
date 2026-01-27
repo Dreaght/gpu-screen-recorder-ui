@@ -1484,6 +1484,7 @@ namespace gsr {
             return;
 
         hide_ui = false;
+        reload_ui = false;
 
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
