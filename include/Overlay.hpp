@@ -117,7 +117,7 @@ namespace gsr {
 
         void recreate_global_hotkeys(const char *hotkey_option);
         void update_led_indicator_after_settings_change();
-        void create_frontpage_ui_components();
+        void recreate_frontpage_ui_components();
         void xi_setup();
         void handle_xi_events();
         void process_key_bindings(mgl::Event &event);
@@ -286,6 +286,7 @@ namespace gsr {
         mgl::Clock cursor_tracker_update_clock;
 
         bool hide_ui = false;
+        bool reload_ui = false;
         double notification_duration_multiplier = 1.0;
         ClipboardFile clipboard_file;
 

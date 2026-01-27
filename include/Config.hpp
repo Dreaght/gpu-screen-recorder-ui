@@ -85,6 +85,7 @@ namespace gsr {
         std::string joystick_hotkeys_enable_option = "disable_hotkeys";
         std::string tint_color;
         std::string notification_speed = "normal";
+        std::string language;
         ConfigHotkey show_hide_hotkey;
     };
 

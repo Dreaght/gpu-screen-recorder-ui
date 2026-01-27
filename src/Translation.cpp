@@ -68,6 +68,9 @@ namespace gsr {
     bool Translation::load_language(const char* lang) {
         translations.clear();
 
+        if(lang[0] == '\0')
+            lang = "en";
+
         if (!is_language_supported(lang)) {
             fprintf(stderr, "Warning: language '%s' is not supported\n", lang);
             return false;

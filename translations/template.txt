@@ -179,6 +179,9 @@ Notification speed=
 Normal=
 Fast=
 
+Language=
+System language=
+
 Exit program=
 Go back to the old UI=
 

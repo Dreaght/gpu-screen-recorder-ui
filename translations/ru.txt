@@ -168,6 +168,9 @@ Notification speed=Скорость уведомлений
 Normal=Обычная
 Fast=Быстрая
 
+Language=Язык
+System language=Системный язык
+
 Exit program=Выйти из программы
 Go back to the old UI=Вернуться к старому интерфейсу
 

@@ -12,6 +12,7 @@
 #include "../../include/gui/Label.hpp"
 #include "../../include/gui/Image.hpp"
 #include "../../include/gui/RadioButton.hpp"
+#include "../../include/gui/ComboBox.hpp"
 #include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
 
@@ -519,12 +520,37 @@ namespace gsr {
         return list;
     }
 
+    std::unique_ptr<List> GlobalSettingsPage::create_language() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Language"), get_color_theme().text_color));
+
+        auto combo_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        language_combo_box_ptr = combo_box.get();
+        combo_box->add_item(TR("System language"), "");
+        combo_box->add_item("English", "en");
+        combo_box->add_item("Русский", "ru");
+        combo_box->add_item("українська", "uk");
+        combo_box->on_selection_changed = [](const std::string&, const std::string &id) {
+            Translation::instance().load_language(id.c_str());
+            return true;
+        };
+        list->add_widget(std::move(combo_box));
+
+        return list;
+    }
+
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         List *list_ptr = list.get();
         auto subsection = std::make_unique<Subsection>(TR("Application options"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
 
-        list_ptr->add_widget(create_notification_speed());
+        {
+            auto horizontal_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+            horizontal_list->set_spacing(0.02f);
+            horizontal_list->add_widget(create_notification_speed());
+            horizontal_list->add_widget(create_language());
+            list_ptr->add_widget(std::move(horizontal_list));
+        }
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
 
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
@@ -614,6 +640,7 @@ namespace gsr {
         enable_joystick_hotkeys_radio_button_ptr->set_selected_item(config.main_config.joystick_hotkeys_enable_option, false, false);
 
         notification_speed_button_ptr->set_selected_item(config.main_config.notification_speed);
+        language_combo_box_ptr->set_selected_item(config.main_config.language);
 
         load_hotkeys();
     }
@@ -644,6 +671,7 @@ namespace gsr {
         config.main_config.hotkeys_enable_option = enable_keyboard_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.notification_speed = notification_speed_button_ptr->get_selected_id();
+        config.main_config.language = language_combo_box_ptr->get_selected_id();
         save_config(config);
     }
 

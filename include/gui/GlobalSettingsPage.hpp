@@ -16,6 +16,7 @@ namespace gsr {
     class RadioButton;
     class Button;
     class List;
+    class ComboBox;
     class CustomRendererWidget;
 
     enum ConfigureHotkeyType {
@@ -75,6 +76,7 @@ namespace gsr {
         std::unique_ptr<Button> create_exit_program_button();
         std::unique_ptr<Button> create_go_back_to_old_ui_button();
         std::unique_ptr<List> create_notification_speed();
+        std::unique_ptr<List> create_language();
         std::unique_ptr<Subsection> create_application_options_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_application_info_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_donate_subsection(ScrollablePage *parent_page);
@@ -112,6 +114,7 @@ namespace gsr {
         Button *take_screenshot_window_button_ptr = nullptr;
         Button *show_hide_button_ptr = nullptr;
         RadioButton *notification_speed_button_ptr = nullptr;
+        ComboBox *language_combo_box_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;
         ConfigureHotkeyType configure_hotkey_type = ConfigureHotkeyType::NONE;

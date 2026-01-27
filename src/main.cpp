@@ -208,7 +208,8 @@ int main(int argc, char **argv) {
 #endif
     }
 
-    gsr::Translation::instance().init((resources_path + "translations/").c_str(), nullptr);
+    std::optional<gsr::Config> config = read_config(gsr::SupportedCaptureOptions{});
+    gsr::Translation::instance().init((resources_path + "translations/").c_str(), config.has_value() ? config.value().main_config.language.c_str() : nullptr);
 
     if(geteuid() == 0) {
         fprintf(stderr, "Error: don't run gsr-ui as the root user\n");

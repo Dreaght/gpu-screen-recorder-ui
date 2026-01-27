@@ -21,7 +21,6 @@
 #include "../include/CursorTracker/CursorTrackerWayland.hpp"
 
 #include <iomanip>
-#include <iostream>
 #include <string.h>
 #include <assert.h>
 #include <sys/wait.h>
@@ -853,6 +852,12 @@ namespace gsr {
     bool Overlay::draw() {
         remove_widgets_to_be_removed();
 
+        if(reload_ui) {
+            reload_ui = false;
+            if(visible)
+                recreate_frontpage_ui_components();
+        }
+
         update_notification_process_status();
         process_gsr_output();
         update_gsr_process_status();
@@ -1142,7 +1147,7 @@ namespace gsr {
         update_compositor_texture(*focused_monitor);
 
         visible = true;
-        create_frontpage_ui_components();
+        recreate_frontpage_ui_components();
 
         // The focused application can be an xwayland application but the cursor can hover over a wayland application.
         // This is even the case when hovering over the titlebar of the xwayland application.
@@ -1211,7 +1216,7 @@ namespace gsr {
         }
     }
 
-    void Overlay::create_frontpage_ui_components() {
+    void Overlay::recreate_frontpage_ui_components() {
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
         top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
@@ -1351,6 +1356,7 @@ namespace gsr {
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().settings_small_texture);
             button->on_click = [&]() {
+                std::string language_before = config.main_config.language;
                 auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
 
                 settings_page->on_startup_changed = [&](bool enable, int exit_status) {
@@ -1385,7 +1391,7 @@ namespace gsr {
                         global_hotkeys_js.reset();
                 };
 
-                settings_page->on_page_closed = [this]() {
+                settings_page->on_page_closed = [this, language_before]() {
                     replay_dropdown_button_ptr->set_item_description("start", config.replay_config.start_stop_hotkey.to_string(false, false));
                     replay_dropdown_button_ptr->set_item_description("save", config.replay_config.save_hotkey.to_string(false, false));
                     replay_dropdown_button_ptr->set_item_description("save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
@@ -1395,6 +1401,9 @@ namespace gsr {
                     record_dropdown_button_ptr->set_item_description("pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
 
                     stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
+
+                    if(config.main_config.language != language_before)
+                        reload_ui = true;
                 };
 
                 page_stack.push(std::move(settings_page));
