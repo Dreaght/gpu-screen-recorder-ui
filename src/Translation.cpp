@@ -47,6 +47,9 @@ namespace gsr {
     }
 
     bool Translation::is_language_supported(const char* lang) {
+        if(strcmp(lang, "en") == 0)
+            return true;
+
         std::string paths[] = {
             std::string("translations/") + lang + ".txt",
             std::string(this->translations_directory) + lang + ".txt"
