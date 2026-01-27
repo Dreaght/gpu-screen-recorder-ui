@@ -1,7 +1,6 @@
 project('gsr-ui', ['c', 'cpp'], version : '1.10.5', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 add_project_arguments('-D_FILE_OFFSET_BITS=64', language : ['c', 'cpp'])
-add_project_arguments('-Wno-format-security', language : ['c', 'cpp'])
 
 if get_option('buildtype') == 'debug'
     add_project_arguments('-g3', language : ['c', 'cpp'])

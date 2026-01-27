@@ -326,9 +326,9 @@ namespace gsr {
 
         char str[128];
         if(gsr_info->system_info.display_server == DisplayServer::X11)
-            snprintf(str, sizeof(str), TR("Start/stop recording a window:"));
+            snprintf(str, sizeof(str), "%s", TR("Start/stop recording a window:"));
         else
-            snprintf(str, sizeof(str), TR("Start/stop recording with desktop portal:"));
+            snprintf(str, sizeof(str), "%s", TR("Start/stop recording with desktop portal:"));
 
         list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
         auto start_stop_recording_window_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
@@ -392,9 +392,9 @@ namespace gsr {
 
         char str[128];
         if(gsr_info->system_info.display_server == DisplayServer::X11)
-            snprintf(str, sizeof(str), TR("Take a screenshot of a window:"));
+            snprintf(str, sizeof(str), "%s", TR("Take a screenshot of a window:"));
         else
-            snprintf(str, sizeof(str), TR("Take a screenshot with desktop portal:"));
+            snprintf(str, sizeof(str), "%s", TR("Take a screenshot with desktop portal:"));
 
         list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
         auto take_screenshot_window_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
