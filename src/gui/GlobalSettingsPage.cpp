@@ -313,6 +313,16 @@ namespace gsr {
         start_stop_recording_region_button_ptr = start_stop_recording_region_button.get();
         list->add_widget(std::move(start_stop_recording_region_button));
 
+        start_stop_recording_region_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::RECORD_START_STOP_REGION);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_record_hotkey_window_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
         char str[128];
         if(gsr_info->system_info.display_server == DisplayServer::X11)
             snprintf(str, sizeof(str), TR("Start/stop recording a window:"));
@@ -323,10 +333,6 @@ namespace gsr {
         auto start_stop_recording_window_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         start_stop_recording_window_button_ptr = start_stop_recording_window_button.get();
         list->add_widget(std::move(start_stop_recording_window_button));
-
-        start_stop_recording_region_button_ptr->on_click = [this] {
-            configure_hotkey_start(ConfigureHotkeyType::RECORD_START_STOP_REGION);
-        };
 
         start_stop_recording_window_button_ptr->on_click = [this] {
             configure_hotkey_start(ConfigureHotkeyType::RECORD_START_STOP_WINDOW);
@@ -448,6 +454,7 @@ namespace gsr {
         list_ptr->add_widget(create_replay_partial_save_hotkey_options());
         list_ptr->add_widget(create_record_hotkey_options());
         list_ptr->add_widget(create_record_hotkey_window_region_options());
+        list_ptr->add_widget(create_record_hotkey_window_options());
         list_ptr->add_widget(create_stream_hotkey_options());
         list_ptr->add_widget(create_screenshot_hotkey_options());
         list_ptr->add_widget(create_screenshot_region_hotkey_options());

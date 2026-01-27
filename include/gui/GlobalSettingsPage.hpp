@@ -64,6 +64,7 @@ namespace gsr {
         std::unique_ptr<List> create_replay_partial_save_hotkey_options();
         std::unique_ptr<List> create_record_hotkey_options();
         std::unique_ptr<List> create_record_hotkey_window_region_options();
+        std::unique_ptr<List> create_record_hotkey_window_options();
         std::unique_ptr<List> create_stream_hotkey_options();
         std::unique_ptr<List> create_screenshot_hotkey_options();
         std::unique_ptr<List> create_screenshot_region_hotkey_options();
