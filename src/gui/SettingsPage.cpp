@@ -231,21 +231,10 @@ namespace gsr {
             if(!it->mjpeg_setups.empty())
                 webcam_video_format_box_ptr->add_item(TR("Motion-JPEG"), "mjpeg");
 
-            webcam_video_format_box_ptr->set_selected_item("auto");
-            webcam_video_format_box_ptr->set_selected_item(get_current_record_options().webcam_video_format);
+            const std::string prev_webcam_video_format = get_current_record_options().webcam_video_format;
+            webcam_video_format_box_ptr->set_selected_item(webcam_video_format_box_ptr->get_selected_id());
+            webcam_video_format_box_ptr->set_selected_item(prev_webcam_video_format);
             selected_camera = *it;
-
-            // TODO: Set from config
-            if(webcam_video_format_box_ptr->get_selected_id() == "yuyv" && !it->yuyv_setups.empty())
-                selected_camera_setup = selected_camera->yuyv_setups.front();
-            else if(webcam_video_format_box_ptr->get_selected_id() == "mjpeg" && !it->mjpeg_setups.empty())
-                selected_camera_setup = selected_camera->mjpeg_setups.front();
-            else if(webcam_video_format_box_ptr->get_selected_id() == "auto") {
-                if(!it->mjpeg_setups.empty())
-                    selected_camera_setup = selected_camera->mjpeg_setups.front();
-                else if(!it->yuyv_setups.empty())
-                    selected_camera_setup = selected_camera->yuyv_setups.front();
-            }
         };
 
         ll->add_widget(std::move(combobox));
@@ -258,6 +247,20 @@ namespace gsr {
 
         auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
         webcam_video_setup_box_ptr = combobox.get();
+
+        webcam_video_setup_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+            int camera_width = 0;
+            int camera_height = 0;
+            int camera_fps = 0;
+            sscanf(id.c_str(), "%dx%d@%dhz", &camera_width, &camera_height, &camera_fps);
+
+            RecordOptions &current_record_options = get_current_record_options();
+            current_record_options.webcam_camera_width = camera_width;
+            current_record_options.webcam_camera_height = camera_height;
+            current_record_options.webcam_camera_fps = camera_fps;
+
+            selected_camera_setup = GsrCameraSetup{mgl::vec2i{camera_width, camera_height}, camera_fps};
+        };
 
         ll->add_widget(std::move(combobox));
         return ll;
@@ -315,6 +318,12 @@ namespace gsr {
                     webcam_video_setup_box_ptr->add_item(setup_str, setup_str, false);
                 }
             }
+
+            const RecordOptions &current_record_options = get_current_record_options();
+            char webcam_setup_str[256];
+            snprintf(webcam_setup_str, sizeof(webcam_setup_str), "%dx%d@%dhz", current_record_options.webcam_camera_width, current_record_options.webcam_camera_height, current_record_options.webcam_camera_fps);
+            webcam_video_setup_box_ptr->set_selected_item(webcam_video_setup_box_ptr->get_selected_id());
+            webcam_video_setup_box_ptr->set_selected_item(webcam_setup_str);
         };
 
         ll->add_widget(std::move(combobox));
@@ -1755,17 +1764,8 @@ namespace gsr {
         if(selected_camera_setup.has_value())
             webcam_box_size = clamp_keep_aspect_ratio(selected_camera_setup->resolution.to_vec2f(), webcam_box_size);
 
-        int camera_width = 0;
-        int camera_height = 0;
-        int camera_fps = 0;
-        sscanf(webcam_video_setup_box_ptr->get_selected_id().c_str(), "%dx%d@%dhz", &camera_width, &camera_height, &camera_fps);
-
         record_options.webcam_source = webcam_sources_box_ptr->get_selected_id();
         record_options.webcam_flip_horizontally = flip_camera_horizontally_checkbox_ptr->is_checked();
-        record_options.webcam_video_format = webcam_video_format_box_ptr->get_selected_id();
-        record_options.webcam_camera_width = camera_width;
-        record_options.webcam_camera_height = camera_height;
-        record_options.webcam_camera_fps = camera_fps;
         record_options.webcam_x = std::round((webcam_box_pos.x / screen_inner_size.x) * 100.0f);
         record_options.webcam_y = std::round((webcam_box_pos.y / screen_inner_size.y) * 100.0f);
         record_options.webcam_width = std::round((webcam_box_size.x / screen_inner_size.x) * 100.0f);

@@ -283,6 +283,8 @@ namespace gsr {
         return true;
     }
 
+    // Note that this doesn't work in the flatpak right now because of this flatpak bug:
+    // https://github.com/flatpak/flatpak/issues/6486
     static bool is_hyprland_waybar_running_as_dock() {
         const char *args[] = { "hyprctl", "layers", nullptr };
         std::string stdout_str;
