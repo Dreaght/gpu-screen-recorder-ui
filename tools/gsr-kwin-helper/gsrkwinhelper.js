@@ -1,4 +1,4 @@
-const DAEMON_DBUS_NAME = "com.dec05eba.gpu_screen_recorder.gsr_kwin_helper";
+const DAEMON_DBUS_NAME = "com.dec05eba.gpu_screen_recorder";
 
 // utils
 function sendNewActiveWindowTitle(title) {
