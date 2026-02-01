@@ -264,7 +264,6 @@ Directory to save screenshots:=Directorio para guardar capturas de pantalla:
 Image format:=Formato de imagen:
 
 Save screenshot in a folder based on the focused applications name=Guardar captura de pantalla en un directorio basado en el nombre de la aplicación activa
-Save screenshot in a folder based on the focused applications name (X11 applications only)=Guardar captura de pantalla en un directorio basado en el nombre de la aplicación activa (solo para aplicaciones X11)
 
 Save screenshot to clipboard=Guardar captura de pantalla en el portapapeles
 Save screenshot to clipboard (Not supported properly by Wayland)=Guardar captura de pantalla en el portapapeles (no admitido por Wayland)
@@ -317,6 +316,7 @@ Application:     =Aplicación:
 Custom...=Personalizado...
 
 Save video in a folder based on the focused applications name%s=Guardar el vídeo en un directorio basado en el nombre de la aplicación activa
+ (X11 applications only)= (solo para aplicaciones X11)
 
 Add audio track=Añadir pista de sonido
 Add input device=Añadir dispositivo de entrada
@@ -373,6 +373,7 @@ Do not force the GPU to go into high performance mode when recording.\nMay affec
 Show %s notifications=Mostrar notificación de %s
 Show %s status with scroll lock led=Mostrar estado de %s con el LED de Bloq Despl
 Recording indicator=Indicador de grabación
+recording=grabando
 
 Simple=Simple
 Audio track #%d=Pista de sonido #%d
@@ -383,6 +384,7 @@ Estimated video file size per minute (excluding audio): %.2fMB=Tamaño estimado 
 # Replay settings
 Directory to save replays:=Directorio para guardar las repeticiones:
 Replay indicator=Indicador de repetición
+replay=repetición
 Turn on replay when starting a fullscreen application%s=Activar la repetición al iniciar una aplicación a pantalla completa%s
 Autostart=Inicio automático
 in RAM=en RAM
@@ -407,3 +409,4 @@ Stream URL:=URL de la transmisión
 Stream key:=Clave de transmisión
 Streaming info=Información de transmisión
 Streaming indicator=Indicador de transmisión
+streaming=transmisión

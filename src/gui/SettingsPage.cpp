@@ -1127,7 +1127,7 @@ namespace gsr {
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
         // TODO: Support kde plasma wayland and hyprland (same ones that support getting window title)
         char fullscreen_text[256];
-        snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), gsr_info->system_info.display_server == DisplayServer::X11 ? "" : " (X11 applications only)");
+        snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), gsr_info->system_info.display_server == DisplayServer::X11 ? "" : TR(" (X11 applications only)"));
 
         auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         radiobutton->add_item(TR("Don't turn on replay automatically"), "dont_turn_on_automatically");
@@ -1140,7 +1140,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), TR("Save video in a folder based on the focused applications name%s"), supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), TR("Save video in a folder based on the focused applications name%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
@@ -1153,7 +1153,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_replay_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, TR("Estimated video max file size in RAM: 57.60MB"), get_color_theme().text_color);
+        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 57.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
@@ -1272,7 +1272,7 @@ namespace gsr {
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator("replay"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator(TR("replay")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
@@ -1293,14 +1293,14 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), TR("Save video in a folder based on the focused applications name%s"), supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), TR("Save video in a folder based on the focused applications name%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_record_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, TR("Estimated video file size per minute (excluding audio): 345.60MB"), get_color_theme().text_color);
+        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video file size per minute (excluding audio): 345.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
@@ -1329,7 +1329,7 @@ namespace gsr {
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator("recording"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator(TR("recording")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             view_changed(id == "advanced");
@@ -1462,7 +1462,7 @@ namespace gsr {
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming indicator"), create_indicator("streaming"), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming indicator"), create_indicator(TR("streaming")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
             const bool twitch_option = id == "twitch";

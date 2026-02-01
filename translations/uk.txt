@@ -266,7 +266,6 @@ Directory to save screenshots:=Каталог для збереження зні
 Image format:=Формат зображення:
 
 Save screenshot in a folder based on the focused applications name=Зберігати знімок у папку за ім'ям активної програми
-Save screenshot in a folder based on the focused applications name (X11 applications only)=Зберігати знімок у папку за ім'ям активної програми (лише X11-програми)
 
 Save screenshot to clipboard=Зберігати знімок до буфера обміну
 Save screenshot to clipboard (Not supported properly by Wayland)=Зберігати знімок до буфера обміну (в Wayland підтримується некоректно)
@@ -317,6 +316,7 @@ Application:     =Програма:
 Custom...=Інше...
 
 Save video in a folder based on the focused applications name%s=Зберігати відео у папку за ім'ям активної програми%s
+ (X11 applications only)= (лише X11-програми)
 
 Add audio track=Додати аудіодоріжку
 Add input device=Додати вхід

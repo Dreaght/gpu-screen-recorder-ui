@@ -31,13 +31,6 @@ namespace gsr {
         return "en";
     }
 
-    std::string Translation::trim(const std::string& str) {
-        size_t start = str.find_first_not_of(" \t\r\n");
-        if (start == std::string::npos) return "";
-        size_t end = str.find_last_not_of(" \t\r\n");
-        return str.substr(start, end - start + 1);
-    }
-
     void Translation::process_escapes(std::string& str) {
         size_t pos = 0;
         while ((pos = str.find("\\n", pos)) != std::string::npos) {
@@ -93,8 +86,6 @@ namespace gsr {
 
             std::string line;
             while (std::getline(file, line)) {
-                line = trim(line);
-
                 if (line.empty() || line[0] == '#') continue;
 
                 size_t eq_pos = line.find('=');
@@ -124,6 +115,9 @@ namespace gsr {
     }
 
     void Translation::init(const char* translations_directory, const char* initial_language) {
+        if(initial_language && initial_language[0] == '\0')
+            initial_language = nullptr;
+
         this->translations_directory = translations_directory;
 
         load_language(initial_language == nullptr ? get_system_language().c_str() : initial_language);
