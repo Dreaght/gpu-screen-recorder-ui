@@ -5,7 +5,7 @@ A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-s
 The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.
 
 # Installation
-If you are using an Arch Linux based distro then you can find gpu screen recorder ui on aur under the name gpu-screen-recorder-ui (`yay -S gpu-screen-recorder-ui`).\
+If you are running an Arch Linux based distro then you can find gpu screen recorder ui in the official repositories under the name gpu-screen-recorder-ui (`sudo pacman -S gpu-screen-recorder-ui`).\
 If you are running another distro then you can run `sudo ./install.sh`, but you need to manually install the dependencies, as described below.\
 You can also install gpu screen recorder from [flathub](https://flathub.org/apps/details/com.dec05eba.gpu_screen_recorder) which includes this UI.
 
