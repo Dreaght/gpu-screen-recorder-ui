@@ -2041,6 +2041,7 @@ namespace gsr {
         if(focused_window_name.empty())
             focused_window_name = "Game";
 
+        focused_window_name = strip(focused_window_name);
         string_replace_characters(focused_window_name.data(), "/\\", ' ');
 
         std::string video_directory = filepath_get_directory(video_filepath.c_str()) + "/" + focused_window_name;
