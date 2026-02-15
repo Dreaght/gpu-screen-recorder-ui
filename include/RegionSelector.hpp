@@ -15,14 +15,26 @@ namespace gsr {
         mgl::vec2i size;
     };
 
+    struct RegionWindow {
+        Window window = None;
+        mgl::vec2i pos;
+        mgl::vec2i size;
+    };
+
     class RegionSelector {
     public:
+        enum class SelectionType {
+            NONE,
+            REGION,
+            WINDOW
+        };
+
         RegionSelector();
         RegionSelector(const RegionSelector&) = delete;
         RegionSelector& operator=(const RegionSelector&) = delete;
         ~RegionSelector();
 
-        bool start(mgl::Color border_color);
+        bool start(SelectionType selection_type, mgl::Color border_color);
         void stop();
         bool is_started() const;
 
@@ -30,7 +42,11 @@ namespace gsr {
         bool poll_events();
         bool take_selection();
         bool take_canceled();
-        Region get_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const;
+        Region get_region_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const;
+        // Returns None (0) if none is selected
+        Window get_window_selection() const;
+
+        SelectionType get_selection_type() const;
     private:
         void on_button_press(const void *de);
         void on_button_release(const void *de);
@@ -50,6 +66,10 @@ namespace gsr {
         bool canceled = false;
         bool is_wayland = false;
         std::vector<Monitor> monitors;
+        std::vector<RegionWindow> windows; // First window is the window that is on top
+        std::optional<RegionWindow> focused_window;
         mgl::vec2i cursor_pos;
+
+        SelectionType selection_type = SelectionType::NONE;
     };
 }

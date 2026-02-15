@@ -2,11 +2,13 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include <X11/Xatom.h>
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/shape.h>
+#include <mglpp/system/Rect.hpp>
 
 namespace gsr {
     static const int cursor_window_size = 32;
@@ -222,6 +224,42 @@ namespace gsr {
         };
     }
 
+    static std::vector<RegionWindow> query_windows(Display *dpy) {
+        std::vector<RegionWindow> windows;
+
+        Window root_return = None;
+        Window parent_return = None;
+        Window *children_return = nullptr;
+        unsigned int num_children_return = 0;
+        if(!XQueryTree(dpy, DefaultRootWindow(dpy), &root_return, &parent_return, &children_return, &num_children_return) || !children_return)
+            return windows;
+
+        for(int i = (int)num_children_return - 1; i >= 0; --i) {
+            const Window child_window = children_return[i];
+            XWindowAttributes win_attr;
+            if(XGetWindowAttributes(dpy, child_window, &win_attr) && !win_attr.override_redirect && win_attr.c_class == InputOutput && win_attr.map_state == IsViewable) {
+                windows.push_back(
+                    RegionWindow{
+                        child_window,
+                        mgl::vec2i(win_attr.x, win_attr.y),
+                        mgl::vec2i(win_attr.width, win_attr.height)
+                    }
+                );
+            }
+        }
+
+        XFree(children_return);
+        return windows;
+    }
+
+    static std::optional<RegionWindow> get_window_by_position(const std::vector<RegionWindow> &windows, mgl::vec2i pos) {
+        for(const RegionWindow &window : windows) {
+            if(mgl::IntRect(window.pos, window.size).contains(pos))
+                return window;
+        }
+        return std::nullopt;
+    }
+
     RegionSelector::RegionSelector() {
         
     }
@@ -230,7 +268,7 @@ namespace gsr {
         stop();
     }
 
-    bool RegionSelector::start(mgl::Color border_color) {
+    bool RegionSelector::start(SelectionType selection_type, mgl::Color border_color) {
         if(dpy)
             return false;
 
@@ -328,11 +366,25 @@ namespace gsr {
             hide_window_from_taskbar(dpy, cursor_window);
         }
 
-        draw_rectangle_around_selected_monitor(dpy, region_window, region_gc, region_border_size, is_wayland, monitors, cursor_pos);
+        windows = query_windows(dpy);
+
+        if(selection_type == SelectionType::WINDOW) {
+            focused_window = get_window_by_position(windows, cursor_pos);
+
+            if(focused_window) {
+                if(is_wayland)
+                    draw_rectangle(dpy, region_window, region_gc, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y);
+                else
+                    set_region_rectangle(dpy, region_window, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y, region_border_size);
+            }
+        } else if(selection_type == SelectionType::REGION) {
+            draw_rectangle_around_selected_monitor(dpy, region_window, region_gc, region_border_size, is_wayland, monitors, cursor_pos);
+        }
 
         XFlush(dpy);
         selected = false;
         canceled = false;
+        this->selection_type = selection_type;
         return true;
     }
 
@@ -375,6 +427,8 @@ namespace gsr {
         XCloseDisplay(dpy);
         dpy = nullptr;
         selecting_region = false;
+        monitors.clear();
+        windows.clear();
     }
 
     bool RegionSelector::is_started() const {
@@ -441,11 +495,24 @@ namespace gsr {
         return result;
     }
 
-    Region RegionSelector::get_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const {
+    Region RegionSelector::get_region_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const {
+        assert(selection_type == SelectionType::REGION);
         Region returned_region = region;
         if(is_wayland && x11_dpy && wayland_dpy)
             returned_region = x11_region_to_wayland_region(x11_dpy, wayland_dpy, returned_region);
         return returned_region;
+    }
+
+    Window RegionSelector::get_window_selection() const {
+        assert(selection_type == SelectionType::WINDOW);
+        if(focused_window)
+            return focused_window->window;
+        else
+            return None;
+    }
+
+    RegionSelector::SelectionType RegionSelector::get_selection_type() const {
+        return selection_type;
     }
 
     void RegionSelector::on_button_press(const void *de) {
@@ -453,8 +520,10 @@ namespace gsr {
         if(device_event->detail != Button1)
             return;
 
-        region.pos = { (int)device_event->root_x, (int)device_event->root_y };
-        selecting_region = true;
+        if(selection_type == SelectionType::REGION) {
+            region.pos = { (int)device_event->root_x, (int)device_event->root_y };
+            selecting_region = true;
+        }
     }
 
     void RegionSelector::on_button_release(const void *de) {
@@ -462,8 +531,23 @@ namespace gsr {
         if(device_event->detail != Button1)
             return;
 
-        if(!selecting_region)
-            return;
+        if(selection_type == SelectionType::WINDOW) {
+            focused_window = get_window_by_position(windows, mgl::vec2i(device_event->root_x, device_event->root_y));
+            if(focused_window) {
+                const Window real_window = window_get_target_window_child(dpy, focused_window->window);
+                XWindowAttributes win_attr;
+                if(XGetWindowAttributes(dpy, real_window, &win_attr)) {
+                    focused_window = RegionWindow{
+                        real_window,
+                        mgl::vec2i(win_attr.x, win_attr.y),
+                        mgl::vec2i(win_attr.width, win_attr.height)
+                    };
+                }
+            }
+        } else if(selection_type == SelectionType::REGION) {
+            if(!selecting_region)
+                return;
+        }
 
         if(is_wayland) {
             XClearWindow(dpy, region_window);
@@ -473,7 +557,11 @@ namespace gsr {
         }
         selecting_region = false;
 
-        cursor_pos = region.pos + region.size;
+        if(selection_type == SelectionType::WINDOW) {
+            cursor_pos = { (int)device_event->root_x, (int)device_event->root_y };
+        } else if(selection_type == SelectionType::REGION) {
+            cursor_pos = region.pos + region.size;
+        }
 
         if(region.size.x < 0) {
             region.pos.x += region.size.x;
@@ -497,6 +585,7 @@ namespace gsr {
     void RegionSelector::on_mouse_motion(const void *de) {
         const XIDeviceEvent *device_event = (XIDeviceEvent*)de;
         XClearWindow(dpy, region_window);
+
         if(selecting_region) {
             region.size.x = device_event->root_x - region.pos.x;
             region.size.y = device_event->root_y - region.pos.y;
@@ -506,10 +595,21 @@ namespace gsr {
                 draw_rectangle(dpy, region_window, region_gc, region.pos.x, region.pos.y, region.size.x, region.size.y);
             else
                 set_region_rectangle(dpy, region_window, region.pos.x, region.pos.y, region.size.x, region.size.y, region_border_size);
-        } else {
+        } else if(selection_type == SelectionType::WINDOW) {
+            cursor_pos = { (int)device_event->root_x, (int)device_event->root_y };
+
+            focused_window = get_window_by_position(windows, cursor_pos);
+            if(focused_window) {
+                if(is_wayland)
+                    draw_rectangle(dpy, region_window, region_gc, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y);
+                else
+                    set_region_rectangle(dpy, region_window, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y, region_border_size);
+            }
+        } else if(selection_type == SelectionType::REGION) {
             cursor_pos = { (int)device_event->root_x, (int)device_event->root_y };
             draw_rectangle_around_selected_monitor(dpy, region_window, region_gc, region_border_size, is_wayland, monitors, cursor_pos);
         }
+
         update_cursor_window(dpy, region_window, cursor_window, is_wayland, cursor_pos.x, cursor_pos.y, cursor_window_size, cursor_thickness, cursor_gc);
         XFlush(dpy);
     }

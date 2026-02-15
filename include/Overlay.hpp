@@ -9,7 +9,6 @@
 #include "GlobalHotkeys/GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
 #include "RegionSelector.hpp"
-#include "WindowSelector.hpp"
 #include "ClipboardFile.hpp"
 #include "LedIndicator.hpp"
 #include "CursorTracker/CursorTracker.hpp"
@@ -275,9 +274,7 @@ namespace gsr {
         bool start_region_capture = false;
         std::function<void()> on_region_selected;
 
-        WindowSelector window_selector;
         bool start_window_capture = false;
-        std::function<void()> on_window_selected;
 
         std::string recording_capture_target;
         std::string screenshot_capture_target;

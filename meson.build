@@ -45,7 +45,6 @@ src = [
     'src/KwinWorkaround.cpp',
     'src/WindowUtils.cpp',
     'src/RegionSelector.cpp',
-    'src/WindowSelector.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
     'src/Process.cpp',

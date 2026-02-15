@@ -229,7 +229,7 @@ namespace gsr {
         wl_display_roundtrip(dpy);
     }
 
-    static unsigned char* window_get_property(Display *dpy, Window window, Atom property_type, const char *property_name, unsigned int *property_size) {
+    unsigned char* window_get_property(Display *dpy, Window window, Atom property_type, const char *property_name, unsigned int *property_size) {
         Atom ret_property_type = None;
         int ret_format = 0;
         unsigned long num_items = 0;
@@ -284,14 +284,14 @@ namespace gsr {
             return None;
 
         Window found_window = None;
-        for(int i = num_children - 1; i >= 0; --i) {
+        for(int i = (int)num_children - 1; i >= 0; --i) {
             if(children[i] && window_is_user_program(display, children[i])) {
                 found_window = children[i];
                 goto finished;
             }
         }
 
-        for(int i = num_children - 1; i >= 0; --i) {
+        for(int i = (int)num_children - 1; i >= 0; --i) {
             if(children[i]) {
                 Window win = window_get_target_window_child(display, children[i]);
                 if(win) {

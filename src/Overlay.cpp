@@ -804,24 +804,28 @@ namespace gsr {
         if(region_selector.take_canceled()) {
             on_region_selected = nullptr;
         } else if(region_selector.take_selection() && on_region_selected) {
-            on_region_selected();
-            on_region_selected = nullptr;
-        }
+            switch(region_selector.get_selection_type()) {
+                case RegionSelector::SelectionType::NONE: {
+                    break;
+                }
+                case RegionSelector::SelectionType::REGION: {
+                    on_region_selected();
+                    break;
+                }
+                case RegionSelector::SelectionType::WINDOW: {
+                    mgl_context *context = mgl_get_context();
+                    Display *display = (Display*)context->connection;
 
-        window_selector.poll_events();
-        if(window_selector.take_canceled()) {
-            on_window_selected = nullptr;
-        } else if(window_selector.take_selection() && on_window_selected) {
-            mgl_context *context = mgl_get_context();
-            Display *display = (Display*)context->connection;
-
-            const Window selected_window = window_selector.get_selection();
-            if(selected_window && selected_window != DefaultRootWindow(display)) {
-                on_window_selected();
-            } else {
-                show_notification(TR("No window selected"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                    const Window selected_window = region_selector.get_window_selection();
+                    if(selected_window && selected_window != DefaultRootWindow(display)) {
+                        on_region_selected();
+                    } else {
+                        show_notification(TR("No window selected"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                    }
+                    break;
+                }
             }
-            on_window_selected = nullptr;
+            on_region_selected = nullptr;
         }
 
         if(!visible || !window)
@@ -875,7 +879,7 @@ namespace gsr {
         if(start_region_capture) {
             start_region_capture = false;
             hide();
-            if(!region_selector.start(get_color_theme().tint_color)) {
+            if(!region_selector.start(RegionSelector::SelectionType::REGION, get_color_theme().tint_color)) {
                 show_notification(TR("Failed to start region capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_region_selected = nullptr;
             }
@@ -884,13 +888,13 @@ namespace gsr {
         if(start_window_capture) {
             start_window_capture = false;
             hide();
-            if(!window_selector.start(get_color_theme().tint_color)) {
+            if(!region_selector.start(RegionSelector::SelectionType::WINDOW, get_color_theme().tint_color)) {
                 show_notification(TR("Failed to start window capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                on_window_selected = nullptr;
+                on_region_selected = nullptr;
             }
         }
 
-        if(region_selector.is_started() || window_selector.is_started()) {
+        if(region_selector.is_started()) {
             usleep(5 * 1000); // 5 ms
             return true;
         }
@@ -1025,7 +1029,7 @@ namespace gsr {
         if(visible)
             return;
 
-        if(region_selector.is_started() || window_selector.is_started())
+        if(region_selector.is_started())
             return;
 
         drawn_first_frame = false;
@@ -2592,7 +2596,7 @@ namespace gsr {
     }
 
     void Overlay::add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size) {
-        Region region = region_selector.get_selection(x11_dpy, wayland_dpy);
+        Region region = region_selector.get_region_selection(x11_dpy, wayland_dpy);
         if(region.size.x <= 32 && region.size.y <= 32) {
             region.size.x = 0;
             region.size.y = 0;
@@ -2676,7 +2680,7 @@ namespace gsr {
 
     std::string Overlay::get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
         if(capture_target == "window") {
-            return std::to_string(window_selector.get_selection());
+            return std::to_string(region_selector.get_window_selection());
         } else if(capture_target == "focused_monitor") {
             std::optional<CursorInfo> cursor_info;
             if(cursor_tracker) {
@@ -2871,7 +2875,7 @@ namespace gsr {
     }
 
     bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection) {
-        if(region_selector.is_started() || window_selector.is_started())
+        if(region_selector.is_started())
             return false;
 
         switch(recording_status) {
@@ -2914,15 +2918,6 @@ namespace gsr {
             return true;
         }
 
-        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        recording_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
-        if(!validate_capture_target(config.replay_config.record_options.record_area_option, capture_options)) {
-            char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), TR("Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
-            return false;
-        }
-
         if(config.replay_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [disable_notification, this]() {
@@ -2933,9 +2928,18 @@ namespace gsr {
 
         if(config.replay_config.record_options.record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_window_selected = [disable_notification, this]() {
+            on_region_selected = [disable_notification, this]() {
                 on_press_start_replay(disable_notification, true);
             };
+            return false;
+        }
+
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        recording_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
+        if(!validate_capture_target(config.replay_config.record_options.record_area_option, capture_options)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
             return false;
         }
 
@@ -3040,7 +3044,7 @@ namespace gsr {
     }
 
     void Overlay::on_press_start_record(bool finished_selection, RecordForceType force_type) {
-        if(region_selector.is_started() || window_selector.is_started())
+        if(region_selector.is_started())
             return;
 
         switch(recording_status) {
@@ -3154,15 +3158,6 @@ namespace gsr {
                 break;
         }
 
-        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        recording_capture_target = get_capture_target(record_area_option, capture_options);
-        if(!validate_capture_target(record_area_option, capture_options)) {
-            char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), TR("Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
-            return;
-        }
-
         if(record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [this, force_type]() {
@@ -3173,9 +3168,18 @@ namespace gsr {
 
         if(record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_window_selected = [this, force_type]() {
+            on_region_selected = [this, force_type]() {
                 on_press_start_record(true, force_type);
             };
+            return;
+        }
+
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        recording_capture_target = get_capture_target(record_area_option, capture_options);
+        if(!validate_capture_target(record_area_option, capture_options)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to start recording, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::RECORD, nullptr, NotificationLevel::ERROR);
             return;
         }
 
@@ -3312,7 +3316,7 @@ namespace gsr {
     }
 
     void Overlay::on_press_start_stream(bool finished_selection) {
-        if(region_selector.is_started() || window_selector.is_started())
+        if(region_selector.is_started())
             return;
 
         switch(recording_status) {
@@ -3352,15 +3356,6 @@ namespace gsr {
             return;
         }
 
-        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        recording_capture_target = get_capture_target(config.streaming_config.record_options.record_area_option, capture_options);
-        if(!validate_capture_target(config.streaming_config.record_options.record_area_option, capture_options)) {
-            char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), TR("Failed to start streaming, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
-            return;
-        }
-
         if(config.streaming_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [this]() {
@@ -3371,9 +3366,18 @@ namespace gsr {
 
         if(config.streaming_config.record_options.record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_window_selected = [this]() {
+            on_region_selected = [this]() {
                 on_press_start_stream(true);
             };
+            return;
+        }
+
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        recording_capture_target = get_capture_target(config.streaming_config.record_options.record_area_option, capture_options);
+        if(!validate_capture_target(config.streaming_config.record_options.record_area_option, capture_options)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to start streaming, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
             return;
         }
 
@@ -3469,7 +3473,7 @@ namespace gsr {
     }
 
     void Overlay::on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type) {
-        if(region_selector.is_started() || window_selector.is_started())
+        if(region_selector.is_started())
             return;
 
         if(gpu_screen_recorder_screenshot_process > 0) {
@@ -3490,15 +3494,6 @@ namespace gsr {
                 break;
         }
 
-        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        screenshot_capture_target = get_capture_target(record_area_option, capture_options);
-        if(!validate_capture_target(record_area_option, capture_options)) {
-            char err_msg[256];
-            snprintf(err_msg, sizeof(err_msg), TR("Failed to take a screenshot, capture target \"%s\" is invalid.\nPlease change capture target in settings"), screenshot_capture_target.c_str());
-            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
-            return;
-        }
-
         if(record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
             on_region_selected = [this, force_type]() {
@@ -3509,9 +3504,18 @@ namespace gsr {
 
         if(record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_window_selected = [this, force_type]() {
+            on_region_selected = [this, force_type]() {
                 on_press_take_screenshot(true, force_type);
             };
+            return;
+        }
+
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        screenshot_capture_target = get_capture_target(record_area_option, capture_options);
+        if(!validate_capture_target(record_area_option, capture_options)) {
+            char err_msg[256];
+            snprintf(err_msg, sizeof(err_msg), TR("Failed to take a screenshot, capture target \"%s\" is invalid.\nPlease change capture target in settings"), screenshot_capture_target.c_str());
+            show_notification(err_msg, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::SCREENSHOT, nullptr, NotificationLevel::ERROR);
             return;
         }
 
