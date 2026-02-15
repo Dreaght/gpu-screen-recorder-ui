@@ -68,7 +68,11 @@ namespace gsr {
                 (unsigned short)max_int(0, width - border_size*2), (unsigned short)max_int(0, border_size)
             }, // Bottom
         };
-        XShapeCombineRectangles(dpy, window, ShapeBounding, 0, 0, rectangles, 4, ShapeSet, Unsorted);
+
+        if(width == 0 && height == 0)
+            XShapeCombineRectangles(dpy, window, ShapeBounding, 0, 0, rectangles, 0, ShapeSet, Unsorted);
+        else
+            XShapeCombineRectangles(dpy, window, ShapeBounding, 0, 0, rectangles, 4, ShapeSet, Unsorted);
         XFlush(dpy);
     }
 
@@ -98,7 +102,8 @@ namespace gsr {
             height = abs(height);
         }
 
-        XDrawRectangle(dpy, window, gc, x, y, width, height);
+        if(width != 0 && height != 0)
+            XDrawRectangle(dpy, window, gc, x, y, width, height);
     }
 
     static Window create_cursor_window(Display *dpy, int width, int height, XVisualInfo *vinfo, unsigned long background_pixel) {
@@ -115,6 +120,13 @@ namespace gsr {
             make_window_click_through(dpy, window);
         }
         return window;
+    }
+
+    static void draw_rectangle_or_region(Display *dpy, Window window, GC region_gc, int region_border_size, bool is_wayland, mgl::vec2i pos, mgl::vec2i size) {
+        if(is_wayland)
+            draw_rectangle(dpy, window, region_gc, pos.x, pos.y, size.x, size.y);
+        else
+            set_region_rectangle(dpy, window, pos.x, pos.y, size.x, size.y, region_border_size);
     }
 
     static void draw_rectangle_around_selected_monitor(Display *dpy, Window window, GC region_gc, int region_border_size, bool is_wayland, const std::vector<Monitor> &monitors, mgl::vec2i cursor_pos) {
@@ -139,10 +151,7 @@ namespace gsr {
             height = focused_monitor->size.y;
         }
 
-        if(is_wayland)
-            draw_rectangle(dpy, window, region_gc, x, y, width, height);
-        else
-            set_region_rectangle(dpy, window, x, y, width, height, region_border_size);
+        draw_rectangle_or_region(dpy, window, region_gc, region_border_size, is_wayland, mgl::vec2i(x, y), mgl::vec2i(width, height));
     }
 
     static void update_cursor_window(Display *dpy, Window window, Window cursor_window, bool is_wayland, int cursor_x, int cursor_y, int cursor_window_size, int thickness, GC cursor_gc) {
@@ -370,13 +379,8 @@ namespace gsr {
 
         if(selection_type == SelectionType::WINDOW) {
             focused_window = get_window_by_position(windows, cursor_pos);
-
-            if(focused_window) {
-                if(is_wayland)
-                    draw_rectangle(dpy, region_window, region_gc, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y);
-                else
-                    set_region_rectangle(dpy, region_window, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y, region_border_size);
-            }
+            if(focused_window)
+                draw_rectangle_or_region(dpy, region_window, region_gc, region_border_size, is_wayland, focused_window->pos, focused_window->size);
         } else if(selection_type == SelectionType::REGION) {
             draw_rectangle_around_selected_monitor(dpy, region_window, region_gc, region_border_size, is_wayland, monitors, cursor_pos);
         }
@@ -591,20 +595,15 @@ namespace gsr {
             region.size.y = device_event->root_y - region.pos.y;
             cursor_pos = region.pos + region.size;
 
-            if(is_wayland)
-                draw_rectangle(dpy, region_window, region_gc, region.pos.x, region.pos.y, region.size.x, region.size.y);
-            else
-                set_region_rectangle(dpy, region_window, region.pos.x, region.pos.y, region.size.x, region.size.y, region_border_size);
+            draw_rectangle_or_region(dpy, region_window, region_gc, region_border_size, is_wayland, region.pos, region.size);
         } else if(selection_type == SelectionType::WINDOW) {
             cursor_pos = { (int)device_event->root_x, (int)device_event->root_y };
 
             focused_window = get_window_by_position(windows, cursor_pos);
-            if(focused_window) {
-                if(is_wayland)
-                    draw_rectangle(dpy, region_window, region_gc, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y);
-                else
-                    set_region_rectangle(dpy, region_window, focused_window->pos.x, focused_window->pos.y, focused_window->size.x, focused_window->size.y, region_border_size);
-            }
+            if(focused_window)
+                draw_rectangle_or_region(dpy, region_window, region_gc, region_border_size, is_wayland, focused_window->pos, focused_window->size);
+            else
+                draw_rectangle_or_region(dpy, region_window, region_gc, region_border_size, is_wayland, mgl::vec2i(0, 0), mgl::vec2i(0, 0));
         } else if(selection_type == SelectionType::REGION) {
             cursor_pos = { (int)device_event->root_x, (int)device_event->root_y };
             draw_rectangle_around_selected_monitor(dpy, region_window, region_gc, region_border_size, is_wayland, monitors, cursor_pos);
