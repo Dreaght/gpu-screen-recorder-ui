@@ -37,13 +37,14 @@ namespace gsr {
         return "";
     }
 
-    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title, bool supports_window_fullscreen_state) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
         gsr_info(gsr_info),
         page_stack(page_stack),
-        supports_window_title(supports_window_title)
+        supports_window_title(supports_window_title),
+        supports_window_fullscreen_state(supports_window_fullscreen_state)
     {
         audio_devices = get_audio_devices();
         application_audio = get_application_audio();
@@ -1125,9 +1126,9 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
-        // TODO: Support kde plasma wayland and hyprland (same ones that support getting window title)
+        // TODO: Support hyprland (same ones that support getting window title)
         char fullscreen_text[256];
-        snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), gsr_info->system_info.display_server == DisplayServer::X11 ? "" : TR(" (X11 applications only)"));
+        snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), supports_window_fullscreen_state ? "" : TR(" (X11 applications only)"));
 
         auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
         radiobutton->add_item(TR("Don't turn on replay automatically"), "dont_turn_on_automatically");
@@ -1203,7 +1204,7 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> SettingsPage::create_led_indicator(const char *type) {
         char label_str[256];
-        snprintf(label_str, sizeof(label_str), TR("Show %s status with scroll lock led"), type);
+        snprintf(label_str, sizeof(label_str), TR("Show %s status with scroll lock LED"), type);
 
         auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
         checkbox->set_checked(false);

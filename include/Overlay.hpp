@@ -290,5 +290,6 @@ namespace gsr {
         std::unique_ptr<LedIndicator> led_indicator = nullptr;
 
         bool supports_window_title = false;
+        bool supports_window_fullscreen_state = false;
     };
 }
