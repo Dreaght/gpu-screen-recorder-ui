@@ -259,3 +259,5 @@ Add option to choose video container (either flv or mpegts) for youtube livestre
 Get wayland cursor position for region selector, otherwise the start position before the cursor moves is off.
 
 Add option to set preset on nvidia. Use -ffmpeg-video-opts for that.
+
+Webcam resolution list is too long for some people. Fix it by separating resolution and framerate. Sort resolution and framerate from highest to lowest. Add scrollbar for dropdown list.
