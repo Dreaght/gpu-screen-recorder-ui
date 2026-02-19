@@ -11,6 +11,7 @@ static const char* INTROSPECTION_XML =
     "    <method name='updateActiveWindow'>\n"
     "      <arg type='s' name='title' direction='in'/>\n"
     "      <arg type='b' name='fullscreen' direction='in'/>\n"
+    "      <arg type='s' name='monitorName' direction='in'/>\n"
     "    </method>\n"
     "  </interface>\n"
     "  <interface name='org.freedesktop.DBus.Introspectable'>\n"
@@ -25,6 +26,7 @@ class GsrKwinHelper {
 public:
     std::string active_window_title;
     bool active_window_fullscreen;
+    std::string active_window_monitor_name;
     DBusConnection* connection = nullptr;
     DBusError err;
 
@@ -114,6 +116,7 @@ public:
         DBusMessageIter args;
         DBusBasicValue title;
         DBusBasicValue fullscreen;
+        DBusBasicValue monitorName;
 
         if (!dbus_message_iter_init(msg, &args)) {
             send_error_reply(msg, "No arguments provided");
@@ -138,6 +141,18 @@ public:
         }
 
         dbus_message_iter_get_basic(&args, &fullscreen);
+
+        if (!dbus_message_iter_next(&args)) {
+            send_error_reply(msg, "Not enough arguments provided");
+            return;
+        }
+
+        if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_STRING) {
+            send_error_reply(msg, "Expected string argument");
+            return;
+        }
+
+        dbus_message_iter_get_basic(&args, &monitorName);
         
         if (title.str) {
             if (active_window_title != title.str) {
@@ -154,6 +169,17 @@ public:
             active_window_fullscreen = fullscreen.bool_val;
             std::cout << "Active window fullscreen state set to: " << active_window_fullscreen << "\n";
             std::cout.flush();
+        }
+
+        if (monitorName.str) {
+            if (active_window_monitor_name != monitorName.str) {
+                active_window_monitor_name = monitorName.str;
+                std::cout << "Active window monitor name set to: " << active_window_monitor_name << "\n";
+                std::cout.flush();
+            }
+        } else {
+            send_error_reply(msg, "Failed to read string");
+            return;
         }
 
         send_success_reply(msg);

@@ -27,6 +27,7 @@ namespace gsr {
         char buffer[4096];
         const std::string prefix_title = "Active window title set to: ";
         const std::string prefix_fullscreen = "Active window fullscreen state set to: ";
+        const std::string prefix_monitor = "Active window monitor name set to: ";
 
         std::string line;
         while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
@@ -43,6 +44,9 @@ namespace gsr {
             } else if ((pos = line.find(prefix_fullscreen)) != std::string::npos) {
                 std::string fullscreen = line.substr(pos + prefix_fullscreen.length());
                 active_kwin_window.fullscreen = fullscreen == "1";
+            } else if ((pos = line.find(prefix_monitor)) != std::string::npos) {
+                std::string monitorName = line.substr(pos + prefix_monitor.length());
+                active_kwin_window.monitorName = std::move(monitorName);
             }
         }
 
@@ -55,6 +59,10 @@ namespace gsr {
 
     bool get_current_kwin_window_fullscreen() {
         return active_kwin_window.fullscreen;
+    }
+
+    std::string get_current_kwin_window_monitor_name() {
+        return active_kwin_window.monitorName;
     }
 
     void start_kwin_helper_thread() {
