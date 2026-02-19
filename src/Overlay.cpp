@@ -2372,12 +2372,21 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
-        const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
-        if(window && focused_window == (Window)window->get_system_handle())
-            return;
+        const std::string wm_name = get_window_manager_name(display);
+        const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
 
         const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
-        focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
+
+        if (is_kwin_wayland) {
+            focused_window_is_fullscreen = get_current_kwin_window_fullscreen();
+        } else {
+            const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
+            if(window && focused_window == (Window)window->get_system_handle())
+                return;
+
+            focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
+        }
+
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
             if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
                 if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
