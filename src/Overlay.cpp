@@ -2693,19 +2693,29 @@ namespace gsr {
         if(capture_target == "window") {
             return std::to_string(region_selector.get_window_selection());
         } else if(capture_target == "focused_monitor") {
-            std::optional<CursorInfo> cursor_info;
-            if(cursor_tracker) {
-                cursor_tracker->update();
-                cursor_info = cursor_tracker->get_latest_cursor_info();
-            }
+            mgl_context *context = mgl_get_context();
+            Display *display = (Display*)context->connection;
+
+            const std::string wm_name = get_window_manager_name(display);
+            const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
 
             std::string focused_monitor_name;
-            if(cursor_info) {
-                focused_monitor_name = std::move(cursor_info->monitor_name);
+
+            if (is_kwin_wayland && focused_window_is_fullscreen) {
+                focused_monitor_name = get_current_kwin_window_monitor_name();
             } else {
-                mgl_context *context = mgl_get_context();
-                Display *display = (Display*)context->connection;
-                focused_monitor_name = get_focused_monitor_by_cursor(cursor_tracker.get(), gsr_info, get_monitors(display));
+                std::optional<CursorInfo> cursor_info;
+                if(cursor_tracker) {
+                    cursor_tracker->update();
+                    cursor_info = cursor_tracker->get_latest_cursor_info();
+                }
+
+                
+                if(cursor_info) {
+                    focused_monitor_name = std::move(cursor_info->monitor_name);
+                } else {
+                    focused_monitor_name = get_focused_monitor_by_cursor(cursor_tracker.get(), gsr_info, get_monitors(display));
+                }
             }
 
             focused_monitor_name = get_valid_capture_target(focused_monitor_name, capture_options);
