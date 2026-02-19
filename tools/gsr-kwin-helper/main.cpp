@@ -8,8 +8,9 @@ static const char* INTROSPECTION_XML =
     "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
     "<node>\n"
     "  <interface name='com.dec05eba.gpu_screen_recorder'>\n"
-    "    <method name='setActiveWindowTitle'>\n"
+    "    <method name='updateActiveWindow'>\n"
     "      <arg type='s' name='title' direction='in'/>\n"
+    "      <arg type='b' name='fullscreen' direction='in'/>\n"
     "    </method>\n"
     "  </interface>\n"
     "  <interface name='org.freedesktop.DBus.Introspectable'>\n"
@@ -23,6 +24,7 @@ static const char* INTROSPECTION_XML =
 class GsrKwinHelper {
 public:
     std::string active_window_title;
+    bool active_window_fullscreen;
     DBusConnection* connection = nullptr;
     DBusError err;
 
@@ -83,8 +85,8 @@ public:
 
             if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Introspectable", "Introspect")) {
                 handle_introspect(msg);
-            } else if (dbus_message_is_method_call(msg, "com.dec05eba.gpu_screen_recorder", "setActiveWindowTitle")) {
-                handle_set_title(msg);
+            } else if (dbus_message_is_method_call(msg, "com.dec05eba.gpu_screen_recorder", "updateActiveWindow")) {
+                handle_update_active_window(msg);
             }
 
             dbus_message_unref(msg);
@@ -108,9 +110,10 @@ public:
         dbus_message_unref(reply);
     }
 
-    void handle_set_title(DBusMessage* msg) {
+    void handle_update_active_window(DBusMessage* msg) {
         DBusMessageIter args;
-        const char* title = nullptr;
+        DBusBasicValue title;
+        DBusBasicValue fullscreen;
 
         if (!dbus_message_iter_init(msg, &args)) {
             send_error_reply(msg, "No arguments provided");
@@ -123,15 +126,37 @@ public:
         }
 
         dbus_message_iter_get_basic(&args, &title);
+
+        if (!dbus_message_iter_next(&args)) {
+            send_error_reply(msg, "Not enough arguments provided");
+            return;
+        }
+
+        if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_BOOLEAN) {
+            send_error_reply(msg, "Expected boolean argument");
+            return;
+        }
+
+        dbus_message_iter_get_basic(&args, &fullscreen);
         
-        if (title) {
-            active_window_title = title;
-            std::cout << "Active window title set to: " << active_window_title << "\n";
-            std::cout.flush();
-            send_success_reply(msg);
+        if (title.str) {
+            if (active_window_title != title.str) {
+                active_window_title = title.str;
+                std::cout << "Active window title set to: " << active_window_title << "\n";
+                std::cout.flush();
+            }
         } else {
             send_error_reply(msg, "Failed to read string");
+            return;
         }
+
+        if (active_window_fullscreen != fullscreen.bool_val) {
+            active_window_fullscreen = fullscreen.bool_val;
+            std::cout << "Active window fullscreen state set to: " << active_window_fullscreen << "\n";
+            std::cout.flush();
+        }
+
+        send_success_reply(msg);
     }
 
     void send_success_reply(DBusMessage* msg) {

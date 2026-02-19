@@ -1,52 +1,51 @@
 const DAEMON_DBUS_NAME = "com.dec05eba.gpu_screen_recorder";
 
-// utils
-function sendNewActiveWindowTitle(title) {
+function dbusSendUpdateActiveWindow(title, isFullscreen) {
     callDBus(
         DAEMON_DBUS_NAME, "/", DAEMON_DBUS_NAME,
-        "setActiveWindowTitle", title
+        "updateActiveWindow",
+        title, isFullscreen,
     );
 }
 
-function sendNewActiveWindowFullscreen(isFullscreen) {
-    callDBus(
-        DAEMON_DBUS_NAME, "/", DAEMON_DBUS_NAME,
-        "setActiveWindowFullscreen", isFullscreen
-    );
+let prevWindow = null;
+let prevEmitActiveWindowUpdate = null;
+
+let prevCaption = null;
+let prevFullScreen = null;
+
+function emitActiveWindowUpdate(window) {
+    if (workspace.activeWindow === window) {
+        let caption = window.caption || "";
+        let fullScreen = window.fullScreen || false;
+        if (caption !== prevCaption || fullScreen !== prevFullScreen) {
+            dbusSendUpdateActiveWindow(caption, fullScreen);
+            prevCaption = caption;
+            prevFullScreen = fullScreen;
+        }
+    }
 }
 
-// track handlers to avoid duplicates
-const windowEventHandlers = new Map();
-
-function subscribeToClient(client) {
-    if (!client || windowEventHandlers.has(client)) return;
-
-    const emitActiveTitle = () => {
-        if (workspace.activeWindow === client) {
-            sendNewActiveWindowTitle(client.caption || "");
+function subscribeToWindow(window) {
+    if (!window) return;
+    if (prevWindow !== window) {
+        if (prevWindow !== null) {
+            prevWindow.captionChanged.disconnect(prevEmitActiveWindowUpdate);
+            prevWindow.fullScreenChanged.disconnect(prevEmitActiveWindowUpdate);
         }
-    };
-
-    const emitActiveFullscreen = () => {
-        if (workspace.activeWindow === client) {
-            sendNewActiveWindowFullscreen(client.fullScreen);
-        }
-    };
-
-    windowEventHandlers.set(client, {
-        title: emitActiveTitle,
-        fs: emitActiveFullscreen,
-    });
-
-    client.captionChanged.connect(emitActiveTitle);
-    client.fullScreenChanged.connect(emitActiveFullscreen);
+        let emitActiveWindowUpdateBound = emitActiveWindowUpdate.bind(null, window);
+        window.captionChanged.connect(emitActiveWindowUpdateBound);
+        window.fullScreenChanged.connect(emitActiveWindowUpdateBound);
+        prevWindow = window;
+        prevEmitActiveWindowUpdate = emitActiveWindowUpdateBound;
+    }
 }
 
-function updateActiveWindow(client) {
-    if (!client) return;
-    sendNewActiveWindowTitle(client.caption || "");
-    sendNewActiveWindowFullscreen(client.fullScreen);
-    subscribeToClient(client);
+function updateActiveWindow(window) {
+    if (!window) return;
+    if (window.resourceName === "gsr-ui" || window.resourceName === "gsr-notify") return; // ignore the overlay and notification
+    emitActiveWindowUpdate(window);
+    subscribeToWindow(window);
 }
 
 // handle window focus changes

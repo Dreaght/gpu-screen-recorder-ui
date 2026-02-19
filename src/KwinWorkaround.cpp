@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <string>
 #include <sys/types.h>
 #include <thread>
 #include <cstdlib>
@@ -24,7 +25,8 @@ namespace gsr {
         std::cerr << "Started a KWin helper thread\n";
 
         char buffer[4096];
-        const std::string prefix = "Active window title set to: ";
+        const std::string prefix_title = "Active window title set to: ";
+        const std::string prefix_fullscreen = "Active window fullscreen state set to: ";
 
         std::string line;
         while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
@@ -34,15 +36,13 @@ namespace gsr {
                 line.pop_back();
             }
 
-            size_t pos = line.find(prefix);
-            if (pos != std::string::npos) {
-                std::string title = line.substr(pos + prefix.length());
-
-                if (title == "gsr ui" || title == "gsr notify") {
-                    continue; // ignore the overlay and notification
-                }
-
+            size_t pos = std::string::npos;
+            if ((pos = line.find(prefix_title)) != std::string::npos) {
+                std::string title = line.substr(pos + prefix_title.length());
                 active_kwin_window.title = std::move(title);
+            } else if ((pos = line.find(prefix_fullscreen)) != std::string::npos) {
+                std::string fullscreen = line.substr(pos + prefix_fullscreen.length());
+                active_kwin_window.fullscreen = fullscreen == "1";
             }
         }
 
@@ -51,6 +51,10 @@ namespace gsr {
 
     std::string get_current_kwin_window_title() {
         return active_kwin_window.title;
+    }
+
+    bool get_current_kwin_window_fullscreen() {
+        return active_kwin_window.fullscreen;
     }
 
     void start_kwin_helper_thread() {
