@@ -48,7 +48,9 @@ function subscribeToWindow(window) {
 
 function updateActiveWindow(window) {
     if (!window) return;
+    if (!window.normalWindow) return;
     if (window.resourceName === "gsr-ui" || window.resourceName === "gsr-notify") return; // ignore the overlay and notification
+    if (window.resourceClass === "org.kde.spectacle") return;
     emitActiveWindowUpdate(window);
     subscribeToWindow(window);
 }
