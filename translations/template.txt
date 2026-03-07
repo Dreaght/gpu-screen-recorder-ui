@@ -385,7 +385,7 @@ Record cursor=
 Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=
 
 Show %s notifications=
-Show %s status with scroll lock led=
+Show %s status with scroll lock LED=
 Recording indicator=
 recording=
 

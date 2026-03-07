@@ -371,7 +371,7 @@ Record cursor=Grabar cursor
 Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=No forzar a la GPU a entrar en modo de alto rendimiento al grabar.\nPuede afectar al rendimiento de la grabación, especialmente al reproducir un vídeo al mismo tiempo.\nSi se activa, se recomienda usar el modo de sincronización con la velocidad de fotogramas del contenido para reducir el consumo de energía cuando está inactiva.
 
 Show %s notifications=Mostrar notificación de %s
-Show %s status with scroll lock led=Mostrar estado de %s con el LED de Bloq Despl
+Show %s status with scroll lock LED=Mostrar estado de %s con el LED de Bloq Despl
 Recording indicator=Indicador de grabación
 recording=grabando
 
