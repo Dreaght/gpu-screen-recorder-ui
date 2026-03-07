@@ -927,7 +927,7 @@ static void keyboard_event_process_stdin_command_data(keyboard_event *self, int 
         return;
 
     const char *command_start = self->stdin_command_data;
-    const char *search = self->stdin_command_data + self->stdin_command_data_size;
+    char *search = self->stdin_command_data + self->stdin_command_data_size;
     const char *end = search + bytes_read;
     self->stdin_command_data_size += bytes_read;
 
