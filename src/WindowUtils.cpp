@@ -270,6 +270,30 @@ namespace gsr {
         return window_has_atom(dpy, window, net_wm_state_atom) || window_has_atom(dpy, window, wm_state_atom);
     }
 
+    static Window get_window_graphics_parent(Display *dpy, Window window) {
+        if(window == DefaultRootWindow(dpy) || window == None)
+            return window;
+
+        XWindowAttributes attr;
+        memset(&attr, 0, sizeof(attr));
+        XGetWindowAttributes(dpy, window, &attr);
+        if(attr.override_redirect || attr.c_class != InputOutput || attr.map_state != IsViewable || !window_is_user_program(dpy, window)) {
+            Window root;
+            Window parent;
+            Window *children = nullptr;
+            unsigned int num_children = 0;
+            if(!XQueryTree(dpy, window, &root, &parent, &children, &num_children))
+                return None;
+
+            if(children)
+                XFree(children);
+
+            if(parent)
+                return get_window_graphics_parent(dpy, parent);
+        }
+        return window;
+    }
+
     Window window_get_target_window_child(Display *display, Window window) {
         if(window == None)
             return None;
@@ -351,7 +375,9 @@ namespace gsr {
 
             int revert_to = 0;
             XGetInputFocus(dpy, &focused_window, &revert_to);
-            if(focused_window && focused_window != DefaultRootWindow(dpy) && window_is_user_program(dpy, focused_window))
+            focused_window = get_window_graphics_parent(dpy, focused_window);
+
+            if(focused_window && focused_window != DefaultRootWindow(dpy))
                 return focused_window;
 
             if(!fallback_cursor_focused)
@@ -907,7 +933,7 @@ namespace gsr {
 
         geometry->width = w;
         geometry->height = h;
-        return s != Success;
+        return s == True;
     }
 
     std::optional<Monitor> get_monitor_by_window_center(Display *display, Window window) {
