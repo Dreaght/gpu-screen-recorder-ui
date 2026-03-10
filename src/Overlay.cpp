@@ -161,26 +161,6 @@ namespace gsr {
         return result;
     }
 
-    struct DrawableGeometry {
-        int x, y, width, height;
-    };
-
-    static bool get_drawable_geometry(Display *display, Drawable drawable, DrawableGeometry *geometry) {
-        geometry->x = 0;
-        geometry->y = 0;
-        geometry->width = 0;
-        geometry->height = 0;
-
-        Window root_window;
-        unsigned int w, h;
-        unsigned int dummy_border, dummy_depth;
-        Status s = XGetGeometry(display, drawable, &root_window, &geometry->x, &geometry->y, &w, &h, &dummy_border, &dummy_depth);
-
-        geometry->width = w;
-        geometry->height = h;
-        return s != Success;
-    }
-
     static bool diff_int(int a, int b, int difference) {
         return std::abs(a - b) <= difference;
     }
@@ -2378,11 +2358,12 @@ namespace gsr {
         const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
 
         const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
+        Window focused_window = None;
 
         if (is_kwin_wayland) {
             focused_window_is_fullscreen = get_current_kwin_window_fullscreen();
         } else {
-            const Window focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
+            focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
             if(window && focused_window == (Window)window->get_system_handle())
                 return;
 
@@ -2390,11 +2371,22 @@ namespace gsr {
         }
 
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
+            std::string fullscreen_window_monitor;
+            if(is_kwin_wayland) {
+                fullscreen_window_monitor = get_current_kwin_window_monitor_name();
+            } else {
+                auto window_monitor = get_monitor_by_window_center(display, focused_window);
+                if(window_monitor.has_value())
+                    fullscreen_window_monitor = std::move(window_monitor->name);
+                else
+                    fullscreen_window_monitor.clear();
+            }
+
             if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
                 if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
-                    on_press_start_replay(false, false);
+                    on_press_start_replay(false, false, fullscreen_window_monitor);
             } else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen) {
-                on_press_start_replay(true, false);
+                on_press_start_replay(true, false, fullscreen_window_monitor);
             }
         }
     }
@@ -2693,29 +2685,19 @@ namespace gsr {
         if(capture_target == "window") {
             return std::to_string(region_selector.get_window_selection());
         } else if(capture_target == "focused_monitor") {
-            mgl_context *context = mgl_get_context();
-            Display *display = (Display*)context->connection;
-
-            const std::string wm_name = get_window_manager_name(display);
-            const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
+            std::optional<CursorInfo> cursor_info;
+            if(cursor_tracker) {
+                cursor_tracker->update();
+                cursor_info = cursor_tracker->get_latest_cursor_info();
+            }
 
             std::string focused_monitor_name;
-
-            if (is_kwin_wayland && focused_window_is_fullscreen) {
-                focused_monitor_name = get_current_kwin_window_monitor_name();
+            if(cursor_info) {
+                focused_monitor_name = std::move(cursor_info->monitor_name);
             } else {
-                std::optional<CursorInfo> cursor_info;
-                if(cursor_tracker) {
-                    cursor_tracker->update();
-                    cursor_info = cursor_tracker->get_latest_cursor_info();
-                }
-
-                
-                if(cursor_info) {
-                    focused_monitor_name = std::move(cursor_info->monitor_name);
-                } else {
-                    focused_monitor_name = get_focused_monitor_by_cursor(cursor_tracker.get(), gsr_info, get_monitors(display));
-                }
+                mgl_context *context = mgl_get_context();
+                Display *display = (Display*)context->connection;
+                focused_monitor_name = get_focused_monitor_by_cursor(cursor_tracker.get(), gsr_info, get_monitors(display));
             }
 
             focused_monitor_name = get_valid_capture_target(focused_monitor_name, capture_options);
@@ -2895,7 +2877,7 @@ namespace gsr {
         return capture_source_arg;
     }
 
-    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection) {
+    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection, std::string monitor_to_capture) {
         if(region_selector.is_started())
             return false;
 
@@ -2956,7 +2938,7 @@ namespace gsr {
         }
 
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        recording_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
+        recording_capture_target = !monitor_to_capture.empty() ? monitor_to_capture : get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.replay_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), TR("Failed to start replay, capture target \"%s\" is invalid.\nPlease change capture target in settings"), recording_capture_target.c_str());

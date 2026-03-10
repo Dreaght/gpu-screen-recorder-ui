@@ -20,6 +20,13 @@ namespace gsr {
         std::string name;
     };
 
+    struct DrawableGeometry {
+        int x = 0;
+        int y = 0;
+        int width = 0;
+        int height = 0;
+    };
+
     std::optional<std::string> get_window_title(Display *dpy, Window window);
     Window get_focused_window(Display *dpy, WindowCaptureType cap_type, bool fallback_cursor_focused = true);
     std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused = true);
@@ -39,6 +46,8 @@ namespace gsr {
     void xi_warp_all_mouse_devices(Display *dpy, mgl::vec2i position);
     void window_set_fullscreen(Display *dpy, Window window, bool fullscreen);
     bool window_is_fullscreen(Display *display, Window window);
+    bool get_drawable_geometry(Display *display, Drawable drawable, DrawableGeometry *geometry);
+    std::optional<Monitor> get_monitor_by_window_center(Display *display, Window window);
     bool set_window_wm_state(Display *dpy, Window window, Atom atom);
     void make_window_click_through(Display *display, Window window);
     bool make_window_sticky(Display *dpy, Window window);

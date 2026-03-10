@@ -11,6 +11,7 @@
 #include <wayland-client.h>
 #include "xdg-output-unstable-v1-client-protocol.h"
 
+#include <mglpp/system/Rect.hpp>
 #include <mglpp/system/Utf8.hpp>
 
 extern "C" {
@@ -891,6 +892,36 @@ namespace gsr {
 
         XFree(properties);
         return is_fullscreen;
+    }
+
+    bool get_drawable_geometry(Display *display, Drawable drawable, DrawableGeometry *geometry) {
+        geometry->x = 0;
+        geometry->y = 0;
+        geometry->width = 0;
+        geometry->height = 0;
+
+        Window root_window;
+        unsigned int w, h;
+        unsigned int dummy_border, dummy_depth;
+        Status s = XGetGeometry(display, drawable, &root_window, &geometry->x, &geometry->y, &w, &h, &dummy_border, &dummy_depth);
+
+        geometry->width = w;
+        geometry->height = h;
+        return s != Success;
+    }
+
+    std::optional<Monitor> get_monitor_by_window_center(Display *display, Window window) {
+        DrawableGeometry geometry;
+        if(!get_drawable_geometry(display, window, &geometry))
+            return std::nullopt;
+
+        const mgl::vec2i window_center = mgl::vec2i(geometry.x, geometry.y) + mgl::vec2i(geometry.width, geometry.height) / 2;
+        auto monitors = get_monitors(display);
+        for(auto &monitor : monitors) {
+            if(mgl::IntRect(monitor.position, monitor.size).contains(window_center))
+                return std::move(monitor);
+        }
+        return std::nullopt;
     }
 
     #define _NET_WM_STATE_REMOVE  0

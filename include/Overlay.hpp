@@ -157,7 +157,7 @@ namespace gsr {
         void on_press_save_replay();
         void on_press_save_replay_1_min_replay();
         void on_press_save_replay_10_min_replay();
-        bool on_press_start_replay(bool disable_notification, bool finished_selection);
+        bool on_press_start_replay(bool disable_notification, bool finished_selection, std::string monitor_to_capture = "");
         void on_press_start_record(bool finished_selection, RecordForceType force_type);
         void on_press_start_stream(bool finished_selection);
         void on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type);
