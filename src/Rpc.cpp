@@ -184,6 +184,8 @@ namespace gsr {
                     --num_polls;
                     --i;
                 }
+
+                polls[i].revents = 0;
             }
         }
     }

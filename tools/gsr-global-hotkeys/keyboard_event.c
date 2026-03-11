@@ -968,8 +968,10 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds) 
             continue;
         }
 
-        if(!(self->event_polls[i].revents & POLLIN))
+        if(!(self->event_polls[i].revents & POLLIN)) {
+            self->event_polls[i].revents = 0;
             continue;
+        }
 
         if(i == self->hotplug_event_index) {
             /* Device is added to end of |event_polls| so it's ok to add while iterating it via index */
@@ -988,6 +990,8 @@ void keyboard_event_poll_events(keyboard_event *self, int timeout_milliseconds) 
         } else {
             keyboard_event_process_input_event_data(self, &self->event_extra_data[i], self->event_polls[i].fd);
         }
+
+        self->event_polls[i].revents = 0;
     }
 }
 

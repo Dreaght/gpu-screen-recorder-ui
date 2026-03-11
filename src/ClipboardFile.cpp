@@ -43,6 +43,7 @@ namespace gsr {
 
             XEvent xev;
             while(running) {
+                poll_fds[0].revents = 0;
                 poll(poll_fds, 1, 100);
                 while(XPending(dpy)) {
                     XNextEvent(dpy, &xev);

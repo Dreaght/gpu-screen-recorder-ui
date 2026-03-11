@@ -213,8 +213,10 @@ namespace gsr {
                     continue;
                 }
 
-                if(!(poll_fd[i].revents & POLLIN))
+                if(!(poll_fd[i].revents & POLLIN)) {
+                    poll_fd[i].revents = 0;
                     continue;
+                }
 
                 if(i == event_index) {
                     goto done;
@@ -235,6 +237,8 @@ namespace gsr {
                 } else {
                     process_input_event(poll_fd[i].fd, event);
                 }
+
+                poll_fd[i].revents = 0;
             }
         }
 
