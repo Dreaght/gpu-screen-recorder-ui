@@ -266,7 +266,7 @@ Record cursor=Записывать курсор
 Directory to save screenshots:=Каталог для сохранения снимков:
 Image format:=Формат изображения:
 
-Save screenshot in a folder based on the focused applications name=Сохранять снимок в папку по имени активного приложения
+Save screenshot in a folder based on the games name=Сохраните скриншот в папку, названную в честь игры
 
 Save screenshot to clipboard=Сохранять снимок в буфер обмена
 Save screenshot to clipboard (Not supported properly by Wayland)=Сохранять снимок в буфер обмена (в Wayland поддерживается некорректно)
@@ -317,7 +317,7 @@ Input device: =Входное устройство:
 Application:     =Приложение:     
 Custom...=Другое...
 
-Save video in a folder based on the focused applications name%s=Сохранять видео в папку по имени активного приложения%s
+Save video in a folder based on the games name%s=Сохраните видео в папку, названную в честь игры%s
  (X11 applications only)= (только X11-приложения)
 
 Add audio track=Добавить аудиодорожку

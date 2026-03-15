@@ -277,7 +277,7 @@ Record cursor=
 Directory to save screenshots:=
 Image format:=
 
-Save screenshot in a folder based on the focused applications name=
+Save screenshot in a folder based on the games name=
 
 Save screenshot to clipboard=
 Save screenshot to clipboard (Not supported properly by Wayland)=
@@ -329,7 +329,7 @@ Input device: =
 Application:     =
 Custom...=
 
-Save video in a folder based on the focused applications name%s=
+Save video in a folder based on the games name%s=
  (X11 applications only)=
 
 Add audio track=

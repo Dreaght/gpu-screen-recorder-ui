@@ -263,7 +263,7 @@ Record cursor=Grabar cursor
 Directory to save screenshots:=Directorio para guardar capturas de pantalla:
 Image format:=Formato de imagen:
 
-Save screenshot in a folder based on the focused applications name=Guardar captura de pantalla en un directorio basado en el nombre de la aplicación activa
+Save screenshot in a folder based on the games name=Guardar captura de pantalla en una carpeta con el mismo nombre que el juego
 
 Save screenshot to clipboard=Guardar captura de pantalla en el portapapeles
 Save screenshot to clipboard (Not supported properly by Wayland)=Guardar captura de pantalla en el portapapeles (no admitido por Wayland)
@@ -315,7 +315,7 @@ Input device: =Dispositivo de entrada:
 Application:     =Aplicación:
 Custom...=Personalizado...
 
-Save video in a folder based on the focused applications name%s=Guardar el vídeo en un directorio basado en el nombre de la aplicación activa
+Save video in a folder based on the games name%s=Guardar el vídeo en una carpeta con el mismo nombre que el juego%s
  (X11 applications only)= (solo para aplicaciones X11)
 
 Add audio track=Añadir pista de sonido
