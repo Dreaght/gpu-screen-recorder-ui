@@ -300,8 +300,8 @@ namespace gsr {
             return;
         }
 
-        struct stat64 stat;
-        if(fstat64(file_fd, &stat) == -1) {
+        struct stat stat;
+        if(fstat(file_fd, &stat) == -1) {
             fprintf(stderr, "gsr ui: error: ClipboardFile::set_current_file: failed to get file size for file %s, error: %s\n", filepath.c_str(), strerror(errno));
             close(file_fd);
             file_fd = -1;

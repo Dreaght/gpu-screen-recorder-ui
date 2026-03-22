@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <string.h>
-
+#include <unistd.h>
 extern "C" {
 #include <mgl/mgl.h>
 }

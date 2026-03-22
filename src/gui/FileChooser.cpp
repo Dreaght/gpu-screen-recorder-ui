@@ -9,6 +9,7 @@
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/FloatRect.hpp>
 
+#include <limits.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>

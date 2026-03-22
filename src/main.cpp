@@ -10,6 +10,7 @@
 #include <string.h>
 #include <limits.h>
 #include <malloc.h>
+#include <unistd.h>
 
 #include <mglpp/mglpp.hpp>
 #include <mglpp/system/Clock.hpp>
