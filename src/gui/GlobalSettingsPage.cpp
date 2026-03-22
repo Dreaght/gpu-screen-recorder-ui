@@ -529,6 +529,7 @@ namespace gsr {
         combo_box->add_item(TR("System language"), "");
         combo_box->add_item("English", "en");
         combo_box->add_item("Español", "es");
+        combo_box->add_item("Français", "fr");
         combo_box->add_item("Русский", "ru");
         combo_box->add_item("Українська", "uk");
         combo_box->on_selection_changed = [](const std::string&, const std::string &id) {
