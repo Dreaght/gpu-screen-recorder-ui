@@ -3,6 +3,7 @@
 #include "../../include/Overlay.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/Process.hpp"
+#include "../../include/Utils.hpp"
 #include "../../include/Translation.hpp"
 #include "../../include/gui/GsrPage.hpp"
 #include "../../include/gui/PageStack.hpp"
@@ -180,9 +181,7 @@ namespace gsr {
             else
                 return false;
 
-            const char *args[] = { "systemctl", enable ? "enable" : "disable", "--user", "gpu-screen-recorder-ui", nullptr };
-            std::string stdout_str;
-            const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
+            const int exit_status = set_xdg_autostart(enable);
             if(on_startup_changed)
                 on_startup_changed(enable, exit_status);
             return exit_status == 0;
@@ -633,10 +632,7 @@ namespace gsr {
         else
             tint_color_radio_button_ptr->set_selected_item(config.main_config.tint_color);
 
-        const char *args[] = { "systemctl", "is-enabled", "--quiet", "--user", "gpu-screen-recorder-ui", nullptr };
-        std::string stdout_str;
-        const int exit_status = exec_program_on_host_get_stdout(args, stdout_str);
-        startup_radio_button_ptr->set_selected_item(exit_status == 0 ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
+        startup_radio_button_ptr->set_selected_item(is_xdg_autostart_enabled() ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
 
         enable_keyboard_hotkeys_radio_button_ptr->set_selected_item(config.main_config.hotkeys_enable_option, false, false);
         enable_joystick_hotkeys_radio_button_ptr->set_selected_item(config.main_config.joystick_hotkeys_enable_option, false, false);

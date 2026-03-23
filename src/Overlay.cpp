@@ -1352,15 +1352,23 @@ namespace gsr {
                     if(exit_status == 0)
                         return;
 
-                    if(exit_status == 127) {
-                        if(enable)
-                            show_notification(TR("Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add \"gsr-ui\" to system startup on systems that uses another init system."), 7.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                    } else {
-                        if(enable)
-                            show_notification(TR("Failed to add GPU Screen Recorder to system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                        else
-                            show_notification(TR("Failed to remove GPU Screen Recorder from system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                    if(exit_status == 67) {
+                        show_notification(
+                            TR("To enable autorun: install and configure 'dex' (recommended), or manually add 'gsr-ui launch-daemon' to your desktop autostart entries."),
+                            10.0,
+                            mgl::Color(255, 255, 255),
+                            mgl::Color(255, 0, 0),
+                            NotificationType::NOTICE,
+                            nullptr,
+                            NotificationLevel::ERROR
+                        );
+                        return;
                     }
+
+                    if(enable)
+                        show_notification(TR("Failed to add GPU Screen Recorder to system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+                    else
+                        show_notification(TR("Failed to remove GPU Screen Recorder from system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 };
 
                 settings_page->on_click_exit_program_button = [this](const char *reason) {
@@ -1857,9 +1865,7 @@ namespace gsr {
         else
             exit_reason = "exit";
 
-        const char *args[] = { "systemctl", "disable", "--user", "gpu-screen-recorder-ui", nullptr };
-        std::string stdout_str;
-        exec_program_on_host_get_stdout(args, stdout_str);
+        set_xdg_autostart(false);
         exit();
     }
 

@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "../include/Process.hpp"
 
 namespace gsr {
     void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func) {
@@ -238,4 +239,63 @@ namespace gsr {
         }
         return result;
     }
+
+    bool is_xdg_autostart_enabled() {
+        const char *args[] = {
+            "/bin/sh", "-c",
+            "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/autostart/gpu-screen-recorder-ui.desktop\"",
+            nullptr
+        };
+        std::string output;
+        if(exec_program_on_host_get_stdout(args, output, true) != 0)
+            return false;
+        return output.find("Hidden=true") == std::string::npos;
+    }
+
+    int set_xdg_autostart(bool enable) {
+        const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+        if(!xdg_current_desktop || strlen(xdg_current_desktop) == 0) {
+            std::string output;
+            const char *check_dex_args[] = { "/bin/sh", "-c", "command -v dex", nullptr };
+            if(exec_program_on_host_get_stdout(check_dex_args, output, true) != 0)
+                return 67;
+        }
+
+        const char *exec_line = (getenv("FLATPAK_ID") != nullptr)
+            ? "Exec=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui launch-daemon"
+            : "Exec=gsr-ui launch-daemon";
+
+        std::string content =
+            "[Desktop Entry]\n"
+            "Type=Application\n"
+            "Name=GPU Screen Recorder\n"
+            "GenericName=Screen recorder\n"
+            "Comment=A ShadowPlay-like screen recorder for Linux\n"
+            "Icon=gpu-screen-recorder\n" +
+            std::string(exec_line) + "\n" +
+            "Terminal=false\n" +
+            "Hidden=" + (enable ? "false" : "true") + "\n";
+
+        std::string shell_cmd =
+            "p=\"${XDG_CONFIG_HOME:-$HOME/.config}/autostart/gpu-screen-recorder-ui.desktop\" && "
+            "mkdir -p \"$(dirname \"$p\")\" && "
+            "printf '" + content + "' > \"$p\"";
+
+        const char *args[] = { "/bin/sh", "-c", shell_cmd.c_str(), nullptr };
+        std::string dummy;
+        return exec_program_on_host_get_stdout(args, dummy, true);
+    }
+
+    bool is_systemd_service_enabled(const char *service_name) {
+        const char *args[] = { "systemctl", "--user", "is-enabled", service_name, nullptr };
+        std::string output;
+        return exec_program_on_host_get_stdout(args, output, false) == 0;
+    }
+
+    bool disable_systemd_service(const char *service_name) {
+        const char *args[] = { "systemctl", "--user", "disable", service_name, nullptr };
+        std::string output;
+        return exec_program_on_host_get_stdout(args, output, false) == 0;
+    }
+
 }

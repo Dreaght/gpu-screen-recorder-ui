@@ -1,5 +1,6 @@
 #include "../include/GsrInfo.hpp"
 #include "../include/Overlay.hpp"
+#include "../include/Utils.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
@@ -117,47 +118,6 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
     });
 }
 
-static void install_flatpak_systemd_service() {
-    const bool systemd_service_exists = system(
-        "data_home=$(flatpak-spawn --host -- /bin/sh -c 'echo \"${XDG_DATA_HOME:-$HOME/.local/share}\"') && "
-        "flatpak-spawn --host -- ls \"$data_home/systemd/user/gpu-screen-recorder-ui.service\"") == 0;
-    if(systemd_service_exists)
-        return;
-
-    bool service_install_successful = (system(
-        "data_home=$(flatpak-spawn --host -- /bin/sh -c 'echo \"${XDG_DATA_HOME:-$HOME/.local/share}\"') && "
-        "flatpak-spawn --host -- install -Dm644 /var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gpu-screen-recorder/gpu-screen-recorder-ui.service \"$data_home/systemd/user/gpu-screen-recorder-ui.service\"") == 0);
-    service_install_successful &= (system("flatpak-spawn --host -- systemctl --user daemon-reload") == 0);
-    if(service_install_successful)
-        fprintf(stderr, "Info: the systemd service file was missing. It has now been installed\n");
-    else
-        fprintf(stderr, "Error: the systemd service file is missing and failed to install it again\n");
-}
-
-static void remove_flatpak_systemd_service() {
-    char systemd_service_path[PATH_MAX];
-    const char *xdg_data_home = getenv("XDG_DATA_HOME");
-    const char *home = getenv("HOME");
-    if(xdg_data_home) {
-        snprintf(systemd_service_path, sizeof(systemd_service_path), "%s/systemd/user/gpu-screen-recorder-ui.service", xdg_data_home);
-    } else if(home) {
-        snprintf(systemd_service_path, sizeof(systemd_service_path), "%s/.local/share/systemd/user/gpu-screen-recorder-ui.service", home);
-    } else {
-        fprintf(stderr, "Error: failed to get user home directory\n");
-        return;
-    }
-
-    if(access(systemd_service_path, F_OK) != 0)
-        return;
-
-    remove(systemd_service_path);
-    system("systemctl --user daemon-reload");
-    fprintf(stderr, "Info: conflicting flatpak version of the systemd service for gsr-ui was found at \"%s\", it has now been removed\n", systemd_service_path);
-}
-
-static bool is_flatpak() {
-    return getenv("FLATPAK_ID") != nullptr;
-}
 
 static void set_display_server_environment_variables() {
     // Some users dont have properly setup environments (no display manager that does systemctl --user import-environment DISPLAY WAYLAND_DISPLAY)
@@ -278,11 +238,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if(is_flatpak())
-        install_flatpak_systemd_service();
-    else
-        remove_flatpak_systemd_service();
-
     // Stop nvidia driver from buffering frames
     setenv("__GL_MaxFramesAllowed", "1", true);
     // If this is set to 1 then cuGraphicsGLRegisterImage will fail for egl context with error: invalid OpenGL or DirectX context,
@@ -345,6 +300,24 @@ int main(int argc, char **argv) {
         overlay->show_notification("Press Alt+Z to open the GPU Screen Recorder UI", 5.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color, gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
 
     rpc_add_commands(rpc.get(), overlay.get());
+
+    // Evacuating from lennart's botnet to XDG (a.k.a. 'the spec that nobody actually follows').
+    constexpr const char *deprecated_systemd_service_name = "gpu-screen-recorder-ui.service";
+    if(gsr::is_systemd_service_enabled(deprecated_systemd_service_name)) {
+        const int autostart_result = gsr::set_xdg_autostart(true);
+        if(autostart_result == 67) {
+            overlay->show_notification(
+                TR("GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add 'gsr-ui launch-daemon' to your desktop autostart entries."),
+                10.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0),
+                gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
+        } else {
+            gsr::disable_systemd_service(deprecated_systemd_service_name);
+            overlay->show_notification(
+                TR("GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart."),
+                8.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color,
+                gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::INFO);
+        }
+    }
 
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 
