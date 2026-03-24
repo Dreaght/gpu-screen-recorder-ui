@@ -15,6 +15,28 @@ let prevCaption = null;
 let prevFullScreen = null;
 let prevMonitorName = null;
 
+function dbusSafeDisconnect(window, signalName, callback) {
+    try {
+        const signal = window?.[signalName];
+        if (signal && callback) {
+            signal.disconnect(callback);
+        }
+    } catch (e) {
+        // ignore stale/missing signal disconnects
+    }
+}
+
+function dbusSafeConnect(window, signalName, callback) {
+    try {
+        const signal = window?.[signalName];
+        if (signal && callback) {
+            signal.connect(callback);
+        }
+    } catch (e) {
+        // ignore missing signals
+    }
+}
+
 function emitActiveWindowUpdate(window) {
     if (workspace.activeWindow === window) {
         let caption = window.caption || "";
@@ -33,14 +55,14 @@ function subscribeToWindow(window) {
     if (!window) return;
     if (prevWindow !== window) {
         if (prevWindow !== null) {
-            prevWindow.captionChanged.disconnect(prevEmitActiveWindowUpdate);
-            prevWindow.fullScreenChanged.disconnect(prevEmitActiveWindowUpdate);
-            prevWindow.outputChanged.disconnect(prevEmitActiveWindowUpdate);
+            dbusSafeDisconnect(prevWindow, "captionChanged", prevEmitActiveWindowUpdate);
+            dbusSafeDisconnect(prevWindow, "fullScreenChanged", prevEmitActiveWindowUpdate);
+            dbusSafeDisconnect(prevWindow, "outputChanged", prevEmitActiveWindowUpdate);
         }
         let emitActiveWindowUpdateBound = emitActiveWindowUpdate.bind(null, window);
-        window.captionChanged.connect(emitActiveWindowUpdateBound);
-        window.fullScreenChanged.connect(emitActiveWindowUpdateBound);
-        window.outputChanged.connect(emitActiveWindowUpdateBound);
+        dbusSafeConnect(window, "captionChanged", emitActiveWindowUpdateBound);
+        dbusSafeConnect(window, "fullScreenChanged", emitActiveWindowUpdateBound);
+        dbusSafeConnect(window, "outputChanged", emitActiveWindowUpdateBound);
         prevWindow = window;
         prevEmitActiveWindowUpdate = emitActiveWindowUpdateBound;
     }
