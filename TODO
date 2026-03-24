@@ -194,8 +194,6 @@ Disable hotkeys if virtual keyboard is found (either at startup or after running
         But wont keyboard remapping software grab the keyboard first if they detect it quickly?
             If we fail to grab it because some other software did then dont grab any keyboards nor gsr-ui virtual keyboards, just listen to them.
 
-Support localization.
-
 Add option to not capture cursor in screenshot when doing region/window capture.
 
 Window selection doesn't work when a window is fullscreen on x11.
@@ -242,8 +240,6 @@ Remove all mgl::Clock usage in Overlay. We only need to get the time once per up
 
 Handle stopping replay/stream when recording is running (show notification that the video is saved and move the video to folder with game name).
 
-Support translations.
-
 Sometimes when opening gpu screen recorder ui gsr-global-hotkeys incorrectly detects that keyboard input is locked.
 
 When running replay for a long time and then stopping it it takes a while. Improve this.
@@ -263,3 +259,5 @@ Add option to set preset on nvidia. Use -ffmpeg-video-opts for that.
 Webcam resolution list is too long for some people. Fix it by separating resolution and framerate. Sort resolution and framerate from highest to lowest. Add scrollbar for dropdown list. POOP. Add --filesystem=xdg-run/hypr and run the gsr-hyprland-helper directly instead of flatpak spawn or use wlr foreign top level window protocol. Nvidia webcam yuyv capture doesn't seem to work on x11?
 
 Allow settings page to select input capture option/audio, to make sure it doesn't blindly select the default option when the sources aren't temporary available when opening the settings.
+
+Add simple video cutting in the ui.
