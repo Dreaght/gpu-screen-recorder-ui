@@ -2,6 +2,8 @@
 
 # Important warning: we f'ed up a little bit and used %s for both strings and numbers in some places, such as time durations (they're fixed by the moment).
 # When translating, be careful to use the %d format specifier for numbers in those places.
+# Note that all translation strings should be on one line in these translation files. Some translations need to be on multiple lines and the newline character
+# should be replaced with \n.
 
 # General UI
 Record=
