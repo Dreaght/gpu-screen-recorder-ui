@@ -17,7 +17,7 @@ namespace gsr {
             nullptr
         };
         std::string output;
-        if(exec_program_on_host_get_stdout(args, output, true) != 0)
+        if(exec_program_on_host_get_stdout(args, output, false) != 0)
             return std::nullopt;
         return output;
     }
