@@ -82,8 +82,6 @@ All steam game names by ID are available at https://api.steampowered.com/ISteamA
 
 Dont put widget position to int position when scrolling. This makes the UI jitter when it's coming to a halt.
 
-Show warning if another instance of gpu screen recorder is already running when starting recording?
-
 Make gsr-ui flatpak systemd work nicely with non-flatpak gsr-ui. Maybe change ExecStart to do flatpak run ... || gsr-ui, but make it run as a shell command first with /bin/sh -c "".
 
 When enabling X11 global hotkey again only grab lalt, not ralt.
