@@ -62,8 +62,6 @@ Play camera shutter sound when saving recording. When another sound when startin
 
 Some games such as "The Finals" crashes/freezes when they lose focus when running them on x11 on a laptop with prime setup and the monitor runs on the iGPU while the game runs on the dGPU.
 
-Run `systemctl status --user gpu-screen-recorder` when starting recording and give a notification warning if it returns 0 (running). Or run pidof gpu-screen-recorder.
-
 Add option to select which gpu to record with, or list all monitors and automatically use the gpu associated with the monitor. Do the same in gtk application.
 
 Use global shortcuts desktop portal protocol on wayland when available.
