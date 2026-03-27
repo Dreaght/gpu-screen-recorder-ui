@@ -319,6 +319,8 @@ int main(int argc, char **argv) {
         }
     }
 
+    gsr::replace_xdg_autostart_with_current_gsr_type();
+
     // TODO: Add hotkeys in Overlay when using x11 global hotkeys. The hotkeys in Overlay should duplicate each key that is used for x11 global hotkeys.
 
     std::string exit_reason;
@@ -344,6 +346,7 @@ int main(int argc, char **argv) {
     mgl_deinit();
 
     if(exit_reason == "back-to-old-ui") {
+        gsr::set_xdg_autostart(false);
         const char *args[] = { "gpu-screen-recorder-gtk", "use-old-ui", nullptr };
         execvp(args[0], (char* const*)args);
         return 0;

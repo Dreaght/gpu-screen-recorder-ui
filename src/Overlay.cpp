@@ -1864,8 +1864,6 @@ namespace gsr {
             exit_reason = "back-to-old-ui";
         else
             exit_reason = "exit";
-
-        set_xdg_autostart(false);
         exit();
     }
 

@@ -1,14 +1,27 @@
 #include "../include/Utils.hpp"
+#include "../include/Process.hpp"
 #include <stdlib.h>
 #include <stdio.h>
+#include <optional>
 #include <unistd.h>
 #include <pwd.h>
 #include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "../include/Process.hpp"
 
 namespace gsr {
+    static std::optional<std::string> get_xdg_autostart_content() {
+        const char *args[] = {
+            "/bin/sh", "-c",
+            "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/autostart/gpu-screen-recorder-ui.desktop\"",
+            nullptr
+        };
+        std::string output;
+        if(exec_program_on_host_get_stdout(args, output, true) != 0)
+            return std::nullopt;
+        return output;
+    }
+
     void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func) {
         size_t index = 0;
         while(index < str.size()) {
@@ -241,15 +254,8 @@ namespace gsr {
     }
 
     bool is_xdg_autostart_enabled() {
-        const char *args[] = {
-            "/bin/sh", "-c",
-            "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/autostart/gpu-screen-recorder-ui.desktop\"",
-            nullptr
-        };
-        std::string output;
-        if(exec_program_on_host_get_stdout(args, output, true) != 0)
-            return false;
-        return output.find("Hidden=true") == std::string::npos;
+        const std::optional<std::string> output = get_xdg_autostart_content();
+        return output.has_value() && output.value().find("Hidden=true") == std::string::npos;
     }
 
     int set_xdg_autostart(bool enable) {
@@ -261,7 +267,8 @@ namespace gsr {
                 return 67;
         }
 
-        const char *exec_line = (getenv("FLATPAK_ID") != nullptr)
+        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+        const char *exec_line = is_flatpak
             ? "Exec=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui launch-daemon"
             : "Exec=gsr-ui launch-daemon";
 
@@ -284,6 +291,19 @@ namespace gsr {
         const char *args[] = { "/bin/sh", "-c", shell_cmd.c_str(), nullptr };
         std::string dummy;
         return exec_program_on_host_get_stdout(args, dummy, true);
+    }
+
+    void replace_xdg_autostart_with_current_gsr_type() {
+        const std::optional<std::string> output = get_xdg_autostart_content();
+        if(!output.has_value())
+            return;
+
+        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+        const bool is_exec_flatpak = output.value().find("flatpak run") != std::string::npos;
+        if(is_flatpak != is_exec_flatpak) {
+            const bool is_autostart_enabled = output.value().find("Hidden=true") == std::string::npos;
+            set_xdg_autostart(is_autostart_enabled);
+        }
     }
 
     bool is_systemd_service_enabled(const char *service_name) {
