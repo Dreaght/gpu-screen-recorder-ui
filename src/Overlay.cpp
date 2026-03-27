@@ -1353,8 +1353,10 @@ namespace gsr {
                         return;
 
                     if(exit_status == 67) {
+                        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+                        const char *startup_command = is_flatpak ? "flatpak run com.dec05eba.gpu_screen_recorder gsr-ui" : "gsr-ui launch-daemon";
                         show_notification(
-                            TR("To enable autorun: install and configure 'dex' (recommended), or manually add 'gsr-ui launch-daemon' to your desktop autostart entries."),
+                            TRF("To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.", startup_command).c_str(),
                             10.0,
                             mgl::Color(255, 255, 255),
                             mgl::Color(255, 0, 0),

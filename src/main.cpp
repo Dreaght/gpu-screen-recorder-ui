@@ -149,7 +149,8 @@ enum class LaunchAction {
     LAUNCH_SHOW,
     LAUNCH_HIDE,
     LAUNCH_HIDE_ANNOUNCE,
-    LAUNCH_DAEMON
+    LAUNCH_DAEMON,
+    INSTALL_STARTUP
 };
 
 int main(int argc, char **argv) {
@@ -190,6 +191,8 @@ int main(int argc, char **argv) {
             launch_action = LaunchAction::LAUNCH_HIDE_ANNOUNCE;
         } else if(strcmp(launch_action_opt, "launch-daemon") == 0) {
             launch_action = LaunchAction::LAUNCH_DAEMON;
+        } else if(strcmp(launch_action_opt, "install-startup") == 0) {
+            launch_action = LaunchAction::INSTALL_STARTUP;
         } else {
             printf("error: invalid action \"%s\", expected \"launch-show\", \"launch-hide\", \"launch-hide-announce\" or \"launch-daemon\".\n", launch_action_opt);
             usage();
@@ -197,6 +200,9 @@ int main(int argc, char **argv) {
     } else {
         usage();
     }
+
+    if(launch_action == LaunchAction::INSTALL_STARTUP)
+        return gsr::set_xdg_autostart(true);
 
     set_display_server_environment_variables();
 
@@ -306,8 +312,10 @@ int main(int argc, char **argv) {
     if(gsr::is_systemd_service_enabled(deprecated_systemd_service_name)) {
         const int autostart_result = gsr::set_xdg_autostart(true);
         if(autostart_result == 67) {
+            const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+            const char *startup_command = is_flatpak ? "flatpak run com.dec05eba.gpu_screen_recorder gsr-ui" : "gsr-ui launch-daemon";
             overlay->show_notification(
-                TR("GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add 'gsr-ui launch-daemon' to your desktop autostart entries."),
+                TRF("GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.", startup_command).c_str(),
                 10.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0),
                 gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
         } else {

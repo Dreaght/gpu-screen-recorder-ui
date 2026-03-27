@@ -269,7 +269,7 @@ namespace gsr {
 
         const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
         const char *exec_line = is_flatpak
-            ? "Exec=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui launch-daemon"
+            ? "Exec=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui"
             : "Exec=gsr-ui launch-daemon";
 
         std::string content =

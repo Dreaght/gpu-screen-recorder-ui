@@ -98,9 +98,9 @@ Failed to launch gpu-screen-recorder to take a screenshot=Fallo al lanzar gpu-sc
 # System startup notifications
 Failed to add GPU Screen Recorder to system startup=Fallo al añadir GPU Screen Recorder al inicio del sistema
 Failed to remove GPU Screen Recorder from system startup=Fallo al eliminar GPU Screen Recorder del inicio del sistema
-To enable autorun: install and configure 'dex' (recommended), or manually add 'gsr-ui launch-daemon' to your desktop autostart entries.=Para activar el inicio automático: instala y configura 'dex' (recomendado) o añade manualmente 'gsr-ui launch-daemon' a las entradas de inicio automático del escritorio.
+To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=Para activar el inicio automático: instala y configura 'dex' (recomendado) o añade manualmente '%s' a las entradas de inicio automático del escritorio.
 GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=El inicio de GPU Screen Recorder UI ha cambiado del servicio systemd al inicio automático XDG.
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add 'gsr-ui launch-daemon' to your desktop autostart entries.=El inicio automático de GPU Screen Recorder UI mediante systemd está obsoleto.\nPara migrar: instala y configura 'dex' (recomendado)\no añade manualmente 'gsr-ui launch-daemon' a las entradas de inicio automático del escritorio.
+GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=El inicio automático de GPU Screen Recorder UI mediante systemd está obsoleto.\nPara migrar: instala y configura 'dex' (recomendado)\no añade manualmente '%s' a las entradas de inicio automático del escritorio.
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland no ofrece soporte adecuado para GPU Screen Recorder UI;\nes posible que el funcionamiento no sea el esperado. Si experimentas problemas, utiliza X11.

@@ -98,9 +98,9 @@ Failed to launch gpu-screen-recorder to take a screenshot=Не удалось з
 # System startup notifications
 Failed to add GPU Screen Recorder to system startup=Не удалось добавить GPU Screen Recorder в автозагрузку системы
 Failed to remove GPU Screen Recorder from system startup=Не удалось удалить GPU Screen Recorder из автозагрузки системы
-To enable autorun: install and configure 'dex' (recommended), or manually add 'gsr-ui launch-daemon' to your desktop autostart entries.=Для включения автозапуска: установите и настройте 'dex' (рекомендуется) или вручную добавьте 'gsr-ui launch-daemon' в записи автозапуска рабочего стола.
+To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=Для включения автозапуска: установите и настройте 'dex' (рекомендуется) или вручную добавьте '%s' в записи автозапуска рабочего стола.
 GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=Автозапуск GPU Screen Recorder UI переключён с сервиса systemd на XDG-автозапуск.
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add 'gsr-ui launch-daemon' to your desktop autostart entries.=Автозапуск GPU Screen Recorder UI через systemd устарел.\nДля миграции: установите и настройте 'dex' (рекомендуется)\nили вручную добавьте 'gsr-ui launch-daemon' в записи автозапуска рабочего стола.
+GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=Автозапуск GPU Screen Recorder UI через systemd устарел.\nДля миграции: установите и настройте 'dex' (рекомендуется)\nили вручную добавьте '%s' в записи автозапуска рабочего стола.
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland не поддерживает интерфейс GPU Screen Recorder должным образом,\nнекоторые функции могут не работать. Используйте X11, если возникнут проблемы.

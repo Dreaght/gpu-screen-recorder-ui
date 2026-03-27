@@ -98,9 +98,9 @@ Failed to launch gpu-screen-recorder to take a screenshot=Не вдалося з
 # System startup notifications
 Failed to add GPU Screen Recorder to system startup=Не вдалося додати GPU Screen Recorder до автозавантаження системи
 Failed to remove GPU Screen Recorder from system startup=Не вдалося видалити GPU Screen Recorder з автозавантаження системи
-To enable autorun: install and configure 'dex' (recommended), or manually add 'gsr-ui launch-daemon' to your desktop autostart entries.=Для увімкнення автозапуску: встановіть та налаштуйте 'dex' (рекомендовано) або вручну додайте 'gsr-ui launch-daemon' до записів автозапуску робочого столу.
+To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=Для увімкнення автозапуску: встановіть та налаштуйте 'dex' (рекомендовано) або вручну додайте '%s' до записів автозапуску робочого столу.
 GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=Автозапуск GPU Screen Recorder UI переключено зі служби systemd на XDG-автозапуск.
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add 'gsr-ui launch-daemon' to your desktop autostart entries.=Автозапуск GPU Screen Recorder UI через systemd застарів.\nДля міграції: встановіть та налаштуйте 'dex' (рекомендовано)\nабо вручну додайте 'gsr-ui launch-daemon' до записів автозапуску робочого столу.
+GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=Автозапуск GPU Screen Recorder UI через systemd застарів.\nДля міграції: встановіть та налаштуйте 'dex' (рекомендовано)\nабо вручну додайте '%s' до записів автозапуску робочого столу.
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland не підтримує інтерфейс GPU Screen Recorder належним чином,\nдеякі функції можуть не працювати. Використовуйте X11, якщо виникнуть проблеми.
