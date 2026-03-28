@@ -35,14 +35,14 @@ Turn off=Kikapcsolás
 # Notifications - Recording
 Recording has been paused=A felvétel szüneteltetve lett
 Recording has been unpaused=A felvétel folytatva lett
-Started recording %s=Felvétel indítva: %s
-Saved a %s recording of %s\nto "%s"=%s hosszúságú felvétel mentve erről: %s\nide: "%s"
-Saved a %s recording of %s=%s hosszúságú felvétel mentve erről: %s
-Failed to start/save recording=Nem sikerült elindítani/menteni a felvételt
+Started recording %s=Felvétel elindítva: %s
+Saved a %s recording of %s\nto "%s"=%s hosszú felvétel mentve erről: %s\nide: "%s"
+Saved a %s recording of %s=%s hosszú felvétel mentve erről: %s
+Failed to start/save recording=Nem sikerült elindítani vagy menteni a felvételt
 
 # Notifications - Replay
 Replay stopped=A visszajátszás leállt
-Started replaying %s=Visszajátszás indítva: %s
+Started replaying %s=Visszajátszás elindítva: %s
 Saving replay, this might take some time=Visszajátszás mentése, ez eltarthat egy ideig
 Saved a %s replay of %s\nto "%s"=%s hosszúságú visszajátszás mentve erről: %s\nide: "%s"
 Saved a %s replay of %s=%s hosszúságú visszajátszás mentve erről: %s
@@ -51,29 +51,29 @@ Replay settings have been modified.\nYou may need to restart replay to apply the
 
 # Notifications - Streaming
 Streaming has stopped=A közvetítés leállt
-Started streaming %s=Közvetítés indítva: %s
+Started streaming %s=Közvetítés elindítva: %s
 Streaming stopped because of an error=A közvetítés hiba miatt leállt
 Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=A közvetítés beállításai módosultak.\nA változtatások alkalmazásához újra kell indítani a közvetítést
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=Képernyőkép mentve erről: %s\nide: "%s"
-Saved a screenshot of %s=Képernyőkép mentve erről: %s
+Saved a screenshot of %s\nto "%s"=Képernyőkép mentve (%s)\nide: "%s"
+Saved a screenshot of %s=Képernyőkép mentve (%s)
 Failed to take a screenshot=Nem sikerült a képernyőkép elkészítése
 
 # Error messages
 Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=A GPU Screen Recorder UI már fut.\nNyomd meg az Alt+Z-t a felület megnyitásához.
 GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=A GPU Screen Recorder már fut egy másik folyamatban.\nZárd be, mielőtt használod a felületet.
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a visszajátszást, a rögzítési cél "%s" érvénytelen.\nMódosítsd a beállításokban.
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a felvételt, a rögzítési cél "%s" érvénytelen.\nMódosítsd a beállításokban.
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a közvetítést, a rögzítési cél "%s" érvénytelen.\nMódosítsd a beállításokban.
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült a képernyőkép elkészítése, a rögzítési cél "%s" érvénytelen.\nMódosítsd a beállításokban.
+Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a visszajátszást, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
+Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a felvételt, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
+Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a közvetítést, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
+Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült a képernyőkép elkészítése, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=Nem lehet felvételt indítani, ha a visszajátszás be van kapcsolva.\nKapcsold ki előtte.
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=Nem lehet közvetítést indítani, ha a visszajátszás be van kapcsolva.\nKapcsold ki előtte.
-Unable to start streaming when recording.\nStop recording before starting streaming.=Nem lehet közvetítést indítani felvétel közben.\nÁllítsd le a felvételt.
-Unable to start recording when streaming.\nStop streaming before starting recording.=Nem lehet felvételt indítani közvetítés közben.\nÁllítsd le a közvetítést.
-Unable to start replay when recording.\nStop recording before starting replay.=Nem lehet visszajátszást indítani felvétel közben.\nÁllítsd le a felvételt.
-Unable to start replay when streaming.\nStop streaming before starting replay.=Nem lehet visszajátszást indítani közvetítés közben.\nÁllítsd le a közvetítést.
+Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=Nem lehet felvételt indítani, ha a visszajátszás be van kapcsolva.\nA felvétel előtt kapcsold ki a visszajátszást.
+Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=Nem lehet közvetítést indítani, ha a visszajátszás be van kapcsolva.\nA közvetítés előtt kapcsold ki a visszajátszást.
+Unable to start streaming when recording.\nStop recording before starting streaming.=Nem lehet közvetítést indítani felvétel közben.\nÁllítsd le a felvételt a közvetítéshez.
+Unable to start recording when streaming.\nStop streaming before starting recording.=Nem lehet felvételt indítani közvetítés közben.\nÁllítsd le a közvetítést a felvételhez.
+Unable to start replay when recording.\nStop recording before starting replay.=Nem lehet visszajátszást indítani felvétel közben.\nÁllítsd le a felvételt a visszajátszáshoz.
+Unable to start replay when streaming.\nStop streaming before starting replay.=Nem lehet visszajátszást indítani közvetítés közben.\nÁllítsd le a közvetítést a visszajátszáshoz.
 
 Started recording in the replay session=Felvétel indítva visszajátszás közben
 Started recording in the streaming session=Felvétel indítva közvetítés közben
@@ -89,7 +89,7 @@ Streaming stopped because of an error. Verify if settings are correct=A közvet�
 Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=Az asztali portál rögzítése sikertelen.\nLehet, hogy megszakítottad, vagy a Wayland nem támogatja,\nvagy nincs megfelelően beállítva.
 Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=A monitor rögzítése sikertelen.\nA kiválasztott monitor érvénytelen.\nEllenőrizd a beállításokat.
 Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=A rögzítés sikertelen. A H264, HEVC és AV1 kodekek nem támogatottak\nvagy túl nagy felbontást választottál.
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=A rögzítés sikertelen. A rendszer nem támogatja a választott felbontást.\nVálts felbontást vagy kodeket.\nMegjegyzés: AV1 > HEVC > H264 felbontásban.
+Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=A rögzítés sikertelen. A rendszer nem támogatja a választott felbontást.\nVálts felbontást vagy kodeket.\nMegjegyzés: A nagyobb felbontásokat leginkább az AV1 támogatja, ezt követi a HEVC, majd a H264.
 Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=A rögzítés sikertelen. A választott kodek nem támogatott.\nVálassz másikat.
 Stopped capture because the user canceled the desktop portal=A rögzítés leállt, mert a felhasználó megszakította a portált
 Failed to take a screenshot. Verify if settings are correct=Nem sikerült a képernyőkép elkészítése. Ellenőrizd a beállításokat
@@ -104,23 +104,23 @@ Failed to launch gpu-screen-recorder to take a screenshot=Nem sikerült elindít
 Failed to add GPU Screen Recorder to system startup=Nem sikerült hozzáadni a GPU Screen Recordert az automatikus indításhoz
 Failed to remove GPU Screen Recorder from system startup=Nem sikerült eltávolítani a GPU Screen Recorder-t az automatikus indításból
 To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=Automatikus indításhoz: telepítsd és konfiguráld a 'dex'-et (ajánlott), vagy add hozzá manuálisan: '%s'
-GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=Az automatikus indítás systemd-ről XDG autostartra váltott
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=A GPU Screen Recorder systemd autostart elavult.\nAz átköltöztetéshez telepítsd és konfiguráld a 'dex'-et, vagy add hozzá manuálisan: '%s'
+GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=Az automatikus indítás systemd-ről XDG autostartra váltott át
+GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=A GPU Screen Recorder systemd-alapú automatikus indítása elavult.\nAz átköltöztetéshez telepítsd és konfiguráld a 'dex'-et, vagy add hozzá manuálisan: '%s'
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=A Wayland nem támogatja megfelelően a GPU Screen Recordert.\nHasználj X11-et, ha problémát észlelsz.
 
 # Hotkey conflicts
-Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Egyes billentyűzet-átkötő programok ütköznek a GPU Screen Recorderrel.\nA billentyűzet figyelése megszűnt, a gyorsbillentyűket mostantól az alkalmazások fogják megkapni.
+Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Egyes billentyűzet-átkötő programok ütköznek a GPU Screen Recorderrel.\nA billentyűzet lefoglalása megszűnt, a gyorsbillentyűket mostantól az alkalmazások fogják megkapni.
 
 # Capture targets
-this monitor=ez a monitor
-window=ablak
+this monitor=Jelenlegi monitor
+window=Ablak
 window "%s"="%s" ablak
 window %s=%s ablak
-focused=fókuszált
-region=terület
-portal=portál
+focused=Fókuszált ablak
+region=Kijelölt terület
+portal=Asztali portál
 
 # if your language has simple plural forms, you can just use:
 %d second=%d másodperc
@@ -152,14 +152,14 @@ Save 1 minute replay:=1 perces visszajátszás mentése:
 Save 10 minute replay:=10 perces visszajátszás mentése:
 Start/stop recording:=Felvétel indítása/leállítása:
 Pause/unpause recording:=Felvétel szüneteltetése/folytatása:
-Start/stop recording a region:=Kijelölt terület rögzítésének indítása/leállítása:
+Start/stop recording a region:=Kijelölt terület felvételének indítása/leállítása:
 Start/stop streaming:=Közvetítés indítása/leállítása:
 Take a screenshot:=Képernyőkép készítése:
-Take a screenshot of a region:=Képernyőkép készítése egy kijelölt területről:
-Start/stop recording with desktop portal:=Rögzítés indítása/leállítása asztali portállal:
+Take a screenshot of a region:=Képernyőkép készítése kijelölt területről:
+Start/stop recording with desktop portal:=Felvétel indítása/leállítása asztali portállal:
 Take a screenshot with desktop portal:=Képernyőkép készítése asztali portállal:
-Start/stop recording a window:=Ablak rögzítésének indítása/leállítása:
-Take a screenshot of a window:=Képernyőkép készítése egy ablakról:
+Start/stop recording a window:=Ablak felvételének indítása/leállítása:
+Take a screenshot of a window:=Képernyőkép készítése ablakról:
 
 Clear hotkeys=Gyorsbillentyűk törlése
 Reset hotkeys to default=Gyorsbillentyűk visszaállítása alapértelmezettre
@@ -212,13 +212,13 @@ Save 1 minute replay=1 perces visszajátszás mentése
 Save 10 minute replay=10 perces visszajátszás mentése
 Start/stop recording=Felvétel indítása/leállítása
 Pause/unpause recording=Felvétel szüneteltetése/folytatása
-Start/stop recording a region=Kijelölt terület rögzítésének indítása/leállítása
-Start/stop recording a window=Ablak rögzítésének indítása/leállítása
-Start/stop recording with desktop portal=Rögzítés indítása/leállítása asztali portállal
+Start/stop recording a region=Kijelölt terület felvételének indítása/leállítása
+Start/stop recording a window=Ablak felvételének indítása/leállítása
+Start/stop recording with desktop portal=Felvétel indítása/leállítása asztali portállal
 Start/stop streaming=Közvetítés indítása/leállítása
 Take a screenshot=Képernyőkép készítése
-Take a screenshot of a region=Képernyőkép készítése egy kijelölt területről
-Take a screenshot of a window=Képernyőkép készítése egy ablakról
+Take a screenshot of a region=Képernyőkép készítése kijelölt területről
+Take a screenshot of a window=Képernyőkép készítése ablakról
 Take a screenshot with desktop portal=Képernyőkép készítése asztali portállal
 
 # Controller hotkey descriptions
@@ -265,7 +265,7 @@ High=Magas
 Very high (Recommended)=Nagyon magas (ajánlott)
 Ultra=Ultra
 
-Record cursor=Egérmutató rögzítése
+Record cursor=Egérmutató felvétele
 
 Directory to save screenshots:=Képernyőképek mentési mappája:
 Image format:=Képformátum:
@@ -305,7 +305,7 @@ Video format:=Videóformátum:
 Auto (recommended)=Automatikus (ajánlott)
 YUYV=YUYV
 Motion-JPEG=Motion-JPEG
-Video setup:=Videó beállítás
+Video setup:=Videóbeállítás
 * Right click in the bottom right corner to resize the webcam=* Jobb kattintás a jobb alsó sarokban a webkamera átméretezéséhez
 Flip camera horizontally=Kamera tükrözése vízszintesen
 
@@ -330,7 +330,7 @@ Add input device=Bemeneti eszköz hozzáadása
 Add output device=Kimeneti eszköz hozzáadása
 Add application audio=Alkalmazáshang hozzáadása
 Record audio from all applications except the selected ones=Hang rögzítése minden alkalmazásból a kiválasztottak kivételével
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=A kimeneti eszközök és az alkalmazáshang rögzítése minden kimeneti hangot rögzíthet, ami valószínűleg\nnem kívánt. Távolítsd el a kimeneti eszközöket.
+Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=A kimeneti eszközök és az alkalmazáshang rögzítése minden kimeneti hangot felvehet, ami valószínűleg\nnem kívánt. Távolítsd el a kimeneti eszközöket.
 
 Video=Videó
 
@@ -372,10 +372,10 @@ Full=Teljes
 Container:=Konténer:
 
 # Recording settings
-Record in low-power mode=Rögzítés energiatakarékos módban
-Record cursor=Egérmutató rögzítése
+Record in low-power mode=Felvétel energiatakarékos módban
+Record cursor=Egérmutató felvétele
 
-Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=Ne kényszerítse a GPU-t nagy teljesítményű módba rögzítés közben.\nEz befolyásolhatja a rögzítés teljesítményét, különösen videólejátszás közben.\nHa engedélyezve van, ajánlott a tartalomhoz igazított képkockasebesség mód használata az energiafogyasztás csökkentésére üresjáratban.
+Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=Ne kényszerítse a GPU-t nagy teljesítményű módba felvétel közben.\nEz befolyásolhatja a felvétel teljesítményét, különösen videólejátszás közben.\nHa engedélyezve van, ajánlott a tartalomhoz igazított képkockasebesség mód használata az energiafogyasztás csökkentésére üresjáratban.
 
 Show %s notifications=%s értesítések megjelenítése
 Show %s status with scroll lock LED=%s állapot jelzése Scroll Lock LED-del
@@ -386,7 +386,7 @@ Simple=Egyszerű
 Audio track #%d=Hangsáv #%d
 Output device=Kimeneti eszköz
 Input device:   =Bemeneti eszköz:   
-Estimated video file size per minute (excluding audio): %.2fMB=Várható videófájl méret percenként (hang nélkül): %.2fMB
+Estimated video file size per minute (excluding audio): %.2fMB=Várható videófájl-méret percenként (hang nélkül): %.2fMB
 
 # Replay settings
 Directory to save replays:=Visszajátszások mentési mappája:
@@ -403,7 +403,7 @@ Turn on replay when this program starts=Visszajátszás bekapcsolása a program 
 Turn on replay when power supply is connected=Visszajátszás bekapcsolása tápellátás csatlakoztatásakor
 Don't turn on replay automatically=Ne kapcsolja be automatikusan a visszajátszást
 Restart replay on save=Visszajátszás újraindítása mentéskor
-Estimated video max file size %s: %.2fMB.\nChange video bitrate or replay duration to change file size.=Becsült maximális videófájl méret %s: %.2fMB.\nA fájlméret módosításához változtasd meg a bitrátát vagy a visszajátszás hosszát.
+Estimated video max file size %s: %.2fMB.\nChange video bitrate or replay duration to change file size.=Becsült maximális videófájl-méret %s: %.2fMB.\nA fájlméret módosításához változtasd meg a bitrátát vagy a visszajátszás hosszát.
 
 # Streaming settings
 Stream service:=Közvetítési szolgáltatás:
