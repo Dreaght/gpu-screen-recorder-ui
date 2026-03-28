@@ -60,8 +60,9 @@ namespace gsr {
     bool Translation::load_language(const char* lang) {
         translations.clear();
 
-        if(lang[0] == '\0')
-            lang = "en";
+        const std::string system_language = get_system_language();
+        if(!lang || lang[0] == '\0')
+            lang = system_language.c_str();
 
         if (!is_language_supported(lang)) {
             fprintf(stderr, "Warning: language '%s' is not supported\n", lang);
@@ -119,7 +120,7 @@ namespace gsr {
 
         this->translations_directory = translations_directory;
 
-        load_language(initial_language == nullptr ? get_system_language().c_str() : initial_language);
+        load_language(initial_language == nullptr ? "" : initial_language);
     }
 
     bool Translation::plural_numbers_are_complex() {
