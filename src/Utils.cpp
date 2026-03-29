@@ -27,7 +27,7 @@ namespace gsr {
     }
 
     // Returns the exit status or -1 on timeout
-    static int run_command_timeout(const char **args, int sleep_time_sec, double timeout_sec) {
+    static int run_command_timeout(const char **args, double sleep_time_sec, double timeout_sec) {
         mgl_clock clock;
         mgl_clock_init(&clock);
 
@@ -37,10 +37,19 @@ namespace gsr {
             if(process_id <= 0)
                 continue;
 
-            sleep(sleep_time_sec);
+            const double time_elapsed_sleep_start = mgl_clock_get_elapsed_time_seconds(&clock);
+            pid_t waitpid_result = 0;
+            do {
+                int status = 0;
+                waitpid_result = waitpid(process_id, &status, WNOHANG);
+                if(waitpid_result > 0)
+                    break;
+
+                usleep(30 * 1000); // 30ms
+            } while(mgl_clock_get_elapsed_time_seconds(&clock) - time_elapsed_sleep_start < sleep_time_sec);
 
             int status = 0;
-            if(waitpid(process_id, &status, WNOHANG) > 0) {
+            if(waitpid_result > 0) {
                 int exit_status = -0;
                 if(WIFEXITED(status))
                     exit_status = -1;
@@ -348,7 +357,7 @@ namespace gsr {
         const char *args[] = { "systemctl", "--user", "-q", "is-enabled", "gpu-screen-recorder-ui.service", nullptr };
         const char *flatpak_args[] = { "flatpak-spawn", "--host", "--", "systemctl", "--user", "-q", "is-enabled", "gpu-screen-recorder-ui.service", nullptr };
         const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
-        return run_command_timeout(is_flatpak ? flatpak_args : args, 1, 5.0) >= 0;
+        return run_command_timeout(is_flatpak ? flatpak_args : args, 1.0, 5.0) >= 0;
     }
 
     bool is_systemd_service_enabled(const char *service_name) {
