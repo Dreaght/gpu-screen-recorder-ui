@@ -299,6 +299,9 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
+    // This garbage shit is needed because the systemd user daemon isn't always available at xdg autostart o algo
+    const bool systemd_service_ready = gsr::wait_until_systemd_user_service_available();
+
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
     if(launch_action == LaunchAction::LAUNCH_SHOW)
         overlay->show();
@@ -309,8 +312,6 @@ int main(int argc, char **argv) {
 
     // Evacuating from lennart's botnet to XDG (a.k.a. 'the spec that nobody actually follows').
     // TODO: Remove all this garbage related to systemd in 1-2 months and remove the systemd service file as well.
-    // This garbage shit is needed because the systemd user daemon isn't always available at xdg autostart o algo
-    const bool systemd_service_ready = gsr::wait_until_systemd_user_service_available();
     constexpr const char *deprecated_systemd_service_name = "gpu-screen-recorder-ui.service";
     if(systemd_service_ready && gsr::is_systemd_service_enabled(deprecated_systemd_service_name)) {
         const int autostart_result = gsr::set_xdg_autostart(true);
