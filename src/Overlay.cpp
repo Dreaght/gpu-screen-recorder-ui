@@ -542,10 +542,6 @@ namespace gsr {
             if (wm_name.find("Hyprland") != std::string::npos) {
                 start_hyprland_listener_thread();
                 supports_window_title = true;
-            } else if (wm_name == "KWin") {
-                start_kwin_helper_thread();
-                supports_window_title = true;
-                supports_window_fullscreen_state = true;
             }
         }
 
@@ -2016,13 +2012,10 @@ namespace gsr {
         
         const std::string wm_name = get_window_manager_name(display);
         const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
-        const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
 
         std::string focused_window_name;
         if (is_hyprland) {
             focused_window_name = get_current_hyprland_window_title();
-        } else if (is_kwin_wayland) {
-            focused_window_name = get_current_kwin_window_title();
         } else {
             const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
             focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
@@ -2361,33 +2354,22 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
 
-        const std::string wm_name = get_window_manager_name(display);
-        const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
-
         const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
         Window focused_window = None;
 
-        if (is_kwin_wayland) {
-            focused_window_is_fullscreen = get_current_kwin_window_fullscreen();
-        } else {
-            focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
-            if(window && focused_window == (Window)window->get_system_handle())
-                return;
+        focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
+        if(window && focused_window == (Window)window->get_system_handle())
+            return;
 
-            focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
-        }
+        focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
 
         if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
             std::string fullscreen_window_monitor;
-            if(is_kwin_wayland) {
-                fullscreen_window_monitor = get_current_kwin_window_monitor_name();
-            } else {
-                auto window_monitor = get_monitor_by_window_center(display, focused_window);
-                if(window_monitor.has_value())
-                    fullscreen_window_monitor = std::move(window_monitor->name);
-                else
-                    fullscreen_window_monitor.clear();
-            }
+            auto window_monitor = get_monitor_by_window_center(display, focused_window);
+            if(window_monitor.has_value())
+                fullscreen_window_monitor = std::move(window_monitor->name);
+            else
+                fullscreen_window_monitor.clear();
 
             if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
                 if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
