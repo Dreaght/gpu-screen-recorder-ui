@@ -536,13 +536,6 @@ namespace gsr {
                 save_config(config);
                 show_notification(TR("Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues."), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             }
-
-            const std::string wm_name = get_window_manager_name(x11_dpy);
-
-            if (wm_name.find("Hyprland") != std::string::npos) {
-                start_hyprland_listener_thread();
-                supports_window_title = true;
-            }
         }
 
         update_led_indicator_after_settings_change();
@@ -2009,20 +2002,12 @@ namespace gsr {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
         const std::string video_filename = filepath_get_filename(video_filepath.c_str());
-        
-        const std::string wm_name = get_window_manager_name(display);
-        const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
 
-        std::string focused_window_name;
-        if (is_hyprland) {
-            focused_window_name = get_current_hyprland_window_title();
-        } else {
-            const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
-            focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
+        const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
+        std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
 
-            if(focused_window_name.empty())
-                focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
-        }
+        if(focused_window_name.empty())
+            focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
 
         if(focused_window_name.empty())
             focused_window_name = "Game";
