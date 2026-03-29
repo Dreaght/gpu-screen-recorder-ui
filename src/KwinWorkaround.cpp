@@ -5,15 +5,12 @@
 #include <string>
 #include <sys/types.h>
 #include <thread>
-#include <cstdlib>
-#include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include <mutex>
 
 namespace gsr {
     static ActiveKwinWindow active_kwin_window;
     static bool kwin_helper_thread_started = false;
+    static std::mutex active_window_mutex;
 
     void kwin_script_thread() {
         FILE* pipe = popen("gsr-kwin-helper", "r");
@@ -37,6 +34,7 @@ namespace gsr {
                 line.pop_back();
             }
 
+            std::lock_guard<std::mutex> lock(active_window_mutex);
             size_t pos = std::string::npos;
             if ((pos = line.find(prefix_title)) != std::string::npos) {
                 std::string title = line.substr(pos + prefix_title.length());
@@ -54,14 +52,17 @@ namespace gsr {
     }
 
     std::string get_current_kwin_window_title() {
+        std::lock_guard<std::mutex> lock(active_window_mutex);
         return active_kwin_window.title;
     }
 
     bool get_current_kwin_window_fullscreen() {
+        std::lock_guard<std::mutex> lock(active_window_mutex);
         return active_kwin_window.fullscreen;
     }
 
     std::string get_current_kwin_window_monitor_name() {
+        std::lock_guard<std::mutex> lock(active_window_mutex);
         return active_kwin_window.monitorName;
     }
 

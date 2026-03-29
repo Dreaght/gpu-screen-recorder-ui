@@ -4,10 +4,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <thread>
+#include <mutex>
 
 namespace gsr {
     static ActiveHyprlandWindow active_hyprland_window;
     static bool hyprland_listener_thread_started = false;
+    static std::mutex active_window_mutex;
 
     static bool get_hyprland_socket_path(char *path, int path_len) {
         const char* xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
@@ -83,6 +85,7 @@ namespace gsr {
 
             size_t pos = line.find(prefix);
             if (pos != std::string::npos) {
+                std::lock_guard<std::mutex> lock(active_window_mutex);
                 active_hyprland_window.title = line.substr(pos + prefix.length());
             }
         }
@@ -105,6 +108,7 @@ namespace gsr {
     }
 
     std::string get_current_hyprland_window_title() {
+        std::lock_guard<std::mutex> lock(active_window_mutex);
         return active_hyprland_window.title;
     }
 
