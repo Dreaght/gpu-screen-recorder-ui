@@ -44,6 +44,7 @@ namespace gsr {
     void replace_xdg_autostart_with_current_gsr_type();
 
     // Systemd user service helpers
+    bool wait_until_systemd_user_service_available();
     bool is_systemd_service_enabled(const char *service_name);
     bool disable_systemd_service(const char *service_name);
 }

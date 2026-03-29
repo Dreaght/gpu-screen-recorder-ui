@@ -308,8 +308,11 @@ int main(int argc, char **argv) {
     rpc_add_commands(rpc.get(), overlay.get());
 
     // Evacuating from lennart's botnet to XDG (a.k.a. 'the spec that nobody actually follows').
+    // TODO: Remove all this garbage related to systemd in 1-2 months and remove the systemd service file as well.
+    // This garbage shit is needed because the systemd user daemon isn't always available at xdg autostart o algo
+    const bool systemd_service_ready = gsr::wait_until_systemd_user_service_available();
     constexpr const char *deprecated_systemd_service_name = "gpu-screen-recorder-ui.service";
-    if(gsr::is_systemd_service_enabled(deprecated_systemd_service_name)) {
+    if(systemd_service_ready && gsr::is_systemd_service_enabled(deprecated_systemd_service_name)) {
         const int autostart_result = gsr::set_xdg_autostart(true);
         if(autostart_result == 67) {
             const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;

@@ -8,6 +8,10 @@
 #include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+extern "C" {
+#include <mgl/system/clock.h>
+}
 
 namespace gsr {
     static std::optional<std::string> get_xdg_autostart_content() {
@@ -20,6 +24,40 @@ namespace gsr {
         if(exec_program_on_host_get_stdout(args, output, false) != 0)
             return std::nullopt;
         return output;
+    }
+
+    // Returns the exit status or -1 on timeout
+    static int run_command_timeout(const char **args, int sleep_time_sec, double timeout_sec) {
+        mgl_clock clock;
+        mgl_clock_init(&clock);
+
+        do {
+            int read_fd = 0;
+            const pid_t process_id = exec_program(args, &read_fd, false);
+            if(process_id <= 0)
+                continue;
+
+            sleep(sleep_time_sec);
+
+            int status = 0;
+            if(waitpid(process_id, &status, WNOHANG) > 0) {
+                int exit_status = -0;
+                if(WIFEXITED(status))
+                    exit_status = -1;
+
+                if(exit_status == 0)
+                    exit_status = WEXITSTATUS(status);
+
+                close(read_fd);
+                return exit_status;
+            } else {
+                kill(process_id, SIGKILL);
+                waitpid(process_id, &status, 0);
+                close(read_fd);
+            }
+        } while(mgl_clock_get_elapsed_time_seconds(&clock) < timeout_sec);
+
+        return -1;
     }
 
     void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func) {
@@ -269,8 +307,8 @@ namespace gsr {
 
         const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
         const char *exec_line = is_flatpak
-            ? "Exec=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui"
-            : "Exec=gsr-ui launch-daemon";
+            ? "Exec=flatpak run com.dec05eba.gpu_screen_recorder gsr-ui &"
+            : "Exec=gsr-ui launch-daemon &";
 
         std::string content =
             "[Desktop Entry]\n"
@@ -304,6 +342,13 @@ namespace gsr {
             const bool is_autostart_enabled = output.value().find("Hidden=true") == std::string::npos;
             set_xdg_autostart(is_autostart_enabled);
         }
+    }
+
+    bool wait_until_systemd_user_service_available() {
+        const char *args[] = { "systemctl", "--user", "-q", "is-enabled", "gpu-screen-recorder-ui.service", nullptr };
+        const char *flatpak_args[] = { "flatpak-spawn", "--host", "--", "systemctl", "--user", "-q", "is-enabled", "gpu-screen-recorder-ui.service", nullptr };
+        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+        return run_command_timeout(is_flatpak ? flatpak_args : args, 1, 5.0) >= 0;
     }
 
     bool is_systemd_service_enabled(const char *service_name) {
