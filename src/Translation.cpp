@@ -7,13 +7,17 @@
 
 namespace gsr {
     std::string Translation::get_system_language() {
-        const char* lang = getenv("LANGUAGE");
-        if (!lang || !lang[0]) lang = getenv("LC_ALL");
-        if (!lang || !lang[0]) lang = getenv("LC_MESSAGES");
-        if (!lang || !lang[0]) lang = getenv("LANG");
+        const char* env_vars[] = { "LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG" };
+        for (const char* env_var : env_vars) {
+            const char* lang = getenv(env_var);
+            if (!lang || !lang[0])
+                continue;
 
-        if (lang && lang[0]) {
             std::string lang_str(lang);
+
+            // Ignore non-language locales such as C/POSIX and fall back to the next variable
+            if (lang_str == "C" || lang_str == "C.UTF-8" || lang_str == "POSIX")
+                continue;
 
             // we usually need only two symbols
             size_t underscore = lang_str.find('_');
