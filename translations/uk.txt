@@ -158,6 +158,7 @@ Start/stop recording with desktop portal:=Запис через портал:
 Take a screenshot with desktop portal:=Зробити знімок через портал робочого стола:
 Start/stop recording a window:=Розпочати/зупинити запис вікна:
 Take a screenshot of a window:=Зробити знімок вікна:
+Press ESC to go back to the previous page/close the UI.=Натисніть ESC, щоб повернутися на попередню сторінку/закрити інтерфейс користувача.
 
 Clear hotkeys=Очистити гарячі клавіші
 Reset hotkeys to default=Скинути гарячі клавіші за замовчуванням

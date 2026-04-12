@@ -171,6 +171,7 @@ Start/stop recording with desktop portal:=
 Take a screenshot with desktop portal:=
 Start/stop recording a window:=
 Take a screenshot of a window:=
+Press ESC to go back to the previous page/close the UI.=
 
 Clear hotkeys=
 Reset hotkeys to default=

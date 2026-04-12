@@ -160,6 +160,7 @@ Start/stop recording with desktop portal:=Felvétel indítása/leállítása asz
 Take a screenshot with desktop portal:=Képernyőkép készítése asztali portállal:
 Start/stop recording a window:=Ablak felvételének indítása/leállítása:
 Take a screenshot of a window:=Képernyőkép készítése ablakról:
+Press ESC to go back to the previous page/close the UI.=Az előző oldalra való visszatéréshez/a felhasználói felület bezárásához nyomja meg az ESC billentyűt.
 
 Clear hotkeys=Gyorsbillentyűk törlése
 Reset hotkeys to default=Gyorsbillentyűk visszaállítása alapértelmezettre

@@ -459,6 +459,7 @@ namespace gsr {
         list_ptr->add_widget(create_screenshot_hotkey_options());
         list_ptr->add_widget(create_screenshot_region_hotkey_options());
         list_ptr->add_widget(create_screenshot_window_hotkey_options());
+        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Press ESC to go back to the previous page/close the UI."), get_color_theme().text_color));
         list_ptr->add_widget(create_hotkey_control_buttons());
         return subsection;
     }

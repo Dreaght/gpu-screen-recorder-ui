@@ -252,7 +252,9 @@ namespace gsr {
         std::unique_ptr<GlobalHotkeys> global_hotkeys = nullptr;
         std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
         Display *x11_dpy = nullptr;
-        XEvent x11_mapping_xev;
+        XEvent x11_xev;
+        Atom net_active_window_atom;
+        bool update_focused_window = true;
 
         struct wl_display *wayland_dpy = nullptr;
 

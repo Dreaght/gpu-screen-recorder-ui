@@ -158,6 +158,7 @@ Start/stop recording with desktop portal:=Запись через портал:
 Take a screenshot with desktop portal:=Сделать снимок через портал рабочего стола:
 Start/stop recording a window:=Начать/остановить запись окна:
 Take a screenshot of a window:=Сделать снимок окна:
+Press ESC to go back to the previous page/close the UI.=Нажмите ESC, чтобы вернуться на предыдущую страницу/закрыть интерфейс.
 
 Clear hotkeys=Очистить горячие клавиши
 Reset hotkeys to default=Сбросить горячие клавиши по умолчанию

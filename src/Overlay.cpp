@@ -518,10 +518,13 @@ namespace gsr {
             global_hotkeys_js = register_joystick_hotkeys(this);
 
         x11_dpy = XOpenDisplay(nullptr);
-        if(x11_dpy)
+        if(x11_dpy) {
+            net_active_window_atom = XInternAtom(x11_dpy, "_NET_ACTIVE_WINDOW", False);
+            XSelectInput(x11_dpy, DefaultRootWindow(x11_dpy), PropertyChangeMask);
             XKeysymToKeycode(x11_dpy, XK_F1); // If we dont call we will never get a MappingNotify
-        else
+        } else {
             fprintf(stderr, "Warning: XOpenDisplay failed to mapping notify\n");
+        }
 
         if(this->gsr_info.system_info.display_server == DisplayServer::X11) {
             cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
@@ -732,15 +735,28 @@ namespace gsr {
 
         bool mapping_updated = false;
         while(XPending(x11_dpy)) {
-            XNextEvent(x11_dpy, &x11_mapping_xev);
-            if(x11_mapping_xev.type == MappingNotify) {
-                XRefreshKeyboardMapping(&x11_mapping_xev.xmapping);
-                mapping_updated = true;
+            XNextEvent(x11_dpy, &x11_xev);
+            switch(x11_xev.type) {
+                case MappingNotify: {
+                    XRefreshKeyboardMapping(&x11_xev.xmapping);
+                    mapping_updated = true;
+                    break;
+                }
+                case PropertyNotify: {
+                    if(x11_xev.xproperty.state == PropertyNewValue && x11_xev.xproperty.atom == net_active_window_atom) {
+                        update_focused_window = true;
+                    }
+                    break;
+                }
             }
         }
 
         if(mapping_updated)
             rebind_all_keyboard_hotkeys();
+
+        if(update_focused_window) {
+            update_focused_window = false;
+        }
     }
 
     void Overlay::handle_events() {

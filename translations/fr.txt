@@ -168,6 +168,7 @@ Start/stop recording with desktop portal:=Lancer/arrêter l’enregistrement via
 Take a screenshot with desktop portal:=Prendre une capture via le portail du bureau
 Start/stop recording a window:=Lancer/arrêter l’enregistrement d’une fenêtre
 Take a screenshot of a window:=Prendre une capture d’écran d’une fenêtre
+Press ESC to go back to the previous page/close the UI.=Appuyez sur ÉCHAP pour revenir à la page précédente/fermer l'interface utilisateur.
 
 Clear hotkeys=Effacer les raccourcis
 Reset hotkeys to default=Réinitialiser les raccourcis par défaut
