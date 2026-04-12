@@ -1045,7 +1045,7 @@ namespace gsr {
         auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
-            auto select_directory_page = std::make_unique<GsrPage>(TR("File"), "Settings");
+            auto select_directory_page = std::make_unique<GsrPage>(TR("File"), TR("Settings"));
             select_directory_page->add_button(TR("Save"), "save", get_color_theme().tint_color);
             select_directory_page->add_button(TR("Cancel"), "cancel", get_color_theme().page_bg_color);
 
