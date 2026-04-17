@@ -35,6 +35,10 @@ namespace gsr {
         if(text_edit.handle_event(event)) {
             if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left)
                 return true;
+            else if(event.type == mgl::Event::KeyPressed || event.type == mgl::Event::TextEntered) {
+                if(on_changed)
+                    on_changed(text_edit.get_text());
+            }
             return false;
         }
 
@@ -73,6 +77,8 @@ namespace gsr {
 
     void Entry::set_text(std::string_view str) {
         text_edit.set_text(std::string(str).c_str());
+        if(on_changed)
+            on_changed(text_edit.get_text());
     }
 
     std::string_view Entry::get_text() const {
