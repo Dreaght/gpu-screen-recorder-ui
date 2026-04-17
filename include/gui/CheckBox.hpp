@@ -11,7 +11,7 @@
 namespace gsr {
     class CheckBox : public Widget {
     public:
-        CheckBox(mgl::Font *font, const char *text);
+        CheckBox(const char *font_desc, const char *text);
         CheckBox(const CheckBox&) = delete;
         CheckBox& operator=(const CheckBox&) = delete;
 

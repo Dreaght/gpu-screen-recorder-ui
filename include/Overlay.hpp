@@ -114,7 +114,7 @@ namespace gsr {
         void handle_keyboard_mapping_event();
         void on_event(mgl::Event &event);
 
-        void recreate_global_hotkeys(const char *hotkey_option);
+        void recreate_global_hotkeys(std::string_view hotkey_option);
         void update_led_indicator_after_settings_change();
         void recreate_frontpage_ui_components();
         void xi_setup();
@@ -255,6 +255,11 @@ namespace gsr {
         XEvent x11_xev;
         Atom net_active_window_atom;
         bool update_focused_window = true;
+        std::vector<Window> game_windows;
+        double event_current_time_seconds = 0.0;
+        double gamescope_running_last_checked_seconds = 0.0;
+        bool is_gamescope_running = false;
+        bool is_game_running = false;
 
         struct wl_display *wayland_dpy = nullptr;
 

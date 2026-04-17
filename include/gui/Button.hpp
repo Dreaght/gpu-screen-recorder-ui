@@ -12,7 +12,7 @@ namespace gsr {
     public:
         // If width is 0 then the width of the text is used instead (with padding).
         // If height is 0 then the height of the text is used instead (with padding).
-        Button(mgl::Font *font, const char *text, mgl::vec2f size, mgl::Color bg_color);
+        Button(const char *font_desc, const char *text, mgl::vec2f size, mgl::Color bg_color);
         Button(const Button&) = delete;
         Button& operator=(const Button&) = delete;
 
@@ -25,8 +25,8 @@ namespace gsr {
         void set_bg_hover_color(mgl::Color color);
         void set_icon(mgl::Texture *texture);
 
-        const std::string& get_text() const;
-        void set_text(std::string str);
+        std::string_view get_text() const;
+        void set_text(std::string_view str);
 
         std::function<void()> on_click;
     private:

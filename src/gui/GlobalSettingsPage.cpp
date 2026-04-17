@@ -101,9 +101,9 @@ namespace gsr {
             if(!configure_hotkey_button)
                 return;
 
-            mgl::Text title_text(TRF("Press a key combination to use for the hotkey: \"%s\"", hotkey_configure_action_name.c_str()), get_theme().title_font);
-            mgl::Text hotkey_text(configure_hotkey_button->get_text(), get_theme().top_bar_font);
-            mgl::Text description_text(TR("Alpha-numerical keys can't be used alone in hotkeys, they have to be used one or more of these keys: Alt, Ctrl, Shift and Super.\nPress Esc to cancel or Backspace to remove the hotkey."), get_theme().body_font);
+            mgl::Text title_text(TRF("Press a key combination to use for the hotkey: \"%s\"", hotkey_configure_action_name.c_str()), get_theme().title_font_desc.c_str());
+            mgl::Text hotkey_text(configure_hotkey_button->get_text(), get_theme().top_bar_font_desc.c_str());
+            mgl::Text description_text(TR("Alpha-numerical keys can't be used alone in hotkeys, they have to be used one or more of these keys: Alt, Ctrl, Shift and Super.\nPress Esc to cancel or Backspace to remove the hotkey."), get_theme().body_font_desc.c_str());
             const float text_max_width = std::max(title_text.get_bounds().size.x, std::max(hotkey_text.get_bounds().size.x, description_text.get_bounds().size.x));
 
             const float padding_horizontal = int(get_theme().window_height * 0.01f);
@@ -146,13 +146,13 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_appearance_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Accent color"), get_color_theme().text_color));
-        auto tint_color_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Accent color"), get_color_theme().text_color));
+        auto tint_color_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         tint_color_radio_button_ptr = tint_color_radio_button.get();
         tint_color_radio_button->add_item(TR("Red"), "amd");
         tint_color_radio_button->add_item(TR("Green"), "nvidia");
         tint_color_radio_button->add_item(TR("Blue"), "intel");
-        tint_color_radio_button->on_selection_changed = [](const std::string&, const std::string &id) {
+        tint_color_radio_button->on_selection_changed = [](std::string_view, std::string_view id) {
             if(id == "amd")
                 get_color_theme().tint_color = mgl::Color(221, 0, 49);
             else if(id == "nvidia")
@@ -167,12 +167,12 @@ namespace gsr {
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_startup_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Start program on system startup?"), get_color_theme().text_color));
-        auto startup_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Start program on system startup?"), get_color_theme().text_color));
+        auto startup_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         startup_radio_button_ptr = startup_radio_button.get();
         startup_radio_button->add_item(TR("Yes"), "start_on_system_startup");
         startup_radio_button->add_item(TR("No"), "dont_start_on_system_startup");
-        startup_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
+        startup_radio_button->on_selection_changed = [&](std::string_view, std::string_view id) {
             bool enable = false;
             if(id == "dont_start_on_system_startup")
                 enable = false;
@@ -191,28 +191,28 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> GlobalSettingsPage::create_enable_keyboard_hotkeys_button() {
-        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::VERTICAL);
         enable_keyboard_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
         enable_hotkeys_radio_button->add_item(TR("Yes"), "enable_hotkeys");
         enable_hotkeys_radio_button->add_item(TR("Yes, but only grab virtual devices (supports some input remapping software)"), "enable_hotkeys_virtual_devices");
         enable_hotkeys_radio_button->add_item(TR("Yes, but don't grab devices (supports all input remapping software)"), "enable_hotkeys_no_grab");
         enable_hotkeys_radio_button->add_item(TR("No"), "disable_hotkeys");
-        enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
+        enable_hotkeys_radio_button->on_selection_changed = [&](std::string_view, std::string_view id) {
             if(on_keyboard_hotkey_changed)
-                on_keyboard_hotkey_changed(id.c_str());
+                on_keyboard_hotkey_changed(id);
             return true;
         };
         return enable_hotkeys_radio_button;
     }
 
     std::unique_ptr<RadioButton> GlobalSettingsPage::create_enable_joystick_hotkeys_button() {
-        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        auto enable_hotkeys_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         enable_joystick_hotkeys_radio_button_ptr = enable_hotkeys_radio_button.get();
         enable_hotkeys_radio_button->add_item(TR("Yes"), "enable_hotkeys");
         enable_hotkeys_radio_button->add_item(TR("No"), "disable_hotkeys");
-        enable_hotkeys_radio_button->on_selection_changed = [&](const std::string&, const std::string &id) {
+        enable_hotkeys_radio_button->on_selection_changed = [&](std::string_view, std::string_view id) {
             if(on_joystick_hotkey_changed)
-                on_joystick_hotkey_changed(id.c_str());
+                on_joystick_hotkey_changed(id);
             return true;
         };
         return enable_hotkeys_radio_button;
@@ -221,8 +221,8 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_show_hide_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Show/hide UI:"), get_color_theme().text_color));
-        auto show_hide_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Show/hide UI:"), get_color_theme().text_color));
+        auto show_hide_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         show_hide_button_ptr = show_hide_button.get();
         list->add_widget(std::move(show_hide_button));
 
@@ -236,13 +236,13 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_replay_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Turn replay on/off:"), get_color_theme().text_color));
-        auto turn_replay_on_off_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Turn replay on/off:"), get_color_theme().text_color));
+        auto turn_replay_on_off_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         turn_replay_on_off_button_ptr = turn_replay_on_off_button.get();
         list->add_widget(std::move(turn_replay_on_off_button));
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Save replay:"), get_color_theme().text_color));
-        auto save_replay_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Save replay:"), get_color_theme().text_color));
+        auto save_replay_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_replay_button_ptr = save_replay_button.get();
         list->add_widget(std::move(save_replay_button));
 
@@ -260,13 +260,13 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_replay_partial_save_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Save 1 minute replay:"), get_color_theme().text_color));
-        auto save_replay_1_min_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Save 1 minute replay:"), get_color_theme().text_color));
+        auto save_replay_1_min_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_replay_1_min_button_ptr = save_replay_1_min_button.get();
         list->add_widget(std::move(save_replay_1_min_button));
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Save 10 minute replay:"), get_color_theme().text_color));
-        auto save_replay_10_min_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Save 10 minute replay:"), get_color_theme().text_color));
+        auto save_replay_10_min_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_replay_10_min_button_ptr = save_replay_10_min_button.get();
         list->add_widget(std::move(save_replay_10_min_button));
 
@@ -284,13 +284,13 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_record_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Start/stop recording:"), get_color_theme().text_color));
-        auto start_stop_recording_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Start/stop recording:"), get_color_theme().text_color));
+        auto start_stop_recording_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         start_stop_recording_button_ptr = start_stop_recording_button.get();
         list->add_widget(std::move(start_stop_recording_button));
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Pause/unpause recording:"), get_color_theme().text_color));
-        auto pause_unpause_recording_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Pause/unpause recording:"), get_color_theme().text_color));
+        auto pause_unpause_recording_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         pause_unpause_recording_button_ptr = pause_unpause_recording_button.get();
         list->add_widget(std::move(pause_unpause_recording_button));
 
@@ -308,8 +308,8 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_record_hotkey_window_region_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Start/stop recording a region:"), get_color_theme().text_color));
-        auto start_stop_recording_region_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Start/stop recording a region:"), get_color_theme().text_color));
+        auto start_stop_recording_region_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         start_stop_recording_region_button_ptr = start_stop_recording_region_button.get();
         list->add_widget(std::move(start_stop_recording_region_button));
 
@@ -329,8 +329,8 @@ namespace gsr {
         else
             snprintf(str, sizeof(str), "%s", TR("Start/stop recording with desktop portal:"));
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
-        auto start_stop_recording_window_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), str, get_color_theme().text_color));
+        auto start_stop_recording_window_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         start_stop_recording_window_button_ptr = start_stop_recording_window_button.get();
         list->add_widget(std::move(start_stop_recording_window_button));
 
@@ -344,8 +344,8 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_stream_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Start/stop streaming:"), get_color_theme().text_color));
-        auto start_stop_streaming_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Start/stop streaming:"), get_color_theme().text_color));
+        auto start_stop_streaming_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         start_stop_streaming_button_ptr = start_stop_streaming_button.get();
         list->add_widget(std::move(start_stop_streaming_button));
 
@@ -359,8 +359,8 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_screenshot_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Take a screenshot:"), get_color_theme().text_color));
-        auto take_screenshot_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Take a screenshot:"), get_color_theme().text_color));
+        auto take_screenshot_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         take_screenshot_button_ptr = take_screenshot_button.get();
         list->add_widget(std::move(take_screenshot_button));
 
@@ -374,8 +374,8 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_screenshot_region_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Take a screenshot of a region:"), get_color_theme().text_color));
-        auto take_screenshot_region_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Take a screenshot of a region:"), get_color_theme().text_color));
+        auto take_screenshot_region_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         take_screenshot_region_button_ptr = take_screenshot_region_button.get();
         list->add_widget(std::move(take_screenshot_region_button));
 
@@ -395,8 +395,8 @@ namespace gsr {
         else
             snprintf(str, sizeof(str), "%s", TR("Take a screenshot with desktop portal:"));
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
-        auto take_screenshot_window_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), str, get_color_theme().text_color));
+        auto take_screenshot_window_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         take_screenshot_window_button_ptr = take_screenshot_window_button.get();
         list->add_widget(std::move(take_screenshot_window_button));
 
@@ -410,7 +410,7 @@ namespace gsr {
     std::unique_ptr<List> GlobalSettingsPage::create_hotkey_control_buttons() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        auto clear_hotkeys_button = std::make_unique<Button>(&get_theme().body_font, TR("Clear hotkeys"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto clear_hotkeys_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Clear hotkeys"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         clear_hotkeys_button->on_click = [this] {
             for_each_config_hotkey([&](ConfigHotkey *config_hotkey_item) {
                 *config_hotkey_item = {mgl::Keyboard::Unknown, 0};
@@ -420,7 +420,7 @@ namespace gsr {
         };
         list->add_widget(std::move(clear_hotkeys_button));
 
-        auto reset_hotkeys_button = std::make_unique<Button>(&get_theme().body_font, TR("Reset hotkeys to default"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto reset_hotkeys_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Reset hotkeys to default"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         reset_hotkeys_button->on_click = [this] {
             config.set_hotkeys_to_default();
             load_hotkeys();
@@ -433,11 +433,11 @@ namespace gsr {
 
     static std::unique_ptr<List> create_joystick_hotkey_text(mgl::Texture *image1, mgl::Texture *image2, float max_height, const char *suffix) {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Press"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Press"), get_color_theme().text_color));
         list->add_widget(std::make_unique<Image>(image1, mgl::vec2f{max_height, 1000.0f}, Image::ScaleBehavior::SCALE));
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("and"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("and"), get_color_theme().text_color));
         list->add_widget(std::make_unique<Image>(image2, mgl::vec2f{max_height, 1000.0f}, Image::ScaleBehavior::SCALE));
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, suffix, get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), suffix, get_color_theme().text_color));
         return list;
     }
 
@@ -446,7 +446,7 @@ namespace gsr {
         List *list_ptr = list.get();
         auto subsection = std::make_unique<Subsection>(TR("Keyboard hotkeys"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
 
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Enable keyboard hotkeys?"), get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Enable keyboard hotkeys?"), get_color_theme().text_color));
         list_ptr->add_widget(create_enable_keyboard_hotkeys_button());
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
         list_ptr->add_widget(create_show_hide_hotkey_options());
@@ -459,7 +459,7 @@ namespace gsr {
         list_ptr->add_widget(create_screenshot_hotkey_options());
         list_ptr->add_widget(create_screenshot_region_hotkey_options());
         list_ptr->add_widget(create_screenshot_window_hotkey_options());
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Press ESC to go back to the previous page/close the UI."), get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Press ESC to go back to the previous page/close the UI."), get_color_theme().text_color));
         list_ptr->add_widget(create_hotkey_control_buttons());
         return subsection;
     }
@@ -469,21 +469,21 @@ namespace gsr {
         List *list_ptr = list.get();
         auto subsection = std::make_unique<Subsection>(TR("Controller hotkeys"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
 
-        list_ptr->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Enable controller hotkeys?"), get_color_theme().text_color));
+        list_ptr->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Enable controller hotkeys?"), get_color_theme().text_color));
         list_ptr->add_widget(create_enable_joystick_hotkeys_button());
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_options_texture, get_theme().body_font.get_character_size(), TR("to show/hide the UI")));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_up_texture, get_theme().body_font.get_character_size(), TR("to take a screenshot")));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_down_texture, get_theme().body_font.get_character_size(), TR("to save a replay")));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_left_texture, get_theme().body_font.get_character_size(), TR("to start/stop recording")));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_right_texture, get_theme().body_font.get_character_size(), TR("to turn replay on/off")));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_cross_texture, get_theme().body_font.get_character_size(), TR("to save a 1 minute replay")));
-        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_triangle_texture, get_theme().body_font.get_character_size(), TR("to save a 10 minute replay")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_options_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to show/hide the UI")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_up_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to take a screenshot")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_down_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to save a replay")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_left_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to start/stop recording")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_dpad_right_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to turn replay on/off")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_cross_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to save a 1 minute replay")));
+        list_ptr->add_widget(create_joystick_hotkey_text(&get_theme().ps4_home_texture, &get_theme().ps4_triangle_texture, 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()), TR("to save a 10 minute replay")));
         return subsection;
     }
 
     std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
-        auto exit_program_button = std::make_unique<Button>(&get_theme().body_font, TR("Exit program"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto exit_program_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Exit program"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         exit_program_button->on_click = [&]() {
             if(on_click_exit_program_button)
                 on_click_exit_program_button("exit");
@@ -492,7 +492,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> GlobalSettingsPage::create_go_back_to_old_ui_button() {
-        auto exit_program_button = std::make_unique<Button>(&get_theme().body_font, TR("Go back to the old UI"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto exit_program_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Go back to the old UI"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         exit_program_button->on_click = [&]() {
             if(on_click_exit_program_button)
                 on_click_exit_program_button("back-to-old-ui");
@@ -502,13 +502,13 @@ namespace gsr {
 
     std::unique_ptr<List> GlobalSettingsPage::create_notification_speed() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Notification speed"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Notification speed"), get_color_theme().text_color));
 
-        auto radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        auto radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         notification_speed_button_ptr = radio_button.get();
         radio_button->add_item(TR("Normal"), "normal");
         radio_button->add_item(TR("Fast"), "fast");
-        radio_button->on_selection_changed = [this](const std::string&, const std::string &id) {
+        radio_button->on_selection_changed = [this](std::string_view, std::string_view id) {
             if(id == "normal")
                 overlay->set_notification_speed(NotificationSpeed::NORMAL);
             else if(id == "fast")
@@ -522,9 +522,9 @@ namespace gsr {
 
     std::unique_ptr<List> GlobalSettingsPage::create_language() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Language"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Language"), get_color_theme().text_color));
 
-        auto combo_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto combo_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         language_combo_box_ptr = combo_box.get();
         combo_box->add_item(TR("System language"), "");
         combo_box->add_item("English", "en");
@@ -533,8 +533,8 @@ namespace gsr {
         combo_box->add_item("Magyar", "hu");
         combo_box->add_item("Русский", "ru");
         combo_box->add_item("Українська", "uk");
-        combo_box->on_selection_changed = [](const std::string&, const std::string &id) {
-            Translation::instance().load_language(id.c_str());
+        combo_box->on_selection_changed = [](std::string_view, std::string_view id) {
+            Translation::instance().load_language(id);
             return true;
         };
         list->add_widget(std::move(combo_box));
@@ -573,27 +573,27 @@ namespace gsr {
         char str[128];
         const std::string gsr_version = gsr_info->system_info.gsr_version.to_string();
         snprintf(str, sizeof(str), TR("GSR version: %s"), gsr_version.c_str());
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), str, get_color_theme().text_color));
 
         snprintf(str, sizeof(str), TR("GSR-UI version: %s"), GSR_UI_VERSION);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), str, get_color_theme().text_color));
 
         if(inside_flatpak) {
             snprintf(str, sizeof(str), TR("Flatpak version: %s"), GSR_FLATPAK_VERSION);
-            list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+            list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), str, get_color_theme().text_color));
         }
 
         snprintf(str, sizeof(str), TR("GPU vendor: %s"), gpu_vendor_to_string(gsr_info->gpu_info.vendor));
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, str, get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), str, get_color_theme().text_color));
 
         return std::make_unique<Subsection>(TR("Application info"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
     std::unique_ptr<Subsection> GlobalSettingsPage::create_donate_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:"), get_color_theme().text_color));
 
-        auto donate_button = std::make_unique<Button>(&get_theme().body_font, TR("Donate"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto donate_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Donate"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         donate_button->on_click = [this] {
             const char *args[] = { "xdg-open", "https://buymeacoffee.com/dec05eba", nullptr };
             exec_program_daemonized(args);
@@ -601,7 +601,7 @@ namespace gsr {
         };
         list->add_widget(std::move(donate_button));
 
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software."), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software."), get_color_theme().text_color));
         return std::make_unique<Subsection>(TR("Donate"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 

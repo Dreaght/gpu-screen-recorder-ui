@@ -14,7 +14,7 @@ namespace gsr {
             HORIZONTAL
         };
 
-        RadioButton(mgl::Font *font, Orientation orientation);
+        RadioButton(const char *font_desc, Orientation orientation);
         RadioButton(const RadioButton&) = delete;
         RadioButton& operator=(const RadioButton&) = delete;
 
@@ -22,14 +22,14 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         void add_item(const std::string &text, const std::string &id);
-        void set_selected_item(const std::string &id, bool trigger_event = true, bool trigger_event_even_if_selection_not_changed = true);
-        const std::string& get_selected_id() const;
-        const std::string& get_selected_text() const;
+        void set_selected_item(std::string_view id, bool trigger_event = true, bool trigger_event_even_if_selection_not_changed = true);
+        std::string_view get_selected_id() const;
+        std::string_view get_selected_text() const;
 
         mgl::vec2f get_size() override;
 
         // Return false to revert the change
-        std::function<bool(const std::string &text, const std::string &id)> on_selection_changed;
+        std::function<bool(std::string_view text, std::string_view id)> on_selection_changed;
     private:
         void update_if_dirty();
     private:
@@ -38,7 +38,7 @@ namespace gsr {
             std::string id;
         };
 
-        mgl::Font *font;
+        std::string font_desc;
         Orientation orientation;
         std::vector<Item> items;
         size_t selected_item = 0;

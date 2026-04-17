@@ -466,6 +466,14 @@ namespace gsr {
         }
     }
 
+    static double clock_get_monotonic_seconds(void) {
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = 0;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return (double)ts.tv_sec + (double)ts.tv_nsec * 0.000000001;
+    }
+
     Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs) :
         resources_path(std::move(resources_path)),
         gsr_info(std::move(gsr_info)),
@@ -476,6 +484,9 @@ namespace gsr {
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
     {
+        event_current_time_seconds = clock_get_monotonic_seconds();
+        gamescope_running_last_checked_seconds = event_current_time_seconds - 10.0;
+
         if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             wayland_dpy = wl_display_connect(nullptr);
             if(!wayland_dpy)
@@ -487,10 +498,10 @@ namespace gsr {
         gsr_icon_path = this->resources_path + "images/gpu_screen_recorder_logo.png";
 
         key_bindings[0].key_event.code = mgl::Keyboard::Escape;
-        key_bindings[0].key_event.alt = false;
-        key_bindings[0].key_event.control = false;
-        key_bindings[0].key_event.shift = false;
-        key_bindings[0].key_event.system = false;
+        key_bindings[0].key_event.key_states.alt = false;
+        key_bindings[0].key_event.key_states.control = false;
+        key_bindings[0].key_event.key_states.shift = false;
+        key_bindings[0].key_event.key_states.system = false;
         key_bindings[0].callback = [this]() {
             page_stack.pop();
         };
@@ -712,10 +723,10 @@ namespace gsr {
     }
 
     static uint32_t key_event_to_bitmask(mgl::Event::KeyEvent key_event) {
-        return ((uint32_t)key_event.alt     << (uint32_t)0)
-            |  ((uint32_t)key_event.control << (uint32_t)1)
-            |  ((uint32_t)key_event.shift   << (uint32_t)2)
-            |  ((uint32_t)key_event.system  << (uint32_t)3);
+        return ((uint32_t)key_event.key_states.alt     << (uint32_t)0)
+            |  ((uint32_t)key_event.key_states.control << (uint32_t)1)
+            |  ((uint32_t)key_event.key_states.shift   << (uint32_t)2)
+            |  ((uint32_t)key_event.key_states.system  << (uint32_t)3);
     }
 
     void Overlay::process_key_bindings(mgl::Event &event) {
@@ -727,6 +738,64 @@ namespace gsr {
             if(event.key.code == key_binding.key_event.code && event_key_bitmask == key_event_to_bitmask(key_binding.key_event))
                 key_binding.callback();
         }
+    }
+
+    static bool x11_window_is_steam_game(Display *dpy, Window window) {
+        unsigned long steam_game_id = 0;
+        unsigned int property_size = 0;
+        unsigned char* steam_game_property = window_get_property(dpy, window, XA_CARDINAL, "STEAM_GAME", &property_size);
+        if(steam_game_property) {
+            if(property_size == 8)
+                steam_game_id = *(unsigned long*)steam_game_property;
+            XFree(steam_game_property);
+        }
+
+        const unsigned long steam_webhelper_game_id = 769;
+        return steam_game_id != 0 && steam_game_id != steam_webhelper_game_id;
+    }
+
+    // WINE/Godot/Unity application detection
+    static bool x11_window_class_is_game(Display *dpy, Window window) {
+        XClassHint class_hint = {nullptr, nullptr};
+        XGetClassHint(dpy, window, &class_hint);
+
+        const bool is_godot_application = class_hint.res_name && strcmp(class_hint.res_name, "Godot_Engine") == 0;
+        const bool is_wine_application = class_hint.res_class && (ends_with(class_hint.res_class, ".exe") || ends_with(class_hint.res_class, ".EXE"));
+        const bool is_native_unity_32bit_application = class_hint.res_class && ends_with(class_hint.res_class, ".x86");
+        const bool is_native_unity_64bit_application = class_hint.res_class && (ends_with(class_hint.res_class, ".x86_64") || ends_with(class_hint.res_class, ".x64"));
+
+        if(class_hint.res_name)
+            XFree(class_hint.res_name);
+
+        if(class_hint.res_class)
+            XFree(class_hint.res_class);
+
+        return is_godot_application || is_wine_application || is_native_unity_32bit_application || is_native_unity_64bit_application;
+    }
+
+    static bool x11_window_is_game(Display *dpy, Window window) {
+        return x11_window_is_steam_game(dpy, window) || x11_window_class_is_game(dpy, window);
+    }
+
+    static bool x11_is_server_gamescope(Display *dpy) {
+        bool is_gamescope = false;
+        unsigned int property_size = 0;
+        unsigned char* gamescope_focused_window = window_get_property(dpy, DefaultRootWindow(dpy), XA_CARDINAL, "GAMESCOPE_FOCUSED_WINDOW", &property_size);
+        if(gamescope_focused_window) {
+            is_gamescope = true;
+            XFree(gamescope_focused_window);
+        }
+        return is_gamescope;
+    }
+
+    static bool is_gamescope_x11_server_running() {
+        bool is_gamescope = false;
+        Display *gamescope_x11_dpy = XOpenDisplay(":2");
+        if(gamescope_x11_dpy) {
+            is_gamescope = x11_is_server_gamescope(gamescope_x11_dpy);
+            XCloseDisplay(gamescope_x11_dpy);
+        }
+        return is_gamescope;
     }
 
     void Overlay::handle_keyboard_mapping_event() {
@@ -743,9 +812,14 @@ namespace gsr {
                     break;
                 }
                 case PropertyNotify: {
-                    if(x11_xev.xproperty.state == PropertyNewValue && x11_xev.xproperty.atom == net_active_window_atom) {
+                    if(x11_xev.xproperty.state == PropertyNewValue && x11_xev.xproperty.atom == net_active_window_atom)
                         update_focused_window = true;
-                    }
+                    break;
+                }
+                case DestroyNotify: {
+                    auto it = std::find(game_windows.begin(), game_windows.end(), x11_xev.xdestroywindow.window);
+                    if(it != game_windows.end())
+                        game_windows.erase(it);
                     break;
                 }
             }
@@ -756,10 +830,35 @@ namespace gsr {
 
         if(update_focused_window) {
             update_focused_window = false;
+
+            const Window focused_window = get_focused_window(x11_dpy, WindowCaptureType::FOCUSED, false);
+            if(x11_window_is_game(x11_dpy, focused_window)) {
+                if(std::find(game_windows.begin(), game_windows.end(), focused_window) == game_windows.end()) {
+                    XSelectInput(x11_dpy, focused_window, StructureNotifyMask);
+                    game_windows.push_back(focused_window);
+                }
+            }
+        }
+
+        if(event_current_time_seconds - gamescope_running_last_checked_seconds >= 3.0) {
+            gamescope_running_last_checked_seconds = event_current_time_seconds;
+            is_gamescope_running = is_gamescope_x11_server_running();
+        }
+
+        const bool prev_game_is_running = is_game_running;
+        is_game_running = !game_windows.empty() || is_gamescope_running;
+        if(is_game_running != prev_game_is_running) {
+            if(is_game_running) {
+                //fprintf(stderr, "started game\n");
+            } else {
+                //fprintf(stderr, "stopped game\n");
+            }
         }
     }
 
     void Overlay::handle_events() {
+        event_current_time_seconds = clock_get_monotonic_seconds();
+
         if(led_indicator)
             led_indicator->update();
 
@@ -788,6 +887,7 @@ namespace gsr {
         }
 
         handle_keyboard_mapping_event();
+
         region_selector.poll_events();
         if(region_selector.take_canceled()) {
             on_region_selected = nullptr;
@@ -1189,15 +1289,15 @@ namespace gsr {
         draw();
     }
 
-    void Overlay::recreate_global_hotkeys(const char *hotkey_option) {
+    void Overlay::recreate_global_hotkeys(std::string_view hotkey_option) {
         global_hotkeys.reset();
-        if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+        if(hotkey_option == "enable_hotkeys")
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
-        else if(strcmp(hotkey_option, "enable_hotkeys_virtual_devices") == 0)
+        else if(hotkey_option == "enable_hotkeys_virtual_devices")
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
-        else if(strcmp(hotkey_option, "enable_hotkeys_no_grab") == 0)
+        else if(hotkey_option == "enable_hotkeys_no_grab")
             global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB);
-        else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+        else if(hotkey_option == "disable_hotkeys")
             global_hotkeys.reset();
     }
 
@@ -1213,7 +1313,7 @@ namespace gsr {
     void Overlay::recreate_frontpage_ui_components() {
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
-        top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font);
+        top_bar_text = mgl::Text("GPU Screen Recorder", get_theme().top_bar_font_desc.c_str());
         logo_sprite = mgl::Sprite(&get_theme().logo_texture);
         close_button_widget.set_size(mgl::vec2f(top_bar_background.get_size().y * 0.35f, top_bar_background.get_size().y * 0.35f).floor());
 
@@ -1245,7 +1345,7 @@ namespace gsr {
         List * main_buttons_list_ptr = main_buttons_list.get();
         main_buttons_list->set_spacing(0.0f);
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, TR("Instant Replay"), TR("Off"), &get_theme().replay_button_texture,
+            auto button = std::make_unique<DropdownButton>(get_theme().title_font_desc.c_str(), get_theme().body_font_desc.c_str(), TR("Instant Replay"), TR("Off"), &get_theme().replay_button_texture,
                 mgl::vec2f(button_width, button_height));
             replay_dropdown_button_ptr = button.get();
             button->add_item(TR("Turn on"), "start", config.replay_config.start_stop_hotkey.to_string(false, false));
@@ -1285,7 +1385,7 @@ namespace gsr {
             main_buttons_list->add_widget(std::move(button));
         }
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, TR("Record"), TR("Not recording"), &get_theme().record_button_texture,
+            auto button = std::make_unique<DropdownButton>(get_theme().title_font_desc.c_str(), get_theme().body_font_desc.c_str(), TR("Record"), TR("Not recording"), &get_theme().record_button_texture,
                 mgl::vec2f(button_width, button_height));
             record_dropdown_button_ptr = button.get();
             button->add_item(TR("Start"), "start", config.record_config.start_stop_hotkey.to_string(false, false));
@@ -1314,7 +1414,7 @@ namespace gsr {
             main_buttons_list->add_widget(std::move(button));
         }
         {
-            auto button = std::make_unique<DropdownButton>(&get_theme().title_font, &get_theme().body_font, TR("Livestream"), TR("Not streaming"), &get_theme().stream_button_texture,
+            auto button = std::make_unique<DropdownButton>(get_theme().title_font_desc.c_str(), get_theme().body_font_desc.c_str(), TR("Livestream"), TR("Not streaming"), &get_theme().stream_button_texture,
                 mgl::vec2f(button_width, button_height));
             stream_dropdown_button_ptr = button.get();
             button->add_item(TR("Start"), "start", config.streaming_config.start_stop_hotkey.to_string(false, false));
@@ -1345,7 +1445,7 @@ namespace gsr {
         {
             const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
             const int settings_button_size = main_buttons_size.y * 0.33f;
-            auto button = std::make_unique<Button>(&get_theme().title_font, "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
+            auto button = std::make_unique<Button>(get_theme().title_font_desc.c_str(), "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
             button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().settings_small_texture);
@@ -1378,20 +1478,20 @@ namespace gsr {
                         show_notification(TR("Failed to remove GPU Screen Recorder from system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 };
 
-                settings_page->on_click_exit_program_button = [this](const char *reason) {
+                settings_page->on_click_exit_program_button = [this](std::string_view reason) {
                     do_exit = true;
                     exit_reason = reason;
                 };
 
-                settings_page->on_keyboard_hotkey_changed = [this](const char *hotkey_option) {
+                settings_page->on_keyboard_hotkey_changed = [this](std::string_view hotkey_option) {
                     recreate_global_hotkeys(hotkey_option);
                 };
 
-                settings_page->on_joystick_hotkey_changed = [this](const char *hotkey_option) {
+                settings_page->on_joystick_hotkey_changed = [this](std::string_view hotkey_option) {
                     global_hotkeys_js.reset();
-                    if(strcmp(hotkey_option, "enable_hotkeys") == 0)
+                    if(hotkey_option == "enable_hotkeys")
                         global_hotkeys_js = register_joystick_hotkeys(this);
-                    else if(strcmp(hotkey_option, "disable_hotkeys") == 0)
+                    else if(hotkey_option == "disable_hotkeys")
                         global_hotkeys_js.reset();
                 };
 
@@ -1418,7 +1518,7 @@ namespace gsr {
         {
             const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
             const int settings_button_size = main_buttons_size.y * 0.33f;
-            auto button = std::make_unique<Button>(&get_theme().title_font, "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
+            auto button = std::make_unique<Button>(get_theme().title_font_desc.c_str(), "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
             button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size*2) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().screenshot_texture);

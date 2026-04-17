@@ -39,13 +39,13 @@ namespace gsr {
 
     static uint32_t mgl_key_modifiers_to_x11_modifier_mask(const mgl::Event::KeyEvent &key_event) {
         uint32_t mask = 0;
-        if(key_event.shift)
+        if(key_event.key_states.shift)
             mask |= ShiftMask;
-        if(key_event.control)
+        if(key_event.key_states.control)
             mask |= ControlMask;
-        if(key_event.alt)
+        if(key_event.key_states.alt)
             mask |= Mod1Mask;
-        if(key_event.system)
+        if(key_event.key_states.system)
             mask |= Mod4Mask;
         return mask;
     }

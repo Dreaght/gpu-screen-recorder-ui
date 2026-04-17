@@ -6,7 +6,7 @@
 namespace gsr {
     class Tooltip : public Widget {
     public:
-        Tooltip(mgl::Font *font);
+        Tooltip(const char *font_desc);
         Tooltip(const Tooltip&) = delete;
         Tooltip& operator=(const Tooltip&) = delete;
 
@@ -15,7 +15,7 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
 
-        void set_text(std::string text);
+        void set_text(std::string_view text);
     private:
         mgl::Text label;
     };

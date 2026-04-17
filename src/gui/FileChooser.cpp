@@ -54,7 +54,7 @@ namespace gsr {
                 times_clicked_within_timer = 1;
 
             if(selected_item != -1 && times_clicked_within_timer > 0 && times_clicked_within_timer % 2 == 0) {
-                file_chooser->open_subdirectory(folders[selected_item].text.get_string().c_str());
+                file_chooser->open_subdirectory(folders[selected_item].text.get_string());
             }
         }
         return true;
@@ -115,7 +115,7 @@ namespace gsr {
                 window.draw(folder_sprite);
 
                 // TODO: Dont allow text to go further left/right than item_pos (on the left side) and item_pos + item_size (on the right side).
-                folder.text.set_max_width(item_size.x);
+                folder.text.set_wrap_width(item_size.x);
                 folder.text.set_max_rows(2);
                 folder.text.set_position((folder_sprite.get_position() + mgl::vec2f(folder_sprite.get_size().x * 0.5f - folder.text.get_bounds().size.x * 0.5f, folder_sprite.get_size().y + folder_text_spacing_scale * get_theme().window_height)).floor());
                 window.draw(folder.text);
@@ -136,14 +136,17 @@ namespace gsr {
         inner_size = mgl::vec2f(size.x, folder_pos.y - draw_pos.y);
     }
 
-    void FileChooserBody::set_current_directory(const char *directory) {
+    void FileChooserBody::set_current_directory(std::string_view directory) {
         folders.clear();
         selected_item = -1;
         mouse_over_item = -1;
 
-        DIR *d = opendir(directory);
+        char path[4096];
+        snprintf(path, sizeof(path), "%.*s", (int)directory.size(), directory.data());
+
+        DIR *d = opendir(path);
         if(!d) {
-            fprintf(stderr, "gsr-ui error: failed to open directory: %s, error: %s\n", directory, strerror(errno));
+            fprintf(stderr, "gsr-ui error: failed to open directory: %s, error: %s\n", path, strerror(errno));
             return;
         }
 
@@ -154,7 +157,7 @@ namespace gsr {
             if(dir->d_name[0] == '.')
                 continue;
 
-            snprintf(filepath, sizeof(filepath), "%s/%s", directory, dir->d_name);
+            snprintf(filepath, sizeof(filepath), "%s/%s", path, dir->d_name);
 
             struct stat st;
             if(stat(filepath, &st) == -1)
@@ -163,7 +166,7 @@ namespace gsr {
             if(!S_ISDIR(st.st_mode))
                 continue;
 
-            folders.push_back({mgl::Text(dir->d_name, get_theme().body_font), st.st_mtim.tv_sec});
+            folders.push_back({mgl::Text(dir->d_name, get_theme().body_font_desc.c_str()), st.st_mtim.tv_sec});
         }
 
         closedir(d);
@@ -191,9 +194,9 @@ namespace gsr {
         this->size = size;
     }
 
-    FileChooser::FileChooser(const char *start_directory, mgl::vec2f size) :
+    FileChooser::FileChooser(std::string_view start_directory, mgl::vec2f size) :
         size(size),
-        current_directory_text(start_directory, get_theme().body_font),
+        current_directory_text(start_directory, get_theme().body_font_desc.c_str()),
         up_arrow_sprite(&get_theme().up_arrow_texture),
         scrollable_page(size)
     {
@@ -275,18 +278,20 @@ namespace gsr {
         return size;
     }
 
-    void FileChooser::set_current_directory(const char *directory) {
+    void FileChooser::set_current_directory(std::string_view directory) {
         current_directory_text.set_string(directory);
         file_chooser_body_ptr->set_current_directory(directory);
         scrollable_page.reset_scroll();
     }
 
-    void FileChooser::open_subdirectory(const char *name) {
+    void FileChooser::open_subdirectory(std::string_view name) {
         char filepath[PATH_MAX];
-        if(current_directory_text.get_string() == "/")
-            snprintf(filepath, sizeof(filepath), "/%s", name);
-        else
-            snprintf(filepath, sizeof(filepath), "%s/%s", current_directory_text.get_string().c_str(), name);
+        const std::string_view current_dir = current_directory_text.get_string();
+        if(current_dir == "/") {
+            snprintf(filepath, sizeof(filepath), "/%.*s", (int)name.size(), name.data());
+        } else {
+            snprintf(filepath, sizeof(filepath), "%.*s/%.*s", (int)current_dir.size(), current_dir.data(), (int)name.size(), name.data());
+        }
         set_current_directory(filepath);
     }
 
@@ -294,7 +299,7 @@ namespace gsr {
         set_current_directory(get_parent_directory(current_directory_text.get_string()).c_str());
     }
 
-    const std::string& FileChooser::get_current_directory() const {
+    std::string_view FileChooser::get_current_directory() const {
         return current_directory_text.get_string();
     }
 }

@@ -49,9 +49,9 @@ namespace gsr {
         bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
 
         std::function<void(bool enable, int exit_status)> on_startup_changed;
-        std::function<void(const char *reason)> on_click_exit_program_button;
-        std::function<void(const char *hotkey_option)> on_keyboard_hotkey_changed;
-        std::function<void(const char *hotkey_option)> on_joystick_hotkey_changed;
+        std::function<void(std::string_view reason)> on_click_exit_program_button;
+        std::function<void(std::string_view hotkey_option)> on_keyboard_hotkey_changed;
+        std::function<void(std::string_view hotkey_option)> on_joystick_hotkey_changed;
         std::function<void()> on_page_closed;
     private:
         void load_hotkeys();

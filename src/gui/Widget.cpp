@@ -128,7 +128,7 @@ namespace gsr {
         if(widget && !widget->get_tooltip_text().empty()) {
             current_tooltip_widget = widget;
             if(!tooltip)
-                tooltip = std::make_unique<Tooltip>(&get_theme().body_font);
+                tooltip = std::make_unique<Tooltip>(get_theme().body_font_desc.c_str());
             tooltip->set_text(current_tooltip_widget->get_tooltip_text());
         } else {
             current_tooltip_widget = nullptr;

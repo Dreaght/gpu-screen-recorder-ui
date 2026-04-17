@@ -9,8 +9,8 @@ namespace gsr {
     static const float button_spacing_scale = 0.015f;
 
     GsrPage::GsrPage(const char *top_text, const char *bottom_text) :
-        top_text(top_text, get_theme().title_font),
-        bottom_text(bottom_text, get_theme().title_font)
+        top_text(top_text, get_theme().title_font_desc.c_str()),
+        bottom_text(bottom_text, get_theme().title_font_desc.c_str())
     {
         const float margin = 0.02f;
         set_margins(margin, margin, margin, margin);
@@ -151,7 +151,7 @@ namespace gsr {
     }
 
     void GsrPage::add_button(const std::string &text, const std::string &id, mgl::Color color) {
-        auto button = std::make_unique<Button>(&get_theme().title_font, text.c_str(),
+        auto button = std::make_unique<Button>(get_theme().title_font_desc.c_str(), text.c_str(),
             mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor(), color);
         button->set_border_scale(0.003f);
         button->on_click = [this, id]() {

@@ -125,7 +125,7 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
         std::unique_ptr<CheckBox> create_restart_replay_on_save();
         std::unique_ptr<Label> create_estimated_replay_file_size();
-        void update_estimated_replay_file_size(const std::string &replay_storage_type);
+        void update_estimated_replay_file_size(std::string_view replay_storage_type);
         void update_replay_time_text();
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
         std::unique_ptr<Label> create_estimated_record_file_size();
@@ -140,6 +140,9 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_streaming_service_box();
         std::unique_ptr<List> create_streaming_service_section();
         std::unique_ptr<List> create_stream_key_section();
+        std::unique_ptr<List> create_stream_kick_url();
+        std::unique_ptr<List> create_stream_kick_key();
+        std::unique_ptr<List> create_stream_kick_section();
         std::unique_ptr<List> create_stream_custom_url();
         std::unique_ptr<List> create_stream_custom_key();
         std::unique_ptr<List> create_stream_custom_section();
@@ -200,6 +203,7 @@ namespace gsr {
         ComboBox *streaming_service_box_ptr = nullptr;
         List *stream_key_list_ptr = nullptr;
         List *custom_stream_list_ptr = nullptr;
+        List *kick_stream_list_ptr = nullptr;
         CheckBox *save_replay_in_game_folder_ptr = nullptr;
         CheckBox *restart_replay_on_save = nullptr;
         Label *estimated_file_size_ptr = nullptr;

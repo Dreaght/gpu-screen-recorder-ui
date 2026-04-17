@@ -27,8 +27,8 @@ namespace gsr {
         return color;
     }
 
-    CheckBox::CheckBox(mgl::Font *font, const char *text) :
-        text(text, *font),
+    CheckBox::CheckBox(const char *font_desc, const char *text) :
+        text(text, font_desc),
         background_sprite(&get_theme().checkbox_background_texture),
         circle_sprite(&get_theme().checkbox_circle_texture)
     {

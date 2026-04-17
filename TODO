@@ -129,8 +129,6 @@ If CursorTrackerWayland fails then fallback to getting focused monitor by window
     Maybe automatically switch to recording with the device that controls the monitor.
     In that case also add all monitors available to capture in the capture list and automatically choose the gpu that controls the monitor.
 
-Support cjk font. Use fc-match to find the location of the font. This also works in flatpak, in which case the fonts are in /run/host/..., where it lists system fonts.
-
 Keyboard layout is incorrect on wayland when using kde plasma keyboard settings to setup multiple keyboards, for example when changing to french.
     Text input is correct, but hotkey is incorrect.
     Need to use "setxkbmap fr" as well.
@@ -163,8 +161,6 @@ Make it possible to change controller hotkeys. Also read from /dev/input/eventN 
 Show message that replay/streaming has to be restarted if recording settings are changed while replay/streaming is ongoing.
 
 Support vector graphics. Maybe support svg, rendering it to a texture for better performance.
-
-Support freetype for text rendering. Maybe load freetype as runtime (with dlopen) and use that when available and fallback to stb_freetype if not available.
 
 Show .webm container option. It's currently chosen automatically if vp8/vp9 is chosen. The available containers should automatically switch depending on the video codec.
 
@@ -260,3 +256,7 @@ Add simple video cutting in the ui.
 
 Keep replay turned on when opening a fullscreen application and alt-tabbing. Only stop replay when closing the application (when closing all fullscreen applications).
     When alt-tabbing check if the previously fullscreen window still exists.
+
+Show vulkan codec options.
+
+Use game information to save video under the game title if available, fallback to window title.

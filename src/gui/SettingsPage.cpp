@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string.h>
+#include <charconv>
 
 namespace gsr {
     static const char *custom_app_audio_tag = "[custom]";
@@ -35,6 +36,13 @@ namespace gsr {
             case SettingsPage::Type::STREAM: return TR("Livestream");
         }
         return "";
+    }
+
+    template <typename T>
+    static T sv_to_int(std::string_view str) {
+        T result = 0;
+        std::from_chars(str.data(), str.data() + str.size(), result);
+        return result;
     }
 
     SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title, bool supports_window_fullscreen_state) :
@@ -65,7 +73,7 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_view_radio_button() {
-        auto view_radio_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        auto view_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         view_radio_button->add_item(TR("Simple view"), "simple");
         view_radio_button->add_item(TR("Advanced view"), "advanced");
         view_radio_button->set_horizontal_alignment(Widget::Alignment::CENTER);
@@ -74,7 +82,7 @@ namespace gsr {
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_record_area_box() {
-        auto record_area_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto record_area_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         // TODO: Show options not supported but disable them
         if(capture_options.window)
             record_area_box->add_item(TR("Window"), "window");
@@ -97,21 +105,21 @@ namespace gsr {
 
     std::unique_ptr<Widget> SettingsPage::create_record_area() {
         auto record_area_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        record_area_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Capture source:"), get_color_theme().text_color));
+        record_area_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Capture source:"), get_color_theme().text_color));
         record_area_list->add_widget(create_record_area_box());
         return record_area_list;
     }
 
     std::unique_ptr<Entry> SettingsPage::create_area_width_entry() {
-        auto area_width_entry = std::make_unique<Entry>(&get_theme().body_font, "1920", get_theme().body_font.get_character_size() * 3);
-        area_width_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        auto area_width_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "1920", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 4);
+        area_width_entry->set_number_mode(true, 1, 1 << 15);
         area_width_entry_ptr = area_width_entry.get();
         return area_width_entry;
     }
 
     std::unique_ptr<Entry> SettingsPage::create_area_height_entry() {
-        auto area_height_entry = std::make_unique<Entry>(&get_theme().body_font, "1080", get_theme().body_font.get_character_size() * 3);
-        area_height_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        auto area_height_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "1080", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 4);
+        area_height_entry->set_number_mode(true, 1, 1 << 15);
         area_height_entry_ptr = area_height_entry.get();
         return area_height_entry;
     }
@@ -119,29 +127,29 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_area_size() {
         auto area_size_params_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         area_size_params_list->add_widget(create_area_width_entry());
-        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_color_theme().text_color));
+        area_size_params_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), "x", get_color_theme().text_color));
         area_size_params_list->add_widget(create_area_height_entry());
         return area_size_params_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_area_size_section() {
         auto area_size_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        area_size_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Area size:"), get_color_theme().text_color));
+        area_size_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Area size:"), get_color_theme().text_color));
         area_size_list->add_widget(create_area_size());
         area_size_list_ptr = area_size_list.get();
         return area_size_list;
     }
 
     std::unique_ptr<Entry> SettingsPage::create_video_width_entry() {
-        auto video_width_entry = std::make_unique<Entry>(&get_theme().body_font, "1920", get_theme().body_font.get_character_size() * 3);
-        video_width_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        auto video_width_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "1920", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 4);
+        video_width_entry->set_number_mode(true, 1, 1 << 15);
         video_width_entry_ptr = video_width_entry.get();
         return video_width_entry;
     }
 
     std::unique_ptr<Entry> SettingsPage::create_video_height_entry() {
-        auto video_height_entry = std::make_unique<Entry>(&get_theme().body_font, "1080", get_theme().body_font.get_character_size() * 3);
-        video_height_entry->validate_handler = create_entry_validator_integer_in_range(1, 1 << 15);
+        auto video_height_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "1080", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 4);
+        video_height_entry->set_number_mode(true, 1, 1 << 15);
         video_height_entry_ptr = video_height_entry.get();
         return video_height_entry;
     }
@@ -149,21 +157,21 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_video_resolution() {
         auto area_size_params_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         area_size_params_list->add_widget(create_video_width_entry());
-        area_size_params_list->add_widget(std::make_unique<Label>(&get_theme().body_font, "x", get_color_theme().text_color));
+        area_size_params_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), "x", get_color_theme().text_color));
         area_size_params_list->add_widget(create_video_height_entry());
         return area_size_params_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_video_resolution_section() {
         auto video_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_resolution_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video resolution limit:"), get_color_theme().text_color));
+        video_resolution_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video resolution limit:"), get_color_theme().text_color));
         video_resolution_list->add_widget(create_video_resolution());
         video_resolution_list_ptr = video_resolution_list.get();
         return video_resolution_list;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_restore_portal_session_checkbox() {
-        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Restore portal session"));
+        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Restore portal session"));
         restore_portal_session_checkbox->set_checked(true);
         restore_portal_session_checkbox_ptr = restore_portal_session_checkbox.get();
         return restore_portal_session_checkbox;
@@ -171,14 +179,14 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_restore_portal_session_section() {
         auto restore_portal_session_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        restore_portal_session_list->add_widget(std::make_unique<Label>(&get_theme().body_font, " ", get_color_theme().text_color));
+        restore_portal_session_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), " ", get_color_theme().text_color));
         restore_portal_session_list->add_widget(create_restore_portal_session_checkbox());
         restore_portal_session_list_ptr = restore_portal_session_list.get();
         return restore_portal_session_list;
     }
 
     std::unique_ptr<Widget> SettingsPage::create_change_video_resolution_section() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Change video resolution"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Change video resolution"));
         change_video_resolution_checkbox_ptr = checkbox.get();
         return checkbox;
     }
@@ -199,16 +207,16 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_webcam_sources() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
-        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Webcam source:"), get_color_theme().text_color));
+        ll->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Webcam source:"), get_color_theme().text_color));
 
-        auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto combobox = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         combobox->add_item(TR("None"), "");
         for(const GsrCamera &camera : capture_options.cameras) {
             combobox->add_item(camera.path, camera.path);
         }
         webcam_sources_box_ptr = combobox.get();
 
-        webcam_sources_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        webcam_sources_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             selected_camera = std::nullopt;
             selected_camera_setup = std::nullopt;
             webcam_video_format_box_ptr->clear_items();
@@ -244,16 +252,19 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_webcam_video_setups() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
-        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video setup:"), get_color_theme().text_color));
+        ll->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video setup:"), get_color_theme().text_color));
 
-        auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto combobox = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         webcam_video_setup_box_ptr = combobox.get();
 
-        webcam_video_setup_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        webcam_video_setup_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             int camera_width = 0;
             int camera_height = 0;
             int camera_fps = 0;
-            sscanf(id.c_str(), "%dx%d@%dhz", &camera_width, &camera_height, &camera_fps);
+
+            char id_str[256];
+            snprintf(id_str, sizeof(id_str), "%.*s", (int)id.size(), id.data());
+            sscanf(id_str, "%dx%d@%dhz", &camera_width, &camera_height, &camera_fps);
 
             RecordOptions &current_record_options = get_current_record_options();
             current_record_options.webcam_camera_width = camera_width;
@@ -279,12 +290,12 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_webcam_video_format() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
-        ll->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video format:"), get_color_theme().text_color));
+        ll->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video format:"), get_color_theme().text_color));
 
-        auto combobox = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto combobox = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         webcam_video_format_box_ptr = combobox.get();
 
-        webcam_video_format_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        webcam_video_format_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             get_current_record_options().webcam_video_format = id;
 
             auto it = std::find_if(capture_options.cameras.begin(), capture_options.cameras.end(), [&](const GsrCamera &camera) {
@@ -393,7 +404,7 @@ namespace gsr {
 
             {
                 draw_rectangle_outline(window, pos, size, mgl::Color(255, 0, 0, 255), screen_border);
-                mgl::Text screen_text(TR("Screen"), get_theme().camera_setup_font);
+                mgl::Text screen_text(TR("Screen"), get_theme().camera_setup_font_desc.c_str());
                 screen_text.set_position((pos + size * 0.5f - screen_text.get_bounds().size * 0.5f).floor());
                 window.draw(screen_text);
             }
@@ -408,7 +419,7 @@ namespace gsr {
                 // resize_area.set_color(mgl::Color(0, 0, 255, 255));
                 // window.draw(resize_area);
 
-                mgl::Text webcam_text(TR("Webcam"), get_theme().camera_setup_font);
+                mgl::Text webcam_text(TR("Webcam"), get_theme().camera_setup_font_desc.c_str());
                 webcam_text.set_position((webcam_box_drawn_pos + webcam_box_drawn_size * 0.5f - webcam_text.get_bounds().size * 0.5f).floor());
                 window.draw(webcam_text);
             }
@@ -468,7 +479,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_flip_camera_checkbox() {
-        auto flip_camera_horizontally_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Flip camera horizontally"));
+        auto flip_camera_horizontally_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Flip camera horizontally"));
         flip_camera_horizontally_checkbox_ptr = flip_camera_horizontally_checkbox.get();
         return flip_camera_horizontally_checkbox;
     }
@@ -478,7 +489,7 @@ namespace gsr {
         webcam_body_list_ptr = body_list.get();
         body_list->set_visible(false);
         body_list->add_widget(create_webcam_location_widget());
-        body_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("* Right click in the bottom right corner to resize the webcam"), get_color_theme().text_color));
+        body_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("* Right click in the bottom right corner to resize the webcam"), get_color_theme().text_color));
         body_list->add_widget(create_flip_camera_checkbox());
         body_list->add_widget(create_webcam_video_setup_list());
         return body_list;
@@ -496,7 +507,7 @@ namespace gsr {
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_audio_device_selection_combobox(AudioDeviceType device_type) {
-        auto audio_device_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto audio_device_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         for(const auto &audio_device : audio_devices) {
             const bool device_is_output = audio_device_is_output(audio_device.name);
             if((device_type == AudioDeviceType::OUTPUT && device_is_output) || (device_type == AudioDeviceType::INPUT && !device_is_output)) {
@@ -532,7 +543,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> SettingsPage::create_remove_audio_device_button(List *audio_input_list_ptr, List *audio_device_list_ptr) {
-        auto remove_audio_track_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 0));
+        auto remove_audio_track_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 0));
         remove_audio_track_button->set_icon(&get_theme().trash_texture);
         remove_audio_track_button->set_icon_padding_scale(0.75f);
         remove_audio_track_button->on_click = [this, audio_input_list_ptr, audio_device_list_ptr]() {
@@ -545,14 +556,14 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_audio_device(AudioDeviceType device_type, List *audio_input_list_ptr) {
         auto audio_device_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         audio_device_list->userdata = (void*)(uintptr_t)AudioTrackType::DEVICE;
-        audio_device_list->add_widget(std::make_unique<Label>(&get_theme().body_font, device_type == AudioDeviceType::OUTPUT ? TR("Output device:") : TR("Input device:   "), get_color_theme().text_color));
+        audio_device_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), device_type == AudioDeviceType::OUTPUT ? TR("Output device:") : TR("Input device:   "), get_color_theme().text_color));
         audio_device_list->add_widget(create_audio_device_selection_combobox(device_type));
         audio_device_list->add_widget(create_remove_audio_device_button(audio_input_list_ptr, audio_device_list.get()));
         return audio_device_list;
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_audio_track_button() {
-        auto button = std::make_unique<Button>(&get_theme().body_font, TR("Add audio track"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Add audio track"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this]() {
             audio_track_section_list_ptr->add_widget(create_audio_track_section(audio_section_ptr));
         };
@@ -577,7 +588,7 @@ namespace gsr {
                 switch(audio_track_type) {
                     case AudioTrackType::DEVICE: {
                         Label *label = dynamic_cast<Label*>(audio_track_line->get_child_widget_by_index(0));
-                        const bool is_output_device = starts_with(label->get_text().c_str(), TR("Output device"));
+                        const bool is_output_device = starts_with(label->get_text(), TR("Output device"));
                         if(is_output_device)
                             num_output_devices++;
                         break;
@@ -597,7 +608,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_audio_output_device_button(List *audio_input_list_ptr) {
-        auto button = std::make_unique<Button>(&get_theme().body_font, TR("Add output device"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Add output device"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this, audio_input_list_ptr]() {
             audio_devices = get_audio_devices();
             audio_input_list_ptr->add_widget(create_audio_device(AudioDeviceType::OUTPUT, audio_input_list_ptr));
@@ -607,7 +618,7 @@ namespace gsr {
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_audio_input_device_button(List *audio_input_list_ptr) {
-        auto button = std::make_unique<Button>(&get_theme().body_font, TR("Add input device"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Add input device"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         button->on_click = [this, audio_input_list_ptr]() {
             audio_devices = get_audio_devices();
             audio_input_list_ptr->add_widget(create_audio_device(AudioDeviceType::INPUT, audio_input_list_ptr));
@@ -616,17 +627,17 @@ namespace gsr {
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_application_audio_selection_combobox(List *application_audio_row) {
-        auto audio_device_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto audio_device_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         ComboBox *audio_device_box_ptr = audio_device_box.get();
         for(const auto &app_audio : application_audio) {
             audio_device_box->add_item(app_audio, app_audio);
         }
         audio_device_box->add_item(TR("Custom..."), custom_app_audio_tag);
 
-        audio_device_box->on_selection_changed = [application_audio_row, audio_device_box_ptr](const std::string&, const std::string &id) {
+        audio_device_box->on_selection_changed = [application_audio_row, audio_device_box_ptr](std::string_view, std::string_view id) {
             if(id == custom_app_audio_tag) {
                 application_audio_row->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION_CUSTOM;
-                auto custom_app_audio_entry = std::make_unique<Entry>(&get_theme().body_font, "", (int)(get_theme().body_font.get_character_size() * 10.0f));
+                auto custom_app_audio_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", (int)(2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 10.0f));
                 application_audio_row->replace_widget(audio_device_box_ptr, std::move(custom_app_audio_entry));
             }
         };
@@ -637,7 +648,7 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_application_audio(List *audio_input_list_ptr) {
         auto application_audio_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         application_audio_list->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION;
-        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Application:     "), get_color_theme().text_color));
+        application_audio_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Application:     "), get_color_theme().text_color));
         application_audio_list->add_widget(create_application_audio_selection_combobox(application_audio_list.get()));
         application_audio_list->add_widget(create_remove_audio_device_button(audio_input_list_ptr, application_audio_list.get()));
         return application_audio_list;
@@ -646,14 +657,14 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_custom_application_audio(List *audio_input_list_ptr) {
         auto application_audio_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         application_audio_list->userdata = (void*)(uintptr_t)AudioTrackType::APPLICATION_CUSTOM;
-        application_audio_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Application:     "), get_color_theme().text_color));
-        application_audio_list->add_widget(std::make_unique<Entry>(&get_theme().body_font, "", (int)(get_theme().body_font.get_character_size() * 10.0f)));
+        application_audio_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Application:     "), get_color_theme().text_color));
+        application_audio_list->add_widget(std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", (int)(2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 10.0f)));
         application_audio_list->add_widget(create_remove_audio_device_button(audio_input_list_ptr, application_audio_list.get()));
         return application_audio_list;
     }
 
     std::unique_ptr<Button> SettingsPage::create_add_application_audio_button(List *audio_input_list_ptr) {
-        auto add_audio_track_button = std::make_unique<Button>(&get_theme().body_font, TR("Add application audio"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        auto add_audio_track_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Add application audio"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         add_audio_track_button->on_click = [this, audio_input_list_ptr]() {
             application_audio = get_application_audio();
             if(application_audio.empty())
@@ -681,7 +692,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_application_audio_invert_checkbox() {
-        auto application_audio_invert_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record audio from all applications except the selected ones"));
+        auto application_audio_invert_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Record audio from all applications except the selected ones"));
         application_audio_invert_checkbox->set_checked(false);
         application_audio_invert_checkbox->on_changed = [this](bool) {
             update_application_audio_warning_visibility();
@@ -694,9 +705,9 @@ namespace gsr {
         list->set_spacing(0.003f);
         list->set_visible(false);
 
-        const int font_character_size = get_theme().body_font.get_character_size();
+        const int font_character_size = 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str());
         list->add_widget(std::make_unique<Image>(&get_theme().warning_texture, mgl::vec2f(font_character_size, font_character_size), Image::ScaleBehavior::SCALE));
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices."), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices."), get_color_theme().text_color));
 
         return list;
     }
@@ -718,9 +729,9 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_audio_track_title_and_remove(Subsection *audio_track_subsection, const char *title) {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        list->add_widget(std::make_unique<Label>(&get_theme().title_font, title, get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), title, get_color_theme().text_color));
 
-        auto remove_track_button = std::make_unique<Button>(&get_theme().body_font, "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 0));
+        auto remove_track_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 0));
         remove_track_button->set_icon(&get_theme().trash_texture);
         remove_track_button->set_icon_padding_scale(0.75f);
         remove_track_button->on_click = [this, audio_track_subsection]() {
@@ -774,9 +785,9 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_quality_box() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video quality:"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video quality:"), get_color_theme().text_color));
 
-        auto video_quality_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto video_quality_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         if(type == Type::REPLAY || type == Type::STREAM)
             video_quality_box->add_item(TR("Constant bitrate (Recommended)"), "custom");
         else
@@ -802,18 +813,18 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate_entry() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        auto video_bitrate_entry = std::make_unique<Entry>(&get_theme().body_font, "8000", (int)(get_theme().body_font.get_character_size() * 4.0f));
-        video_bitrate_entry->validate_handler = create_entry_validator_integer_in_range(1, 500000);
+        auto video_bitrate_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "8000", (int)(2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 5));
+        video_bitrate_entry->set_number_mode(true, 1, 500000);
         video_bitrate_entry_ptr = video_bitrate_entry.get();
         list->add_widget(std::move(video_bitrate_entry));
 
         if(type == Type::STREAM) {
-            auto size_mb_label = std::make_unique<Label>(&get_theme().body_font, "", get_color_theme().text_color);
+            auto size_mb_label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "", get_color_theme().text_color);
             Label *size_mb_label_ptr = size_mb_label.get();
             list->add_widget(std::move(size_mb_label));
 
-            video_bitrate_entry_ptr->on_changed = [size_mb_label_ptr](const std::string &text) {
-                const double video_bitrate_mbits_per_seconds = (double)atoi(text.c_str()) / 1024.0;
+            video_bitrate_entry_ptr->on_changed = [size_mb_label_ptr](std::string_view text) {
+                const double video_bitrate_mbits_per_seconds = (double)sv_to_int<int64_t>(text) / 1024.0;
                 char buffer[32];
                 snprintf(buffer, sizeof(buffer), "%.2fMbps", video_bitrate_mbits_per_seconds);
                 size_mb_label_ptr->set_text(buffer);
@@ -825,14 +836,14 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_bitrate() {
         auto video_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_bitrate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video bitrate (Kbps):"), get_color_theme().text_color));
+        video_bitrate_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video bitrate (Kbps):"), get_color_theme().text_color));
         video_bitrate_list->add_widget(create_video_bitrate_entry());
         video_bitrate_list_ptr = video_bitrate_list.get();
         return video_bitrate_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_color_range_box() {
-        auto color_range_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto color_range_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         color_range_box->add_item(TR("Limited"), "limited");
         color_range_box->add_item(TR("Full"), "full");
         color_range_box_ptr = color_range_box.get();
@@ -841,7 +852,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_color_range() {
         auto color_range_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        color_range_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Color range:"), get_color_theme().text_color));
+        color_range_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Color range:"), get_color_theme().text_color));
         color_range_list->add_widget(create_color_range_box());
         color_range_list_ptr = color_range_list.get();
         return color_range_list;
@@ -856,7 +867,7 @@ namespace gsr {
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_video_codec_box() {
-        auto video_codec_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto video_codec_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         // TODO: Show options not supported but disable them.
         // TODO: Show error if no encoders are supported.
         // TODO: Show warning (once) if only software encoder is available.
@@ -887,14 +898,14 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_video_codec() {
         auto video_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        video_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Video codec:"), get_color_theme().text_color));
+        video_codec_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video codec:"), get_color_theme().text_color));
         video_codec_list->add_widget(create_video_codec_box());
         video_codec_ptr = video_codec_list.get();
         return video_codec_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_audio_codec_box() {
-        auto audio_codec_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto audio_codec_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         audio_codec_box->add_item(TR("Opus (Recommended)"), "opus");
         audio_codec_box->add_item(TR("AAC"), "aac");
         audio_codec_box_ptr = audio_codec_box.get();
@@ -903,28 +914,28 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_audio_codec() {
         auto audio_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        audio_codec_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Audio codec:"), get_color_theme().text_color));
+        audio_codec_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Audio codec:"), get_color_theme().text_color));
         audio_codec_list->add_widget(create_audio_codec_box());
         audio_codec_ptr = audio_codec_list.get();
         return audio_codec_list;
     }
 
     std::unique_ptr<Entry> SettingsPage::create_framerate_entry() {
-        auto framerate_entry = std::make_unique<Entry>(&get_theme().body_font, "60", (int)(get_theme().body_font.get_character_size() * 2.5f));
-        framerate_entry->validate_handler = create_entry_validator_integer_in_range(1, 500);
+        auto framerate_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "60", (int)(2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 3));
+        framerate_entry->set_number_mode(true, 1, 500);
         framerate_entry_ptr = framerate_entry.get();
         return framerate_entry;
     }
 
     std::unique_ptr<List> SettingsPage::create_framerate() {
         auto framerate_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        framerate_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Frame rate:"), get_color_theme().text_color));
+        framerate_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Frame rate:"), get_color_theme().text_color));
         framerate_list->add_widget(create_framerate_entry());
         return framerate_list;
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_framerate_mode_box() {
-        auto framerate_mode_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto framerate_mode_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         framerate_mode_box->add_item(TR("Auto (Recommended)"), "auto");
         framerate_mode_box->add_item(TR("Constant"), "cfr");
         framerate_mode_box->add_item(TR("Variable"), "vfr");
@@ -938,7 +949,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_framerate_mode() {
         auto framerate_mode_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        framerate_mode_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Frame rate mode:"), get_color_theme().text_color));
+        framerate_mode_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Frame rate mode:"), get_color_theme().text_color));
         framerate_mode_list->add_widget(create_framerate_mode_box());
         framerate_mode_list_ptr = framerate_mode_list.get();
         return framerate_mode_list;
@@ -952,7 +963,7 @@ namespace gsr {
     }
     
     std::unique_ptr<Widget> SettingsPage::create_record_cursor_section() {
-        auto record_cursor_checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record cursor"));
+        auto record_cursor_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Record cursor"));
         record_cursor_checkbox->set_checked(true);
         record_cursor_checkbox_ptr = record_cursor_checkbox.get();
         return record_cursor_checkbox;
@@ -989,7 +1000,7 @@ namespace gsr {
     void SettingsPage::add_widgets() {
         content_page_ptr->add_widget(create_settings());
 
-        record_area_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        record_area_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             const bool focused_selected = id == "focused";
             const bool portal_selected = id == "portal";
             area_size_list_ptr->set_visible(focused_selected);
@@ -1004,7 +1015,7 @@ namespace gsr {
             video_resolution_list_ptr->set_visible(!focused_selected && checked);
         };
 
-        video_quality_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        video_quality_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             const bool custom_selected = id == "custom";
             video_bitrate_list_ptr->set_visible(custom_selected);
 
@@ -1041,15 +1052,15 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_save_directory(const char *label) {
         auto save_directory_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        save_directory_list->add_widget(std::make_unique<Label>(&get_theme().body_font, label, get_color_theme().text_color));
-        auto save_directory_button = std::make_unique<Button>(&get_theme().body_font, get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        save_directory_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), label, get_color_theme().text_color));
+        auto save_directory_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), get_videos_dir().c_str(), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_directory_button_ptr = save_directory_button.get();
         save_directory_button->on_click = [this]() {
             auto select_directory_page = std::make_unique<GsrPage>(TR("File"), TR("Settings"));
             select_directory_page->add_button(TR("Save"), "save", get_color_theme().tint_color);
             select_directory_page->add_button(TR("Cancel"), "cancel", get_color_theme().page_bg_color);
 
-            auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text().c_str(), select_directory_page->get_inner_size());
+            auto file_chooser = std::make_unique<FileChooser>(save_directory_button_ptr->get_text(), select_directory_page->get_inner_size());
             FileChooser *file_chooser_ptr = file_chooser.get();
             select_directory_page->add_widget(std::move(file_chooser));
 
@@ -1069,7 +1080,7 @@ namespace gsr {
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_container_box() {
-        auto container_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto container_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         container_box->add_item("mp4", "mp4");
         container_box->add_item("mkv", "matroska");
         container_box->add_item("flv", "flv");
@@ -1080,7 +1091,7 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_container_section() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Container:"), get_color_theme().text_color));
+        container_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Container:"), get_color_theme().text_color));
         container_list->add_widget(create_container_box());
         return container_list;
     }
@@ -1088,12 +1099,12 @@ namespace gsr {
     std::unique_ptr<List> SettingsPage::create_replay_time_entry() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
-        auto replay_time_entry = std::make_unique<Entry>(&get_theme().body_font, "60", get_theme().body_font.get_character_size() * 3);
-        replay_time_entry->validate_handler = create_entry_validator_integer_in_range(1, 86400);
+        auto replay_time_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "60", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 4);
+        replay_time_entry->set_number_mode(true, 1, 86400);
         replay_time_entry_ptr = replay_time_entry.get();
         list->add_widget(std::move(replay_time_entry));
 
-        auto replay_time_label = std::make_unique<Label>(&get_theme().body_font, "00h:00m:00s", get_color_theme().text_color);
+        auto replay_time_label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "00h:00m:00s", get_color_theme().text_color);
         replay_time_label_ptr = replay_time_label.get();
         list->add_widget(std::move(replay_time_label));
 
@@ -1102,20 +1113,20 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_replay_time() {
         auto replay_time_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        replay_time_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Replay duration in seconds:"), get_color_theme().text_color));
+        replay_time_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Replay duration in seconds:"), get_color_theme().text_color));
         replay_time_list->add_widget(create_replay_time_entry());
         return replay_time_list;
     }
 
     std::unique_ptr<List> SettingsPage::create_replay_storage() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Where should temporary replay data be stored?"), get_color_theme().text_color));
-        auto replay_storage_button = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::HORIZONTAL);
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Where should temporary replay data be stored?"), get_color_theme().text_color));
+        auto replay_storage_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         replay_storage_button_ptr = replay_storage_button.get();
         replay_storage_button->add_item(TR("RAM"), "ram");
         replay_storage_button->add_item(TR("Disk (Not recommended on SSDs)"), "disk");
 
-        replay_storage_button->on_selection_changed = [this](const std::string&, const std::string &id) {
+        replay_storage_button->on_selection_changed = [this](std::string_view, std::string_view id) {
             update_estimated_replay_file_size(id);
             return true;
         };
@@ -1130,7 +1141,7 @@ namespace gsr {
         char fullscreen_text[256];
         snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), supports_window_fullscreen_state ? "" : TR(" (X11 applications only)"));
 
-        auto radiobutton = std::make_unique<RadioButton>(&get_theme().body_font, RadioButton::Orientation::VERTICAL);
+        auto radiobutton = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::VERTICAL);
         radiobutton->add_item(TR("Don't turn on replay automatically"), "dont_turn_on_automatically");
         radiobutton->add_item(TR("Turn on replay when this program starts"), "turn_on_at_system_startup");
         radiobutton->add_item(fullscreen_text, "turn_on_at_fullscreen");
@@ -1142,26 +1153,26 @@ namespace gsr {
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
         char text[256];
         snprintf(text, sizeof(text), TR("Save video in a folder based on the games name%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
         save_replay_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_restart_replay_on_save() {
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Restart replay on save"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Restart replay on save"));
         restart_replay_on_save = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_replay_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video max file size in RAM: 57.60MB", get_color_theme().text_color);
+        auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "Estimated video max file size in RAM: 57.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
 
-    void SettingsPage::update_estimated_replay_file_size(const std::string &replay_storage_type) {
-        const int64_t replay_time_seconds = atoi(replay_time_entry_ptr->get_text().c_str());
-        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
+    void SettingsPage::update_estimated_replay_file_size(std::string_view replay_storage_type) {
+        const int64_t replay_time_seconds = sv_to_int<int64_t>(replay_time_entry_ptr->get_text());
+        const int64_t video_bitrate_bps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text()) * 1000LL / 8LL;
         const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
         char buffer[256];
@@ -1170,7 +1181,7 @@ namespace gsr {
     }
 
     void SettingsPage::update_replay_time_text() {
-        int seconds = atoi(replay_time_entry_ptr->get_text().c_str());
+        int seconds = sv_to_int<int>(replay_time_entry_ptr->get_text());
 
         const int hours = seconds / 60 / 60;
         seconds -= (hours * 60 * 60);
@@ -1206,7 +1217,7 @@ namespace gsr {
         char label_str[256];
         snprintf(label_str, sizeof(label_str), TR("Show %s status with scroll lock LED"), type);
 
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), label_str);
         checkbox->set_checked(false);
         led_indicator_checkbox_ptr = checkbox.get();
         return checkbox;
@@ -1215,7 +1226,7 @@ namespace gsr {
     std::unique_ptr<CheckBox> SettingsPage::create_notifications(const char *type) {
         char label_str[256];
         snprintf(label_str, sizeof(label_str), TR("Show %s notifications"), type);
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, label_str);
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), label_str);
         checkbox->set_checked(true);
         show_notification_checkbox_ptr = checkbox.get();
         return checkbox;
@@ -1232,7 +1243,7 @@ namespace gsr {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         list->set_visible(gsr_info->gpu_info.vendor == GpuVendor::AMD);
 
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, TR("Record in low-power mode"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Record in low-power mode"));
         low_power_mode_checkbox_ptr = checkbox.get();
 
         list->add_widget(std::move(checkbox));
@@ -1276,18 +1287,18 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator(TR("replay")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             view_changed(id == "advanced");
             return true;
         };
         view_radio_button_ptr->on_selection_changed(TR("Simple"), "simple");
 
-        replay_time_entry_ptr->on_changed = [this](const std::string&) {
+        replay_time_entry_ptr->on_changed = [this](std::string_view) {
             update_estimated_replay_file_size(replay_storage_button_ptr->get_selected_id());
             update_replay_time_text();
         };
 
-        video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
+        video_bitrate_entry_ptr->on_changed = [this](std::string_view) {
             update_estimated_replay_file_size(replay_storage_button_ptr->get_selected_id());
         };
     }
@@ -1295,19 +1306,19 @@ namespace gsr {
     std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
         char text[256];
         snprintf(text, sizeof(text), TR("Save video in a folder based on the games name%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(&get_theme().body_font, text);
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
         save_recording_in_game_folder_ptr = checkbox.get();
         return checkbox;
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_record_file_size() {
-        auto label = std::make_unique<Label>(&get_theme().body_font, "Estimated video file size per minute (excluding audio): 345.60MB", get_color_theme().text_color);
+        auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "Estimated video file size per minute (excluding audio): 345.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
         return label;
     }
 
     void SettingsPage::update_estimated_record_file_size() {
-        const int64_t video_bitrate_bps = atoi(video_bitrate_entry_ptr->get_text().c_str()) * 1000LL / 8LL;
+        const int64_t video_bitrate_bps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text()) * 1000LL / 8LL;
         const double video_filesize_mb_per_minute = (60.0 * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
 
         char buffer[512];
@@ -1332,19 +1343,19 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator(TR("recording")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             view_changed(id == "advanced");
             return true;
         };
         view_radio_button_ptr->on_selection_changed(TR("Simple"), "simple");
 
-        video_bitrate_entry_ptr->on_changed = [this](const std::string&) {
+        video_bitrate_entry_ptr->on_changed = [this](std::string_view) {
             update_estimated_record_file_size();
         };
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_streaming_service_box() {
-        auto streaming_service_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto streaming_service_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         streaming_service_box->add_item(TR("Twitch"), "twitch");
         streaming_service_box->add_item(TR("YouTube"), "youtube");
         streaming_service_box->add_item(TR("Rumble"), "rumble");
@@ -1356,13 +1367,13 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_streaming_service_section() {
         auto streaming_service_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        streaming_service_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream service:"), get_color_theme().text_color));
+        streaming_service_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream service:"), get_color_theme().text_color));
         streaming_service_list->add_widget(create_streaming_service_box());
         return streaming_service_list;
     }
 
     static std::unique_ptr<Button> create_mask_toggle_button(Entry *entry_to_toggle, mgl::vec2f size) {
-        auto button = std::make_unique<Button>(&get_theme().body_font, "", size, mgl::Color(0, 0, 0, 0));
+        auto button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", size, mgl::Color(0, 0, 0, 0));
         Button *button_ptr = button.get();
         button->set_icon(&get_theme().masked_texture);
         button->on_click = [entry_to_toggle, button_ptr]() {
@@ -1375,7 +1386,7 @@ namespace gsr {
 
     static Entry* add_stream_key_entry_to_list(List *stream_key_list) {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        auto key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        auto key_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
         key_entry->set_masked(true);
         Entry *key_entry_ptr = key_entry.get();
         const float mask_icon_size = key_entry_ptr->get_size().y * 0.9f;
@@ -1387,30 +1398,62 @@ namespace gsr {
 
     std::unique_ptr<List> SettingsPage::create_stream_key_section() {
         auto stream_key_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        stream_key_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream key:"), get_color_theme().text_color));
+        stream_key_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream key:"), get_color_theme().text_color));
 
         twitch_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
         youtube_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
         rumble_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
-        kick_stream_url_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
-        kick_stream_key_entry_ptr = add_stream_key_entry_to_list(stream_key_list.get());
 
         stream_key_list_ptr = stream_key_list.get();
         return stream_key_list;
     }
 
+    std::unique_ptr<List> SettingsPage::create_stream_kick_url() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto stream_url_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
+        kick_stream_url_entry_ptr = stream_url_entry.get();
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream URL:"), get_color_theme().text_color));
+        list->add_widget(std::move(stream_url_entry));
+        return list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_stream_kick_key() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        auto stream_key_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
+        stream_key_entry->set_masked(true);
+        kick_stream_key_entry_ptr = stream_key_entry.get();
+        const float mask_icon_size = kick_stream_key_entry_ptr->get_size().y * 1.0f;
+        list->add_widget(std::move(stream_key_entry));
+        list->add_widget(create_mask_toggle_button(kick_stream_key_entry_ptr, mgl::vec2f(mask_icon_size, mask_icon_size)));
+        return list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_stream_kick_section() {
+        auto kick_stream_list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        auto stream_url_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        stream_url_list->add_widget(create_stream_kick_url());
+
+        kick_stream_list->add_widget(std::move(stream_url_list));
+        kick_stream_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream key:"), get_color_theme().text_color));
+        kick_stream_list->add_widget(create_stream_kick_key());
+
+        kick_stream_list_ptr = kick_stream_list.get();
+        return kick_stream_list;
+    }
+
     std::unique_ptr<List> SettingsPage::create_stream_custom_url() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        auto stream_url_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        auto stream_url_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
         stream_url_entry_ptr = stream_url_entry.get();
-        list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream URL:"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream URL:"), get_color_theme().text_color));
         list->add_widget(std::move(stream_url_entry));
         return list;
     }
 
     std::unique_ptr<List> SettingsPage::create_stream_custom_key() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-        auto stream_key_entry = std::make_unique<Entry>(&get_theme().body_font, "", get_theme().body_font.get_character_size() * 20);
+        auto stream_key_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
         stream_key_entry->set_masked(true);
         stream_key_entry_ptr = stream_key_entry.get();
         const float mask_icon_size = stream_key_entry_ptr->get_size().y * 0.9f;
@@ -1427,7 +1470,7 @@ namespace gsr {
         stream_url_list->add_widget(create_stream_container());
 
         custom_stream_list->add_widget(std::move(stream_url_list));
-        custom_stream_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Stream key:"), get_color_theme().text_color));
+        custom_stream_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream key:"), get_color_theme().text_color));
         custom_stream_list->add_widget(create_stream_custom_key());
 
         custom_stream_list_ptr = custom_stream_list.get();
@@ -1435,7 +1478,7 @@ namespace gsr {
     }
 
     std::unique_ptr<ComboBox> SettingsPage::create_stream_container_box() {
-        auto container_box = std::make_unique<ComboBox>(&get_theme().body_font);
+        auto container_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         container_box->add_item("mp4", "mp4");
         container_box->add_item("flv", "flv");
         container_box->add_item("ts", "mpegts");
@@ -1446,7 +1489,7 @@ namespace gsr {
     
     std::unique_ptr<List> SettingsPage::create_stream_container() {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        container_list->add_widget(std::make_unique<Label>(&get_theme().body_font, TR("Container:"), get_color_theme().text_color));
+        container_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Container:"), get_color_theme().text_color));
         container_list->add_widget(create_stream_container_box());
         return container_list;
     }
@@ -1455,6 +1498,7 @@ namespace gsr {
         auto streaming_info_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());
+        streaming_info_list->add_widget(create_stream_kick_section());
         streaming_info_list->add_widget(create_stream_custom_section());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming info"), std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1465,24 +1509,23 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming indicator"), create_indicator(TR("streaming")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
-        streaming_service_box_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        streaming_service_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             const bool twitch_option = id == "twitch";
             const bool youtube_option = id == "youtube";
             const bool rumble_option = id == "rumble";
             const bool kick_option = id == "kick";
             const bool custom_option = id == "custom";
-            stream_key_list_ptr->set_visible(!custom_option);
+            stream_key_list_ptr->set_visible(!custom_option && !kick_option);
             custom_stream_list_ptr->set_visible(custom_option);
+            kick_stream_list_ptr->set_visible(kick_option);
             twitch_stream_key_entry_ptr->get_parent_widget()->set_visible(twitch_option);
             youtube_stream_key_entry_ptr->get_parent_widget()->set_visible(youtube_option);
             rumble_stream_key_entry_ptr->get_parent_widget()->set_visible(rumble_option);
-            kick_stream_url_entry_ptr->get_parent_widget()->set_visible(kick_option);
-            kick_stream_key_entry_ptr->get_parent_widget()->set_visible(kick_option);
             return true;
         };
         streaming_service_box_ptr->on_selection_changed("Twitch", "twitch");
 
-        view_radio_button_ptr->on_selection_changed = [this](const std::string&, const std::string &id) {
+        view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             view_changed(id == "advanced");
             return true;
         };
@@ -1715,17 +1758,17 @@ namespace gsr {
                 switch(audio_track_type) {
                     case AudioTrackType::DEVICE: {
                         ComboBox *audio_device_box = dynamic_cast<ComboBox*>(audio_track_line->get_child_widget_by_index(1));
-                        audio_tracks.back().audio_inputs.push_back("device:" + audio_device_box->get_selected_id());
+                        audio_tracks.back().audio_inputs.push_back("device:" + std::string(audio_device_box->get_selected_id()));
                         break;
                     }
                     case AudioTrackType::APPLICATION: {
                         ComboBox *application_audio_box = dynamic_cast<ComboBox*>(audio_track_line->get_child_widget_by_index(1));
-                        audio_tracks.back().audio_inputs.push_back("app:" + application_audio_box->get_selected_id());
+                        audio_tracks.back().audio_inputs.push_back("app:" + std::string(application_audio_box->get_selected_id()));
                         break;
                     }
                     case AudioTrackType::APPLICATION_CUSTOM: {
                         Entry *application_audio_entry = dynamic_cast<Entry*>(audio_track_line->get_child_widget_by_index(1));
-                        audio_tracks.back().audio_inputs.push_back("app:" + application_audio_entry->get_text());
+                        audio_tracks.back().audio_inputs.push_back("app:" + std::string(application_audio_entry->get_text()));
                         break;
                     }
                 }
@@ -1737,13 +1780,14 @@ namespace gsr {
     }
 
     void SettingsPage::save_common(RecordOptions &record_options) {
+        std::stoi("23");
         record_options.record_area_option = record_area_box_ptr->get_selected_id();
-        record_options.record_area_width = atoi(area_width_entry_ptr->get_text().c_str());
-        record_options.record_area_height = atoi(area_height_entry_ptr->get_text().c_str());
-        record_options.video_width = atoi(video_width_entry_ptr->get_text().c_str());
-        record_options.video_height = atoi(video_height_entry_ptr->get_text().c_str());
-        record_options.fps = atoi(framerate_entry_ptr->get_text().c_str());
-        record_options.video_bitrate = atoi(video_bitrate_entry_ptr->get_text().c_str());
+        record_options.record_area_width = sv_to_int<int32_t>(area_width_entry_ptr->get_text());
+        record_options.record_area_height = sv_to_int<int32_t>(area_height_entry_ptr->get_text());
+        record_options.video_width = sv_to_int<int32_t>(video_width_entry_ptr->get_text());
+        record_options.video_height = sv_to_int<int32_t>(video_height_entry_ptr->get_text());
+        record_options.fps = sv_to_int<int32_t>(framerate_entry_ptr->get_text());
+        record_options.video_bitrate = sv_to_int<int32_t>(video_bitrate_entry_ptr->get_text());
         record_options.change_video_resolution = change_video_resolution_checkbox_ptr->is_checked();
         save_audio_tracks(record_options.audio_tracks_list, audio_track_section_list_ptr);
         record_options.color_range = color_range_box_ptr->get_selected_id();
@@ -1823,7 +1867,7 @@ namespace gsr {
             config.replay_config.restart_replay_on_save = restart_replay_on_save->is_checked();
         config.replay_config.save_directory = save_directory_button_ptr->get_text();
         config.replay_config.container = container_box_ptr->get_selected_id();
-        config.replay_config.replay_time = atoi(replay_time_entry_ptr->get_text().c_str());
+        config.replay_config.replay_time = sv_to_int<int32_t>(replay_time_entry_ptr->get_text());
         config.replay_config.replay_storage = replay_storage_button_ptr->get_selected_id();
 
         if(config.replay_config.replay_time < 5) {

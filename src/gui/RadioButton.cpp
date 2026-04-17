@@ -14,8 +14,8 @@ namespace gsr {
     static const float spacing_scale = 0.007f;
     static const float border_scale = 0.0015f;
 
-    RadioButton::RadioButton(mgl::Font *font, Orientation orientation) : font(font), orientation(orientation) {
-
+    RadioButton::RadioButton(const char *font_desc, Orientation orientation) : font_desc(font_desc), orientation(orientation) {
+        
     }
 
     bool RadioButton::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
@@ -122,7 +122,7 @@ namespace gsr {
                     break;
                 case Orientation::HORIZONTAL:
                     size.x += bounds.x + padding_left + padding_right;
-                    size.y = font->get_character_size() + (float)padding_top + (float)padding_bottom;
+                    size.y = item.text.get_font_size()*2.0f + (float)padding_top + (float)padding_bottom;
                     break;
             }
         }
@@ -150,11 +150,11 @@ namespace gsr {
     }
 
     void RadioButton::add_item(const std::string &text, const std::string &id) {
-        items.push_back({mgl::Text(text, *font), id});
+        items.push_back({mgl::Text(text, font_desc.c_str()), id});
         dirty = true;
     }
 
-    void RadioButton::set_selected_item(const std::string &id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
+    void RadioButton::set_selected_item(std::string_view id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
             if(item.id == id) {
@@ -169,19 +169,17 @@ namespace gsr {
         }
     }
 
-    const std::string& RadioButton::get_selected_id() const {
+    std::string_view RadioButton::get_selected_id() const {
         if(items.empty()) {
-            static std::string dummy;
-            return dummy;
+            return "";
         } else {
             return items[selected_item].id;
         }
     }
 
-    const std::string& RadioButton::get_selected_text() const {
+    std::string_view RadioButton::get_selected_text() const {
         if(items.empty()) {
-            static std::string dummy;
-            return dummy;
+            return "";
         } else {
             return items[selected_item].text.get_string();
         }

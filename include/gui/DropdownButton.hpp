@@ -10,7 +10,7 @@
 namespace gsr {
     class DropdownButton : public Widget {
     public:
-        DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description, mgl::Texture *icon_texture, mgl::vec2f size);
+        DropdownButton(const char *title_font_desc, const char *description_font_desc, const char *title, const char *description, mgl::Texture *icon_texture, mgl::vec2f size);
         DropdownButton(const DropdownButton&) = delete;
         DropdownButton& operator=(const DropdownButton&) = delete;
 
@@ -18,10 +18,10 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         void add_item(const std::string &text, const std::string &id, const std::string &description = "");
-        void set_item_label(const std::string &id, const std::string &new_label);
-        void set_item_icon(const std::string &id, mgl::Texture *texture);
-        void set_item_description(const std::string &id, const std::string &new_description);
-        void set_item_enabled(const std::string &id, bool enabled);
+        void set_item_label(std::string_view id, const std::string &new_label);
+        void set_item_icon(std::string_view id, mgl::Texture *texture);
+        void set_item_description(std::string_view id, const std::string &new_description);
+        void set_item_enabled(std::string_view id, bool enabled);
 
         void set_description(std::string description_text);
         void set_activated(bool activated);
@@ -41,8 +41,8 @@ namespace gsr {
         };
 
         std::vector<Item> items;
-        mgl::Font *title_font;
-        mgl::Font *description_font;
+        std::string title_font_desc;
+        std::string description_font_desc;
         mgl::vec2f size;
         bool mouse_inside = false;
         bool show_dropdown = false;

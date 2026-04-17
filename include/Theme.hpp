@@ -2,7 +2,6 @@
 
 #include <mglpp/system/MemoryMappedFile.hpp>
 #include <mglpp/graphics/Color.hpp>
-#include <mglpp/graphics/Font.hpp>
 #include <mglpp/graphics/Texture.hpp>
 
 #include <string>
@@ -19,12 +18,10 @@ namespace gsr {
         float window_width = 0.0f;
         float window_height = 0.0f;
 
-        mgl::MemoryMappedFile body_font_file;
-        mgl::MemoryMappedFile title_font_file;
-        mgl::Font body_font;
-        mgl::Font title_font;
-        mgl::Font top_bar_font;
-        mgl::Font camera_setup_font;
+        std::string body_font_desc;
+        std::string title_font_desc;
+        std::string top_bar_font_desc;
+        std::string camera_setup_font_desc;
 
         mgl::Texture combobox_arrow_texture;
         mgl::Texture settings_texture;

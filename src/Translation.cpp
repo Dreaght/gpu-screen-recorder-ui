@@ -42,13 +42,13 @@ namespace gsr {
         }
     }
 
-    bool Translation::is_language_supported(const char* lang) {
-        if(strcmp(lang, "en") == 0)
+    bool Translation::is_language_supported(std::string_view lang) {
+        if(lang == "en")
             return true;
 
         std::string paths[] = {
-            std::string("translations/") + lang + ".txt",
-            std::string(this->translations_directory) + lang + ".txt"
+            std::string("translations/") + std::string(lang) + ".txt",
+            std::string(this->translations_directory) + std::string(lang) + ".txt"
         };
 
         for (const auto& path : paths) {
@@ -61,27 +61,27 @@ namespace gsr {
         return false;
     }
 
-    bool Translation::load_language(const char* lang) {
+    bool Translation::load_language(std::string_view lang) {
         translations.clear();
 
         const std::string system_language = get_system_language();
-        if(!lang || lang[0] == '\0')
-            lang = system_language.c_str();
+        if(lang.empty())
+            lang = system_language;
 
         if (!is_language_supported(lang)) {
-            fprintf(stderr, "Warning: language '%s' is not supported\n", lang);
+            fprintf(stderr, "Warning: language '%.*s' is not supported\n", (int)lang.size(), lang.data());
             return false;
         }
 
         current_language = lang;
 
-        if (strcmp(lang, "en") == 0) {
+        if (lang == "en") {
             return true; // english is the base
         }
 
         std::string paths[] = {
-            std::string("translations/") + lang + ".txt",
-            std::string(this->translations_directory) + lang + ".txt"
+            std::string("translations/") + std::string(lang) + ".txt",
+            std::string(this->translations_directory) + std::string(lang) + ".txt"
         };
 
         for (const auto& path : paths) {
@@ -105,11 +105,11 @@ namespace gsr {
                 translations[key] = value;
             }
 
-            fprintf(stderr, "Info: Loaded translation file for '%s' from %s\n", lang, path.c_str());
+            fprintf(stderr, "Info: Loaded translation file for '%.*s' from %s\n", (int)lang.size(), lang.data(), path.c_str());
             return true;
         }
 
-        fprintf(stderr, "Warning: translation file for '%s' not found\n", lang);
+        fprintf(stderr, "Warning: translation file for '%.*s' not found\n", (int)lang.size(), lang.data());
         return false;
     }
 

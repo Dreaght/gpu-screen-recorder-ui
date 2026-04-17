@@ -15,8 +15,12 @@ namespace gsr {
     static const float icon_spacing_scale = 0.008f;
     static const float border_scale = 0.003f;
 
-    DropdownButton::DropdownButton(mgl::Font *title_font, mgl::Font *description_font, const char *title, const char *description, mgl::Texture *icon_texture, mgl::vec2f size) :
-        title_font(title_font), description_font(description_font), size(size), title(title, *title_font), description(description, *description_font)
+    DropdownButton::DropdownButton(const char *title_font_desc, const char *description_font_desc, const char *title, const char *description, mgl::Texture *icon_texture, mgl::vec2f size) :
+        title_font_desc(title_font_desc),
+        description_font_desc(description_font_desc),
+        size(size),
+        title(title, title_font_desc),
+        description(description, description_font_desc)
     {
         if(icon_texture && icon_texture->is_valid()) {
             icon_sprite.set_texture(icon_texture);
@@ -193,11 +197,11 @@ namespace gsr {
             if(item.id == id)
                 return;
         }
-        items.push_back({mgl::Text(text, *title_font), mgl::Text(description, *description_font), nullptr, id});
+        items.push_back({mgl::Text(text, title_font_desc.c_str()), mgl::Text(description, description_font_desc.c_str()), nullptr, id});
         dirty = true;
     }
 
-    void DropdownButton::set_item_label(const std::string &id, const std::string &new_label) {
+    void DropdownButton::set_item_label(std::string_view id, const std::string &new_label) {
         for(auto &item : items) {
             if(item.id == id) {
                 item.text.set_string(new_label);
@@ -206,7 +210,7 @@ namespace gsr {
         }
     }
 
-    void DropdownButton::set_item_icon(const std::string &id, mgl::Texture *texture) {
+    void DropdownButton::set_item_icon(std::string_view id, mgl::Texture *texture) {
         for(auto &item : items) {
             if(item.id == id) {
                 item.icon_texture = texture;
@@ -215,7 +219,7 @@ namespace gsr {
         }
     }
 
-    void DropdownButton::set_item_description(const std::string &id, const std::string &new_description) {
+    void DropdownButton::set_item_description(std::string_view id, const std::string &new_description) {
         for(auto &item : items) {
             if(item.id == id) {
                 item.description_text.set_string(new_description);
@@ -224,7 +228,7 @@ namespace gsr {
         }
     }
 
-    void DropdownButton::set_item_enabled(const std::string &id, bool enabled) {
+    void DropdownButton::set_item_enabled(std::string_view id, bool enabled) {
         for(auto &item : items) {
             if(item.id == id) {
                 item.enabled = enabled;

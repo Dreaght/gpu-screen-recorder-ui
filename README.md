@@ -31,7 +31,8 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * libdrm
 * libdbus
 * wayland (wayland-client, wayland-egl, wayland-scanner)
-* setcap (libcap)
+* libcap
+* libpango (pangoft2)
 
 ## Runtime dependencies
 There are also additional dependencies needed at runtime:
@@ -52,7 +53,7 @@ as gpu screen recorder tries to grab keys and keyd grabs gpu screen recorder, le
 If you are stuck in such a lock where you cant press and keyboard keys you can press (left) ctrl+shift+alt+esc to close gpu screen recorder and remove it from system startup.
 
 # License
-This software is licensed under GPL-3.0-only, see the LICENSE file for more information. Files under `fonts/` directory belong to the Noto Sans Google fonts project and they are licensed under `SIL Open Font License`.\
+This software is licensed under GPL-3.0-only, see the LICENSE file for more information.
 `images/default.cur` it part of the [Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master) which is licensed under `CC BY-SA 3.0`.\
 The controller buttons under `images/` were created by [Julio Cacko](https://juliocacko.itch.io/free-input-prompts) and they are licensed under `CC0 1.0 Universal`.\
 The PlayStation logo under `images/` was created by [ArksDigital](https://arks.itch.io/ps4-buttons) and it's licensed under `CC BY 4.0`.

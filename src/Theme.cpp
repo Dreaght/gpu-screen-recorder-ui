@@ -39,17 +39,10 @@ namespace gsr {
         window_width = window_size.x;
         window_height = window_size.y;
 
-        if(!theme->title_font.load_from_file(theme->title_font_file, std::max(16.0f, window_size.y * 0.019f)))
-            return false;
-
-        if(!theme->top_bar_font.load_from_file(theme->title_font_file, std::max(23.0f, window_size.y * 0.03f)))
-            return false;
-
-        if(!theme->body_font.load_from_file(theme->body_font_file, std::max(13.0f, window_size.y * 0.015f)))
-            return false;
-
-        if(!theme->camera_setup_font.load_from_file(theme->body_font_file, 24))
-            return false;
+        theme->title_font_desc = std::string("Noto Sans Bold ") + std::to_string((int)(std::max(16.0f, window_size.y * 0.019f)/1.8));
+        theme->top_bar_font_desc = std::string("Noto Sans Bold ") + std::to_string((int)(std::max(23.0f, window_size.y * 0.03f)/1.8));
+        theme->body_font_desc = std::string("Noto Sans ") + std::to_string((int)(std::max(13.0f, window_size.y * 0.015f)/1.8));
+        theme->camera_setup_font_desc = "Noto Sans 14";
 
         return true;
     }
@@ -59,12 +52,6 @@ namespace gsr {
             return true;
 
         theme = new Theme();
-
-        if(!theme->body_font_file.load((resources_path + "fonts/NotoSans-Regular.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
-            goto error;
-
-        if(!theme->title_font_file.load((resources_path + "fonts/NotoSans-Bold.ttf").c_str(), mgl::MemoryMappedFile::LoadOptions{true, false}))
-            goto error;
 
         if(!theme->combobox_arrow_texture.load_from_file((resources_path + "images/combobox_arrow.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;

@@ -2,7 +2,6 @@
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 #include <mglpp/graphics/Rectangle.hpp>
-#include <mglpp/graphics/Font.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <assert.h>
@@ -14,8 +13,9 @@ namespace gsr {
     static const float padding_right_scale = 0.007f;
     static const float border_scale = 0.0015f;
 
-    ComboBox::ComboBox(mgl::Font *font) : font(font), dropdown_arrow(&get_theme().combobox_arrow_texture) {
-        assert(font);
+    ComboBox::ComboBox(const char *font_desc) : font_desc(font_desc), dropdown_arrow(&get_theme().combobox_arrow_texture) {
+        assert(font_desc);
+        font_size = mgl::Text::get_font_size_from_font_description(font_desc);
     }
 
     bool ComboBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
@@ -83,7 +83,7 @@ namespace gsr {
             draw_unselected(window, draw_pos);
     }
 
-    void ComboBox::add_item(const std::string &text, const std::string &id, bool allow_duplicate) {
+    void ComboBox::add_item(std::string_view text, const std::string &id, bool allow_duplicate) {
         if(!allow_duplicate) {
             for(const auto &item : items) {
                 if(item.id == id)
@@ -91,9 +91,9 @@ namespace gsr {
             }
         }
 
-        items.push_back({mgl::Text(text, *font), id, {0.0f, 0.0f}});
-        items.back().text.set_max_width(font->get_character_size() * 20); // TODO: Make a proper solution
-        //items.back().text.set_max_rows(1);
+        items.push_back({mgl::Text(text, font_desc.c_str()), id, {0.0f, 0.0f}});
+        items.back().text.set_wrap_width(items.back().text.get_font_size() * 40); // TODO: Make a proper solution
+        items.back().text.set_max_rows(2);
         dirty = true;
     }
 
@@ -104,7 +104,7 @@ namespace gsr {
         dirty = true;
     }
 
-    void ComboBox::set_selected_item(const std::string &id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
+    void ComboBox::set_selected_item(std::string_view id, bool trigger_event, bool trigger_event_even_if_selection_not_changed) {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
             if(item.id == id && item.enabled) {
@@ -120,7 +120,7 @@ namespace gsr {
         }
     }
 
-    void ComboBox::set_item_enabled(const std::string &id, bool enabled) {
+    void ComboBox::set_item_enabled(std::string_view id, bool enabled) {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
             if(item.id == id) {
@@ -136,10 +136,9 @@ namespace gsr {
         }
     }
 
-    const std::string& ComboBox::get_selected_id() const {
+    std::string_view ComboBox::get_selected_id() const {
         if(items.empty()) {
-            static std::string dummy;
-            return dummy;
+            return "";
         } else {
             return items[selected_item].id;
         }
@@ -240,7 +239,7 @@ namespace gsr {
         const int padding_right = padding_right_scale * get_theme().window_height;
 
         Item *selected_item_ptr = (selected_item < items.size()) ? &items[selected_item] : nullptr;
-        max_size = { 0.0f, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : font->get_character_size()) };
+        max_size = { 0.0f, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : font_size) };
         for(Item &item : items) {
             const mgl::vec2f bounds = item.text.get_bounds().size;
             max_size.x = std::max(max_size.x, bounds.x + padding_left + padding_right);
@@ -263,12 +262,12 @@ namespace gsr {
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
         Item *selected_item_ptr = (selected_item < items.size()) ? &items[selected_item] : nullptr;
-        return { max_size.x, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : font->get_character_size()) };
+        return { max_size.x, padding_top + padding_bottom + (selected_item_ptr ? selected_item_ptr->text.get_bounds().size.y : font_size) };
     }
 
     float ComboBox::get_dropdown_arrow_height() const {
         const int padding_top = padding_top_scale * get_theme().window_height;
         const int padding_bottom = padding_bottom_scale * get_theme().window_height;
-        return (font->get_character_size() + padding_top + padding_bottom) * 0.4f;
+        return (font_size * 2.0f + padding_top + padding_bottom) * 0.4f;
     }
 }

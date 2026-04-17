@@ -12,7 +12,7 @@ namespace gsr {
     static const float title_spacing_scale = 0.010f;
 
     Subsection::Subsection(const char *title, std::unique_ptr<Widget> inner_widget, mgl::vec2f size) :
-        label(&get_theme().title_font, title ? title : "", get_color_theme().text_color),
+        label(get_theme().title_font_desc.c_str(), title ? title : "", get_color_theme().text_color),
         inner_widget(std::move(inner_widget)),
         size(size)
     {

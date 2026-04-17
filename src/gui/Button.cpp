@@ -18,8 +18,8 @@ namespace gsr {
     //static const float padding_left_icon_scale = 0.25f;
     static const float padding_right_icon_scale = 0.15f;
 
-    Button::Button(mgl::Font *font, const char *text, mgl::vec2f size, mgl::Color bg_color) :
-        size(size), bg_color(bg_color), bg_hover_color(bg_color), text(text, *font)
+    Button::Button(const char *font_desc, const char *text, mgl::vec2f size, mgl::Color bg_color) :
+        size(size), bg_color(bg_color), bg_hover_color(bg_color), text(text, font_desc)
     {
 
     }
@@ -117,12 +117,12 @@ namespace gsr {
         sprite.set_texture(texture);
     }
 
-    const std::string& Button::get_text() const {
+    std::string_view Button::get_text() const {
         return text.get_string();
     }
 
-    void Button::set_text(std::string str) {
-        text.set_string(std::move(str));
+    void Button::set_text(std::string_view str) {
+        text.set_string(str);
     }
 
     void Button::scale_sprite_to_button_size() {

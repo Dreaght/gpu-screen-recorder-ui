@@ -2,7 +2,7 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
-    Label::Label(mgl::Font *font, const char *text, mgl::Color color) : text(text, *font) {
+    Label::Label(const char *font_desc, const char *text, mgl::Color color) : text(text, font_desc) {
         this->text.set_color(color);
     }
 
@@ -18,11 +18,11 @@ namespace gsr {
         window.draw(text);
     }
 
-    void Label::set_text(std::string str) {
-        text.set_string(std::move(str));
+    void Label::set_text(std::string_view str) {
+        text.set_string(str);
     }
 
-    const std::string& Label::get_text() const {
+    std::string_view Label::get_text() const {
         return text.get_string();
     }
 
@@ -31,5 +31,15 @@ namespace gsr {
             return {0.0f, 0.0f};
 
         return text.get_bounds().size;
+    }
+
+    // Set to 0 to disable
+    void Label::set_wrap_width(int width) {
+        text.set_wrap_width(width);
+    }
+
+    // Set to 0 to disable
+    void Label::set_max_rows(int max_rows) {
+        text.set_max_rows(max_rows);
     }
 }

@@ -29,7 +29,7 @@ namespace gsr {
         mgl::vec2f get_inner_size() override;
         void set_size(mgl::vec2f size);
     private:
-        void set_current_directory(const char *directory);
+        void set_current_directory(std::string_view directory);
     private:
         struct Folder {
             mgl::Text text;
@@ -48,7 +48,7 @@ namespace gsr {
 
     class FileChooser : public Widget {
     public:
-        FileChooser(const char *start_directory, mgl::vec2f size);
+        FileChooser(std::string_view start_directory, mgl::vec2f size);
         FileChooser(const FileChooser&) = delete;
         FileChooser& operator=(const FileChooser&) = delete;
 
@@ -58,10 +58,10 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
 
-        void set_current_directory(const char *directory);
-        void open_subdirectory(const char *name);
+        void set_current_directory(std::string_view directory);
+        void open_subdirectory(std::string_view name);
         void open_parent_directory();
-        const std::string& get_current_directory() const;
+        std::string_view get_current_directory() const;
     private:
         struct Folder {
             mgl::Text text;
