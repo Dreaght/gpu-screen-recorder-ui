@@ -36,7 +36,7 @@ Turn off=Kikapcsolás
 Recording has been paused=A felvétel szüneteltetve lett
 Recording has been unpaused=A felvétel folytatva lett
 Started recording %s=Felvétel elindítva: %s
-Saved a %s recording of %s\nto "%s"=%s hosszú felvétel mentve erről: %s\nide: "%s"
+Saved a %s recording of %s to "%s"=%s hosszú felvétel mentve erről: %s ide: "%s"
 Saved a %s recording of %s=%s hosszú felvétel mentve erről: %s
 Failed to start/save recording=Nem sikerült elindítani vagy menteni a felvételt
 
@@ -44,36 +44,36 @@ Failed to start/save recording=Nem sikerült elindítani vagy menteni a felvéte
 Replay stopped=A visszajátszás leállt
 Started replaying %s=Visszajátszás elindítva: %s
 Saving replay, this might take some time=Visszajátszás mentése, ez eltarthat egy ideig
-Saved a %s replay of %s\nto "%s"=%s hosszúságú visszajátszás mentve erről: %s\nide: "%s"
+Saved a %s replay of %s to "%s"=%s hosszúságú visszajátszás mentve erről: %s ide: "%s"
 Saved a %s replay of %s=%s hosszúságú visszajátszás mentve erről: %s
 Replay stopped because of an error=A visszajátszás hiba miatt leállt
-Replay settings have been modified.\nYou may need to restart replay to apply the changes.=A visszajátszás beállításai módosultak.\nA változtatások alkalmazásához újra kell indítani a visszajátszást
+Replay settings have been modified. You may need to restart replay to apply the changes.=A visszajátszás beállításai módosultak. A változtatások alkalmazásához újra kell indítani a visszajátszást
 
 # Notifications - Streaming
 Streaming has stopped=A közvetítés leállt
 Started streaming %s=Közvetítés elindítva: %s
 Streaming stopped because of an error=A közvetítés hiba miatt leállt
-Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=A közvetítés beállításai módosultak.\nA változtatások alkalmazásához újra kell indítani a közvetítést
+Streaming settings have been modified. You may need to restart streaming to apply the changes.=A közvetítés beállításai módosultak. A változtatások alkalmazásához újra kell indítani a közvetítést
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=Képernyőkép mentve (%s)\nide: "%s"
+Saved a screenshot of %s to "%s"=Képernyőkép mentve (%s) ide: "%s"
 Saved a screenshot of %s=Képernyőkép mentve (%s)
 Failed to take a screenshot=Nem sikerült a képernyőkép elkészítése
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=A GPU Screen Recorder UI már fut.\nNyomd meg az Alt+Z-t a felület megnyitásához.
-GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=A GPU Screen Recorder már fut egy másik folyamatban.\nZárd be, mielőtt használod a felületet.
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a visszajátszást, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a felvételt, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült elindítani a közvetítést, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=Nem sikerült a képernyőkép elkészítése, a rögzítési cél "%s" érvénytelen.\nMódosítsd a rögzítési célt a beállításokban.
+Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=A GPU Screen Recorder UI már fut. Nyomd meg az Alt+Z-t a felület megnyitásához.
+GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=A GPU Screen Recorder már fut egy másik folyamatban. Zárd be, mielőtt használod a felületet.
+Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a visszajátszást, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
+Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a felvételt, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
+Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a közvetítést, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
+Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült a képernyőkép elkészítése, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=Nem lehet felvételt indítani, ha a visszajátszás be van kapcsolva.\nA felvétel előtt kapcsold ki a visszajátszást.
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=Nem lehet közvetítést indítani, ha a visszajátszás be van kapcsolva.\nA közvetítés előtt kapcsold ki a visszajátszást.
-Unable to start streaming when recording.\nStop recording before starting streaming.=Nem lehet közvetítést indítani felvétel közben.\nÁllítsd le a felvételt a közvetítéshez.
-Unable to start recording when streaming.\nStop streaming before starting recording.=Nem lehet felvételt indítani közvetítés közben.\nÁllítsd le a közvetítést a felvételhez.
-Unable to start replay when recording.\nStop recording before starting replay.=Nem lehet visszajátszást indítani felvétel közben.\nÁllítsd le a felvételt a visszajátszáshoz.
-Unable to start replay when streaming.\nStop streaming before starting replay.=Nem lehet visszajátszást indítani közvetítés közben.\nÁllítsd le a közvetítést a visszajátszáshoz.
+Unable to start recording when replay is turned on. Turn off replay before starting recording.=Nem lehet felvételt indítani, ha a visszajátszás be van kapcsolva. A felvétel előtt kapcsold ki a visszajátszást.
+Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Nem lehet közvetítést indítani, ha a visszajátszás be van kapcsolva. A közvetítés előtt kapcsold ki a visszajátszást.
+Unable to start streaming when recording. Stop recording before starting streaming.=Nem lehet közvetítést indítani felvétel közben. Állítsd le a felvételt a közvetítéshez.
+Unable to start recording when streaming. Stop streaming before starting recording.=Nem lehet felvételt indítani közvetítés közben. Állítsd le a közvetítést a felvételhez.
+Unable to start replay when recording. Stop recording before starting replay.=Nem lehet visszajátszást indítani felvétel közben. Állítsd le a felvételt a visszajátszáshoz.
+Unable to start replay when streaming. Stop streaming before starting replay.=Nem lehet visszajátszást indítani közvetítés közben. Állítsd le a közvetítést a visszajátszáshoz.
 
 Started recording in the replay session=Felvétel indítva visszajátszás közben
 Started recording in the streaming session=Felvétel indítva közvetítés közben
@@ -86,11 +86,11 @@ Streaming stopped because of an error. Verify if settings are correct=A közvet�
 %s. Verify if settings are correct=%s. Ellenőrizd a beállításokat
 
 # GPU Screen Recorder errors
-Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=Az asztali portál rögzítése sikertelen.\nLehet, hogy megszakítottad, vagy a Wayland nem támogatja,\nvagy nincs megfelelően beállítva.
-Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=A monitor rögzítése sikertelen.\nA kiválasztott monitor érvénytelen.\nEllenőrizd a beállításokat.
-Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=A rögzítés sikertelen. A H264, HEVC és AV1 kodekek nem támogatottak\nvagy túl nagy felbontást választottál.
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=A rögzítés sikertelen. A rendszer nem támogatja a választott felbontást.\nVálts felbontást vagy kodeket.\nMegjegyzés: A nagyobb felbontásokat leginkább az AV1 támogatja, ezt követi a HEVC, majd a H264.
-Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=A rögzítés sikertelen. A választott kodek nem támogatott.\nVálassz másikat.
+Desktop portal capture failed. Either you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture or it's incorrectly setup on your system.=Az asztali portál rögzítése sikertelen. Lehet, hogy megszakítottad, vagy a Wayland nem támogatja, vagy nincs megfelelően beállítva.
+Monitor capture failed. The monitor you are trying to capture is invalid. Please validate your capture settings.=A monitor rögzítése sikertelen. A kiválasztott monitor érvénytelen. Ellenőrizd a beállításokat.
+Capture failed. Neither H264, HEVC nor AV1 video codecs are supported on your system or you are trying to capture at a resolution higher than your system supports for each video codec.=A rögzítés sikertelen. A H264, HEVC és AV1 kodekek nem támogatottak vagy túl nagy felbontást választottál.
+Capture failed. Your system doesn't support the resolution you are trying to record at with the video codec you have chosen. Change capture resolution or video codec and try again. Note: AV1 supports the highest resolution, then HEVC and then H264.=A rögzítés sikertelen. A rendszer nem támogatja a választott felbontást. Válts felbontást vagy kodeket. Megjegyzés: A nagyobb felbontásokat leginkább az AV1 támogatja, ezt követi a HEVC, majd a H264.
+Capture failed. Your system doesn't support the video codec you have chosen. Change video codec and try again.=A rögzítés sikertelen. A választott kodek nem támogatott. Válassz másikat.
 Stopped capture because the user canceled the desktop portal=A rögzítés leállt, mert a felhasználó megszakította a portált
 Failed to take a screenshot. Verify if settings are correct=Nem sikerült a képernyőkép elkészítése. Ellenőrizd a beállításokat
 
@@ -108,7 +108,7 @@ GPU Screen Recorder UI startup has been switched from systemd service to XDG aut
 GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=A GPU Screen Recorder systemd-alapú automatikus indítása elavult.\nAz átköltöztetéshez telepítsd és konfiguráld a 'dex'-et, vagy add hozzá manuálisan: '%s'
 
 # Wayland warning
-Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=A Wayland nem támogatja megfelelően a GPU Screen Recordert.\nHasználj X11-et, ha problémát észlelsz.
+Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=A Wayland nem támogatja megfelelően a GPU Screen Recordert. Használj X11-et, ha problémát észlelsz.
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Egyes billentyűzet-átkötő programok ütköznek a GPU Screen Recorderrel.\nA billentyűzet lefoglalása megszűnt, a gyorsbillentyűket mostantól az alkalmazások fogják megkapni.
@@ -396,6 +396,7 @@ replay=visszajátszás
 Turn on replay when starting a fullscreen application%s=Visszajátszás bekapcsolása teljes képernyős alkalmazás indításakor%s
 Autostart=Automatikus indítás
 in RAM=RAM-ban
+on disk=lemezen
 Replay duration in seconds:=Visszajátszás hossza másodpercben:
 Where should temporary replay data be stored?=Hol legyenek tárolva az ideiglenes visszajátszási adatok?
 RAM=RAM

@@ -31,7 +31,7 @@ Turn off=Вимкнути
 Recording has been paused=Запис призупинено
 Recording has been unpaused=Запис відновлено
 Started recording %s=Розпочато запис %s
-Saved a %s recording of %s\nto "%s"=Збережено %s запису %s\nу "%s"
+Saved a %s recording of %s to "%s"=Збережено %s запису %s у "%s"
 Saved a %s recording of %s=Збережено %s запису %s
 Failed to start/save recording=Не вдалося розпочати/зберегти запис
 
@@ -39,7 +39,7 @@ Failed to start/save recording=Не вдалося розпочати/збере
 Replay stopped=Повтор зупинено
 Started replaying %s=Розпочато повтор %s
 Saving replay, this might take some time=Збереження повтору, це може зайняти деякий час
-Saved a %s replay of %s\nto "%s"=Збережено %s повтору %s\nу "%s"
+Saved a %s replay of %s to "%s"=Збережено %s повтору %s у "%s"
 Saved a %s replay of %s=Збережено %s повтору %s
 Replay stopped because of an error=Повтор зупинено через помилку
 Replay settings have been modified.\nYou may need to restart replay to apply the changes.=Налаштування повтору змінено.\nМожливо, знадобиться перезапустити повтор для застосування змін.
@@ -51,24 +51,24 @@ Streaming stopped because of an error=Трансляцію зупинено че
 Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=Налаштування трансляції змінено.\nМожливо, знадобиться перезапустити трансляцію для застосування змін.
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=Збережено знімок %s\nу "%s"
+Saved a screenshot of %s to "%s"=Збережено знімок %s у "%s"
 Saved a screenshot of %s=Збережено знімок %s
 Failed to take a screenshot=Не вдалося зробити знімок екрана
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=Один екземпляр GPU Screen Recorder UI вже запущено.\nНатисніть Alt+Z, щоб відкрити інтерфейс.
-GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=GPU Screen Recorder CLI вже запущено в іншому процесі.\nБудь ласка, закрийте його перед використанням GPU Screen Recorder UI.
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося розпочати повтор, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося розпочати запис, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося розпочати трансляцію, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=Не вдалося зробити знімок екрана, ціль захоплення "%s" недійсна.\nБудь ласка, змініть ціль захоплення в налаштуваннях
+Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=Один екземпляр GPU Screen Recorder UI вже запущено. Натисніть Alt+Z, щоб відкрити інтерфейс.
+GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder CLI вже запущено в іншому процесі. Будь ласка, закрийте його перед використанням GPU Screen Recorder UI.
+Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Не вдалося розпочати повтор, ціль захоплення "%s" недійсна. Будь ласка, змініть ціль захоплення в налаштуваннях
+Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Не вдалося розпочати запис, ціль захоплення "%s" недійсна. Будь ласка, змініть ціль захоплення в налаштуваннях
+Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Не вдалося розпочати трансляцію, ціль захоплення "%s" недійсна. Будь ласка, змініть ціль захоплення в налаштуваннях
+Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Не вдалося зробити знімок екрана, ціль захоплення "%s" недійсна. Будь ласка, змініть ціль захоплення в налаштуваннях
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=Неможливо розпочати запис при увімкненому повторі.\nВимкніть повтор перед початком запису.
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=Неможливо розпочати трансляцію при увімкненому повторі.\nВимкніть повтор перед початком трансляції.
-Unable to start streaming when recording.\nStop recording before starting streaming.=Неможливо розпочати трансляцію при записі.\nЗупиніть запис перед початком трансляції.
-Unable to start recording when streaming.\nStop streaming before starting recording.=Неможливо розпочати запис при трансляції.\nЗупиніть трансляцію перед початком запису.
-Unable to start replay when recording.\nStop recording before starting replay.=Неможливо розпочати повтор при записі.\nЗупиніть запис перед початком повтору.
-Unable to start replay when streaming.\nStop streaming before starting replay.=Неможливо розпочати повтор при трансляції.\nЗупиніть трансляцію перед початком повтору.
+Unable to start recording when replay is turned on. Turn off replay before starting recording.=Неможливо розпочати запис при увімкненому повторі. Вимкніть повтор перед початком запису.
+Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Неможливо розпочати трансляцію при увімкненому повторі. Вимкніть повтор перед початком трансляції.
+Unable to start streaming when recording. Stop recording before starting streaming.=Неможливо розпочати трансляцію при записі. Зупиніть запис перед початком трансляції.
+Unable to start recording when streaming. Stop streaming before starting recording.=Неможливо розпочати запис при трансляції. Зупиніть трансляцію перед початком запису.
+Unable to start replay when recording. Stop recording before starting replay.=Неможливо розпочати повтор при записі. Зупиніть запис перед початком повтору.
+Unable to start replay when streaming. Stop streaming before starting replay.=Неможливо розпочати повтор при трансляції. Зупиніть трансляцію перед початком повтору.
 
 Started recording in the replay session=Розпочато запис у сеансі повтору
 Started recording in the streaming session=Розпочато запис у сеансі трансляції
@@ -81,11 +81,11 @@ Streaming stopped because of an error. Verify if settings are correct=Транс
 %s. Verify if settings are correct=%s. Перевірте правильність налаштувань
 
 # GPU Screen Recorder errors
-Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=Захоплення порталу робочого стола не вдалося.\nВи або скасували портал робочого стола, або ваш композитор Wayland не підтримує захоплення порталу робочого стола\nабо він неправильно налаштований у вашій системі.
-Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=Захоплення монітора не вдалося.\nМонітор, який ви намагаєтесь захопити, недійсний.\nБудь ласка, перевірте налаштування захоплення.
-Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=Захоплення не вдалося. Жоден з відеокодеків H264, HEVC або AV1 не підтримується\nвашою системою або ви намагаєтесь захопити відео з роздільною здатністю вище, ніж\nпідтримує ваша система для кожного відеокодека.
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=Захоплення не вдалося. Ваша система не підтримує роздільну здатність, з якою ви намагаєтесь\nзаписувати з обраним відеокодеком.\nЗмініть роздільну здатність захоплення або відеокодек і спробуйте знову.\nПримітка: AV1 підтримує максимальну роздільну здатність, потім HEVC, потім H264.
-Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=Захоплення не вдалося. Ваша система не підтримує обраний відеокодек.\nЗмініть відеокодек і спробуйте знову.
+Desktop portal capture failed. Either you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture or it's incorrectly setup on your system.=Захоплення порталу робочого стола не вдалося. Ви або скасували портал робочого стола, або ваш композитор Wayland не підтримує захоплення порталу робочого стола або він неправильно налаштований у вашій системі.
+Monitor capture failed. The monitor you are trying to capture is invalid. Please validate your capture settings.=Захоплення монітора не вдалося. Монітор, який ви намагаєтесь захопити, недійсний. Будь ласка, перевірте налаштування захоплення.
+Capture failed. Neither H264, HEVC nor AV1 video codecs are supported on your system or you are trying to capture at a resolution higher than your system supports for each video codec.=Захоплення не вдалося. Жоден з відеокодеків H264, HEVC або AV1 не підтримується вашою системою або ви намагаєтесь захопити відео з роздільною здатністю вище, ніж підтримує ваша система для кожного відеокодека.
+Capture failed. Your system doesn't support the resolution you are trying to record at with the video codec you have chosen. Change capture resolution or video codec and try again. Note: AV1 supports the highest resolution, then HEVC and then H264.=Захоплення не вдалося. Ваша система не підтримує роздільну здатність, з якою ви намагаєтесь записувати з обраним відеокодеком. Змініть роздільну здатність захоплення або відеокодек і спробуйте знову. Примітка: AV1 підтримує максимальну роздільну здатність, потім HEVC, потім H264.
+Capture failed. Your system doesn't support the video codec you have chosen. Change video codec and try again.=Захоплення не вдалося. Ваша система не підтримує обраний відеокодек. Змініть відеокодек і спробуйте знову.
 Stopped capture because the user canceled the desktop portal=Захоплення зупинено, оскільки користувач скасував портал робочого стола
 Failed to take a screenshot. Verify if settings are correct=Не вдалося зробити знімок екрана. Перевірте правильність налаштувань
 
@@ -103,7 +103,7 @@ GPU Screen Recorder UI startup has been switched from systemd service to XDG aut
 GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=Автозапуск GPU Screen Recorder UI через systemd застарів.\nДля міграції: встановіть та налаштуйте 'dex' (рекомендовано)\nабо вручну додайте '%s' до записів автозапуску робочого столу.
 
 # Wayland warning
-Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland не підтримує інтерфейс GPU Screen Recorder належним чином,\nдеякі функції можуть не працювати. Використовуйте X11, якщо виникнуть проблеми.
+Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=Wayland не підтримує інтерфейс GPU Screen Recorder належним чином, деякі функції можуть не працювати. Використовуйте X11, якщо виникнуть проблеми.
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Деяке програмне забезпечення перепризначення клавіатури конфліктує з GPU Screen Recorder у вашій системі.\nЗахоплення клавіатури вимкнено, додатки тепер отримуватимуть натискання гарячих клавіш.
@@ -389,6 +389,7 @@ Replay indicator=Індикатор повтору
 Turn on replay when starting a fullscreen application%s=Увімкнути повтор при запуску повноекранної програми%s
 Autostart=Автозапуск
 in RAM=в ОЗП
+on disk=на диску
 Replay duration in seconds:=Тривалість повтору в секундах:
 Where should temporary replay data be stored?=Де мають зберігатися тимчасові дані повтору?
 RAM=ОЗП

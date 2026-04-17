@@ -36,7 +36,7 @@ Turn off=
 Recording has been paused=
 Recording has been unpaused=
 Started recording %s=
-Saved a %s recording of %s\nto "%s"=
+Saved a %s recording of %s to "%s"=
 Saved a %s recording of %s=
 Failed to start/save recording=
 
@@ -44,36 +44,36 @@ Failed to start/save recording=
 Replay stopped=
 Started replaying %s=
 Saving replay, this might take some time=
-Saved a %s replay of %s\nto "%s"=
+Saved a %s replay of %s to "%s"=
 Saved a %s replay of %s=
 Replay stopped because of an error=
-Replay settings have been modified.\nYou may need to restart replay to apply the changes.=
+Replay settings have been modified. You may need to restart replay to apply the changes.=
 
 # Notifications - Streaming
 Streaming has stopped=
 Started streaming %s=
 Streaming stopped because of an error=
-Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=
+Streaming settings have been modified. You may need to restart streaming to apply the changes.=
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=
+Saved a screenshot of %s to "%s"=
 Saved a screenshot of %s=
 Failed to take a screenshot=
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=
-GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=
+Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=
+GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=
+Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=
+Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=
+Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=
+Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=
-Unable to start streaming when recording.\nStop recording before starting streaming.=
-Unable to start recording when streaming.\nStop streaming before starting recording.=
-Unable to start replay when recording.\nStop recording before starting replay.=
-Unable to start replay when streaming.\nStop streaming before starting replay.=
+Unable to start recording when replay is turned on. Turn off replay before starting recording.=
+Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=
+Unable to start streaming when recording. Stop recording before starting streaming.=
+Unable to start recording when streaming. Stop streaming before starting recording.=
+Unable to start replay when recording. Stop recording before starting replay.=
+Unable to start replay when streaming. Stop streaming before starting replay.=
 
 Started recording in the replay session=
 Started recording in the streaming session=
@@ -86,11 +86,11 @@ Streaming stopped because of an error. Verify if settings are correct=
 %s. Verify if settings are correct=
 
 # GPU Screen Recorder errors
-Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=
-Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=
-Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=
-Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=
+Desktop portal capture failed. Either you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture or it's incorrectly setup on your system.=
+Monitor capture failed. The monitor you are trying to capture is invalid. Please validate your capture settings.=
+Capture failed. Neither H264, HEVC nor AV1 video codecs are supported on your system or you are trying to capture at a resolution higher than your system supports for each video codec.=
+Capture failed. Your system doesn't support the resolution you are trying to record at with the video codec you have chosen. Change capture resolution or video codec and try again. Note: AV1 supports the highest resolution, then HEVC and then H264.=
+Capture failed. Your system doesn't support the video codec you have chosen. Change video codec and try again.=
 Stopped capture because the user canceled the desktop portal=
 Failed to take a screenshot. Verify if settings are correct=
 
@@ -108,7 +108,7 @@ GPU Screen Recorder UI startup has been switched from systemd service to XDG aut
 GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=
 
 # Wayland warning
-Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=
+Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=
@@ -407,6 +407,7 @@ replay=
 Turn on replay when starting a fullscreen application%s=
 Autostart=
 in RAM=
+on disk=
 Replay duration in seconds:=
 Where should temporary replay data be stored?=
 RAM=

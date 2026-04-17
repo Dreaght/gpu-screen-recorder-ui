@@ -36,7 +36,7 @@ Turn off=オフにする
 Recording has been paused=録画を一時停止しました
 Recording has been unpaused=録画を再開しました
 Started recording %s=%s の録画を開始しました
-Saved a %s recording of %s\nto "%s"=%s の %s を "%s" に保存しました
+Saved a %s recording of %s to "%s"=%s の %s を "%s" に保存しました
 Saved a %s recording of %s=%s の %s を保存しました
 Failed to start/save recording=録画の開始または保存に失敗しました
 
@@ -44,36 +44,36 @@ Failed to start/save recording=録画の開始または保存に失敗しまし�
 Replay stopped=リプレイを停止しました
 Started replaying %s=%s のリプレイを開始しました
 Saving replay, this might take some time=リプレイを保存しています 少し時間がかかる場合があります
-Saved a %s replay of %s\nto "%s"=%s の %s を "%s" に保存しました
+Saved a %s replay of %s to "%s"=%s の %s を "%s" に保存しました
 Saved a %s replay of %s=%s の %s を保存しました
 Replay stopped because of an error=エラーのためリプレイを停止しました
-Replay settings have been modified.\nYou may need to restart replay to apply the changes.=リプレイ設定が変更されました\n変更を反映するにはリプレイの再起動が必要な場合があります
+Replay settings have been modified. You may need to restart replay to apply the changes.=リプレイ設定が変更されました変更を反映するにはリプレイの再起動が必要な場合があります
 
 # Notifications - Streaming
 Streaming has stopped=配信を停止しました
 Started streaming %s=%s の配信を開始しました
 Streaming stopped because of an error=エラーのため配信を停止しました
-Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=配信設定が変更されました\n変更を反映するには配信の再起動が必要な場合があります
+Streaming settings have been modified. You may need to restart streaming to apply the changes.=配信設定が変更されました変更を反映するには配信の再起動が必要な場合があります
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=%s のスクリーンショットを "%s" に保存しました
+Saved a screenshot of %s to "%s"=%s のスクリーンショットを "%s" に保存しました
 Saved a screenshot of %s=%s のスクリーンショットを保存しました
 Failed to take a screenshot=スクリーンショットの取得に失敗しました
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=GPU Screen Recorder UI はすでに起動しています\nAlt+Z で UI を開けます
-GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=GPU Screen Recorder が別プロセスですでに動作しています\nGPU Screen Recorder UI を使う前に終了してください
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=リプレイを開始できません キャプチャ対象 "%s" が無効です\n設定でキャプチャ対象を変更してください
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=録画を開始できません キャプチャ対象 "%s" が無効です\n設定でキャプチャ対象を変更してください
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=配信を開始できません キャプチャ対象 "%s" が無効です\n設定でキャプチャ対象を変更してください
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=スクリーンショットを取得できません キャプチャ対象 "%s" が無効です\n設定でキャプチャ対象を変更してください
+Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=GPU Screen Recorder UI はすでに起動しています Alt+Z で UI を開けます
+GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder が別プロセスですでに動作しています GPU Screen Recorder UI を使う前に終了してください
+Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=リプレイを開始できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
+Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=録画を開始できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
+Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=配信を開始できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
+Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=スクリーンショットを取得できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=リプレイがオンの間は録画を開始できません\n録画前にリプレイをオフにしてください
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=リプレイがオンの間は配信を開始できません\n配信前にリプレイをオフにしてください
-Unable to start streaming when recording.\nStop recording before starting streaming.=録画中は配信を開始できません\n配信前に録画を停止してください
-Unable to start recording when streaming.\nStop streaming before starting recording.=配信中は録画を開始できません\n録画前に配信を停止してください
-Unable to start replay when recording.\nStop recording before starting replay.=録画中はリプレイを開始できません\nリプレイ前に録画を停止してください
-Unable to start replay when streaming.\nStop streaming before starting replay.=配信中はリプレイを開始できません\nリプレイ前に配信を停止してください
+Unable to start recording when replay is turned on. Turn off replay before starting recording.=リプレイがオンの間は録画を開始できません 録画前にリプレイをオフにしてください
+Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=リプレイがオンの間は配信を開始できません 配信前にリプレイをオフにしてください
+Unable to start streaming when recording. Stop recording before starting streaming.=録画中は配信を開始できません 配信前に録画を停止してください
+Unable to start recording when streaming. Stop streaming before starting recording.=配信中は録画を開始できません 録画前に配信を停止してください
+Unable to start replay when recording. Stop recording before starting replay.=録画中はリプレイを開始できません リプレイ前に録画を停止してください
+Unable to start replay when streaming. Stop streaming before starting replay.=配信中はリプレイを開始できません リプレイ前に配信を停止してください
 
 Started recording in the replay session=リプレイセッション内で録画を開始しました
 Started recording in the streaming session=配信セッション内で録画を開始しました
@@ -86,11 +86,11 @@ Streaming stopped because of an error. Verify if settings are correct=エラー�
 %s. Verify if settings are correct=%s 設定が正しいか確認してください
 
 # GPU Screen Recorder errors
-Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=デスクトップポータルでのキャプチャに失敗しました\nポータルをキャンセルしたか 使用中の Wayland コンポジタがデスクトップポータルキャプチャに対応していないか システム設定が正しくありません
-Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=モニタキャプチャに失敗しました\n選択したモニタが無効です\nキャプチャ設定を確認してください
-Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=キャプチャに失敗しました\nシステムが H264 HEVC AV1 をサポートしていないか 選択した解像度が各コーデックの上限を超えています
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=キャプチャに失敗しました\n選択したコーデックではこの解像度を録画できません\n解像度またはコーデックを変更して再試行してください\n注記 AV1 が最も高解像度に対応し 次に HEVC その次に H264 です
-Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=キャプチャに失敗しました\n選択したビデオコーデックはこのシステムでサポートされていません\nコーデックを変更して再試行してください
+Desktop portal capture failed. Either you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture or it's incorrectly setup on your system.=デスクトップポータルでのキャプチャに失敗しました ポータルをキャンセルしたか 使用中の Wayland コンポジタがデスクトップポータルキャプチャに対応していないか システム設定が正しくありません
+Monitor capture failed. The monitor you are trying to capture is invalid. Please validate your capture settings.=モニタキャプチャに失敗しました 選択したモニタが無効です キャプチャ設定を確認してください
+Capture failed. Neither H264, HEVC nor AV1 video codecs are supported on your system or you are trying to capture at a resolution higher than your system supports for each video codec.=キャプチャに失敗しました システムが H264 HEVC AV1 をサポートしていないか 選択した解像度が各コーデックの上限を超えています
+Capture failed. Your system doesn't support the resolution you are trying to record at with the video codec you have chosen. Change capture resolution or video codec and try again. Note: AV1 supports the highest resolution, then HEVC and then H264.=キャプチャに失敗しました 選択したコーデックではこの解像度を録画できません 解像度またはコーデックを変更して再試行してください 注記 AV1 が最も高解像度に対応し 次に HEVC その次に H264 です
+Capture failed. Your system doesn't support the video codec you have chosen. Change video codec and try again.=キャプチャに失敗しました 選択したビデオコーデックはこのシステムでサポートされていません コーデックを変更して再試行してください
 Stopped capture because the user canceled the desktop portal=ユーザーがデスクトップポータルをキャンセルしたためキャプチャを停止しました
 Failed to take a screenshot. Verify if settings are correct=スクリーンショットの取得に失敗しました 設定が正しいか確認してください
 
@@ -109,7 +109,7 @@ GPU Screen Recorder UI startup has been switched from systemd service to XDG aut
 GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=systemd 経由の GPU Screen Recorder UI 自動起動は非推奨です\n移行するには 'dex' をインストールして設定するか(推奨) '%s' をデスクトップの自動起動項目に手動で追加してください
 
 # Wayland warning
-Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland では GPU Screen Recorder UI が完全にはサポートされていません\n期待通りに動かない場合があります 問題があれば X11 を使ってください
+Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=Wayland では GPU Screen Recorder UI が完全にはサポートされていません\n期待通りに動かない場合があります 問題があれば X11 を使ってください
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=キーボードリマップソフトの一部が GPU Screen Recorder と競合しています\nキーボードの grab を解除したため 押したホットキーはアプリ側でも受け取られます
@@ -408,6 +408,7 @@ replay=リプレイ
 Turn on replay when starting a fullscreen application%s=フルスクリーンアプリ開始時にリプレイをオンにする%s
 Autostart=自動開始
 in RAM=RAM 内
+on disk=ディスク上
 Replay duration in seconds:=リプレイ秒数:
 Where should temporary replay data be stored?=一時的なリプレイデータの保存先:
 RAM=RAM

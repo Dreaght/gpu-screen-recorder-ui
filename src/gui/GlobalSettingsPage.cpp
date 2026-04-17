@@ -903,7 +903,7 @@ namespace gsr {
             }
 
             if(hotkey_used_by_another_action) {
-                const std::string error_msg = TR("The hotkey \"") + configure_config_hotkey.to_string() + TR("\" is already used for something else");
+                const std::string error_msg = TRF("The hotkey %s is already used for something else", configure_config_hotkey.to_string().c_str());
                 overlay->show_notification(error_msg.c_str(), 3.0, mgl::Color(255, 0, 0, 255), mgl::Color(255, 0, 0, 255), NotificationType::NONE);
                 config_hotkey_button->set_text(config_hotkey->to_string());
                 configure_config_hotkey = {0, 0};

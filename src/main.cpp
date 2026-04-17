@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
         } else {
             fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
             const char *args[] = {
-                "gsr-notify", "--text", TR("Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI."), "--timeout", "5.0",
+                "gsr-notify", "--text", TR("Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI."), "--timeout", "5.0",
                 "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
             };
             gsr::exec_program_daemonized(args);
@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
 
     if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
         const char *args[] = {
-            "gsr-notify", "--text", TR("GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI."),
+            "gsr-notify", "--text", TR("GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI."),
             "--timeout", "5.0", "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
         };
         gsr::exec_program_daemonized(args);

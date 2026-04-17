@@ -34,7 +34,7 @@ Turn off=Arrêter
 Recording has been paused=L’enregistrement a été mis en pause
 Recording has been unpaused=L’enregistrement a repris
 Started recording %s=Enregistrement démarré %s
-Saved a %s recording of %s\nto "%s"=Enregistrement %s de %s sauvegardé dans "%s"
+Saved a %s recording of %s to "%s"=Enregistrement %s de %s sauvegardé dans "%s"
 Saved a %s recording of %s=Enregistrement %s de %s sauvegardé
 Failed to start/save recording=Échec du démarrage/sauvegarde de l’enregistrement
 
@@ -42,36 +42,36 @@ Failed to start/save recording=Échec du démarrage/sauvegarde de l’enregistre
 Replay stopped=Replay arrêté
 Started replaying %s=Replay démarré %s
 Saving replay, this might take some time=Sauvegarde du replay, cela peut prendre un certain temps
-Saved a %s replay of %s\nto "%s"=Replay %s de %s sauvegardé dans "%s"
+Saved a %s replay of %s to "%s"=Replay %s de %s sauvegardé dans "%s"
 Saved a %s replay of %s=Replay %s de %s sauvegardé
 Replay stopped because of an error=Replay arrêté en raison d’une erreur
-Replay settings have been modified.\nYou may need to restart replay to apply the changes.=Les paramètres de replays ont été modifiés.\nVous devez peut-être redémarrer le replay pour appliquer les changements.
+Replay settings have been modified. You may need to restart replay to apply the changes.=Les paramètres de replays ont été modifiés. Vous devez peut-être redémarrer le replay pour appliquer les changements.
 
 # Notifications - Streaming
 Streaming has stopped=Diffusion arrêtée
 Started streaming %s=Diffusion démarrée %s
 Streaming stopped because of an error=Diffusion arrêtée en raison d’une erreur
-Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=Les paramètres de diffusion ont été modifiés.\nVous devez peut-être redémarrer la diffusion pour appliquer les changements.
+Streaming settings have been modified. You may need to restart streaming to apply the changes.=Les paramètres de diffusion ont été modifiés. Vous devez peut-être redémarrer la diffusion pour appliquer les changements.
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=Capture d’écran de %s sauvegardée dans "%s"
+Saved a screenshot of %s to "%s"=Capture d’écran de %s sauvegardée dans "%s"
 Saved a screenshot of %s=Capture d’écran de %s sauvegardée
 Failed to take a screenshot=Échec de la capture d’écran
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=Une autre instance de GPU Screen Recorder UI est déjà en cours.\nAppuyez sur Alt+Z pour ouvrir l’UI.
-GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=GPU Screen Recorder est déjà en cours dans un autre processus.\nVeuillez le fermer avant d’utiliser l’UI.
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Échec du démarrage du replay, la cible "%s" est invalide.\nVeuillez modifier la cible dans les paramètres.
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Échec du démarrage de l’enregistrement, la cible "%s" est invalide.\nVeuillez modifier la cible dans les paramètres.
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Échec du démarrage de la diffusion, la cible "%s" est invalide.\nVeuillez modifier la cible dans les paramètres.
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=Échec de la capture d’écran, la cible "%s" est invalide.\nVeuillez modifier la cible dans les paramètres.
+Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=Une autre instance de GPU Screen Recorder UI est déjà en cours. Appuyez sur Alt+Z pour ouvrir l’UI.
+GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder est déjà en cours dans un autre processus. Veuillez le fermer avant d’utiliser l’UI.
+Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Échec du démarrage du replay, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
+Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Échec du démarrage de l’enregistrement, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
+Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Échec du démarrage de la diffusion, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
+Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Échec de la capture d’écran, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=Impossible de démarrer l’enregistrement lorsque le replay est activé.\nDésactivez le replay avant de commencer l’enregistrement.
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=Impossible de démarrer la diffusion lorsque le replay est activé.\nDésactivez le replay avant de commencer la diffusion.
-Unable to start streaming when recording.\nStop recording before starting streaming.=Impossible de démarrer la diffusion pendant l’enregistrement.\nArrêtez l’enregistrement avant de commencer la diffusion.
-Unable to start recording when streaming.\nStop streaming before starting recording.=Impossible de démarrer l’enregistrement pendant la diffusion.\nArrêtez la diffusion avant de commencer l’enregistrement.
-Unable to start replay when recording.\nStop recording before starting replay.=Impossible de démarrer le replay pendant l’enregistrement.\nArrêtez l’enregistrement avant de commencer le replay.
-Unable to start replay when streaming.\nStop streaming before starting replay.=Impossible de démarrer le replay pendant la diffusion.\nArrêtez la diffusion avant de commencer le replay.
+Unable to start recording when replay is turned on. Turn off replay before starting recording.=Impossible de démarrer l’enregistrement lorsque le replay est activé. Désactivez le replay avant de commencer l’enregistrement.
+Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Impossible de démarrer la diffusion lorsque le replay est activé. Désactivez le replay avant de commencer la diffusion.
+Unable to start streaming when recording. Stop recording before starting streaming.=Impossible de démarrer la diffusion pendant l’enregistrement. Arrêtez l’enregistrement avant de commencer la diffusion.
+Unable to start recording when streaming. Stop streaming before starting recording.=Impossible de démarrer l’enregistrement pendant la diffusion. Arrêtez la diffusion avant de commencer l’enregistrement.
+Unable to start replay when recording. Stop recording before starting replay.=Impossible de démarrer le replay pendant l’enregistrement. Arrêtez l’enregistrement avant de commencer le replay.
+Unable to start replay when streaming. Stop streaming before starting replay.=Impossible de démarrer le replay pendant la diffusion. Arrêtez la diffusion avant de commencer le replay.
 
 Started recording in the replay session=Enregistrement démarré pendant la session de replay
 Started recording in the streaming session=Enregistrement démarré pendant la session de diffusion
@@ -84,11 +84,11 @@ Streaming stopped because of an error. Verify if settings are correct=Diffusion 
 %s. Verify if settings are correct=%s. Vérifiez les paramètres
 
 # GPU Screen Recorder errors
-Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=Échec de la capture via le portail du bureau.\nVous avez annulé le portail ou votre compositeur Wayland ne supporte pas la capture via le portail ou il est mal configuré.
-Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=Échec de la capture du moniteur.\nLe moniteur que vous essayez de capturer est invalide.\nVeuillez vérifier vos paramètres de capture.
-Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=Échec de la capture. Aucun codec vidéo H264, HEVC ou AV1 n’est supporté sur votre système ou vous essayez de capturer à une résolution plus élevée que celle supportée par votre système pour chaque codec.
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=Échec de la capture. Votre système ne supporte pas la résolution choisie pour le codec sélectionné.\nModifiez la résolution ou le codec et réessayez.\nNote : AV1 supporte la résolution la plus élevée, puis HEVC et H264.
-Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=Échec de la capture. Votre système ne supporte pas le codec vidéo sélectionné.\nChangez de codec et réessayez.
+Desktop portal capture failed. Either you canceled the desktop portal or your Wayland compositor doesn’t support desktop portal capture or it’s incorrectly setup on your system.=Échec de la capture via le portail du bureau. Vous avez annulé le portail ou votre compositeur Wayland ne supporte pas la capture via le portail ou il est mal configuré.
+Monitor capture failed. The monitor you are trying to capture is invalid. Please validate your capture settings.=Échec de la capture du moniteur. Le moniteur que vous essayez de capturer est invalide. Veuillez vérifier vos paramètres de capture.
+Capture failed. Neither H264, HEVC nor AV1 video codecs are supported on your system or you are trying to capture at a resolution higher than your system supports for each video codec.=Échec de la capture. Aucun codec vidéo H264, HEVC ou AV1 n’est supporté sur votre système ou vous essayez de capturer à une résolution plus élevée que celle supportée par votre système pour chaque codec.
+Capture failed. Your system doesn’t support the resolution you are trying to record at with the video codec you have chosen. Change capture resolution or video codec and try again. Note: AV1 supports the highest resolution, then HEVC and then H264.=Échec de la capture. Votre système ne supporte pas la résolution choisie pour le codec sélectionné. Modifiez la résolution ou le codec et réessayez. Note : AV1 supporte la résolution la plus élevée, puis HEVC et H264.
+Capture failed. Your system doesn’t support the video codec you have chosen. Change video codec and try again.=Échec de la capture. Votre système ne supporte pas le codec vidéo sélectionné. Changez de codec et réessayez.
 Stopped capture because the user canceled the desktop portal=Capture arrêtée car l’utilisateur a annulé le portail du bureau
 Failed to take a screenshot. Verify if settings are correct=Échec de la capture d’écran. Vérifiez les paramètres.
 
@@ -106,7 +106,7 @@ GPU Screen Recorder UI startup has been switched from systemd service to XDG aut
 GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=Le démarrage automatique de GPU Screen Recorder UI via systemd est obsolète.\nPour migrer : installez et configurez 'dex' (recommandé)\nou ajoutez manuellement '%s' aux entrées de démarrage automatique du bureau.
 
 # Wayland warning
-Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland ne supporte pas correctement l’UI de GPU Screen Recorder,\ncertains éléments peuvent mal fonctionner. Utilisez X11 si vous rencontrez des problèmes.
+Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=Wayland ne supporte pas correctement l’UI de GPU Screen Recorder, certains éléments peuvent mal fonctionner. Utilisez X11 si vous rencontrez des problèmes.
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Certaines applications de remappage clavier entrent en conflit avec GPU Screen Recorder.\nLes claviers ont été libérés, les applications recevront désormais vos touches rapides.
@@ -404,6 +404,7 @@ replay=replay
 Turn on replay when starting a fullscreen application%s=Activer le replay lors du lancement d’une application plein écran %s
 Autostart=Démarrage automatique
 in RAM=En RAM
+on disk=Sur le disque
 Replay duration in seconds:=Durée du replay (secondes)
 Where should temporary replay data be stored?=Où stocker les données temporaires des replays ?
 RAM=RAM

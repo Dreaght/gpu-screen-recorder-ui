@@ -31,7 +31,7 @@ Turn off=Выключить
 Recording has been paused=Запись приостановлена
 Recording has been unpaused=Запись возобновлена
 Started recording %s=Начата запись %s
-Saved a %s recording of %s\nto "%s"=Сохранено %s записи %s\nв "%s"
+Saved a %s recording of %s to "%s"=Сохранено %s записи %s в "%s"
 Saved a %s recording of %s=Сохранено %s записи %s
 Failed to start/save recording=Не удалось начать/сохранить запись
 
@@ -39,36 +39,36 @@ Failed to start/save recording=Не удалось начать/сохранит
 Replay stopped=Повтор остановлен
 Started replaying %s=Начат повтор %s
 Saving replay, this might take some time=Сохранение повтора, это может занять некоторое время
-Saved a %s replay of %s\nto "%s"=Сохранено %s повтора %s\nв "%s"
+Saved a %s replay of %s to "%s"=Сохранено %s повтора %s в "%s"
 Saved a %s replay of %s=Сохранено %s повтора %s
 Replay stopped because of an error=Повтор остановлен из-за ошибки
-Replay settings have been modified.\nYou may need to restart replay to apply the changes.=Настройки повтора изменены.\nВозможно, потребуется перезапустить повтор для применения изменений.
+Replay settings have been modified. You may need to restart replay to apply the changes.=Настройки повтора изменены. Возможно, потребуется перезапустить повтор для применения изменений.
 
 # Notifications - Streaming
 Streaming has stopped=Трансляция остановлена
 Started streaming %s=Начата трансляция %s
 Streaming stopped because of an error=Трансляция остановлена из-за ошибки
-Streaming settings have been modified.\nYou may need to restart streaming to apply the changes.=Настройки трансляции изменены.\nВозможно, потребуется перезапустить трансляцию для применения изменений.
+Streaming settings have been modified. You may need to restart streaming to apply the changes.=Настройки трансляции изменены. Возможно, потребуется перезапустить трансляцию для применения изменений.
 
 # Notifications - Screenshot
-Saved a screenshot of %s\nto "%s"=Сохранён снимок %s\nв "%s"
+Saved a screenshot of %s to "%s"=Сохранён снимок %s в "%s"
 Saved a screenshot of %s=Сохранён снимок %s
 Failed to take a screenshot=Не удалось сделать снимок экрана
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running.\nPress Alt+Z to open the UI.=Один экземпляр GPU Screen Recorder UI уже запущен.\nНажмите Alt+Z, чтобы открыть интерфейс.
-GPU Screen Recorder is already running in another process.\nPlease close it before using GPU Screen Recorder UI.=GPU Screen Recorder CLI уже запущен в другом процессе.\nПожалуйста, закройте его перед использованием GPU Screen Recorder UI.
-Failed to start replay, capture target "%s" is invalid.\nPlease change capture target in settings=Не удалось начать повтор, цель захвата "%s" недействительна.\nПожалуйста, измените цель захвата в настройках
-Failed to start recording, capture target "%s" is invalid.\nPlease change capture target in settings=Не удалось начать запись, цель захвата "%s" недействительна.\nПожалуйста, измените цель захвата в настройках
-Failed to start streaming, capture target "%s" is invalid.\nPlease change capture target in settings=Не удалось начать трансляцию, цель захвата "%s" недействительна.\nПожалуйста, измените цель захвата в настройках
-Failed to take a screenshot, capture target "%s" is invalid.\nPlease change capture target in settings=Не удалось сделать снимок экрана, цель захвата "%s" недействительна.\nПожалуйста, измените цель захвата в настройках
+Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=Один экземпляр GPU Screen Recorder UI уже запущен. Нажмите Alt+Z, чтобы открыть интерфейс.
+GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder CLI уже запущен в другом процессе. Пожалуйста, закройте его перед использованием GPU Screen Recorder UI.
+Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Не удалось начать повтор, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
+Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Не удалось начать запись, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
+Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Не удалось начать трансляцию, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
+Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Не удалось сделать снимок экрана, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
 
-Unable to start recording when replay is turned on.\nTurn off replay before starting recording.=Невозможно начать запись при включённом повторе.\nВыключите повтор перед началом записи.
-Unable to start streaming when replay is turned on.\nTurn off replay before starting streaming.=Невозможно начать трансляцию при включённом повторе.\nВыключите повтор перед началом трансляции.
-Unable to start streaming when recording.\nStop recording before starting streaming.=Невозможно начать трансляцию при записи.\nОстановите запись перед началом трансляции.
-Unable to start recording when streaming.\nStop streaming before starting recording.=Невозможно начать запись при трансляции.\nОстановите трансляцию перед началом записи.
-Unable to start replay when recording.\nStop recording before starting replay.=Невозможно начать повтор при записи.\nОстановите запись перед началом повтора.
-Unable to start replay when streaming.\nStop streaming before starting replay.=Невозможно начать повтор при трансляции.\nОстановите трансляцию перед началом повтора.
+Unable to start recording when replay is turned on. Turn off replay before starting recording.=Невозможно начать запись при включённом повторе. Выключите повтор перед началом записи.
+Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Невозможно начать трансляцию при включённом повторе. Выключите повтор перед началом трансляции.
+Unable to start streaming when recording. Stop recording before starting streaming.=Невозможно начать трансляцию при записи. Остановите запись перед началом трансляции.
+Unable to start recording when streaming. Stop streaming before starting recording.=Невозможно начать запись при трансляции. Остановите трансляцию перед началом записи.
+Unable to start replay when recording. Stop recording before starting replay.=Невозможно начать повтор при записи. Остановите запись перед началом повтора.
+Unable to start replay when streaming. Stop streaming before starting replay.=Невозможно начать повтор при трансляции. Остановите трансляцию перед началом повтора.
 
 Started recording in the replay session=Начата запись в сеансе повтора
 Started recording in the streaming session=Начата запись в сеансе трансляции
@@ -81,11 +81,11 @@ Streaming stopped because of an error. Verify if settings are correct=Транс
 %s. Verify if settings are correct=%s. Проверьте правильность настроек
 
 # GPU Screen Recorder errors
-Desktop portal capture failed.\nEither you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture\nor it's incorrectly setup on your system.=Захват портала рабочего стола не удался.\nВы либо отменили портал рабочего стола, либо ваш композитор Wayland не поддерживает захват портала рабочего стола\nили он неправильно настроен в вашей системе.
-Monitor capture failed.\nThe monitor you are trying to capture is invalid.\nPlease validate your capture settings.=Захват монитора не удался.\nМонитор, который вы пытаетесь захватить, недействителен.\nПожалуйста, проверьте настройки захвата.
-Capture failed. Neither H264, HEVC nor AV1 video codecs are supported\non your system or you are trying to capture at a resolution higher than your\nsystem supports for each video codec.=Захват не удался. Ни один из видеокодеков H264, HEVC или AV1 не поддерживается\nвашей системой или вы пытаетесь захватить видео с разрешением выше, чем\nподдерживает ваша система для каждого видеокодека.
-Capture failed. Your system doesn't support the resolution you are trying to\nrecord at with the video codec you have chosen.\nChange capture resolution or video codec and try again.\nNote: AV1 supports the highest resolution, then HEVC and then H264.=Захват не удался. Ваша система не поддерживает разрешение, с которым вы пытаетесь\nзаписывать с выбранным видеокодеком.\nИзмените разрешение захвата или видеокодек и попробуйте снова.\nПримечание: AV1 поддерживает максимальное разрешение, затем HEVC, затем H264.
-Capture failed. Your system doesn't support the video codec you have chosen.\nChange video codec and try again.=Захват не удался. Ваша система не поддерживает выбранный видеокодек.\nИзмените видеокодек и попробуйте снова.
+Desktop portal capture failed. Either you canceled the desktop portal or your Wayland compositor doesn't support desktop portal capture or it's incorrectly setup on your system.=Захват портала рабочего стола не удался. Вы либо отменили портал рабочего стола, либо ваш композитор Wayland не поддерживает захват портала рабочего стола или он неправильно настроен в вашей системе.
+Monitor capture failed. The monitor you are trying to capture is invalid. Please validate your capture settings.=Захват монитора не удался. Монитор, который вы пытаетесь захватить, недействителен. Пожалуйста, проверьте настройки захвата.
+Capture failed. Neither H264, HEVC nor AV1 video codecs are supported on your system or you are trying to capture at a resolution higher than your system supports for each video codec.=Захват не удался. Ни один из видеокодеков H264, HEVC или AV1 не поддерживается вашей системой или вы пытаетесь захватить видео с разрешением выше, чем поддерживает ваша система для каждого видеокодека.
+Capture failed. Your system doesn't support the resolution you are trying to record at with the video codec you have chosen. Change capture resolution or video codec and try again. Note: AV1 supports the highest resolution, then HEVC and then H264.=Захват не удался. Ваша система не поддерживает разрешение, с которым вы пытаетесь записывать с выбранным видеокодеком. Измените разрешение захвата или видеокодек и попробуйте снова. Примечание: AV1 поддерживает максимальное разрешение, затем HEVC, затем H264.
+Capture failed. Your system doesn't support the video codec you have chosen. Change video codec and try again.=Захват не удался. Ваша система не поддерживает выбранный видеокодек. Измените видеокодек и попробуйте снова.
 Stopped capture because the user canceled the desktop portal=Захват остановлен, так как пользователь отменил портал рабочего стола
 Failed to take a screenshot. Verify if settings are correct=Не удалось сделать снимок экрана. Проверьте правильность настроек
 
@@ -103,7 +103,7 @@ GPU Screen Recorder UI startup has been switched from systemd service to XDG aut
 GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=Автозапуск GPU Screen Recorder UI через systemd устарел.\nДля миграции: установите и настройте 'dex' (рекомендуется)\nили вручную добавьте '%s' в записи автозапуска рабочего стола.
 
 # Wayland warning
-Wayland doesn't support GPU Screen Recorder UI properly,\nthings may not work as expected. Use X11 if you experience issues.=Wayland не поддерживает интерфейс GPU Screen Recorder должным образом,\nнекоторые функции могут не работать. Используйте X11, если возникнут проблемы.
+Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=Wayland не поддерживает интерфейс GPU Screen Recorder должным образом, некоторые функции могут не работать. Используйте X11, если возникнут проблемы.
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Некоторое программное обеспечение переназначения клавиатуры конфликтует с GPU Screen Recorder в вашей системе.\nЗахват клавиатуры отключён, приложения теперь будут получать нажатия горячих клавиш.
@@ -391,6 +391,7 @@ Replay indicator=Индикатор повтора
 Turn on replay when starting a fullscreen application%s=Включать повтор при запуске полноэкранного приложения%s
 Autostart=Автозапуск
 in RAM=в ОЗУ
+on disk=на диске
 Replay duration in seconds:=Длительность повтора в секундах:
 Where should temporary replay data be stored?=Где должны храниться временные данные повтора?
 RAM=ОЗУ

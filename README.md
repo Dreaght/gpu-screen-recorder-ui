@@ -31,8 +31,8 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * libdrm
 * libdbus
 * wayland (wayland-client, wayland-egl, wayland-scanner)
-* libcap
 * libpango (pangoft2)
+* setcap (libcap)
 
 ## Runtime dependencies
 There are also additional dependencies needed at runtime:
