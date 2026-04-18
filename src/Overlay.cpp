@@ -505,7 +505,7 @@ namespace gsr {
     static pid_t launch_gsr_game_tracker(int *stdout_fd) {
         const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
         if(is_flatpak) {
-            const char *args[] = { "flatpak-spawn", "--host", "--", "gsr-game-tracker", NULL };
+            const char *args[] = { "flatpak-spawn", "--host", "--", "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/gsr-game-tracker", NULL };
             return exec_program(args, stdout_fd, false);
         } else {
             const char *args[] = { "gsr-game-tracker", NULL };
