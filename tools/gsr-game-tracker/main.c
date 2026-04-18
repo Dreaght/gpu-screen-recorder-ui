@@ -122,7 +122,7 @@ static void check_process(pid_t pid) {
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
     cmd_n = read_file(path, cmdline_buf, sizeof(cmdline_buf));
 
-    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf)))
+    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf)) && !memmem(cmdline_buf, cmd_n, "d3ddriverquery", 14))
         add_game(pid);
 }
 
