@@ -1348,7 +1348,7 @@ namespace gsr {
                 } else if(id == "save_10_min") {
                     on_press_save_replay_10_min_replay();
                 } else if(id == "start") {
-                    on_press_start_replay(false, false);
+                    on_press_start_replay(false, false, true);
                 }
             };
             button->set_item_enabled("save", false);
@@ -1698,7 +1698,7 @@ namespace gsr {
     }
 
     void Overlay::toggle_replay() {
-        on_press_start_replay(false, false);
+        on_press_start_replay(false, false, true);
     }
 
     void Overlay::save_replay() {
@@ -2192,10 +2192,10 @@ namespace gsr {
 
             if(strncmp(line, "Game launched", 13) == 0) {
                 game_running = true;
-                game_running_replay = true;
+                game_replay_action = GameReplayAction::START;
             } else if(strncmp(line, "Game exited", 11) == 0) {
                 game_running = false;
-                game_running_replay = false;
+                game_replay_action = GameReplayAction::STOP;
             }
 
         } else if(gsr_game_tracker_process_output_fd > 0) {
@@ -2347,6 +2347,7 @@ namespace gsr {
 
         gpu_screen_recorder_process = -1;
         recording_status = RecordingStatus::NONE;
+        replay_launched_manually = true;
     }
 
     void Overlay::update_gsr_screenshot_process_status() {
@@ -2411,29 +2412,37 @@ namespace gsr {
     }
 
     void Overlay::update_system_startup_status() {
-        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || recording_status != RecordingStatus::NONE || !try_replay_startup)
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || !try_replay_startup)
             return;
 
-        if(config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected)
-            return;
+        const bool power_supply_allows_start = !config.replay_config.only_start_replay_if_power_supply_connected || power_supply_connected;
+        const bool power_supply_disconnected = config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected;
 
-        if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
-            on_press_start_replay(true, false);
+        if(recording_status == RecordingStatus::NONE && power_supply_allows_start) {
+            if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
+                on_press_start_replay(true, false);
+        } else if(recording_status == RecordingStatus::REPLAY && power_supply_disconnected) {
+            on_press_start_replay(false, false);
+        }
     }
 
     void Overlay::update_gsr_game_tracker_replay_status() {
         if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_GAME_LAUNCH)
             return;
 
-        if(config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected)
-            return;
+        const bool power_supply_allows_start = !config.replay_config.only_start_replay_if_power_supply_connected || power_supply_connected;
+        const bool power_supply_disconnected = config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected;
 
-        if(recording_status == RecordingStatus::NONE && game_running_replay) {
-            game_running_replay = false;
+        if(replay_launched_manually)
+            game_replay_action = GameReplayAction::IDLE;
+
+        if(recording_status == RecordingStatus::NONE && game_replay_action == GameReplayAction::START && power_supply_allows_start) {
             on_press_start_replay(false, false);
-        } else if(recording_status == RecordingStatus::REPLAY && !game_running) {
+        } else if(recording_status == RecordingStatus::REPLAY && (game_replay_action == GameReplayAction::STOP || power_supply_disconnected)) {
             on_press_start_replay(false, false);
         }
+
+        game_replay_action = GameReplayAction::IDLE;
     }
 
     void Overlay::on_stop_recording(int exit_code, std::string &video_filepath) {
@@ -2826,7 +2835,9 @@ namespace gsr {
         *container = change_container_if_codec_not_supported(*video_codec, *container);
 
         if(record_options.enable_vulkan_video_encoding && strcmp(*encoder, "gpu") == 0) {
-            if(strcmp(*video_codec, "h264") == 0)
+            if(strcmp(*video_codec, "auto") == 0)
+                *video_codec = "h264_vulkan";
+            else if(strcmp(*video_codec, "h264") == 0)
                 *video_codec = "h264_vulkan";
             else if(strcmp(*video_codec, "hevc") == 0)
                 *video_codec = "hevc_vulkan";
@@ -2914,7 +2925,7 @@ namespace gsr {
         return capture_source_arg;
     }
 
-    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection, std::string monitor_to_capture) {
+    bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection, bool launched_manually) {
         if(region_selector.is_started())
             return false;
 
@@ -2932,6 +2943,7 @@ namespace gsr {
 
         update_upause_status();
         try_replay_startup = false;
+        replay_launched_manually = launched_manually;
 
         close_gpu_screen_recorder_output();
 
@@ -2947,6 +2959,7 @@ namespace gsr {
             recording_status = RecordingStatus::NONE;
             replay_save_duration_min = 0;
             update_ui_replay_stopped();
+            replay_launched_manually = false;
 
             if(led_indicator)
                 led_indicator->set_led(false);
@@ -2960,22 +2973,22 @@ namespace gsr {
 
         if(config.replay_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
-            on_region_selected = [disable_notification, this]() {
-                on_press_start_replay(disable_notification, true);
+            on_region_selected = [disable_notification, launched_manually, this]() {
+                on_press_start_replay(disable_notification, true, launched_manually);
             };
             return false;
         }
 
         if(config.replay_config.record_options.record_area_option == "window" && !finished_selection) {
             start_window_capture = true;
-            on_region_selected = [disable_notification, this]() {
-                on_press_start_replay(disable_notification, true);
+            on_region_selected = [disable_notification, launched_manually, this]() {
+                on_press_start_replay(disable_notification, true, launched_manually);
             };
             return false;
         }
 
         const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
-        recording_capture_target = !monitor_to_capture.empty() ? monitor_to_capture : get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
+        recording_capture_target = get_capture_target(config.replay_config.record_options.record_area_option, capture_options);
         if(!validate_capture_target(config.replay_config.record_options.record_area_option, capture_options)) {
             char err_msg[256];
             snprintf(err_msg, sizeof(err_msg), TR("Failed to start replay, capture target \"%s\" is invalid. Please change capture target in settings"), recording_capture_target.c_str());

@@ -68,9 +68,9 @@ namespace gsr {
     };
 
     enum class GameReplayAction {
-        NONE,
-        LAUNCHED,
-        EXITED
+        IDLE,
+        START,
+        STOP
     };
 
     class Overlay {
@@ -165,7 +165,7 @@ namespace gsr {
         void on_press_save_replay();
         void on_press_save_replay_1_min_replay();
         void on_press_save_replay_10_min_replay();
-        bool on_press_start_replay(bool disable_notification, bool finished_selection, std::string monitor_to_capture = "");
+        bool on_press_start_replay(bool disable_notification, bool finished_selection, bool launched_manually = false);
         void on_press_start_record(bool finished_selection, RecordForceType force_type);
         void on_press_start_stream(bool finished_selection);
         void on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type);
@@ -265,7 +265,7 @@ namespace gsr {
         FILE *gsr_game_tracker_process_output_file = nullptr;
         pid_t gsr_game_tracker_process_id = -1;
         bool game_running = false;
-        bool game_running_replay = false;
+        GameReplayAction game_replay_action = GameReplayAction::IDLE;
 
         struct wl_display *wayland_dpy = nullptr;
 
@@ -273,6 +273,7 @@ namespace gsr {
         bool replay_save_show_notification = false;
         ReplayStartupMode replay_startup_mode = ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
         bool try_replay_startup = true;
+        bool replay_launched_manually = false;
         bool replay_recording = false;
         int replay_save_duration_min = 0;
         mgl::Clock replay_duration_clock;

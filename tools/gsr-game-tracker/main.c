@@ -245,6 +245,7 @@ int main(void) {
         ssize_t n = recv(sock, recv_buf, sizeof(recv_buf), 0);
         if (n < 0) {
             if (errno == EINTR) continue;
+            if (errno == ENOBUFS) { scan_existing_processes(); continue; }
             perror("recv");
             break;
         }
