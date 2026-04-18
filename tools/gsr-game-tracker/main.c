@@ -108,12 +108,17 @@ static void check_process(pid_t pid) {
     char    path[64];
     ssize_t env_n, cmd_n;
     bool is_steam_fossilize = false;
+    bool is_stream_script = false;
+    /* Proton launched outside steam has this while it doesn't have SteamAppId nor is the process called wine */
+    bool has_wine_prefix_env = false;
 
     snprintf(path, sizeof(path), "/proc/%d/environ", pid);
     env_n = read_file(path, environ_buf, sizeof(environ_buf));
 
     if (env_n > 0) {
         is_steam_fossilize = env_get(environ_buf, env_n, "STEAM_FOSSILIZE_DUMP_PATH_READ_ONLY");
+        is_stream_script = env_get(environ_buf, env_n, "STEAMSCRIPT_VERSION");
+        has_wine_prefix_env = env_get(environ_buf, env_n, "WINEPREFIX");
         const char *appid = env_get(environ_buf, env_n, "SteamAppId");
         if (!appid) appid = env_get(environ_buf, env_n, "SteamGameId");
         if (appid && appid[0] >= '1' && appid[0] <= '9') {
@@ -125,7 +130,7 @@ static void check_process(pid_t pid) {
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
     cmd_n = read_file(path, cmdline_buf, sizeof(cmdline_buf));
 
-    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf)) && !is_steam_fossilize)
+    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf) || has_wine_prefix_env) && !is_steam_fossilize && !is_stream_script)
         add_game(pid);
 }
 
