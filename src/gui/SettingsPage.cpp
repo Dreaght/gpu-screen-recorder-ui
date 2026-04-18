@@ -980,6 +980,7 @@ namespace gsr {
 
     std::unique_ptr<Widget> SettingsPage::create_enable_vulkan_video_encoding_section() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        vulkan_video_list_ptr = list.get();
 
         auto enable_vulkan_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Enable vulkan video encoding (experimental)"));
         enable_vulkan_checkbox_ptr = enable_vulkan_checkbox.get();
@@ -1241,7 +1242,7 @@ namespace gsr {
         audio_codec_ptr->set_visible(advanced_view);
         video_codec_ptr->set_visible(advanced_view);
         framerate_mode_list_ptr->set_visible(advanced_view);
-        enable_vulkan_checkbox_ptr->set_visible(advanced_view && supports_vulkan_video_encoding(gsr_info->supported_video_codecs));
+        vulkan_video_list_ptr->set_visible(advanced_view && supports_vulkan_video_encoding(gsr_info->supported_video_codecs));
         set_application_audio_options_visible(audio_track_section_list_ptr, advanced_view, *gsr_info);
         settings_scrollable_page_ptr->reset_scroll();
     }

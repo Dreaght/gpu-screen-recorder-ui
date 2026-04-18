@@ -234,6 +234,7 @@ namespace gsr {
         CheckBox *low_power_mode_checkbox_ptr = nullptr;
         CheckBox *replay_power_supply_checkbox_ptr = nullptr;
         CheckBox *enable_vulkan_checkbox_ptr = nullptr;
+        List *vulkan_video_list_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 
