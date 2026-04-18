@@ -1,4 +1,4 @@
-project('gsr-ui', ['c', 'cpp'], version : '1.10.9', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
+project('gsr-ui', ['c', 'cpp'], version : '1.11.0', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
 add_project_arguments('-D_FILE_OFFSET_BITS=64', language : ['c', 'cpp'])
 
