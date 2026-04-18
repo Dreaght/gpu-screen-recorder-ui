@@ -264,6 +264,42 @@ namespace gsr {
         return true;
     }
 
+    static bool are_all_audio_tracks_available_to_capture(const std::vector<AudioTrack> &audio_tracks) {
+        const auto audio_devices = get_audio_devices();
+        for(const AudioTrack &audio_track : audio_tracks) {
+            for(const std::string &audio_input : audio_track.audio_inputs) {
+                std::string_view audio_track_name(audio_input.c_str());
+                const bool is_app_audio = starts_with(audio_track_name, "app:");
+                if(is_app_audio)
+                    continue;
+
+                if(starts_with(audio_track_name, "device:"))
+                    audio_track_name.remove_prefix(7);
+
+                auto it = std::find_if(audio_devices.begin(), audio_devices.end(), [&](const auto &audio_device) {
+                    return audio_device.name == audio_track_name;
+                });
+                if(it == audio_devices.end()) {
+                    //fprintf(stderr, "Audio not ready\n");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    static bool is_webcam_available_to_capture(const RecordOptions &record_options) {
+        if(record_options.webcam_source.empty())
+            return true;
+
+        const auto cameras = get_v4l2_devices();
+        for(const GsrCamera &camera : cameras) {
+            if(camera.path == record_options.webcam_source)
+                return true;
+        }
+        return false;
+    }
+
     // Note that this doesn't work in the flatpak right now because of this flatpak bug:
     // https://github.com/flatpak/flatpak/issues/6486
     static bool is_hyprland_waybar_running_as_dock() {
@@ -466,12 +502,15 @@ namespace gsr {
         }
     }
 
-    static double clock_get_monotonic_seconds(void) {
-        struct timespec ts;
-        ts.tv_sec = 0;
-        ts.tv_nsec = 0;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        return (double)ts.tv_sec + (double)ts.tv_nsec * 0.000000001;
+    static pid_t launch_gsr_game_tracker(int *stdout_fd) {
+        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+        if(is_flatpak) {
+            const char *args[] = { "flatpak-spawn", "--host", "--", "gsr-game-tracker", NULL };
+            return exec_program(args, stdout_fd, false);
+        } else {
+            const char *args[] = { "gsr-game-tracker", NULL };
+            return exec_program(args, stdout_fd, false);
+        }
     }
 
     Overlay::Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs) :
@@ -484,9 +523,6 @@ namespace gsr {
         top_bar_background({0.0f, 0.0f}),
         close_button_widget({0.0f, 0.0f})
     {
-        event_current_time_seconds = clock_get_monotonic_seconds();
-        gamescope_running_last_checked_seconds = event_current_time_seconds - 10.0;
-
         if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             wayland_dpy = wl_display_connect(nullptr);
             if(!wayland_dpy)
@@ -530,8 +566,6 @@ namespace gsr {
 
         x11_dpy = XOpenDisplay(nullptr);
         if(x11_dpy) {
-            net_active_window_atom = XInternAtom(x11_dpy, "_NET_ACTIVE_WINDOW", False);
-            XSelectInput(x11_dpy, DefaultRootWindow(x11_dpy), PropertyChangeMask);
             XKeysymToKeycode(x11_dpy, XK_F1); // If we dont call we will never get a MappingNotify
         } else {
             fprintf(stderr, "Warning: XOpenDisplay failed to mapping notify\n");
@@ -540,7 +574,6 @@ namespace gsr {
         if(this->gsr_info.system_info.display_server == DisplayServer::X11) {
             cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
             supports_window_title = true;
-            supports_window_fullscreen_state = true;
         } else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             if(!this->gsr_info.gpu_info.card_path.empty())
                 cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
@@ -553,6 +586,17 @@ namespace gsr {
         }
 
         update_led_indicator_after_settings_change();
+
+        gsr_game_tracker_process_id = launch_gsr_game_tracker(&gsr_game_tracker_process_output_fd);
+        if(gsr_game_tracker_process_id > 0) {
+            const int fdl = fcntl(gsr_game_tracker_process_output_fd, F_GETFL);
+            fcntl(gsr_game_tracker_process_output_fd, F_SETFL, fdl | O_NONBLOCK);
+            gsr_game_tracker_process_output_file = fdopen(gsr_game_tracker_process_output_fd, "r");
+            if(gsr_game_tracker_process_output_file)
+                gsr_game_tracker_process_output_fd = -1;
+        } else {
+            fprintf(stderr, "Warning: failed to launch gsr-game-tracker. The feature to start replay when a game starts will not work\n");
+        }
     }
 
     Overlay::~Overlay() {
@@ -588,8 +632,19 @@ namespace gsr {
             gpu_screen_recorder_screenshot_process = -1;
         }
 
+        if(gsr_game_tracker_process_id > 0) {
+            kill(gsr_game_tracker_process_id, SIGINT);
+            int status;
+            if(waitpid(gsr_game_tracker_process_id, &status, 0) == -1) {
+                perror("waitpid failed");
+                /* Ignore... */
+            }
+            gsr_game_tracker_process_id = -1;
+        }
+
         led_indicator.reset();
 
+        close_gsr_game_tracker_output();
         close_gpu_screen_recorder_output();
         deinit_color_theme();
 
@@ -647,6 +702,18 @@ namespace gsr {
         if(xi_display) {
             XCloseDisplay(xi_display);
             xi_display = nullptr;
+        }
+    }
+
+    void Overlay::close_gsr_game_tracker_output() {
+        if(gsr_game_tracker_process_output_file) {
+            fclose(gsr_game_tracker_process_output_file);
+            gsr_game_tracker_process_output_file = nullptr;
+        }
+
+        if(gsr_game_tracker_process_output_fd > 0) {
+            close(gsr_game_tracker_process_output_fd);
+            gsr_game_tracker_process_output_fd = -1;
         }
     }
 
@@ -740,64 +807,6 @@ namespace gsr {
         }
     }
 
-    static bool x11_window_is_steam_game(Display *dpy, Window window) {
-        unsigned long steam_game_id = 0;
-        unsigned int property_size = 0;
-        unsigned char* steam_game_property = window_get_property(dpy, window, XA_CARDINAL, "STEAM_GAME", &property_size);
-        if(steam_game_property) {
-            if(property_size == 8)
-                steam_game_id = *(unsigned long*)steam_game_property;
-            XFree(steam_game_property);
-        }
-
-        const unsigned long steam_webhelper_game_id = 769;
-        return steam_game_id != 0 && steam_game_id != steam_webhelper_game_id;
-    }
-
-    // WINE/Godot/Unity application detection
-    static bool x11_window_class_is_game(Display *dpy, Window window) {
-        XClassHint class_hint = {nullptr, nullptr};
-        XGetClassHint(dpy, window, &class_hint);
-
-        const bool is_godot_application = class_hint.res_name && strcmp(class_hint.res_name, "Godot_Engine") == 0;
-        const bool is_wine_application = class_hint.res_class && (ends_with(class_hint.res_class, ".exe") || ends_with(class_hint.res_class, ".EXE"));
-        const bool is_native_unity_32bit_application = class_hint.res_class && ends_with(class_hint.res_class, ".x86");
-        const bool is_native_unity_64bit_application = class_hint.res_class && (ends_with(class_hint.res_class, ".x86_64") || ends_with(class_hint.res_class, ".x64"));
-
-        if(class_hint.res_name)
-            XFree(class_hint.res_name);
-
-        if(class_hint.res_class)
-            XFree(class_hint.res_class);
-
-        return is_godot_application || is_wine_application || is_native_unity_32bit_application || is_native_unity_64bit_application;
-    }
-
-    static bool x11_window_is_game(Display *dpy, Window window) {
-        return x11_window_is_steam_game(dpy, window) || x11_window_class_is_game(dpy, window);
-    }
-
-    static bool x11_is_server_gamescope(Display *dpy) {
-        bool is_gamescope = false;
-        unsigned int property_size = 0;
-        unsigned char* gamescope_focused_window = window_get_property(dpy, DefaultRootWindow(dpy), XA_CARDINAL, "GAMESCOPE_FOCUSED_WINDOW", &property_size);
-        if(gamescope_focused_window) {
-            is_gamescope = true;
-            XFree(gamescope_focused_window);
-        }
-        return is_gamescope;
-    }
-
-    static bool is_gamescope_x11_server_running() {
-        bool is_gamescope = false;
-        Display *gamescope_x11_dpy = XOpenDisplay(":2");
-        if(gamescope_x11_dpy) {
-            is_gamescope = x11_is_server_gamescope(gamescope_x11_dpy);
-            XCloseDisplay(gamescope_x11_dpy);
-        }
-        return is_gamescope;
-    }
-
     void Overlay::handle_keyboard_mapping_event() {
         if(!x11_dpy)
             return;
@@ -811,54 +820,14 @@ namespace gsr {
                     mapping_updated = true;
                     break;
                 }
-                case PropertyNotify: {
-                    if(x11_xev.xproperty.state == PropertyNewValue && x11_xev.xproperty.atom == net_active_window_atom)
-                        update_focused_window = true;
-                    break;
-                }
-                case DestroyNotify: {
-                    auto it = std::find(game_windows.begin(), game_windows.end(), x11_xev.xdestroywindow.window);
-                    if(it != game_windows.end())
-                        game_windows.erase(it);
-                    break;
-                }
             }
         }
 
         if(mapping_updated)
             rebind_all_keyboard_hotkeys();
-
-        if(update_focused_window) {
-            update_focused_window = false;
-
-            const Window focused_window = get_focused_window(x11_dpy, WindowCaptureType::FOCUSED, false);
-            if(x11_window_is_game(x11_dpy, focused_window)) {
-                if(std::find(game_windows.begin(), game_windows.end(), focused_window) == game_windows.end()) {
-                    XSelectInput(x11_dpy, focused_window, StructureNotifyMask);
-                    game_windows.push_back(focused_window);
-                }
-            }
-        }
-
-        if(event_current_time_seconds - gamescope_running_last_checked_seconds >= 3.0) {
-            gamescope_running_last_checked_seconds = event_current_time_seconds;
-            is_gamescope_running = is_gamescope_x11_server_running();
-        }
-
-        const bool prev_game_is_running = is_game_running;
-        is_game_running = !game_windows.empty() || is_gamescope_running;
-        if(is_game_running != prev_game_is_running) {
-            if(is_game_running) {
-                //fprintf(stderr, "started game\n");
-            } else {
-                //fprintf(stderr, "stopped game\n");
-            }
-        }
     }
 
     void Overlay::handle_events() {
-        event_current_time_seconds = clock_get_monotonic_seconds();
-
         if(led_indicator)
             led_indicator->update();
 
@@ -953,6 +922,7 @@ namespace gsr {
         }
 
         update_notification_process_status();
+        process_gsr_game_tracker_output();
         process_gsr_output();
         update_gsr_process_status();
         update_gsr_screenshot_process_status();
@@ -1362,7 +1332,7 @@ namespace gsr {
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack, supports_window_title, supports_window_fullscreen_state);
+                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack, supports_window_title);
                     replay_settings_page->on_config_changed = [this]() {
                         replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
                         if(recording_status == RecordingStatus::REPLAY)
@@ -1396,7 +1366,7 @@ namespace gsr {
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack, supports_window_title, supports_window_fullscreen_state);
+                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack, supports_window_title);
                     record_settings_page->on_config_changed = [this]() {
                         if(recording_status == RecordingStatus::RECORD)
                             show_notification(TR("Recording settings have been modified. You may need to restart recording to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
@@ -1423,7 +1393,7 @@ namespace gsr {
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack, supports_window_title, supports_window_fullscreen_state);
+                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack, supports_window_title);
                     stream_settings_page->on_config_changed = [this]() {
                         if(recording_status == RecordingStatus::STREAM)
                             show_notification(TR("Streaming settings have been modified. You may need to restart streaming to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
@@ -2211,6 +2181,26 @@ namespace gsr {
             led_indicator->blink();
     }
 
+    void Overlay::process_gsr_game_tracker_output() {
+        char buffer[1024];
+        if(gsr_game_tracker_process_output_file) {
+            char *line = fgets(buffer, sizeof(buffer), gsr_game_tracker_process_output_file);
+            if(!line || line[0] == '\0')
+                return;
+
+            if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_GAME_LAUNCH)
+                return;
+
+            if(recording_status == RecordingStatus::NONE && strncmp(line, "Game launched", 13) == 0) {
+                on_press_start_replay(false, false);
+            } else if(recording_status == RecordingStatus::REPLAY && strncmp(line, "Game exited", 11) == 0) {
+                on_press_start_replay(false, false);
+            }
+        } else if(gsr_game_tracker_process_output_fd > 0) {
+            read(gsr_game_tracker_process_output_fd, buffer, sizeof(buffer));
+        }
+    }
+
     void Overlay::process_gsr_output() {
         if(replay_save_show_notification && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
             replay_save_show_notification = false;
@@ -2218,8 +2208,8 @@ namespace gsr {
                 show_notification(TR("Saving replay, this might take some time"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
         }
 
+        char buffer[1024];
         if(gpu_screen_recorder_process_output_file) {
-            char buffer[1024];
             char *line = fgets(buffer, sizeof(buffer), gpu_screen_recorder_process_output_file);
             if(!line || line[0] == '\0')
                 return;
@@ -2252,7 +2242,6 @@ namespace gsr {
                     break;
             }
         } else if(gpu_screen_recorder_process_output_fd > 0) {
-            char buffer[1024];
             read(gpu_screen_recorder_process_output_fd, buffer, sizeof(buffer));
         }
     }
@@ -2402,83 +2391,13 @@ namespace gsr {
         gpu_screen_recorder_screenshot_process = -1;
     }
 
-    static bool are_all_audio_tracks_available_to_capture(const std::vector<AudioTrack> &audio_tracks) {
-        const auto audio_devices = get_audio_devices();
-        for(const AudioTrack &audio_track : audio_tracks) {
-            for(const std::string &audio_input : audio_track.audio_inputs) {
-                std::string_view audio_track_name(audio_input.c_str());
-                const bool is_app_audio = starts_with(audio_track_name, "app:");
-                if(is_app_audio)
-                    continue;
-
-                if(starts_with(audio_track_name, "device:"))
-                    audio_track_name.remove_prefix(7);
-
-                auto it = std::find_if(audio_devices.begin(), audio_devices.end(), [&](const auto &audio_device) {
-                    return audio_device.name == audio_track_name;
-                });
-                if(it == audio_devices.end()) {
-                    //fprintf(stderr, "Audio not ready\n");
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    static bool is_webcam_available_to_capture(const RecordOptions &record_options) {
-        if(record_options.webcam_source.empty())
-            return true;
-
-        const auto cameras = get_v4l2_devices();
-        for(const GsrCamera &camera : cameras) {
-            if(camera.path == record_options.webcam_source)
-                return true;
-        }
-        return false;
-    }
-
     void Overlay::replay_status_update_status() {
         if(replay_status_update_clock.get_elapsed_time_seconds() < replay_status_update_check_timeout_seconds)
             return;
 
         replay_status_update_clock.restart();
-        update_focused_fullscreen_status();
         update_power_supply_status();
         update_system_startup_status();
-    }
-
-    void Overlay::update_focused_fullscreen_status() {
-        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_FULLSCREEN)
-            return;
-
-        mgl_context *context = mgl_get_context();
-        Display *display = (Display*)context->connection;
-
-        const bool prev_focused_window_is_fullscreen = focused_window_is_fullscreen;
-        Window focused_window = None;
-
-        focused_window = get_focused_window(display, WindowCaptureType::FOCUSED, false);
-        if(window && focused_window == (Window)window->get_system_handle())
-            return;
-
-        focused_window_is_fullscreen = focused_window != 0 && window_is_fullscreen(display, focused_window);
-
-        if(focused_window_is_fullscreen != prev_focused_window_is_fullscreen) {
-            std::string fullscreen_window_monitor;
-            auto window_monitor = get_monitor_by_window_center(display, focused_window);
-            if(window_monitor.has_value())
-                fullscreen_window_monitor = std::move(window_monitor->name);
-            else
-                fullscreen_window_monitor.clear();
-
-            if(recording_status == RecordingStatus::NONE && focused_window_is_fullscreen) {
-                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
-                    on_press_start_replay(false, false, fullscreen_window_monitor);
-            } else if(recording_status == RecordingStatus::REPLAY && !focused_window_is_fullscreen) {
-                on_press_start_replay(true, false, fullscreen_window_monitor);
-            }
-        }
     }
 
     // TODO: Instead of checking power supply status periodically listen to power supply event

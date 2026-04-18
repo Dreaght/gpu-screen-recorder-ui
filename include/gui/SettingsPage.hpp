@@ -41,7 +41,7 @@ namespace gsr {
             STREAM
         };
 
-        SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title, bool supports_window_fullscreen_state);
+        SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title);
         SettingsPage(const SettingsPage&) = delete;
         SettingsPage& operator=(const SettingsPage&) = delete;
 
@@ -253,6 +253,5 @@ namespace gsr {
         std::optional<GsrCameraSetup> selected_camera_setup;
 
         bool supports_window_title = false;
-        bool supports_window_fullscreen_state = false;
     };
 }

@@ -123,19 +123,20 @@ namespace gsr {
         void grab_mouse_and_keyboard();
         void xi_setup_fake_cursor();
 
+        void close_gsr_game_tracker_output();
         void close_gpu_screen_recorder_output();
 
         double get_time_passed_in_replay_buffer_seconds();
         void update_notification_process_status();
         void save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type);
         void on_replay_saved(const char *replay_saved_filepath);
+        void process_gsr_game_tracker_output();
         void process_gsr_output();
         void on_gsr_process_error(int exit_code, NotificationType notification_type);
         void update_gsr_process_status();
         void update_gsr_screenshot_process_status();
 
         void replay_status_update_status();
-        void update_focused_fullscreen_status();
         void update_power_supply_status();
         void update_system_startup_status();
 
@@ -227,7 +228,6 @@ namespace gsr {
         mgl::Clock replay_status_update_clock;
         std::string power_supply_online_filepath;
         bool power_supply_connected = false;
-        bool focused_window_is_fullscreen = false;
 
         std::string record_filepath;
         std::string screenshot_filepath;
@@ -253,13 +253,10 @@ namespace gsr {
         std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
         Display *x11_dpy = nullptr;
         XEvent x11_xev;
-        Atom net_active_window_atom;
-        bool update_focused_window = true;
-        std::vector<Window> game_windows;
-        double event_current_time_seconds = 0.0;
-        double gamescope_running_last_checked_seconds = 0.0;
-        bool is_gamescope_running = false;
-        bool is_game_running = false;
+
+        int gsr_game_tracker_process_output_fd = -1;
+        FILE *gsr_game_tracker_process_output_file = nullptr;
+        pid_t gsr_game_tracker_process_id = -1;
 
         struct wl_display *wayland_dpy = nullptr;
 
@@ -297,6 +294,5 @@ namespace gsr {
         std::unique_ptr<LedIndicator> led_indicator = nullptr;
 
         bool supports_window_title = false;
-        bool supports_window_fullscreen_state = false;
     };
 }

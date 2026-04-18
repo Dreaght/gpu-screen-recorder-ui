@@ -140,6 +140,14 @@ executable(
     install : true
 )
 
+executable(
+    'gsr-game-tracker',
+    [
+        'tools/gsr-game-tracker/main.c'
+    ],
+    install : true
+)
+
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('translations', install_dir : gsr_ui_resources_path)
 

@@ -14,7 +14,7 @@ namespace gsr {
     enum class ReplayStartupMode {
         DONT_TURN_ON_AUTOMATICALLY,
         TURN_ON_AT_SYSTEM_STARTUP,
-        TURN_ON_AT_FULLSCREEN,
+        TURN_ON_AT_GAME_LAUNCH,
         TURN_ON_AT_POWER_SUPPLY_CONNECTED
     };
 
@@ -46,10 +46,7 @@ namespace gsr {
         int32_t video_height = 0;
         int32_t fps = 60;
         int32_t video_bitrate = 8000;
-        bool merge_audio_tracks = true; // TODO: Remove in the future
-        bool application_audio_invert = false; // TODO: Remove in the future
         bool change_video_resolution = false;
-        std::vector<std::string> audio_tracks; // ids, TODO: Remove in the future
         std::vector<AudioTrack> audio_tracks_list;
         std::string color_range = "limited";
         std::string video_quality = "very_high";

@@ -53,8 +53,8 @@ namespace gsr {
             return ReplayStartupMode::DONT_TURN_ON_AUTOMATICALLY;
         else if(strcmp(startup_mode_str, "turn_on_at_system_startup") == 0)
             return ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
-        else if(strcmp(startup_mode_str, "turn_on_at_fullscreen") == 0)
-            return ReplayStartupMode::TURN_ON_AT_FULLSCREEN;
+        else if(strcmp(startup_mode_str, "turn_on_at_fullscreen") == 0 || strcmp(startup_mode_str, "turn_on_at_game_launch") == 0)
+            return ReplayStartupMode::TURN_ON_AT_GAME_LAUNCH;
         else if(strcmp(startup_mode_str, "turn_on_at_power_supply_connected") == 0)
             return ReplayStartupMode::TURN_ON_AT_POWER_SUPPLY_CONNECTED;
         else
@@ -188,10 +188,7 @@ namespace gsr {
             {"streaming.record_options.video_height", &config.streaming_config.record_options.video_height},
             {"streaming.record_options.fps", &config.streaming_config.record_options.fps},
             {"streaming.record_options.video_bitrate", &config.streaming_config.record_options.video_bitrate},
-            {"streaming.record_options.merge_audio_tracks", &config.streaming_config.record_options.merge_audio_tracks},
-            {"streaming.record_options.application_audio_invert", &config.streaming_config.record_options.application_audio_invert},
             {"streaming.record_options.change_video_resolution", &config.streaming_config.record_options.change_video_resolution},
-            {"streaming.record_options.audio_track", &config.streaming_config.record_options.audio_tracks},
             {"streaming.record_options.audio_track_item", &config.streaming_config.record_options.audio_tracks_list},
             {"streaming.record_options.color_range", &config.streaming_config.record_options.color_range},
             {"streaming.record_options.video_quality", &config.streaming_config.record_options.video_quality},
@@ -233,10 +230,7 @@ namespace gsr {
             {"record.record_options.video_height", &config.record_config.record_options.video_height},
             {"record.record_options.fps", &config.record_config.record_options.fps},
             {"record.record_options.video_bitrate", &config.record_config.record_options.video_bitrate},
-            {"record.record_options.merge_audio_tracks", &config.record_config.record_options.merge_audio_tracks},
-            {"record.record_options.application_audio_invert", &config.record_config.record_options.application_audio_invert},
             {"record.record_options.change_video_resolution", &config.record_config.record_options.change_video_resolution},
-            {"record.record_options.audio_track", &config.record_config.record_options.audio_tracks},
             {"record.record_options.audio_track_item", &config.record_config.record_options.audio_tracks_list},
             {"record.record_options.color_range", &config.record_config.record_options.color_range},
             {"record.record_options.video_quality", &config.record_config.record_options.video_quality},
@@ -275,10 +269,7 @@ namespace gsr {
             {"replay.record_options.video_height", &config.replay_config.record_options.video_height},
             {"replay.record_options.fps", &config.replay_config.record_options.fps},
             {"replay.record_options.video_bitrate", &config.replay_config.record_options.video_bitrate},
-            {"replay.record_options.merge_audio_tracks", &config.replay_config.record_options.merge_audio_tracks},
-            {"replay.record_options.application_audio_invert", &config.replay_config.record_options.application_audio_invert},
             {"replay.record_options.change_video_resolution", &config.replay_config.record_options.change_video_resolution},
-            {"replay.record_options.audio_track", &config.replay_config.record_options.audio_tracks},
             {"replay.record_options.audio_track_item", &config.replay_config.record_options.audio_tracks_list},
             {"replay.record_options.color_range", &config.replay_config.record_options.color_range},
             {"replay.record_options.video_quality", &config.replay_config.record_options.video_quality},
@@ -372,17 +363,6 @@ namespace gsr {
         return !operator==(other);
     }
 
-    static void populate_new_audio_track_from_old(RecordOptions &record_options) {
-        if(record_options.merge_audio_tracks) {
-            record_options.audio_tracks_list.push_back({std::move(record_options.audio_tracks), record_options.application_audio_invert});
-        } else {
-            for(const std::string &audio_input : record_options.audio_tracks) {
-                record_options.audio_tracks_list.push_back({std::vector<std::string>{audio_input}, record_options.application_audio_invert});
-            }
-        }
-        record_options.audio_tracks.clear();
-    }
-
     std::optional<Config> read_config(const SupportedCaptureOptions &capture_options) {
         std::optional<Config> config;
 
@@ -394,10 +374,6 @@ namespace gsr {
         }
 
         config = Config(capture_options);
-
-        config->streaming_config.record_options.audio_tracks.clear();
-        config->record_config.record_options.audio_tracks.clear();
-        config->replay_config.record_options.audio_tracks.clear();
 
         config->streaming_config.record_options.audio_tracks_list.clear();
         config->record_config.record_options.audio_tracks_list.clear();
@@ -465,15 +441,9 @@ namespace gsr {
             return true;
         });
 
-        if(config->main_config.config_file_version == 1) {
-            populate_new_audio_track_from_old(config->streaming_config.record_options);
-            populate_new_audio_track_from_old(config->record_config.record_options);
-            populate_new_audio_track_from_old(config->replay_config.record_options);
-        }
-
-        config->streaming_config.record_options.audio_tracks.clear();
-        config->record_config.record_options.audio_tracks.clear();
-        config->replay_config.record_options.audio_tracks.clear();
+        // TODO: Remove in the future
+        if(config->replay_config.turn_on_replay_automatically_mode == "turn_on_at_fullscreen")
+            config->replay_config.turn_on_replay_automatically_mode = "turn_on_at_game_launch";
 
         return config;
     }

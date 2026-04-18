@@ -45,14 +45,13 @@ namespace gsr {
         return result;
     }
 
-    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title, bool supports_window_fullscreen_state) :
+    SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
         config(config),
         gsr_info(gsr_info),
         page_stack(page_stack),
-        supports_window_title(supports_window_title),
-        supports_window_fullscreen_state(supports_window_fullscreen_state)
+        supports_window_title(supports_window_title)
     {
         audio_devices = get_audio_devices();
         application_audio = get_application_audio();
@@ -1137,14 +1136,10 @@ namespace gsr {
     }
 
     std::unique_ptr<RadioButton> SettingsPage::create_start_replay_automatically() {
-        // TODO: Support hyprland (same ones that support getting window title)
-        char fullscreen_text[256];
-        snprintf(fullscreen_text, sizeof(fullscreen_text), TR("Turn on replay when starting a fullscreen application%s"), supports_window_fullscreen_state ? "" : TR(" (X11 applications only)"));
-
         auto radiobutton = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::VERTICAL);
         radiobutton->add_item(TR("Don't turn on replay automatically"), "dont_turn_on_automatically");
         radiobutton->add_item(TR("Turn on replay when this program starts"), "turn_on_at_system_startup");
-        radiobutton->add_item(fullscreen_text, "turn_on_at_fullscreen");
+        radiobutton->add_item(TR("Turn on replay when starting a game"), "turn_on_at_game_launch");
         radiobutton->add_item(TR("Turn on replay when power supply is connected"), "turn_on_at_power_supply_connected");
         turn_on_replay_automatically_mode_ptr = radiobutton.get();
         return radiobutton;

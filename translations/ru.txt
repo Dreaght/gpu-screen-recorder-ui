@@ -388,7 +388,7 @@ Estimated video file size per minute (excluding audio): %.2fMB=Примерны�
 # Replay settings
 Directory to save replays:=Каталог для сохранения повторов:
 Replay indicator=Индикатор повтора
-Turn on replay when starting a fullscreen application%s=Включать повтор при запуске полноэкранного приложения%s
+Turn on replay when starting a game=Включите воспроизведение при запуске игры
 Autostart=Автозапуск
 in RAM=в ОЗУ
 on disk=на диске
