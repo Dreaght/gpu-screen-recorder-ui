@@ -55,8 +55,6 @@ namespace gsr {
             return ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
         else if(strcmp(startup_mode_str, "turn_on_at_fullscreen") == 0 || strcmp(startup_mode_str, "turn_on_at_game_launch") == 0)
             return ReplayStartupMode::TURN_ON_AT_GAME_LAUNCH;
-        else if(strcmp(startup_mode_str, "turn_on_at_power_supply_connected") == 0)
-            return ReplayStartupMode::TURN_ON_AT_POWER_SUPPLY_CONNECTED;
         else
             return ReplayStartupMode::DONT_TURN_ON_AUTOMATICALLY;
     }
@@ -296,6 +294,7 @@ namespace gsr {
             {"replay.turn_on_replay_automatically_mode", &config.replay_config.turn_on_replay_automatically_mode},
             {"replay.save_video_in_game_folder", &config.replay_config.save_video_in_game_folder},
             {"replay.restart_replay_on_save", &config.replay_config.restart_replay_on_save},
+            {"replay.only_start_replay_if_power_supply_connected", &config.replay_config.only_start_replay_if_power_supply_connected},
             {"replay.save_directory", &config.replay_config.save_directory},
             {"replay.container", &config.replay_config.container},
             {"replay.time", &config.replay_config.replay_time},

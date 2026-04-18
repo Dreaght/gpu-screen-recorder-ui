@@ -1140,9 +1140,19 @@ namespace gsr {
         radiobutton->add_item(TR("Don't turn on replay automatically"), "dont_turn_on_automatically");
         radiobutton->add_item(TR("Turn on replay when this program starts"), "turn_on_at_system_startup");
         radiobutton->add_item(TR("Turn on replay when starting a game"), "turn_on_at_game_launch");
-        radiobutton->add_item(TR("Turn on replay when power supply is connected"), "turn_on_at_power_supply_connected");
         turn_on_replay_automatically_mode_ptr = radiobutton.get();
         return radiobutton;
+    }
+
+    std::unique_ptr<Widget> SettingsPage::create_start_replay_automatically_section() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        list->add_widget(create_start_replay_automatically());
+
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Only turn on replay if a power supply is connected"));
+        replay_power_supply_checkbox_ptr = checkbox.get();
+        list->add_widget(std::move(checkbox));
+
+        return list;
     }
 
     std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
@@ -1280,7 +1290,7 @@ namespace gsr {
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator(TR("replay")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically_section(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             view_changed(id == "advanced");
@@ -1705,6 +1715,7 @@ namespace gsr {
         replay_storage_button_ptr->set_selected_item(config.replay_config.replay_storage);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
+        replay_power_supply_checkbox_ptr->set_checked(config.replay_config.only_start_replay_if_power_supply_connected);
         if(restart_replay_on_save)
             restart_replay_on_save->set_checked(config.replay_config.restart_replay_on_save);
         
@@ -1858,6 +1869,7 @@ namespace gsr {
         save_common(config.replay_config.record_options);
         config.replay_config.turn_on_replay_automatically_mode = turn_on_replay_automatically_mode_ptr->get_selected_id();
         config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
+        config.replay_config.only_start_replay_if_power_supply_connected = replay_power_supply_checkbox_ptr->is_checked();
         if(restart_replay_on_save)
             config.replay_config.restart_replay_on_save = restart_replay_on_save->is_checked();
         config.replay_config.save_directory = save_directory_button_ptr->get_text();

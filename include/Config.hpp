@@ -14,8 +14,7 @@ namespace gsr {
     enum class ReplayStartupMode {
         DONT_TURN_ON_AUTOMATICALLY,
         TURN_ON_AT_SYSTEM_STARTUP,
-        TURN_ON_AT_GAME_LAUNCH,
-        TURN_ON_AT_POWER_SUPPLY_CONNECTED
+        TURN_ON_AT_GAME_LAUNCH
     };
 
     ReplayStartupMode replay_startup_string_to_type(const char *startup_mode_str);
@@ -136,6 +135,7 @@ namespace gsr {
         std::string turn_on_replay_automatically_mode = "dont_turn_on_automatically";
         bool save_video_in_game_folder = false;
         bool restart_replay_on_save = false;
+        bool only_start_replay_if_power_supply_connected = false;
         std::string save_directory;
         std::string container = "mp4";
         int32_t replay_time = 60;

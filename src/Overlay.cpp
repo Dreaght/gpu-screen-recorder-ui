@@ -928,6 +928,8 @@ namespace gsr {
         update_gsr_screenshot_process_status();
         replay_status_update_status();
 
+        update_gsr_game_tracker_replay_status();
+
         if(hide_ui) {
             hide_ui = false;
             hide();
@@ -2188,14 +2190,14 @@ namespace gsr {
             if(!line || line[0] == '\0')
                 return;
 
-            if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_GAME_LAUNCH)
-                return;
-
-            if(recording_status == RecordingStatus::NONE && strncmp(line, "Game launched", 13) == 0) {
-                on_press_start_replay(false, false);
-            } else if(recording_status == RecordingStatus::REPLAY && strncmp(line, "Game exited", 11) == 0) {
-                on_press_start_replay(false, false);
+            if(strncmp(line, "Game launched", 13) == 0) {
+                game_running = true;
+                game_running_replay = true;
+            } else if(strncmp(line, "Game exited", 11) == 0) {
+                game_running = false;
+                game_running_replay = false;
             }
+
         } else if(gsr_game_tracker_process_output_fd > 0) {
             read(gsr_game_tracker_process_output_fd, buffer, sizeof(buffer));
         }
@@ -2402,27 +2404,36 @@ namespace gsr {
 
     // TODO: Instead of checking power supply status periodically listen to power supply event
     void Overlay::update_power_supply_status() {
-        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_POWER_SUPPLY_CONNECTED)
+        if(replay_startup_mode == ReplayStartupMode::DONT_TURN_ON_AUTOMATICALLY)
             return;
 
-        const bool prev_power_supply_status = power_supply_connected;
         power_supply_connected = power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str());
-        if(power_supply_connected != prev_power_supply_status) {
-            if(recording_status == RecordingStatus::NONE && power_supply_connected) {
-                if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
-                    on_press_start_replay(false, false);
-            } else if(recording_status == RecordingStatus::REPLAY && !power_supply_connected) {
-                on_press_start_replay(false, false);
-            }
-        }
     }
 
     void Overlay::update_system_startup_status() {
         if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || recording_status != RecordingStatus::NONE || !try_replay_startup)
             return;
 
+        if(config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected)
+            return;
+
         if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
             on_press_start_replay(true, false);
+    }
+
+    void Overlay::update_gsr_game_tracker_replay_status() {
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_GAME_LAUNCH)
+            return;
+
+        if(config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected)
+            return;
+
+        if(recording_status == RecordingStatus::NONE && game_running_replay) {
+            game_running_replay = false;
+            on_press_start_replay(false, false);
+        } else if(recording_status == RecordingStatus::REPLAY && !game_running) {
+            on_press_start_replay(false, false);
+        }
     }
 
     void Overlay::on_stop_recording(int exit_code, std::string &video_filepath) {

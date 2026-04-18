@@ -67,6 +67,12 @@ namespace gsr {
         FAST
     };
 
+    enum class GameReplayAction {
+        NONE,
+        LAUNCHED,
+        EXITED
+    };
+
     class Overlay {
     public:
         Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs);
@@ -139,6 +145,7 @@ namespace gsr {
         void replay_status_update_status();
         void update_power_supply_status();
         void update_system_startup_status();
+        void update_gsr_game_tracker_replay_status();
 
         void on_stop_recording(int exit_code, std::string &video_filepath);
 
@@ -257,6 +264,8 @@ namespace gsr {
         int gsr_game_tracker_process_output_fd = -1;
         FILE *gsr_game_tracker_process_output_file = nullptr;
         pid_t gsr_game_tracker_process_id = -1;
+        bool game_running = false;
+        bool game_running_replay = false;
 
         struct wl_display *wayland_dpy = nullptr;
 

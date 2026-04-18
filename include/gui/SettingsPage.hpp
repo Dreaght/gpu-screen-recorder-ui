@@ -122,6 +122,7 @@ namespace gsr {
         std::unique_ptr<List> create_replay_time();
         std::unique_ptr<List> create_replay_storage();
         std::unique_ptr<RadioButton> create_start_replay_automatically();
+        std::unique_ptr<Widget> create_start_replay_automatically_section();
         std::unique_ptr<CheckBox> create_save_replay_in_game_folder();
         std::unique_ptr<CheckBox> create_restart_replay_on_save();
         std::unique_ptr<Label> create_estimated_replay_file_size();
@@ -230,6 +231,7 @@ namespace gsr {
         List *webcam_body_list_ptr = nullptr;
         CheckBox *flip_camera_horizontally_checkbox_ptr = nullptr;
         CheckBox *low_power_mode_checkbox_ptr = nullptr;
+        CheckBox *replay_power_supply_checkbox_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 
