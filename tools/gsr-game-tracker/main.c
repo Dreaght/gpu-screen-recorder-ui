@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -106,11 +107,13 @@ static void check_process(pid_t pid) {
 
     char    path[64];
     ssize_t env_n, cmd_n;
+    bool is_steam_fossilize = false;
 
     snprintf(path, sizeof(path), "/proc/%d/environ", pid);
     env_n = read_file(path, environ_buf, sizeof(environ_buf));
 
     if (env_n > 0) {
+        is_steam_fossilize = env_get(environ_buf, env_n, "STEAM_FOSSILIZE_DUMP_PATH_READ_ONLY");
         const char *appid = env_get(environ_buf, env_n, "SteamAppId");
         if (!appid) appid = env_get(environ_buf, env_n, "SteamGameId");
         if (appid && appid[0] >= '1' && appid[0] <= '9') {
@@ -122,7 +125,7 @@ static void check_process(pid_t pid) {
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
     cmd_n = read_file(path, cmdline_buf, sizeof(cmdline_buf));
 
-    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf)) && !memmem(cmdline_buf, cmd_n, "d3ddriverquery", 14))
+    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf)) && !is_steam_fossilize)
         add_game(pid);
 }
 
