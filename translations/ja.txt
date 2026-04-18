@@ -106,7 +106,7 @@ Failed to remove GPU Screen Recorder from system startup=GPU Screen Recorder を
 Failed to add GPU Screen Recorder to system startup.\nThis option only works on systems that use systemd.\nYou have to manually add "gsr-ui" to system startup on systems that uses another init system.=GPU Screen Recorder をシステム起動時に追加できませんでした\nこの機能は systemd を使うシステムでのみ動作します\n別の init system を使う場合は "gsr-ui" を手動で自動起動に追加してください
 To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=自動起動を有効にするには 'dex' をインストールして設定するか(推奨) '%s' をデスクトップの自動起動項目に手動で追加してください
 GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=GPU Screen Recorder UI の起動方式は systemd service から XDG autostart に切り替わりました
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=systemd 経由の GPU Screen Recorder UI 自動起動は非推奨です\n移行するには 'dex' をインストールして設定するか(推奨) '%s' をデスクトップの自動起動項目に手動で追加してください
+GPU Screen Recorder UI autostart via systemd is deprecated. To migrate: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=systemd 経由の GPU Screen Recorder UI 自動起動は非推奨です移行するには 'dex' をインストールして設定するか(推奨) '%s' をデスクトップの自動起動項目に手動で追加してください
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=Wayland では GPU Screen Recorder UI が完全にはサポートされていません\n期待通りに動かない場合があります 問題があれば X11 を使ってください

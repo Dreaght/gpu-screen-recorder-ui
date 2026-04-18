@@ -105,7 +105,7 @@ Failed to add GPU Screen Recorder to system startup=Nem sikerült hozzáadni a G
 Failed to remove GPU Screen Recorder from system startup=Nem sikerült eltávolítani a GPU Screen Recorder-t az automatikus indításból
 To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=Automatikus indításhoz: telepítsd és konfiguráld a 'dex'-et (ajánlott), vagy add hozzá manuálisan: '%s'
 GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=Az automatikus indítás systemd-ről XDG autostartra váltott át
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=A GPU Screen Recorder systemd-alapú automatikus indítása elavult.\nAz átköltöztetéshez telepítsd és konfiguráld a 'dex'-et, vagy add hozzá manuálisan: '%s'
+GPU Screen Recorder UI autostart via systemd is deprecated. To migrate: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=A GPU Screen Recorder systemd-alapú automatikus indítása elavult. Az átköltöztetéshez telepítsd és konfiguráld a 'dex'-et, vagy add hozzá manuálisan: '%s'
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=A Wayland nem támogatja megfelelően a GPU Screen Recordert. Használj X11-et, ha problémát észlelsz.

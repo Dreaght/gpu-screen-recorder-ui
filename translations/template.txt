@@ -105,7 +105,7 @@ Failed to add GPU Screen Recorder to system startup=
 Failed to remove GPU Screen Recorder from system startup=
 To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=
 GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart.=
-GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.=
+GPU Screen Recorder UI autostart via systemd is deprecated. To migrate: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.=
 
 # Wayland warning
 Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=

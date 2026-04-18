@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
             const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
             const char *startup_command = is_flatpak ? "flatpak run com.dec05eba.gpu_screen_recorder gsr-ui" : "gsr-ui launch-daemon";
             overlay->show_notification(
-                TRF("GPU Screen Recorder UI autostart via systemd is deprecated.\nTo migrate: install and configure 'dex' (recommended),\nor manually add '%s' to your desktop autostart entries.", startup_command).c_str(),
+                TRF("GPU Screen Recorder UI autostart via systemd is deprecated. To migrate: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.", startup_command).c_str(),
                 10.0, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0),
                 gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
         } else {
