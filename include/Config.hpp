@@ -57,6 +57,7 @@ namespace gsr {
         bool record_cursor = true;
         bool restore_portal_session = true;
         bool low_power_mode = false;
+        bool enable_vulkan_video_encoding = false;
 
         std::string webcam_source = "";
         bool webcam_flip_horizontally = false;

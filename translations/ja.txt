@@ -389,11 +389,16 @@ Record in low-power mode=省電力モードで録画
 Record cursor=カーソルを記録
 
 Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=録画時に GPU を高パフォーマンスモードへ強制しません\n特に動画再生と同時に使うと録画性能に影響する場合があります\n有効時は アイドル時の消費電力削減のため コンテンツ同期フレームレートモードの使用を推奨します
+Use vulkan video encoding instead of VAAPI/NVENC.\nEnabling this may result in better game performance while recording, especially on NVIDIA.\nNote that this option is experimental. There may be GPU driver issues that causes issues when this is enabled.=VAAPI/NVENCの代わりにVulkanビデオエンコーディングを使用します。\nこれを有効にすると、特にNVIDIA環境で、録画中のゲームパフォーマンスが向上する可能性があります。\nただし、このオプションは実験的なものであり、有効にするとGPUドライバの問題が発生する場合がありますのでご注意ください。
+Enable vulkan video encoding (experimental)=Vulkanビデオエンコードを有効にする（実験的機能）
 
-Show %s notifications=%s の通知を表示
-Show %s status with scroll lock LED=Scroll Lock LED で %s の状態を表示
+Show replay notifications=リプレイ通知を表示
+Show recording notifications=録画通知を表示
+Show streaming notifications=配信通知を表示
+Show replay status with scroll lock LED=スクロールロックLEDでリプレイ状態を表示
+Show recording status with scroll lock LED=スクロールロックLEDで録画状態を表示
+Show streaming status with scroll lock LED=スクロールロックLEDで配信状態を表示
 Recording indicator=録画インジケータ
-recording=録画
 
 Simple=シンプル
 Audio track #%d=音声トラック #%d
@@ -404,7 +409,6 @@ Estimated video file size per minute (excluding audio): %.2fMB=推定動画サ�
 # Replay settings
 Directory to save replays:=リプレイの保存先:
 Replay indicator=リプレイインジケータ
-replay=リプレイ
 Turn on replay when starting a game=ゲーム開始時にリプレイをオンにする
 Autostart=自動開始
 in RAM=RAM 内
@@ -430,4 +434,3 @@ Stream URL:=配信 URL:
 Stream key:=ストリームキー:
 Streaming info=配信情報
 Streaming indicator=配信インジケータ
-streaming=配信

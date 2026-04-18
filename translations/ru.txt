@@ -374,9 +374,15 @@ Record in low-power mode=Записывать в режиме низкого э�
 Record cursor=Записывать курсор
 
 Do not force the GPU to go into high performance mode when recording.\nMay affect recording performance, especially when playing a video at the same time.\nIf enabled then it's recommended to use sync to content frame rate mode to reduce power usage when idle.=Не заставлять GPU переходить в режим высокой производительности при записи.\nМожет повлиять на производительность записи, особенно при одновременном воспроизведении видео.\nЕсли включено, рекомендуется использовать режим частоты кадров синхронизации с контентом\nдля снижения энергопотребления в режиме ожидания.
+Use vulkan video encoding instead of VAAPI/NVENC.\nEnabling this may result in better game performance while recording, especially on NVIDIA.\nNote that this option is experimental. There may be GPU driver issues that causes issues when this is enabled.=Используйте кодирование видео Vulkan вместо VAAPI/NVENC.\nВключение этой опции может улучшить производительность игр во время записи, особенно на видеокартах NVIDIA.\nОбратите внимание, что эта опция является экспериментальной. При её включении могут возникать проблемы с драйверами\nвидеокарт.
+Enable vulkan video encoding (experimental)=Включить кодирование видео Vulkan (экспериментально)
 
-Show %s notifications=Показывать уведомления %s
-Show %s status with scroll lock LED=Показывать статус %s с помощью индикатора Scroll Lock
+Show replay notifications=Показывать уведомления повтора
+Show recording notifications=Показывать уведомления записи
+Show streaming notifications=Показывать уведомления трансляции
+Show replay status with scroll lock LED=Показывать статус повтора с помощью индикатора Scroll Lock
+Show recording status with scroll lock LED=Показывать статус записи с помощью индикатора Scroll Lock
+Show streaming status with scroll lock LED=Показывать статус трансляции с помощью индикатора Scroll Lock
 Recording indicator=Индикатор записи
 
 Simple=Простой

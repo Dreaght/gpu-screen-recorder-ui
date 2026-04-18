@@ -157,6 +157,20 @@ namespace gsr {
             gsr_info->supported_video_codecs.vp8 = true;
         else if(line == "vp9")
             gsr_info->supported_video_codecs.vp9 = true;
+        else if(line == "h264_vulkan")
+            gsr_info->supported_video_codecs.h264_vulkan = true;
+        else if(line == "hevc_vulkan")
+            gsr_info->supported_video_codecs.hevc_vulkan = true;
+        else if(line == "hevc_hdr_vulkan")
+            gsr_info->supported_video_codecs.hevc_hdr_vulkan = true;
+        else if(line == "hevc_10bit_vulkan")
+            gsr_info->supported_video_codecs.hevc_10bit_vulkan = true;
+        else if(line == "av1_vulkan")
+            gsr_info->supported_video_codecs.av1_vulkan = true;
+        else if(line == "av1_hdr_vulkan")
+            gsr_info->supported_video_codecs.av1_hdr_vulkan = true;
+        else if(line == "av1_10bit_vulkan")
+            gsr_info->supported_video_codecs.av1_10bit_vulkan = true;
     }
 
     static void parse_image_formats_line(GsrInfo *gsr_info, std::string_view line) {

@@ -2812,7 +2812,7 @@ namespace gsr {
         return container;
     }
 
-    static void choose_video_codec_and_container_with_fallback(const GsrInfo &gsr_info, const char **video_codec, const char **container, const char **encoder) {
+    static void choose_video_codec_and_container_with_fallback(const GsrInfo &gsr_info, const RecordOptions &record_options, const char **video_codec, const char **container, const char **encoder) {
         *encoder = "gpu";
         if(strcmp(*video_codec, "h264_software") == 0) {
             *video_codec = "h264";
@@ -2824,6 +2824,23 @@ namespace gsr {
             }
         }
         *container = change_container_if_codec_not_supported(*video_codec, *container);
+
+        if(record_options.enable_vulkan_video_encoding && strcmp(*encoder, "gpu") == 0) {
+            if(strcmp(*video_codec, "h264") == 0)
+                *video_codec = "h264_vulkan";
+            else if(strcmp(*video_codec, "hevc") == 0)
+                *video_codec = "hevc_vulkan";
+            else if(strcmp(*video_codec, "hevc_hdr") == 0)
+                *video_codec = "hevc_hdr_vulkan";
+            else if(strcmp(*video_codec, "hevc_10bit") == 0)
+                *video_codec = "hevc_10bit_vulkan";
+            else if(strcmp(*video_codec, "av1") == 0)
+                *video_codec = "av1_vulkan";
+            else if(strcmp(*video_codec, "av1_hdr") == 0)
+                *video_codec = "av1_hdr_vulkan";
+            else if(strcmp(*video_codec, "av1_10bit") == 0)
+                *video_codec = "av1_10bit_vulkan";
+        }
     }
 
     static std::string get_framerate_mode_validate(const RecordOptions &record_options, const GsrInfo &gsr_info) {
@@ -2976,7 +2993,7 @@ namespace gsr {
         const char *container = config.replay_config.container.c_str();
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
+        choose_video_codec_and_container_with_fallback(gsr_info, config.replay_config.record_options, &video_codec, &container, &encoder);
 
         char size[64];
         size[0] = '\0';
@@ -3217,7 +3234,7 @@ namespace gsr {
         const char *container = config.record_config.container.c_str();
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
+        choose_video_codec_and_container_with_fallback(gsr_info, config.record_config.record_options, &video_codec, &container, &encoder);
 
         char size[64];
         size[0] = '\0';
@@ -3418,12 +3435,12 @@ namespace gsr {
             container = config.streaming_config.custom.container.c_str();
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        choose_video_codec_and_container_with_fallback(gsr_info, &video_codec, &container, &encoder);
+        choose_video_codec_and_container_with_fallback(gsr_info, config.streaming_config.record_options, &video_codec, &container, &encoder);
 
         const std::string url = streaming_get_url(config);
         if(config.streaming_config.streaming_service == "rumble" || config.streaming_config.streaming_service == "kick") {
             fprintf(stderr, "Info: forcing video codec to h264 as rumble/kick supports only h264\n");
-            video_codec = "h264";
+            video_codec = "h264"; // TODO: Vulkan
         }
 
         char size[64];

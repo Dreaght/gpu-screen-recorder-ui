@@ -109,6 +109,7 @@ namespace gsr {
         std::unique_ptr<List> create_framerate_mode();
         std::unique_ptr<List> create_framerate_section();
         std::unique_ptr<Widget> create_record_cursor_section();
+        std::unique_ptr<Widget> create_enable_vulkan_video_encoding_section();
         std::unique_ptr<Widget> create_video_section();
         std::unique_ptr<Widget> create_settings();
         void add_widgets();
@@ -131,9 +132,9 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_save_recording_in_game_folder();
         std::unique_ptr<Label> create_estimated_record_file_size();
         void update_estimated_record_file_size();
-        std::unique_ptr<CheckBox> create_led_indicator(const char *type);
-        std::unique_ptr<CheckBox> create_notifications(const char *type);
-        std::unique_ptr<List> create_indicator(const char *type);
+        std::unique_ptr<CheckBox> create_led_indicator();
+        std::unique_ptr<CheckBox> create_notifications();
+        std::unique_ptr<List> create_indicator();
         std::unique_ptr<Widget> create_low_power_mode();
         void add_replay_widgets();
         void add_record_widgets();
@@ -232,6 +233,7 @@ namespace gsr {
         CheckBox *flip_camera_horizontally_checkbox_ptr = nullptr;
         CheckBox *low_power_mode_checkbox_ptr = nullptr;
         CheckBox *replay_power_supply_checkbox_ptr = nullptr;
+        CheckBox *enable_vulkan_checkbox_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 

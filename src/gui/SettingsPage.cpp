@@ -45,6 +45,16 @@ namespace gsr {
         return result;
     }
 
+    static bool supports_vulkan_video_encoding(const SupportedVideoCodecs &supported_video_codecs) {
+        return supported_video_codecs.h264_vulkan
+            || supported_video_codecs.hevc_vulkan
+            || supported_video_codecs.hevc_hdr_vulkan
+            || supported_video_codecs.hevc_10bit_vulkan
+            || supported_video_codecs.av1_vulkan
+            || supported_video_codecs.av1_hdr_vulkan
+            || supported_video_codecs.av1_10bit_vulkan;
+    }
+
     SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         type(type),
@@ -968,12 +978,39 @@ namespace gsr {
         return record_cursor_checkbox;
     }
 
+    std::unique_ptr<Widget> SettingsPage::create_enable_vulkan_video_encoding_section() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        auto enable_vulkan_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Enable vulkan video encoding (experimental)"));
+        enable_vulkan_checkbox_ptr = enable_vulkan_checkbox.get();
+
+        list->add_widget(std::move(enable_vulkan_checkbox));
+
+        auto info = std::make_unique<Image>(&get_theme().question_mark_texture, enable_vulkan_checkbox_ptr->get_size(), Image::ScaleBehavior::SCALE);
+        info->set_tooltip_text(
+            TR("Use vulkan video encoding instead of VAAPI/NVENC.\n"
+               "Enabling this may result in better game performance while recording, especially on NVIDIA.\n"
+               "Note that this option is experimental. There may be GPU driver issues that causes issues when this is enabled.")
+        );
+        Image *info_ptr = info.get();
+        info->on_mouse_move = [info_ptr](bool inside) {
+            if(inside)
+                set_current_tooltip(info_ptr);
+            else
+                remove_as_current_tooltip(info_ptr);
+        };
+        list->add_widget(std::move(info));
+
+        return list;
+    }
+
     std::unique_ptr<Widget> SettingsPage::create_video_section() {
         auto video_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_section_list->add_widget(create_video_quality_section());
         video_section_list->add_widget(create_video_codec());
         video_section_list->add_widget(create_framerate_section());
         video_section_list->add_widget(create_record_cursor_section());
+        video_section_list->add_widget(create_enable_vulkan_video_encoding_section());
         return std::make_unique<Subsection>(TR("Video"), std::move(video_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
@@ -1204,6 +1241,7 @@ namespace gsr {
         audio_codec_ptr->set_visible(advanced_view);
         video_codec_ptr->set_visible(advanced_view);
         framerate_mode_list_ptr->set_visible(advanced_view);
+        enable_vulkan_checkbox_ptr->set_visible(advanced_view && supports_vulkan_video_encoding(gsr_info->supported_video_codecs));
         set_application_audio_options_visible(audio_track_section_list_ptr, advanced_view, *gsr_info);
         settings_scrollable_page_ptr->reset_scroll();
     }
@@ -1218,9 +1256,20 @@ namespace gsr {
         }
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_led_indicator(const char *type) {
+    std::unique_ptr<CheckBox> SettingsPage::create_led_indicator() {
         char label_str[256];
-        snprintf(label_str, sizeof(label_str), TR("Show %s status with scroll lock LED"), type);
+        label_str[0] = '\0';
+        switch(type) {
+            case Type::REPLAY:
+                snprintf(label_str, sizeof(label_str), "%s", TR("Show replay status with scroll lock LED"));
+                break;
+            case Type::RECORD:
+                snprintf(label_str, sizeof(label_str), "%s", TR("Show recording status with scroll lock LED"));
+                break;
+            case Type::STREAM:
+                snprintf(label_str, sizeof(label_str), "%s", TR("Show streaming status with scroll lock LED"));
+                break;
+        }
 
         auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), label_str);
         checkbox->set_checked(false);
@@ -1228,19 +1277,31 @@ namespace gsr {
         return checkbox;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_notifications(const char *type) {
+    std::unique_ptr<CheckBox> SettingsPage::create_notifications() {
         char label_str[256];
-        snprintf(label_str, sizeof(label_str), TR("Show %s notifications"), type);
+        label_str[0] = '\0';
+        switch(type) {
+            case Type::REPLAY:
+                snprintf(label_str, sizeof(label_str), "%s", TR("Show replay notifications"));
+                break;
+            case Type::RECORD:
+                snprintf(label_str, sizeof(label_str), "%s", TR("Show recording notifications"));
+                break;
+            case Type::STREAM:
+                snprintf(label_str, sizeof(label_str), "%s", TR("Show streaming notifications"));
+                break;
+        }
+
         auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), label_str);
         checkbox->set_checked(true);
         show_notification_checkbox_ptr = checkbox.get();
         return checkbox;
     }
 
-    std::unique_ptr<List> SettingsPage::create_indicator(const char *type) {
+    std::unique_ptr<List> SettingsPage::create_indicator() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(create_notifications(type));
-        list->add_widget(create_led_indicator(type));
+        list->add_widget(create_notifications());
+        list->add_widget(create_led_indicator());
         return list;
     }
 
@@ -1289,7 +1350,7 @@ namespace gsr {
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator(TR("replay")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically_section(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
@@ -1346,7 +1407,7 @@ namespace gsr {
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator(TR("recording")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             view_changed(id == "advanced");
@@ -1512,7 +1573,7 @@ namespace gsr {
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming indicator"), create_indicator(TR("streaming")), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming indicator"), create_indicator(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         streaming_service_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             const bool twitch_option = id == "twitch";
@@ -1657,6 +1718,7 @@ namespace gsr {
         show_notification_checkbox_ptr->set_checked(record_options.show_notifications);
         led_indicator_checkbox_ptr->set_checked(record_options.use_led_indicator);
         low_power_mode_checkbox_ptr->set_checked(record_options.low_power_mode);
+        enable_vulkan_checkbox_ptr->set_checked(record_options.enable_vulkan_video_encoding);
 
         char webcam_setup_str[256];
         snprintf(webcam_setup_str, sizeof(webcam_setup_str), "%dx%d@%dhz", record_options.webcam_camera_width, record_options.webcam_camera_height, record_options.webcam_camera_fps);
@@ -1809,6 +1871,7 @@ namespace gsr {
         record_options.show_notifications = show_notification_checkbox_ptr->is_checked();
         record_options.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
         record_options.low_power_mode = low_power_mode_checkbox_ptr->is_checked();
+        record_options.enable_vulkan_video_encoding = enable_vulkan_checkbox_ptr->is_checked();
 
         // TODO: Set selected_camera_setup properly when updating and shit
 

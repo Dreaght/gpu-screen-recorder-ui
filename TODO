@@ -259,4 +259,4 @@ Keep replay turned on when opening a fullscreen application and alt-tabbing. Onl
 
 Show vulkan codec options.
 
-Use game information to save video under the game title if available, fallback to window title.
+Use wlroots protocol for region selection, if the protocol is available.

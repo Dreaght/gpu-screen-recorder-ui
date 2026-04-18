@@ -18,6 +18,13 @@ namespace gsr {
         bool av1_10bit = false;
         bool vp8 = false;
         bool vp9 = false;
+        bool h264_vulkan = false;
+        bool hevc_vulkan = false;
+        bool hevc_hdr_vulkan = false;
+        bool hevc_10bit_vulkan = false;
+        bool av1_vulkan = false;
+        bool av1_hdr_vulkan = false;
+        bool av1_10bit_vulkan = false;
     };
 
     struct SupportedImageFormats {
