@@ -11,11 +11,14 @@ You can also install gpu screen recorder from [flathub](https://flathub.org/apps
 
 # Usage
 Start the program by running `gsr-ui` or clicking on `GPU Screen Recorder` on your desktop or in your application launcher.
-Press `Left Alt+Z` to show/hide the UI. Go into the settings (the icon on the right) to view all of the different hotkeys configured.\
+Press `Left Alt+Z` to show/hide the UI. Go into the settings (the icon on the right) to view all of the different hotkeys configured.
+
 If you want the program to start on system startup and have it running in the background where it can be controlled with the hotkeys at any time
-then open the UI and go into the settings (the icon on the right) and enable "Start program on system startup?".\
+then open the UI and go into the settings (the icon on the right) and enable "Start program on system startup?".
 The application will be added to `~/.config/autostart/gpu-screen-recorder-ui.desktop`. This will be launched automatically when you use a desktop environment,
-but if you use a minimal window manager then you need to use a XDG autostart program such as `dex`, or launch the program manually from your window manager startup script.\
+but if you use a minimal window manager then you need to use a XDG autostart program such as `dex` (for example run `dex -a -s ~/.config/autostart` at startup),
+or launch the program manually from your window manager startup script.
+
 A program called `gsr-ui-cli` is also installed when installing this software. This can be used to remotely control the UI. Run `gsr-ui-cli --help` to list the available commands.
 
 # Dependencies

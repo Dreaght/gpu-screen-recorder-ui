@@ -371,5 +371,4 @@ namespace gsr {
         std::string output;
         return exec_program_on_host_get_stdout(args, output, false) == 0;
     }
-
 }
