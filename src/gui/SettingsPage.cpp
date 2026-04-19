@@ -17,6 +17,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include <charconv>
 
@@ -53,6 +55,35 @@ namespace gsr {
             || supported_video_codecs.av1_vulkan
             || supported_video_codecs.av1_hdr_vulkan
             || supported_video_codecs.av1_10bit_vulkan;
+    }
+
+    static std::optional<std::string> webcam_get_name(std::string_view webcam_path) {
+        std::optional<std::string> v4l2_device_name;
+
+        if(!starts_with(webcam_path, "/dev/video"))
+            return v4l2_device_name;
+
+        const std::string_view path_filename = webcam_path.substr(5);
+
+        char v4l2_device_name_path[64];
+        snprintf(v4l2_device_name_path, sizeof(v4l2_device_name_path), "/sys/class/video4linux/%.*s/name", (int)path_filename.size(), path_filename.data());
+        fprintf(stderr, "v4l2 device path: |%s|\n", v4l2_device_name_path);
+
+        const int fd = open(v4l2_device_name_path, O_RDONLY);
+        if(fd < 0)
+            return v4l2_device_name;
+
+        char webcam_name_buf[256];
+        const ssize_t bytes_read = read(fd, webcam_name_buf, sizeof(webcam_name_buf));
+        if(bytes_read > 0) {
+            v4l2_device_name = std::string(webcam_name_buf, bytes_read);
+            if(v4l2_device_name->back() == '\n')
+                v4l2_device_name->pop_back();
+            v4l2_device_name.value() += " (" + std::string(webcam_path) + ")";
+        }
+
+        close(fd);
+        return v4l2_device_name;
     }
 
     SettingsPage::SettingsPage(Type type, const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
@@ -221,7 +252,8 @@ namespace gsr {
         auto combobox = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         combobox->add_item(TR("None"), "");
         for(const GsrCamera &camera : capture_options.cameras) {
-            combobox->add_item(camera.path, camera.path);
+            const std::string camera_name = webcam_get_name(camera.path).value_or(camera.path);
+            combobox->add_item(camera_name, camera.path);
         }
         webcam_sources_box_ptr = combobox.get();
 
