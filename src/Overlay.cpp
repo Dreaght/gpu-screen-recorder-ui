@@ -2086,13 +2086,32 @@ namespace gsr {
         return ClipboardFile::FileType::PNG;
     }
 
+    // Returns an empty string on failure
+    static std::string gamescope_get_game_name() {
+        std::string focused_window_name;
+        Display *gamescope_dpy = XOpenDisplay(":2"); // This is assuming gamescope is :2, which may not always be true
+        if(!gamescope_dpy)
+            return focused_window_name;
+
+        if(get_window_manager_name(gamescope_dpy) == "steamcompmgr")
+            focused_window_name = get_focused_window_name(gamescope_dpy, WindowCaptureType::FOCUSED, false);
+
+        XCloseDisplay(gamescope_dpy);
+        return focused_window_name;
+    }
+
     void Overlay::save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type) {
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
         const std::string video_filename = filepath_get_filename(video_filepath.c_str());
 
         const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
-        std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
+        // Checking for gamescope window name is not needed on x11 because on x11 gamescope uses the host x11 so applications
+        // running inside gamescope appears in the hosts x11 server
+        std::string focused_window_name = gsr_info.system_info.display_server != DisplayServer::X11 ? gamescope_get_game_name() : "";
+
+        if(focused_window_name.empty())
+            focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
 
         if(focused_window_name.empty())
             focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
