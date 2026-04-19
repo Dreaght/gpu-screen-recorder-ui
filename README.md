@@ -79,8 +79,6 @@ I'm looking for somebody that can create sound effects for the notifications.
 * Unable to close the region selection with escape key while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
 
 # FAQ
-## I get an error when trying to start the gpu-screen-recorder-ui.service systemd service
-If you have previously used the flatpak version of GPU Screen Recorder with the new UI then the non-flatpak version of the systemd service will conflict with that. Run `gsr-ui` to fix that.
 ## I use a non-qwerty keyboard layout and I have an issue with incorrect keys registered in the software
 This is a KDE Plasma Wayland issue. Use `setxkbmap <language>` command, for example `setxkbmap se` to make sure X11 applications (such as this one) gets updated to use your languages keyboard layout.
 ## "Save to clipboard" option doesn't work for screenshots
