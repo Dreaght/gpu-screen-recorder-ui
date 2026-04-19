@@ -67,7 +67,6 @@ namespace gsr {
 
         char v4l2_device_name_path[64];
         snprintf(v4l2_device_name_path, sizeof(v4l2_device_name_path), "/sys/class/video4linux/%.*s/name", (int)path_filename.size(), path_filename.data());
-        fprintf(stderr, "v4l2 device path: |%s|\n", v4l2_device_name_path);
 
         const int fd = open(v4l2_device_name_path, O_RDONLY);
         if(fd < 0)
