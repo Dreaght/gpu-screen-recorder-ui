@@ -159,10 +159,6 @@ if get_option('desktop-files') == true
     gnome.post_install(update_desktop_database : true)
 endif
 
-if get_option('systemd') == true
-    install_data(files('extra/gpu-screen-recorder-ui.service'), install_dir : 'lib/systemd/user')
-endif
-
 if get_option('capabilities') == true
     meson.add_install_script('meson_post_install.sh')
 endif
