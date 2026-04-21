@@ -67,36 +67,84 @@ static ssize_t read_file(const char *path, char *buf, size_t size) {
 }
 
 /* Return pointer to value inside null-separated environ block, or NULL. */
-static const char *env_get(const char *env, ssize_t size, const char *key) {
-    size_t      klen = strlen(key);
-    const char *p    = env;
-    const char *end  = env + size;
-    while (p < end) {
-        if (strncmp(p, key, klen) == 0 && p[klen] == '=')
-            return p + klen + 1;
-        size_t elen = strnlen(p, (size_t)(end - p));
-        p += elen + 1;
+static const char *env_get(const char *env, size_t size, const char *key) {
+    const size_t klen = strlen(key);
+    size_t index = 0;
+    while (index < size) {
+        const char *env_start = env + index;
+        const char *env_end = memchr(env_start, '\0', size - index);
+        if(!env_end)
+            break;
+
+        const size_t env_len = env_end - env_start;
+        if(env_len >= klen + 1 && memcmp(env_start, key, klen) == 0 && env_start[klen] == '=')
+            return env_start + klen + 1;
+
+        index += env_len + 1;
     }
     return NULL;
 }
 
-static int is_wine_binary(const char *argv0) {
-    const char *base = strrchr(argv0, '/');
-    base = base ? base + 1 : argv0;
-    return strcmp(base, "wine") == 0 ||
-           strcmp(base, "wine64") == 0 ||
-           strcmp(base, "wine-preloader") == 0 ||
-           strcmp(base, "wine64-preloader") == 0;
+static size_t get_argv_len(const char *cmdline, size_t size) {
+    const char *argv0_end = memchr(cmdline, '\0', size);
+    if(argv0_end)
+        return argv0_end - cmdline;
+    else
+        return 0;
 }
 
-static int has_game_arch_suffix(const char *argv0) {
-    const char *base = strrchr(argv0, '/');
+static const char* memchr_reverse(const char *p, int c, size_t size) {
+    for(size_t i = 0; i < size; ++i) {
+        if(p[size - 1 - i] == c)
+            return p + i;
+    }
+    return NULL;
+}
+
+static const char* get_arg_by_index(const char *cmdline, size_t size, size_t index) {
+    size_t current_index = 0;
+    size_t cmdline_index = 0;
+    while (index < size) {
+        const char *arg_start = cmdline + cmdline_index;
+        const char *arg_end = memchr(arg_start, '\0', size - cmdline_index);
+        if(!arg_end)
+            break;
+
+        const size_t arg_len = arg_end - arg_start;
+        if(current_index == index)
+            return arg_start;
+
+        cmdline_index += arg_len + 1;
+        current_index += 1;
+    }
+    return NULL;
+}
+
+static bool memeql(const char *haystack, size_t haystack_size, const char *needle) {
+    const size_t needle_size = strlen(needle);
+    return haystack_size == needle_size && memcmp(haystack, needle, needle_size) == 0;
+}
+
+static bool starts_with(const char *haystack, size_t haystack_size, const char *needle) {
+    const size_t needle_size = strlen(needle);
+    return haystack_size >= needle_size && memcmp(haystack, needle, needle_size) == 0;
+}
+
+static int is_wine_binary(const char *argv0, size_t size) {
+    const char *base = memchr_reverse(argv0, '/', size);
     base = base ? base + 1 : argv0;
-    size_t len = strlen(base);
+    const size_t base_len = argv0 + size - base;
+    return memeql(base, base_len, "wine") ||
+           memeql(base, base_len, "wine64") ||
+           memeql(base, base_len, "wine-preloader") ||
+           memeql(base, base_len, "wine64-preloader");
+}
+
+static int has_game_arch_suffix(const char *argv0, size_t size) {
     static const char *suffixes[] = { ".x86_64", ".x64", ".x86" };
     for (int i = 0; i < 3; i++) {
-        size_t slen = strlen(suffixes[i]);
-        if (len > slen && strcmp(base + len - slen, suffixes[i]) == 0)
+        const size_t slen = strlen(suffixes[i]);
+        if (size >= slen && memcmp(argv0 + size - slen, suffixes[i], slen) == 0)
             return 1;
     }
     return 0;
@@ -129,9 +177,28 @@ static void check_process(pid_t pid) {
 
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
     cmd_n = read_file(path, cmdline_buf, sizeof(cmdline_buf));
+    if(cmd_n <= 0)
+        return;
 
-    if (cmd_n > 0 && (is_wine_binary(cmdline_buf) || has_game_arch_suffix(cmdline_buf) || has_wine_prefix_env) && !is_steam_fossilize && !is_stream_script)
+    const char *argv0 = cmdline_buf;
+    const size_t argv0_len = get_argv_len(cmdline_buf, cmd_n);
+
+    const char *argv1 = get_arg_by_index(cmdline_buf, cmd_n, 1);
+    const size_t argv1_len = argv1 ? get_argv_len(argv1, cmdline_buf + cmd_n - argv1) : 0;
+
+    if (cmd_n > 0 && (is_wine_binary(argv0, argv0_len) || has_game_arch_suffix(argv0, argv0_len) || has_wine_prefix_env)
+        && !is_steam_fossilize
+        && !is_stream_script
+        && !memeql(argv1, argv1_len, "--version")
+        && !starts_with(argv0, argv0_len, "C:\\windows\\system32"))
+    {
+        // fprintf(stderr, "env: ");
+        // write(STDOUT_FILENO, environ_buf, env_n);
+        // fprintf(stderr, "\ncmdline: ");
+        // write(STDOUT_FILENO, cmdline_buf, cmd_n);
+        // fprintf(stderr, "\n");
         add_game(pid);
+    }
 }
 
 static void handle_proc_event(const struct proc_event *ev) {
