@@ -12,6 +12,7 @@
 #include "ClipboardFile.hpp"
 #include "LedIndicator.hpp"
 #include "CursorTracker/CursorTracker.hpp"
+#include "DesktopEnvironment/DesktopEnvironment.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -304,5 +305,6 @@ namespace gsr {
         std::unique_ptr<LedIndicator> led_indicator = nullptr;
 
         bool supports_window_title = false;
+        std::unique_ptr<DesktopEnvironment> desktop_environment;
     };
 }

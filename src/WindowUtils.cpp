@@ -476,7 +476,7 @@ namespace gsr {
         return result;
     }
 
-    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, Window ignore_window) {
+    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, std::string_view ignore_window_title) {
         std::string result;
 
         Window root;
@@ -487,7 +487,7 @@ namespace gsr {
             return result;
 
         for(int i = (int)num_children - 1; i >= 0; --i) {
-            if(children[i] == ignore_window)
+            if(get_window_title(dpy, children[i]) == ignore_window_title)
                 continue;
 
             XWindowAttributes attr;
@@ -498,10 +498,10 @@ namespace gsr {
 
             if(position.x >= attr.x && position.x <= attr.x + attr.width && position.y >= attr.y && position.y <= attr.y + attr.height) {
                 const Window real_window = window_get_target_window_child(dpy, children[i]);
-                if(!real_window || real_window == ignore_window)
+                const std::optional<std::string> window_title = get_window_title(dpy, real_window);
+                if(!real_window || window_title == ignore_window_title)
                     continue;
 
-                const std::optional<std::string> window_title = get_window_title(dpy, real_window);
                 if(window_title)
                     result = strip(window_title.value());
 
@@ -513,10 +513,10 @@ namespace gsr {
         return result;
     }
 
-    std::string get_window_name_at_cursor_position(Display *dpy, Window ignore_window) {
+    std::string get_window_name_at_cursor_position(Display *dpy, std::string_view ignore_window_title) {
         Window cursor_window;
         const mgl::vec2i cursor_position = get_cursor_position(dpy, &cursor_window);
-        return get_window_name_at_position(dpy, cursor_position, ignore_window);
+        return get_window_name_at_position(dpy, cursor_position, ignore_window_title);
     }
 
     void set_window_size_not_resizable(Display *dpy, Window window, int width, int height) {

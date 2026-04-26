@@ -11,8 +11,9 @@
 #include "../include/gui/GlobalSettingsPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Translation.hpp"
-#include "../include/KwinWorkaround.hpp"
-#include "../include/HyprlandWorkaround.hpp"
+#include "../include/DesktopEnvironment/DesktopEnvironmentX11.hpp"
+#include "../include/DesktopEnvironment/DesktopEnvironmentHyprland.hpp"
+#include "../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
@@ -573,10 +574,25 @@ namespace gsr {
 
         if(this->gsr_info.system_info.display_server == DisplayServer::X11) {
             cursor_tracker = std::make_unique<CursorTrackerX11>((Display*)mgl_get_context()->connection);
+            desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
             supports_window_title = true;
         } else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
+            const std::string wm_name = x11_dpy ? get_window_manager_name(x11_dpy) : "";
+            const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+            const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
+
             if(!this->gsr_info.gpu_info.card_path.empty())
                 cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
+
+            if(is_hyprland) {
+                desktop_environment = std::make_unique<DesktopEnvironmentHyprland>();
+                supports_window_title = true;
+            } else if(is_kwin_wayland) {
+                desktop_environment = std::make_unique<DesktopEnvironmentKde>();
+                supports_window_title = true;
+            } else {
+                desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
+            }
 
             if(!config.main_config.wayland_warning_shown) {
                 config.main_config.wayland_warning_shown = true;
@@ -585,6 +601,7 @@ namespace gsr {
             }
         }
 
+        desktop_environment->start();
         update_led_indicator_after_settings_change();
 
         gsr_game_tracker_process_id = launch_gsr_game_tracker(&gsr_game_tracker_process_output_fd);
@@ -855,6 +872,7 @@ namespace gsr {
                 cursor_tracker->update();
         }
 
+        desktop_environment->update();
         handle_keyboard_mapping_event();
 
         region_selector.poll_events();
@@ -2087,16 +2105,9 @@ namespace gsr {
     }
 
     void Overlay::save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type) {
-        mgl_context *context = mgl_get_context();
-        Display *display = (Display*)context->connection;
         const std::string video_filename = filepath_get_filename(video_filepath.c_str());
 
-        const Window gsr_ui_window = window ? (Window)window->get_system_handle() : None;
-        std::string focused_window_name = get_window_name_at_cursor_position(display, gsr_ui_window);
-
-        if(focused_window_name.empty())
-            focused_window_name = get_focused_window_name(display, WindowCaptureType::FOCUSED, false);
-
+        std::string focused_window_name = desktop_environment->get_focused_window_title();
         if(focused_window_name.empty())
             focused_window_name = "Game";
 
