@@ -935,12 +935,14 @@ namespace gsr {
 
         if(reload_ui) {
             const bool reopen_settings = reopen_settings_after_reload;
+            const int settings_scroll_y = pending_settings_scroll_y;
             reload_ui = false;
             reopen_settings_after_reload = false;
+            pending_settings_scroll_y = 0;
             if(visible) {
                 recreate_frontpage_ui_components();
                 if(reopen_settings)
-                    open_settings_page();
+                    open_settings_page(settings_scroll_y);
             }
         }
 
@@ -1518,8 +1520,9 @@ namespace gsr {
             update_ui_recording_started();
     }
 
-    void Overlay::open_settings_page() {
+    void Overlay::open_settings_page(int scroll_y) {
         auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
+        settings_page->set_scroll_y(scroll_y);
 
         settings_page->on_startup_changed = [this](bool enable, int exit_status) {
             if(exit_status == 0)
@@ -1575,7 +1578,8 @@ namespace gsr {
             stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
         };
 
-        settings_page->on_language_changed = [this]() {
+        settings_page->on_language_changed = [this](int scroll_y) {
+            pending_settings_scroll_y = scroll_y;
             reload_ui = true;
             reopen_settings_after_reload = true;
         };
@@ -1590,6 +1594,7 @@ namespace gsr {
         hide_ui = false;
         reload_ui = false;
         reopen_settings_after_reload = false;
+        pending_settings_scroll_y = 0;
 
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;

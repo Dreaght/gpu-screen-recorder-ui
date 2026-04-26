@@ -538,7 +538,7 @@ namespace gsr {
             Translation::instance().load_language(id);
             config.main_config.language = std::string(id);
             if(on_language_changed)
-                on_language_changed();
+                on_language_changed(get_scroll_y());
             return true;
         };
         list->add_widget(std::move(combo_box));
@@ -611,6 +611,7 @@ namespace gsr {
 
     void GlobalSettingsPage::add_widgets() {
         auto scrollable_page = std::make_unique<ScrollablePage>(content_page_ptr->get_inner_size());
+        scrollable_page_ptr = scrollable_page.get();
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
@@ -624,6 +625,15 @@ namespace gsr {
         scrollable_page->add_widget(std::move(settings_list));
 
         content_page_ptr->add_widget(std::move(scrollable_page));
+    }
+
+    int GlobalSettingsPage::get_scroll_y() const {
+        return scrollable_page_ptr ? scrollable_page_ptr->get_scroll_target_y() : 0;
+    }
+
+    void GlobalSettingsPage::set_scroll_y(int y) {
+        if(scrollable_page_ptr)
+            scrollable_page_ptr->set_scroll(y);
     }
 
     void GlobalSettingsPage::on_navigate_away_from_page() {

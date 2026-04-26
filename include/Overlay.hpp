@@ -124,7 +124,7 @@ namespace gsr {
         void recreate_global_hotkeys(std::string_view hotkey_option);
         void update_led_indicator_after_settings_change();
         void recreate_frontpage_ui_components();
-        void open_settings_page();
+        void open_settings_page(int scroll_y = 0);
         void xi_setup();
         void handle_xi_events();
         void process_key_bindings(mgl::Event &event);
@@ -301,6 +301,7 @@ namespace gsr {
         bool hide_ui = false;
         bool reload_ui = false;
         bool reopen_settings_after_reload = false;
+        int pending_settings_scroll_y = 0;
         double notification_duration_multiplier = 1.0;
         ClipboardFile clipboard_file;
 

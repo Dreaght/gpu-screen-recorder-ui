@@ -53,7 +53,10 @@ namespace gsr {
         std::function<void(std::string_view hotkey_option)> on_keyboard_hotkey_changed;
         std::function<void(std::string_view hotkey_option)> on_joystick_hotkey_changed;
         std::function<void()> on_page_closed;
-        std::function<void()> on_language_changed;
+        std::function<void(int scroll_y)> on_language_changed;
+
+        int get_scroll_y() const;
+        void set_scroll_y(int y);
     private:
         void load_hotkeys();
 
@@ -116,6 +119,7 @@ namespace gsr {
         Button *show_hide_button_ptr = nullptr;
         RadioButton *notification_speed_button_ptr = nullptr;
         ComboBox *language_combo_box_ptr = nullptr;
+        ScrollablePage *scrollable_page_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;
         ConfigureHotkeyType configure_hotkey_type = ConfigureHotkeyType::NONE;

@@ -24,6 +24,8 @@ namespace gsr {
         void add_widget(std::unique_ptr<Widget> widget);
 
         void reset_scroll();
+        int get_scroll_target_y() const { return scroll_target_y; }
+        void set_scroll(int y) { scroll_y = y; scroll_target_y = y; }
     private:
         void apply_animation();
         void limit_scroll(double child_height);
