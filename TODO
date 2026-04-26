@@ -260,3 +260,5 @@ Keep replay turned on when opening a fullscreen application and alt-tabbing. Onl
 Show vulkan codec options.
 
 Use wlroots protocol for region selection, if the protocol is available.
+
+Fix kwin wayland and hyprland window title. Make it work on gnome as well.
