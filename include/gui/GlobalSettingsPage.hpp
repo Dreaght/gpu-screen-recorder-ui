@@ -53,6 +53,7 @@ namespace gsr {
         std::function<void(std::string_view hotkey_option)> on_keyboard_hotkey_changed;
         std::function<void(std::string_view hotkey_option)> on_joystick_hotkey_changed;
         std::function<void()> on_page_closed;
+        std::function<void()> on_language_changed;
     private:
         void load_hotkeys();
 

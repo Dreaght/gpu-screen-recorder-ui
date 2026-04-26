@@ -934,9 +934,14 @@ namespace gsr {
         remove_widgets_to_be_removed();
 
         if(reload_ui) {
+            const bool reopen_settings = reopen_settings_after_reload;
             reload_ui = false;
-            if(visible)
+            reopen_settings_after_reload = false;
+            if(visible) {
                 recreate_frontpage_ui_components();
+                if(reopen_settings)
+                    open_settings_page();
+            }
         }
 
         update_notification_process_status();
@@ -1439,68 +1444,8 @@ namespace gsr {
             button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().settings_small_texture);
-            button->on_click = [&]() {
-                std::string language_before = config.main_config.language;
-                auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
-
-                settings_page->on_startup_changed = [&](bool enable, int exit_status) {
-                    if(exit_status == 0)
-                        return;
-
-                    if(exit_status == 67) {
-                        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
-                        const char *startup_command = is_flatpak ? "flatpak run com.dec05eba.gpu_screen_recorder gsr-ui" : "gsr-ui launch-daemon";
-                        show_notification(
-                            TRF("To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.", startup_command).c_str(),
-                            10.0,
-                            mgl::Color(255, 255, 255),
-                            mgl::Color(255, 0, 0),
-                            NotificationType::NOTICE,
-                            nullptr,
-                            NotificationLevel::ERROR
-                        );
-                        return;
-                    }
-
-                    if(enable)
-                        show_notification(TR("Failed to add GPU Screen Recorder to system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                    else
-                        show_notification(TR("Failed to remove GPU Screen Recorder from system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                };
-
-                settings_page->on_click_exit_program_button = [this](std::string_view reason) {
-                    do_exit = true;
-                    exit_reason = reason;
-                };
-
-                settings_page->on_keyboard_hotkey_changed = [this](std::string_view hotkey_option) {
-                    recreate_global_hotkeys(hotkey_option);
-                };
-
-                settings_page->on_joystick_hotkey_changed = [this](std::string_view hotkey_option) {
-                    global_hotkeys_js.reset();
-                    if(hotkey_option == "enable_hotkeys")
-                        global_hotkeys_js = register_joystick_hotkeys(this);
-                    else if(hotkey_option == "disable_hotkeys")
-                        global_hotkeys_js.reset();
-                };
-
-                settings_page->on_page_closed = [this, language_before]() {
-                    replay_dropdown_button_ptr->set_item_description("start", config.replay_config.start_stop_hotkey.to_string(false, false));
-                    replay_dropdown_button_ptr->set_item_description("save", config.replay_config.save_hotkey.to_string(false, false));
-                    replay_dropdown_button_ptr->set_item_description("save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
-                    replay_dropdown_button_ptr->set_item_description("save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
-
-                    record_dropdown_button_ptr->set_item_description("start", config.record_config.start_stop_hotkey.to_string(false, false));
-                    record_dropdown_button_ptr->set_item_description("pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
-
-                    stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
-
-                    if(config.main_config.language != language_before)
-                        reload_ui = true;
-                };
-
-                page_stack.push(std::move(settings_page));
+            button->on_click = [this]() {
+                open_settings_page();
             };
             front_page_ptr->add_widget(std::move(button));
         }
@@ -1573,12 +1518,78 @@ namespace gsr {
             update_ui_recording_started();
     }
 
+    void Overlay::open_settings_page() {
+        auto settings_page = std::make_unique<GlobalSettingsPage>(this, &gsr_info, config, &page_stack);
+
+        settings_page->on_startup_changed = [this](bool enable, int exit_status) {
+            if(exit_status == 0)
+                return;
+
+            if(exit_status == 67) {
+                const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+                const char *startup_command = is_flatpak ? "flatpak run com.dec05eba.gpu_screen_recorder gsr-ui" : "gsr-ui launch-daemon";
+                show_notification(
+                    TRF("To enable autorun: install and configure 'dex' (recommended), or manually add '%s' to your desktop autostart entries.", startup_command).c_str(),
+                    10.0,
+                    mgl::Color(255, 255, 255),
+                    mgl::Color(255, 0, 0),
+                    NotificationType::NOTICE,
+                    nullptr,
+                    NotificationLevel::ERROR
+                );
+                return;
+            }
+
+            if(enable)
+                show_notification(TR("Failed to add GPU Screen Recorder to system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+            else
+                show_notification(TR("Failed to remove GPU Screen Recorder from system startup"), notification_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+        };
+
+        settings_page->on_click_exit_program_button = [this](std::string_view reason) {
+            do_exit = true;
+            exit_reason = reason;
+        };
+
+        settings_page->on_keyboard_hotkey_changed = [this](std::string_view hotkey_option) {
+            recreate_global_hotkeys(hotkey_option);
+        };
+
+        settings_page->on_joystick_hotkey_changed = [this](std::string_view hotkey_option) {
+            global_hotkeys_js.reset();
+            if(hotkey_option == "enable_hotkeys")
+                global_hotkeys_js = register_joystick_hotkeys(this);
+            else if(hotkey_option == "disable_hotkeys")
+                global_hotkeys_js.reset();
+        };
+
+        settings_page->on_page_closed = [this]() {
+            replay_dropdown_button_ptr->set_item_description("start", config.replay_config.start_stop_hotkey.to_string(false, false));
+            replay_dropdown_button_ptr->set_item_description("save", config.replay_config.save_hotkey.to_string(false, false));
+            replay_dropdown_button_ptr->set_item_description("save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
+            replay_dropdown_button_ptr->set_item_description("save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
+
+            record_dropdown_button_ptr->set_item_description("start", config.record_config.start_stop_hotkey.to_string(false, false));
+            record_dropdown_button_ptr->set_item_description("pause", config.record_config.pause_unpause_hotkey.to_string(false, false));
+
+            stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
+        };
+
+        settings_page->on_language_changed = [this]() {
+            reload_ui = true;
+            reopen_settings_after_reload = true;
+        };
+
+        page_stack.push(std::move(settings_page));
+    }
+
     void Overlay::hide() {
         if(!visible)
             return;
 
         hide_ui = false;
         reload_ui = false;
+        reopen_settings_after_reload = false;
 
         mgl_context *context = mgl_get_context();
         Display *display = (Display*)context->connection;
