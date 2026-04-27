@@ -2,6 +2,7 @@
 #include "../include/Config.hpp"
 #include "../include/GsrInfo.hpp"
 
+#include <cmath>
 #include <assert.h>
 
 namespace gsr {
@@ -39,9 +40,9 @@ namespace gsr {
         window_width = window_size.x;
         window_height = window_size.y;
 
-        theme->title_font_desc = std::string("Noto Sans Bold ") + std::to_string((int)(std::max(16.0f, window_size.y * 0.019f)/1.77));
-        theme->top_bar_font_desc = std::string("Noto Sans Bold ") + std::to_string((int)(std::max(23.0f, window_size.y * 0.03f)/1.77));
-        theme->body_font_desc = std::string("Noto Sans ") + std::to_string((int)(std::max(13.0f, window_size.y * 0.015f)/1.77));
+        theme->title_font_desc = std::string("Noto Sans Bold ") + std::to_string(std::round(std::max(16.0f, window_size.y * 0.019f)/1.8));
+        theme->top_bar_font_desc = std::string("Noto Sans Bold ") + std::to_string(std::round(std::max(23.0f, window_size.y * 0.03f)/1.8));
+        theme->body_font_desc = std::string("Noto Sans ") + std::to_string(std::round(std::max(13.0f, window_size.y * 0.015f)/1.8));
         theme->camera_setup_font_desc = "Noto Sans 14";
 
         return true;
