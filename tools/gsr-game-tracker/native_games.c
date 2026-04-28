@@ -5,7 +5,7 @@
 /* This file was auto-generated with create-native-games-list.py, do not edit manually! */
 
 static const char *process_names_len_12[] = { "soh.appimage", "supertuxkart", "HytaleClient", "Vintagestory", "ut-bin-amd64", "fs-uae-devel", "xenia_canary", "shadPS4:Main", NULL };
-static const char *process_names_len_5[] = { "sober", "DDNet", "zdoom", "cen64", "mesen", "higan", "rpcs3", NULL };
+static const char *process_names_len_5[] = { "sober", "zdoom", "cen64", "mesen", "higan", "rpcs3", NULL };
 static const char *process_names_len_14[] = { "sober_services", "chocolate-doom", "CodenameEngine", "quakespasm-svn", "2ship.appimage", "rott-shareware", "unreal-bin-x86", "PPSSPPHeadless", NULL };
 static const char *process_names_len_15[] = { "UnleashedRecomp", "CoherentUI_Host", "linux_64_client", "rott-registered", "UnrealLinux.bin", "Quake3-UrT.i386", "DuckStation-x64", NULL };
 static const char *process_names_len_10[] = { "sm64coopdx", "luanti.bin", "quakespasm", "srcds_i486", "rbdoom3bfg", "tyr-glqwcl", "ut-bin-x86", NULL };
