@@ -97,10 +97,14 @@ def main():
 
     ananicy_native_games_path = os.path.join(ananicy_root_path, "00-default", "Games", "linux-native")
     ananicy_emulators_path = os.path.join(ananicy_root_path, "00-default", "Games", "emulators.rules")
+    ananicy_launchers_path = os.path.join(ananicy_root_path, "00-default", "Games", "launchers.rules")
+    ananicy_waydroid_path = os.path.join(ananicy_root_path, "00-default", "Games", "waydroid.rules")
 
     all_games = []
     all_games.extend(add_games_from_rules_recursive(ananicy_native_games_path))
     all_games.extend(add_games_from_rules_filepath(ananicy_emulators_path))
+    all_games.extend(add_games_from_rules_filepath(ananicy_launchers_path))
+    all_games.extend(add_games_from_rules_filepath(ananicy_waydroid_path))
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     write_process_name_matcher_code_file(os.path.join(script_dir, "native_games.c"), all_games)

@@ -7,7 +7,7 @@
 static const char *process_names_len_12[] = { "soh.appimage", "supertuxkart", "HytaleClient", "Vintagestory", "ut-bin-amd64", "fs-uae-devel", "xenia_canary", "shadPS4:Main", NULL };
 static const char *process_names_len_5[] = { "sober", "zdoom", "cen64", "mesen", "higan", "rpcs3", NULL };
 static const char *process_names_len_14[] = { "sober_services", "chocolate-doom", "CodenameEngine", "quakespasm-svn", "2ship.appimage", "rott-shareware", "unreal-bin-x86", "PPSSPPHeadless", NULL };
-static const char *process_names_len_15[] = { "UnleashedRecomp", "CoherentUI_Host", "linux_64_client", "rott-registered", "UnrealLinux.bin", "Quake3-UrT.i386", "DuckStation-x64", NULL };
+static const char *process_names_len_15[] = { "UnleashedRecomp", "CoherentUI_Host", "linux_64_client", "rott-registered", "UnrealLinux.bin", "Quake3-UrT.i386", "DuckStation-x64", "tarEN.Arknights", "xon.bluearchive", "o.GenshinImpact", "iHoYo.bh3global", "se.hkrpgoversea", "ng.grayraven.en", ".en.reverse1999", "ingwaves.global", "m.HoYoverse.Nap", NULL };
 static const char *process_names_len_10[] = { "sm64coopdx", "luanti.bin", "quakespasm", "srcds_i486", "rbdoom3bfg", "tyr-glqwcl", "ut-bin-x86", NULL };
 static const char *process_names_len_6[] = { "luanti", "Mobbos", "glhwcl", "hexen2", "dhewm3", "Funkin", "quake2", "gzdoom", "quake3", "ecwolf", "ut-bin", "fs-uae", "dosbox", NULL };
 static const char *process_names_len_11[] = { "PsychEngine", "devilutionx", "d1x-rebirth", "d2x-rebirth", "Kade Engine", "tyr-glquake", "xonotic-glx", "xonotic-sdl", "dolphin-emu", NULL };
@@ -17,12 +17,12 @@ static const char *process_names_len_9[] = { "openmohaa", "omohaaded", "berkeliu
 static const char *process_names_len_21[] = { "launch_openmohaa_base", NULL };
 static const char *process_names_len_29[] = { "launch_openmohaa_breakthrough", NULL };
 static const char *process_names_len_26[] = { "launch_openmohaa_spearhead", NULL };
-static const char *process_names_len_13[] = { "yamagi-quake2", NULL };
+static const char *process_names_len_13[] = { "yamagi-quake2", "prismlauncher", NULL };
 static const char *process_names_len_17[] = { "yamagi-quake2-git", "Zelda64Recompiled", "xonotic-local-sdl", NULL };
 static const char *process_names_len_3[] = { "0ad", "etl", "RMG", NULL };
 static const char *process_names_len_2[] = { "fm", "et", NULL };
 static const char *process_names_len_7[] = { "Etterna", "etterna", "vkquake", "melonDS", "ryujinx", "sdlmame", "scummvm", "blastem", "redream", "shadps4", NULL };
-static const char *process_names_len_16[] = { "unreal-bin-amd64", "xenia_canary.exe", NULL };
+static const char *process_names_len_16[] = { "unreal-bin-amd64", "xenia_canary.exe", "elyprismlauncher", NULL };
 
 bool is_process_name_native_game(const char *process_name, size_t size) {
     switch(size) {
