@@ -2,6 +2,7 @@
 #include "../include/Config.hpp"
 #include "../include/GsrInfo.hpp"
 
+#include <mglpp/graphics/Text.hpp>
 #include <cmath>
 #include <assert.h>
 
@@ -40,10 +41,14 @@ namespace gsr {
         window_width = window_size.x;
         window_height = window_size.y;
 
-        theme->title_font_desc = std::string("Noto Sans Bold ") + std::to_string(std::round(std::max(16.0f, window_size.y * 0.019f)/1.8));
-        theme->top_bar_font_desc = std::string("Noto Sans Bold ") + std::to_string(std::round(std::max(23.0f, window_size.y * 0.03f)/1.8));
-        theme->body_font_desc = std::string("Noto Sans ") + std::to_string(std::round(std::max(13.0f, window_size.y * 0.015f)/1.8));
-        theme->camera_setup_font_desc = "Noto Sans 14";
+        std::string default_font_name = mgl::Text::get_default_font_name();
+        if(default_font_name.empty())
+            default_font_name = "Sans";
+
+        theme->title_font_desc = default_font_name + std::string(" Bold ") + std::to_string(std::round(std::max(16.0f, window_size.y * 0.019f)/1.8));
+        theme->top_bar_font_desc = default_font_name + std::string(" Bold ") + std::to_string(std::round(std::max(23.0f, window_size.y * 0.03f)/1.8));
+        theme->body_font_desc = default_font_name + std::string(" ") + std::to_string(std::round(std::max(13.0f, window_size.y * 0.015f)/1.8));
+        theme->camera_setup_font_desc = default_font_name + " 14";
 
         return true;
     }
