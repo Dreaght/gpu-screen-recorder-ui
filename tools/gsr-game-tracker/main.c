@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <locale.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/connector.h>
@@ -96,26 +97,7 @@ static size_t get_argv_len(const char *cmdline, size_t size) {
 static const char* memchr_reverse(const char *p, int c, size_t size) {
     for(size_t i = 0; i < size; ++i) {
         if(p[size - 1 - i] == c)
-            return p + i;
-    }
-    return NULL;
-}
-
-static const char* get_arg_by_index(const char *cmdline, size_t size, size_t index) {
-    size_t current_index = 0;
-    size_t cmdline_index = 0;
-    while (index < size) {
-        const char *arg_start = cmdline + cmdline_index;
-        const char *arg_end = memchr(arg_start, '\0', size - cmdline_index);
-        if(!arg_end)
-            break;
-
-        const size_t arg_len = arg_end - arg_start;
-        if(current_index == index)
-            return arg_start;
-
-        cmdline_index += arg_len + 1;
-        current_index += 1;
+            return &p[size - 1 - i];
     }
     return NULL;
 }
@@ -125,12 +107,7 @@ static bool memeql(const char *haystack, size_t haystack_size, const char *needl
     return haystack_size == needle_size && memcmp(haystack, needle, needle_size) == 0;
 }
 
-static bool starts_with(const char *haystack, size_t haystack_size, const char *needle) {
-    const size_t needle_size = strlen(needle);
-    return haystack_size >= needle_size && memcmp(haystack, needle, needle_size) == 0;
-}
-
-static int is_wine_binary(const char *argv0, size_t size) {
+static bool is_wine_binary(const char *argv0, size_t size) {
     const char *base = memchr_reverse(argv0, '/', size);
     base = base ? base + 1 : argv0;
     const size_t base_len = argv0 + size - base;
@@ -140,14 +117,21 @@ static int is_wine_binary(const char *argv0, size_t size) {
            memeql(base, base_len, "wine64-preloader");
 }
 
-static int has_game_arch_suffix(const char *argv0, size_t size) {
+static bool is_wine_server(const char *argv0, size_t size) {
+    const char *base = memchr_reverse(argv0, '/', size);
+    base = base ? base + 1 : argv0;
+    const size_t base_len = argv0 + size - base;
+    return memeql(base, base_len, "wineserver");
+}
+
+static bool has_game_arch_suffix(const char *argv0, size_t size) {
     static const char *suffixes[] = { ".x86_64", ".x64", ".x86" };
     for (int i = 0; i < 3; i++) {
         const size_t slen = strlen(suffixes[i]);
         if (size >= slen && memcmp(argv0 + size - slen, suffixes[i], slen) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 static void check_process(pid_t pid) {
@@ -155,24 +139,27 @@ static void check_process(pid_t pid) {
 
     char    path[64];
     ssize_t env_n, cmd_n;
-    bool is_steam_fossilize = false;
-    bool is_stream_script = false;
-    /* Proton launched outside steam has this while it doesn't have SteamAppId nor is the process called wine */
-    bool has_wine_prefix_env = false;
+    bool is_steam_app = false;
+    const char *steam_overlay_game_id = NULL;
+    /* Proton launched for a non-steam game has this while it doesn't have SteamAppId nor is the process called wine */
+    bool has_wine_env = false;
 
     snprintf(path, sizeof(path), "/proc/%d/environ", pid);
     env_n = read_file(path, environ_buf, sizeof(environ_buf));
 
     if (env_n > 0) {
-        is_steam_fossilize = env_get(environ_buf, env_n, "STEAM_FOSSILIZE_DUMP_PATH_READ_ONLY");
-        is_stream_script = env_get(environ_buf, env_n, "STEAMSCRIPT_VERSION");
-        has_wine_prefix_env = env_get(environ_buf, env_n, "WINEPREFIX");
-        const char *appid = env_get(environ_buf, env_n, "SteamAppId");
+        steam_overlay_game_id = env_get(environ_buf, env_n, "SteamOverlayGameId"); /* This is set for non-steam games added to steam library */
+        const char *appid = env_get(environ_buf, env_n, "SteamAppId"); /* This is set for regular steam apps */
         if (!appid) appid = env_get(environ_buf, env_n, "SteamGameId");
+        if (!appid) appid = steam_overlay_game_id;
         if (appid && appid[0] >= '1' && appid[0] <= '9') {
             add_game(pid);
             return;
         }
+
+        has_wine_env = env_get(environ_buf, env_n, "WINELOADER") != NULL;
+        has_wine_env = has_wine_env || (env_get(environ_buf, env_n, "WINELOADERNOEXEC") != NULL);
+        is_steam_app = env_get(environ_buf, env_n, "STEAM_BASE_FOLDER") != NULL;
     }
 
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
@@ -183,20 +170,23 @@ static void check_process(pid_t pid) {
     const char *argv0 = cmdline_buf;
     const size_t argv0_len = get_argv_len(cmdline_buf, cmd_n);
 
-    const char *argv1 = get_arg_by_index(cmdline_buf, cmd_n, 1);
-    const size_t argv1_len = argv1 ? get_argv_len(argv1, cmdline_buf + cmd_n - argv1) : 0;
+    const char *argv1 = cmdline_buf + argv0_len + 1;
+    const size_t argv1_len = (size_t)cmd_n > argv0_len + 1 ? get_argv_len(argv1, cmd_n - (argv0_len + 1)) : 0;
 
-    if (cmd_n > 0 && (is_wine_binary(argv0, argv0_len) || has_game_arch_suffix(argv0, argv0_len) || has_wine_prefix_env)
-        && !is_steam_fossilize
-        && !is_stream_script
+    if (cmd_n > 0 && (is_wine_binary(argv0, argv0_len) || has_game_arch_suffix(argv0, argv0_len) || has_wine_env)
+        && !is_wine_server(argv0, argv0_len)
         && !memeql(argv1, argv1_len, "--version")
-        && !starts_with(argv0, argv0_len, "C:\\windows\\system32"))
+        && (!is_steam_app || steam_overlay_game_id != NULL))
     {
-        // fprintf(stderr, "env: ");
-        // write(STDOUT_FILENO, environ_buf, env_n);
-        // fprintf(stderr, "\ncmdline: ");
-        // write(STDOUT_FILENO, cmdline_buf, cmd_n);
-        // fprintf(stderr, "\n");
+        //fprintf(stderr, "argv0: |%.*s|\n", (int)argv0_len, argv0);
+        //fprintf(stderr, "*******\n");
+        //fprintf(stderr, "env: ");
+        //write(STDOUT_FILENO, environ_buf, env_n);
+        //fprintf(stderr, "\ncmdline: ");
+        //write(STDOUT_FILENO, cmdline_buf, cmd_n);
+        //fprintf(stderr, "\n");
+        //fprintf(stderr, "*******\n");
+        //fprintf(stderr, "\n\n\n");
         add_game(pid);
     }
 }
@@ -301,6 +291,8 @@ static void scan_existing_processes(void) {
 }
 
 int main(void) {
+    setlocale(LC_ALL, "C"); // Sigh... stupid C
+
     memset(games, 0, sizeof(games));
 
     int sock = setup_netlink();
