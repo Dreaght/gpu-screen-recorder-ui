@@ -144,6 +144,7 @@ executable(
 executable(
     'gsr-game-tracker',
     [
+        'tools/gsr-game-tracker/native_games.c',
         'tools/gsr-game-tracker/main.c'
     ],
     install : true

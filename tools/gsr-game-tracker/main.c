@@ -1,3 +1,5 @@
+#include "native_games.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -107,28 +109,30 @@ static bool memeql(const char *haystack, size_t haystack_size, const char *needl
     return haystack_size == needle_size && memcmp(haystack, needle, needle_size) == 0;
 }
 
-static bool is_wine_binary(const char *argv0, size_t size) {
-    const char *base = memchr_reverse(argv0, '/', size);
+static const char* process_get_basename(const char *argv0, size_t argv0_len, size_t *basename_len) {
+    *basename_len = 0;
+    const char *base = memchr_reverse(argv0, '/', argv0_len);
     base = base ? base + 1 : argv0;
-    const size_t base_len = argv0 + size - base;
-    return memeql(base, base_len, "wine") ||
-           memeql(base, base_len, "wine64") ||
-           memeql(base, base_len, "wine-preloader") ||
-           memeql(base, base_len, "wine64-preloader");
+    *basename_len = argv0 + argv0_len - base;
+    return base;
 }
 
-static bool is_wine_server(const char *argv0, size_t size) {
-    const char *base = memchr_reverse(argv0, '/', size);
-    base = base ? base + 1 : argv0;
-    const size_t base_len = argv0 + size - base;
-    return memeql(base, base_len, "wineserver");
+static bool is_wine_binary(const char *process_basename, size_t process_basename_len) {
+    return memeql(process_basename, process_basename_len, "wine") ||
+           memeql(process_basename, process_basename_len, "wine64") ||
+           memeql(process_basename, process_basename_len, "wine-preloader") ||
+           memeql(process_basename, process_basename_len, "wine64-preloader");
 }
 
-static bool has_game_arch_suffix(const char *argv0, size_t size) {
+static bool is_wine_server(const char *process_basename, size_t process_basename_len) {
+    return memeql(process_basename, process_basename_len, "wineserver");
+}
+
+static bool has_game_arch_suffix(const char *process_basename, size_t process_basename_len) {
     static const char *suffixes[] = { ".x86_64", ".x64", ".x86" };
     for (int i = 0; i < 3; i++) {
         const size_t slen = strlen(suffixes[i]);
-        if (size >= slen && memcmp(argv0 + size - slen, suffixes[i], slen) == 0)
+        if (process_basename_len >= slen && memcmp(process_basename + process_basename_len - slen, suffixes[i], slen) == 0)
             return true;
     }
     return false;
@@ -173,8 +177,15 @@ static void check_process(pid_t pid) {
     const char *argv1 = cmdline_buf + argv0_len + 1;
     const size_t argv1_len = (size_t)cmd_n > argv0_len + 1 ? get_argv_len(argv1, cmd_n - (argv0_len + 1)) : 0;
 
-    if (cmd_n > 0 && (is_wine_binary(argv0, argv0_len) || has_game_arch_suffix(argv0, argv0_len) || has_wine_env)
-        && !is_wine_server(argv0, argv0_len)
+    size_t process_basename_len = 0;
+    const char *process_basename = process_get_basename(argv0, argv0_len, &process_basename_len);
+
+    if (cmd_n > 0
+        && (is_wine_binary(process_basename, process_basename_len)
+            || has_game_arch_suffix(process_basename, process_basename_len)
+            || has_wine_env
+            || is_process_name_native_game(process_basename, process_basename_len))
+        && !is_wine_server(process_basename, process_basename_len)
         && !memeql(argv1, argv1_len, "--version")
         && (!is_steam_app || steam_overlay_game_id != NULL))
     {
