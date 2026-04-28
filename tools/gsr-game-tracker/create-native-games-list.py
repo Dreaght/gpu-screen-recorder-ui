@@ -13,7 +13,11 @@ def extract_non_tracked_games(filepath):
             if line.startswith("#"):
                 is_steam_game = "steam" in line
             elif line.startswith("{") and not is_steam_game:
-                game_name = json.loads(line)["name"]
+                app_info = json.loads(line)
+                if app_info["type"] != "Game":
+                    continue
+
+                game_name = app_info["name"]
                 if not game_name.endswith(".x86_64") and not game_name.endswith(".x86") and not game_name.endswith(".x64"):
                     game_names.append(json.loads(line)["name"])
     return game_names
