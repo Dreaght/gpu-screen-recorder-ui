@@ -35,6 +35,8 @@ def write_process_name_matcher_code_file(filepath, all_games):
         l.append(game)
         games_by_len[len(game)] = l
 
+    games_by_len = dict(sorted(games_by_len.items()))
+
     with open(filepath, "w") as file:
         file.write(
             '#include "native_games.h"\n'
@@ -57,11 +59,11 @@ def write_process_name_matcher_code_file(filepath, all_games):
             file.write(
                 "        case %d: {\n"
                 "            for(size_t i = 0; process_names_len_%d[i] != NULL; ++i) {\n"
-                "                if(memcmp(process_name, process_names_len_%d[i], size) == 0)\n"
+                "                if(memcmp(process_name, process_names_len_%d[i], %d) == 0)\n"
                 "                    return true;\n"
                 "            }\n"
                 "            return false;\n"
-                "        }\n" % (game_len, game_len, game_len))
+                "        }\n" % (game_len, game_len, game_len, game_len))
 
         file.write(
             "        default: {\n"
