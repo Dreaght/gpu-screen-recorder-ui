@@ -21,7 +21,7 @@ static const char *process_names_len_13[] = { "yamagi-quake2", "prismlauncher", 
 static const char *process_names_len_17[] = { "yamagi-quake2-git", "Zelda64Recompiled", "xonotic-local-sdl", NULL };
 static const char *process_names_len_3[] = { "0ad", "etl", "RMG", "etr", NULL };
 static const char *process_names_len_2[] = { "fm", "et", NULL };
-static const char *process_names_len_7[] = { "Etterna", "etterna", "vkquake", "melonDS", "ryujinx", "sdlmame", "scummvm", "blastem", "redream", "shadps4", NULL };
+static const char *process_names_len_7[] = { "Etterna", "etterna", "vkquake", "melonDS", "ryujinx", "sdlmame", "scummvm", "blastem", "redream", "shadps4", "TETR.IO", NULL };
 static const char *process_names_len_16[] = { "unreal-bin-amd64", "xenia_canary.exe", "elyprismlauncher", NULL };
 
 bool is_process_name_native_game(const char *process_name, size_t size) {

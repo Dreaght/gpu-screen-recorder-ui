@@ -2218,10 +2218,8 @@ namespace gsr {
                 return;
 
             if(strncmp(line, "Game launched", 13) == 0) {
-                game_running = true;
                 game_replay_action = GameReplayAction::START;
             } else if(strncmp(line, "Game exited", 11) == 0) {
-                game_running = false;
                 game_replay_action = GameReplayAction::STOP;
             }
 

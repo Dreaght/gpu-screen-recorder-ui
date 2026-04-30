@@ -107,6 +107,7 @@ def main():
     all_games.extend(add_games_from_rules_filepath(ananicy_waydroid_path))
     all_games.append("supertux2")
     all_games.append("etr") # extreme tux racer
+    all_games.append("TETR.IO")
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     write_process_name_matcher_code_file(os.path.join(script_dir, "native_games.c"), all_games)

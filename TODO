@@ -261,4 +261,4 @@ Show vulkan codec options.
 
 Use wlroots protocol for region selection, if the protocol is available.
 
-Fix kwin wayland and hyprland window title. Make it work on gnome as well.
+Make window title stuff work on gnome (requires an extension).

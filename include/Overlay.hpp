@@ -266,7 +266,6 @@ namespace gsr {
         int gsr_game_tracker_process_output_fd = -1;
         FILE *gsr_game_tracker_process_output_file = nullptr;
         pid_t gsr_game_tracker_process_id = -1;
-        bool game_running = false;
         GameReplayAction game_replay_action = GameReplayAction::IDLE;
 
         struct wl_display *wayland_dpy = nullptr;
