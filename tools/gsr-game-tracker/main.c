@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <locale.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/connector.h>
@@ -50,9 +51,7 @@ static void add_game(pid_t pid) {
     }
 }
 
-static void remove_game(pid_t pid) {
-    int slot = find_slot_by_pid(pid);
-    if (slot < 0) return;
+static void remove_game_by_slot(int slot) {
     games[slot] = 0;
     if (--game_count == 0) {
         printf("Game exited\n");
@@ -60,12 +59,18 @@ static void remove_game(pid_t pid) {
     }
 }
 
+static void remove_game(pid_t pid) {
+    int slot = find_slot_by_pid(pid);
+    if (slot < 0) return;
+    remove_game_by_slot(slot);
+}
+
 static ssize_t read_file(const char *path, char *buf, size_t size) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) return -1;
     ssize_t n = read(fd, buf, size - 1);
     close(fd);
-    if (n > 0) buf[n] = '\0';
+    if (n >= 0) buf[n] = '\0';
     return n;
 }
 
@@ -180,8 +185,7 @@ static void check_process(pid_t pid) {
     size_t process_basename_len = 0;
     const char *process_basename = process_get_basename(argv0, argv0_len, &process_basename_len);
 
-    if (cmd_n > 0
-        && (is_wine_binary(process_basename, process_basename_len)
+    if ((is_wine_binary(process_basename, process_basename_len)
             || has_game_arch_suffix(process_basename, process_basename_len)
             || has_wine_env
             || is_process_name_native_game(process_basename, process_basename_len))
@@ -230,6 +234,8 @@ static void process_netlink_msg(const char *buf, size_t len) {
         if (cn->id.idx != CN_IDX_PROC || cn->id.val != CN_VAL_PROC)
             continue;
         if (cn->len < sizeof(struct proc_event))
+            continue;
+        if ((size_t)(nl->nlmsg_len - NLMSG_HDRLEN - sizeof(struct cn_msg)) < cn->len)
             continue;
         handle_proc_event((const struct proc_event *)cn->data);
     }
@@ -283,6 +289,13 @@ static int setup_netlink(void) {
     return sock;
 }
 
+static void sweep_dead_games(void) {
+    for (int i = 0; i < MAX_GAMES; i++) {
+        if (games[i] && kill(games[i], 0) < 0 && errno == ESRCH)
+            remove_game_by_slot(games[i]);
+    }
+}
+
 static void scan_existing_processes(void) {
     DIR *d = opendir("/proc");
     if (!d) return;
@@ -312,13 +325,27 @@ int main(void) {
     scan_existing_processes();
 
     for (;;) {
-        ssize_t n = recv(sock, recv_buf, sizeof(recv_buf), 0);
+        ssize_t n = recv(sock, recv_buf, sizeof(recv_buf), MSG_TRUNC);
         if (n < 0) {
-            if (errno == EINTR) continue;
-            if (errno == ENOBUFS) { scan_existing_processes(); continue; }
-            perror("recv");
-            break;
+            if (errno == EINTR) {
+                continue;
+            } else if (errno == ENOBUFS) {
+                sweep_dead_games();
+                scan_existing_processes();
+                continue;
+            } else {
+                perror("recv");
+                break;
+            }
         }
+
+        if ((size_t)n > sizeof(recv_buf)) {
+            /* Datagram larger than recv_buf was truncated; we may have lost events. */
+            sweep_dead_games();
+            scan_existing_processes();
+            continue;
+        }
+
         process_netlink_msg(recv_buf, (size_t)n);
     }
 
