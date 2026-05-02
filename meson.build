@@ -71,7 +71,7 @@ gsr_ui_resources_path = join_paths(prefix, datadir, 'gsr-ui')
 icons_path = join_paths(prefix, datadir, 'icons')
 
 add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', language: ['c', 'cpp'])
-add_project_arguments('-DGSR_FLATPAK_VERSION="5.13.2"', language: ['c', 'cpp'])
+add_project_arguments('-DGSR_FLATPAK_VERSION="5.13.3"', language: ['c', 'cpp'])
 
 add_project_arguments('-DKWIN_HELPER_SCRIPT_PATH="' + gsr_ui_resources_path + '/gsrkwinhelper.js"', language: ['c', 'cpp'])
 
