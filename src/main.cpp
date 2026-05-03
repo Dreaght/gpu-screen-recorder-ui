@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
     if(launch_action == LaunchAction::LAUNCH_SHOW)
         overlay->show();
     else if(launch_action == LaunchAction::LAUNCH_HIDE_ANNOUNCE)
-        overlay->show_notification("Press Alt+Z to open the GPU Screen Recorder UI", 5.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color, gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
+        overlay->show_notification(TR("Press Alt+Z to open the GPU Screen Recorder UI"), 5.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color, gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
 
     rpc_add_commands(rpc.get(), overlay.get());
 

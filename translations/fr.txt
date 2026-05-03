@@ -1,7 +1,6 @@
-# GPU Screen Recorder UI - translation template
+# GPU Screen Recorder UI - French translation
 
-# Important warning: we f'ed up a little bit and used %s for both strings and numbers in some places, such as time durations (they're fixed by the moment).
-# When translating, be careful to use the %d format specifier for numbers in those places.
+Press Alt+Z to open the GPU Screen Recorder UI=Appuyez sur Alt+Z pour ouvrir l’interface GPU Screen Recorder
 
 # General UI
 Record=Enregistrer

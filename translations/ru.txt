@@ -1,5 +1,7 @@
 # GPU Screen Recorder UI - Russian Translation
 
+Press Alt+Z to open the GPU Screen Recorder UI=Нажмите Alt+Z, чтобы открыть интерфейс GPU Screen Recorder
+
 # General UI
 Record=Запись
 Instant Replay=Мгновенный повтор

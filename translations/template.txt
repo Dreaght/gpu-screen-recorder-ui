@@ -5,6 +5,8 @@
 # Note that all translation strings should be on one line in these translation files. Some translations need to be on multiple lines and the newline character
 # should be replaced with \n.
 
+Press Alt+Z to open the GPU Screen Recorder UI=
+
 # General UI
 Record=
 Instant Replay=

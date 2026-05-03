@@ -1,5 +1,7 @@
 # GPU Screen Recorder UI - Ukrainian Translation
 
+Press Alt+Z to open the GPU Screen Recorder UI=Натисніть Alt+Z, щоб відкрити інтерфейс GPU Screen Recorder
+
 # General UI
 Record=Запис
 Instant Replay=Миттєвий повтор

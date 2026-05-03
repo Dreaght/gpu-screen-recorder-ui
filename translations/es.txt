@@ -1,5 +1,7 @@
 # GPU Screen Recorder UI - Spanish translation
 
+Press Alt+Z to open the GPU Screen Recorder UI=Presiona Alt+Z para abrir la interfaz de GPU Screen Recorder
+
 # General UI
 Record=Grabar
 Instant Replay=Repetición Instantánea
