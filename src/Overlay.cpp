@@ -12,7 +12,7 @@
 #include "../include/gui/Utils.hpp"
 #include "../include/Translation.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentX11.hpp"
-#include "../include/DesktopEnvironment/DesktopEnvironmentHyprland.hpp"
+#include "../include/DesktopEnvironment/DesktopEnvironmentWlroots.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
@@ -580,17 +580,16 @@ namespace gsr {
             supports_window_title = true;
         } else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             const std::string wm_name = x11_dpy ? get_window_manager_name(x11_dpy) : "";
-            const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
             const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
 
             if(!this->gsr_info.gpu_info.card_path.empty())
                 cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
 
-            if(is_hyprland) {
-                desktop_environment = std::make_unique<DesktopEnvironmentHyprland>();
-                supports_window_title = true;
-            } else if(is_kwin_wayland) {
+            if(is_kwin_wayland) {
                 desktop_environment = std::make_unique<DesktopEnvironmentKde>();
+                supports_window_title = true;
+            } else if(DesktopEnvironmentWlroots::is_supported(wayland_dpy)) {
+                desktop_environment = std::make_unique<DesktopEnvironmentWlroots>(wayland_dpy);
                 supports_window_title = true;
             } else {
                 desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
@@ -668,6 +667,7 @@ namespace gsr {
 
         led_indicator.reset();
         region_selector.reset();
+        desktop_environment.reset();
 
         close_gsr_game_tracker_output();
         close_gpu_screen_recorder_output();

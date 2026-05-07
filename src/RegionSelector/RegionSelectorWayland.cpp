@@ -14,10 +14,8 @@
 
 #include <wayland-client.h>
 #define namespace _namespace
-extern "C" {
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
-}
 #undef namespace
 
 #include <mglpp/system/Rect.hpp>

@@ -248,7 +248,7 @@ Get wayland cursor position for region selector, otherwise the start position be
 
 Add option to set preset on nvidia. Use -ffmpeg-video-opts for that.
 
-Webcam resolution list is too long for some people. Fix it by separating resolution and framerate. Sort resolution and framerate from highest to lowest. Add scrollbar for dropdown list. POOP. Add --filesystem=xdg-run/hypr and run the gsr-hyprland-helper directly instead of flatpak spawn or use wlr foreign top level window protocol. Nvidia webcam yuyv capture doesn't seem to work on x11?
+Webcam resolution list is too long for some people. Fix it by separating resolution and framerate. Sort resolution and framerate from highest to lowest. Add scrollbar for dropdown list. POOP.
 
 Allow settings page to select input capture option/audio, to make sure it doesn't blindly select the default option when the sources aren't temporary available when opening the settings.
 

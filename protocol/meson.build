@@ -18,6 +18,7 @@ protocols = [
 	'xdg-output-unstable-v1.xml',
 	'xdg-shell.xml',
 	'wlr-layer-shell-unstable-v1.xml',
+	'wlr-foreign-toplevel-management-unstable-v1.xml',
 ]
 
 protocol_src = []

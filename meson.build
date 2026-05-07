@@ -43,7 +43,7 @@ src = [
     'src/RegionSelector/RegionSelectorX11.cpp',
     'src/RegionSelector/RegionSelectorWayland.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentX11.cpp',
-    'src/DesktopEnvironment/DesktopEnvironmentHyprland.cpp',
+    'src/DesktopEnvironment/DesktopEnvironmentWlroots.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentKde.cpp',
     'src/Utils.cpp',
     'src/WindowUtils.cpp',
@@ -132,14 +132,6 @@ install_data(
     'tools/gsr-kwin-helper/gsrkwinhelper.js',
     install_dir: gsr_ui_resources_path,
     install_mode: 'rwxr-xr-x'
-)
-
-executable(
-    'gsr-hyprland-helper',
-    [
-        'tools/gsr-hyprland-helper/main.c'
-    ],
-    install : true
 )
 
 executable(
