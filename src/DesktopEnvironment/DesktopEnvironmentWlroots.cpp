@@ -10,6 +10,7 @@
 namespace gsr {
     namespace {
         struct ToplevelState {
+            DesktopEnvironmentWlroots::Impl *owner = nullptr;
             struct zwlr_foreign_toplevel_handle_v1 *handle = nullptr;
             std::string title;
             std::string app_id;
@@ -83,20 +84,13 @@ namespace gsr {
             toplevel_handle_closed, toplevel_handle_parent,
         };
 
-        struct ToplevelOwnerLink {
-            DesktopEnvironmentWlroots::Impl *owner;
-            ToplevelState *state;
-        };
-
-        std::vector<std::unique_ptr<ToplevelOwnerLink>> g_links;
-
         void toplevel_handle_done(void *data, struct zwlr_foreign_toplevel_handle_v1*) {
-            ToplevelOwnerLink *link = (ToplevelOwnerLink*)data;
-            ToplevelState *top = link->state;
+            ToplevelState *top = (ToplevelState*)data;
             top->title = top->pending_title;
             top->app_id = top->pending_app_id;
             top->activated = top->pending_activated;
-            link->owner->recompute_focused_title();
+            if(top->owner)
+                top->owner->recompute_focused_title();
         }
 
         void toplevel_manager_toplevel(void *data, struct zwlr_foreign_toplevel_manager_v1*,
@@ -104,14 +98,10 @@ namespace gsr {
         {
             DesktopEnvironmentWlroots::Impl *impl = (DesktopEnvironmentWlroots::Impl*)data;
             auto top = std::make_unique<ToplevelState>();
+            top->owner = impl;
             top->handle = handle;
 
-            auto link = std::make_unique<ToplevelOwnerLink>();
-            link->owner = impl;
-            link->state = top.get();
-
-            zwlr_foreign_toplevel_handle_v1_add_listener(handle, &toplevel_handle_listener, link.get());
-            g_links.push_back(std::move(link));
+            zwlr_foreign_toplevel_handle_v1_add_listener(handle, &toplevel_handle_listener, top.get());
             impl->toplevels.push_back(std::move(top));
         }
 
@@ -162,13 +152,6 @@ namespace gsr {
             }
         }
         toplevels.clear();
-
-        for(auto it = g_links.begin(); it != g_links.end(); ) {
-            if((*it)->owner == this)
-                it = g_links.erase(it);
-            else
-                ++it;
-        }
 
         if(toplevel_manager) {
             zwlr_foreign_toplevel_manager_v1_stop(toplevel_manager);

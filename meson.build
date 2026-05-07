@@ -47,6 +47,7 @@ src = [
     'src/DesktopEnvironment/DesktopEnvironmentKde.cpp',
     'src/Utils.cpp',
     'src/WindowUtils.cpp',
+    'src/WaylandHostBridge.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
     'src/Process.cpp',
@@ -113,6 +114,14 @@ executable(
     'gsr-ui-cli',
     [
         'tools/gsr-ui-cli/main.c'
+    ],
+    install : true
+)
+
+executable(
+    'gsr-wayland-bridge',
+    [
+        'tools/gsr-wayland-bridge/main.c'
     ],
     install : true
 )

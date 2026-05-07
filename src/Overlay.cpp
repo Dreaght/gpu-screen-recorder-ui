@@ -1,4 +1,5 @@
 #include "../include/Overlay.hpp"
+#include "../include/WaylandHostBridge.hpp"
 #include "../include/Theme.hpp"
 #include "../include/Config.hpp"
 #include "../include/Process.hpp"
@@ -527,7 +528,7 @@ namespace gsr {
         close_button_widget({0.0f, 0.0f})
     {
         if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
-            wayland_dpy = wl_display_connect(nullptr);
+            wayland_dpy = wayland_connect_to_host();
             if(!wayland_dpy)
                 fprintf(stderr, "Warning: failed to connect to the wayland server\n");
         } else {
