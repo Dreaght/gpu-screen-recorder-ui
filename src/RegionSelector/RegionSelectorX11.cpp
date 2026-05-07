@@ -1,9 +1,10 @@
-#include "../include/RegionSelector.hpp"
+#include "../../include/RegionSelector/RegionSelectorX11.hpp"
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
+#include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/Xrandr.h>
@@ -269,29 +270,28 @@ namespace gsr {
         return std::nullopt;
     }
 
-    RegionSelector::RegionSelector() {
-        
+    RegionSelectorX11::RegionSelectorX11(Display *dpy) : dpy(dpy) {
+
     }
 
-    RegionSelector::~RegionSelector() {
+    RegionSelectorX11::~RegionSelectorX11() {
         stop();
     }
 
-    bool RegionSelector::start(SelectionType selection_type, mgl::Color border_color) {
-        if(dpy)
+    bool RegionSelectorX11::start(SelectionType selection_type, mgl::Color border_color) {
+        if(started)
             return false;
 
-        const unsigned long border_color_x11 = mgl_color_to_x11_color(border_color);
-        dpy = XOpenDisplay(nullptr);
         if(!dpy) {
-            fprintf(stderr, "Error: RegionSelector::start: failed to connect to the X11 server\n");
+            fprintf(stderr, "Error: RegionSelectorX11::start: no X11 display\n");
             return false;
         }
 
+        const unsigned long border_color_x11 = mgl_color_to_x11_color(border_color);
+
         xi_opcode = 0;
         if(!xinput_is_supported(dpy, &xi_opcode)) {
-            fprintf(stderr, "Error: RegionSelector::start: xinput not supported on your system\n");
-            stop();
+            fprintf(stderr, "Error: RegionSelectorX11::start: xinput not supported on your system\n");
             return false;
         }
 
@@ -319,7 +319,7 @@ namespace gsr {
         region_window = XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0, XWidthOfScreen(screen), XHeightOfScreen(screen), 0,
             vinfo.depth, InputOutput, vinfo.visual, CWBackPixel | CWBorderPixel | CWOverrideRedirect | CWEventMask | CWColormap, &window_attr);
         if(!region_window) {
-            fprintf(stderr, "Error: RegionSelector::start: failed to create region window\n");
+            fprintf(stderr, "Error: RegionSelectorX11::start: failed to create region window\n");
             stop();
             return false;
         }
@@ -331,7 +331,7 @@ namespace gsr {
         if(!is_wayland) {
             cursor_window = create_cursor_window(dpy, cursor_window_size, cursor_window_size, &vinfo, border_color_x11);
             if(!cursor_window)
-                fprintf(stderr, "Warning: RegionSelector::start: failed to create cursor window\n");
+                fprintf(stderr, "Warning: RegionSelectorX11::start: failed to create cursor window\n");
             set_region_rectangle(dpy, region_window, 0, 0, 0, 0, 0);
         }
 
@@ -350,7 +350,7 @@ namespace gsr {
         cursor_gc = XCreateGC(dpy, region_window, GCForeground | GCLineWidth | GCLineStyle, &cursor_gc_values);
 
         if(!region_gc || !cursor_gc) {
-            fprintf(stderr, "Error: RegionSelector::start: failed to create gc\n");
+            fprintf(stderr, "Error: RegionSelectorX11::start: failed to create gc\n");
             stop();
             return false;
         }
@@ -389,11 +389,12 @@ namespace gsr {
         selected = false;
         canceled = false;
         this->selection_type = selection_type;
+        started = true;
         return true;
     }
 
-    void RegionSelector::stop() {
-        if(!dpy)
+    void RegionSelectorX11::stop() {
+        if(!started)
             return;
 
         XWarpPointer(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), 0, 0, 0, 0, cursor_pos.x, cursor_pos.y);
@@ -428,78 +429,66 @@ namespace gsr {
         XFlush(dpy);
         XSync(dpy, False);
 
-        XCloseDisplay(dpy);
-        dpy = nullptr;
+        started = false;
         selecting_region = false;
         monitors.clear();
         windows.clear();
     }
 
-    bool RegionSelector::is_started() const {
-        return dpy != nullptr;
+    bool RegionSelectorX11::is_started() const {
+        return started;
     }
 
-    bool RegionSelector::failed() const {
+    bool RegionSelectorX11::failed() const {
         return !dpy;
     }
 
-    bool RegionSelector::poll_events() {
-        if(!dpy || selected)
-            return false;
+    void RegionSelectorX11::handle_event(void *native_event) {
+        if(!started || selected || !native_event)
+            return;
 
-        XEvent xev;
-        while(XPending(dpy)) {
-            XNextEvent(dpy, &xev);
+        XEvent *xev = (XEvent*)native_event;
 
-            if(xev.type == KeyRelease && XKeycodeToKeysym(dpy, xev.xkey.keycode, 0) == XK_Escape) {
-                canceled = true;
-                selected = false;
-                stop();
-                break;
-            }
-
-            XGenericEventCookie *cookie = &xev.xcookie;
-            if(cookie->type != GenericEvent || cookie->extension != xi_opcode || !XGetEventData(dpy, cookie))
-                continue;
-
-            const XIDeviceEvent *de = (XIDeviceEvent*)cookie->data;
-            switch(cookie->evtype) {
-                case XI_ButtonPress: {
-                    on_button_press(de);
-                    break;
-                }
-                case XI_ButtonRelease: {
-                    on_button_release(de);
-                    break;
-                }
-                case XI_Motion: {
-                    on_mouse_motion(de);
-                    break;
-                }
-            }
-            XFreeEventData(dpy, cookie);
-
-            if(selected) {
-                stop();
-                break;
-            }
+        if(xev->type == KeyRelease && XKeycodeToKeysym(dpy, xev->xkey.keycode, 0) == XK_Escape) {
+            canceled = true;
+            selected = false;
+            stop();
+            return;
         }
-        return true;
+
+        XGenericEventCookie *cookie = &xev->xcookie;
+        if(cookie->type != GenericEvent || cookie->extension != xi_opcode)
+            return;
+
+        const bool fetched = XGetEventData(dpy, cookie);
+        if(!fetched)
+            return;
+
+        const XIDeviceEvent *de = (XIDeviceEvent*)cookie->data;
+        switch(cookie->evtype) {
+            case XI_ButtonPress:   on_button_press(de);   break;
+            case XI_ButtonRelease: on_button_release(de); break;
+            case XI_Motion:        on_mouse_motion(de);   break;
+        }
+        XFreeEventData(dpy, cookie);
+
+        if(selected)
+            stop();
     }
 
-    bool RegionSelector::take_selection() {
+    bool RegionSelectorX11::take_selection() {
         const bool result = selected;
         selected = false;
         return result;
     }
 
-    bool RegionSelector::take_canceled() {
+    bool RegionSelectorX11::take_canceled() {
         const bool result = canceled;
         canceled = false;
         return result;
     }
 
-    Region RegionSelector::get_region_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const {
+    Region RegionSelectorX11::get_region_selection(Display *x11_dpy, struct wl_display *wayland_dpy) const {
         assert(selection_type == SelectionType::REGION);
         Region returned_region = region;
         if(is_wayland && x11_dpy && wayland_dpy)
@@ -507,7 +496,7 @@ namespace gsr {
         return returned_region;
     }
 
-    Window RegionSelector::get_window_selection() const {
+    Window RegionSelectorX11::get_window_selection() const {
         assert(selection_type == SelectionType::WINDOW);
         if(focused_window)
             return focused_window->window;
@@ -515,11 +504,11 @@ namespace gsr {
             return None;
     }
 
-    RegionSelector::SelectionType RegionSelector::get_selection_type() const {
+    RegionSelectorX11::SelectionType RegionSelectorX11::get_selection_type() const {
         return selection_type;
     }
 
-    void RegionSelector::on_button_press(const void *de) {
+    void RegionSelectorX11::on_button_press(const void *de) {
         const XIDeviceEvent *device_event = (XIDeviceEvent*)de;
         if(device_event->detail != Button1)
             return;
@@ -530,7 +519,7 @@ namespace gsr {
         }
     }
 
-    void RegionSelector::on_button_release(const void *de) {
+    void RegionSelectorX11::on_button_release(const void *de) {
         const XIDeviceEvent *device_event = (XIDeviceEvent*)de;
         if(device_event->detail != Button1)
             return;
@@ -586,7 +575,7 @@ namespace gsr {
         selected = true;
     }
 
-    void RegionSelector::on_mouse_motion(const void *de) {
+    void RegionSelectorX11::on_mouse_motion(const void *de) {
         const XIDeviceEvent *device_event = (XIDeviceEvent*)de;
         XClearWindow(dpy, region_window);
 

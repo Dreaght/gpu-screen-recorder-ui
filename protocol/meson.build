@@ -16,6 +16,8 @@ wayland_scanner_client = generator(
 
 protocols = [
 	'xdg-output-unstable-v1.xml',
+	'xdg-shell.xml',
+	'wlr-layer-shell-unstable-v1.xml',
 ]
 
 protocol_src = []

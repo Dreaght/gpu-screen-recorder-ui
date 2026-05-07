@@ -20,6 +20,8 @@
 #include "../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
 #include "../include/CursorTracker/CursorTrackerX11.hpp"
 #include "../include/CursorTracker/CursorTrackerWayland.hpp"
+#include "../include/RegionSelector/RegionSelectorX11.hpp"
+#include "../include/RegionSelector/RegionSelectorWayland.hpp"
 
 #include <iomanip>
 #include <string.h>
@@ -601,6 +603,11 @@ namespace gsr {
             }
         }
 
+        if(wayland_dpy && RegionSelectorWayland::is_supported(wayland_dpy))
+            region_selector = std::make_unique<RegionSelectorWayland>(wayland_dpy);
+        else
+            region_selector = std::make_unique<RegionSelectorX11>(x11_dpy);
+
         desktop_environment->start();
         update_led_indicator_after_settings_change();
 
@@ -660,6 +667,7 @@ namespace gsr {
         }
 
         led_indicator.reset();
+        region_selector.reset();
 
         close_gsr_game_tracker_output();
         close_gpu_screen_recorder_output();
@@ -824,7 +832,7 @@ namespace gsr {
         }
     }
 
-    void Overlay::handle_keyboard_mapping_event() {
+    void Overlay::handle_x11_events() {
         if(!x11_dpy)
             return;
 
@@ -838,10 +846,31 @@ namespace gsr {
                     break;
                 }
             }
+            region_selector->handle_event(&x11_xev);
         }
 
         if(mapping_updated)
             rebind_all_keyboard_hotkeys();
+    }
+
+    void Overlay::handle_wayland_events() {
+        if(!wayland_dpy)
+            return;
+
+        while(wl_display_prepare_read(wayland_dpy) != 0) {
+            wl_display_dispatch_pending(wayland_dpy);
+        }
+        wl_display_flush(wayland_dpy);
+
+        struct pollfd pfd = { wl_display_get_fd(wayland_dpy), POLLIN, 0 };
+        if(poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN)) {
+            wl_display_read_events(wayland_dpy);
+            wl_display_dispatch_pending(wayland_dpy);
+        } else {
+            wl_display_cancel_read(wayland_dpy);
+        }
+
+        region_selector->handle_event(nullptr);
     }
 
     void Overlay::handle_events() {
@@ -873,13 +902,13 @@ namespace gsr {
         }
 
         desktop_environment->update();
-        handle_keyboard_mapping_event();
+        handle_x11_events();
+        handle_wayland_events();
 
-        region_selector.poll_events();
-        if(region_selector.take_canceled()) {
+        if(region_selector->take_canceled()) {
             on_region_selected = nullptr;
-        } else if(region_selector.take_selection() && on_region_selected) {
-            switch(region_selector.get_selection_type()) {
+        } else if(region_selector->take_selection() && on_region_selected) {
+            switch(region_selector->get_selection_type()) {
                 case RegionSelector::SelectionType::NONE: {
                     break;
                 }
@@ -891,7 +920,7 @@ namespace gsr {
                     mgl_context *context = mgl_get_context();
                     Display *display = (Display*)context->connection;
 
-                    const Window selected_window = region_selector.get_window_selection();
+                    const Window selected_window = region_selector->get_window_selection();
                     if(selected_window && selected_window != DefaultRootWindow(display)) {
                         on_region_selected();
                     } else {
@@ -964,7 +993,7 @@ namespace gsr {
         if(start_region_capture) {
             start_region_capture = false;
             hide();
-            if(!region_selector.start(RegionSelector::SelectionType::REGION, get_color_theme().tint_color)) {
+            if(!region_selector->start(RegionSelector::SelectionType::REGION, get_color_theme().tint_color)) {
                 show_notification(TR("Failed to start region capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_region_selected = nullptr;
             }
@@ -973,13 +1002,13 @@ namespace gsr {
         if(start_window_capture) {
             start_window_capture = false;
             hide();
-            if(!region_selector.start(RegionSelector::SelectionType::WINDOW, get_color_theme().tint_color)) {
+            if(!region_selector->start(RegionSelector::SelectionType::WINDOW, get_color_theme().tint_color)) {
                 show_notification(TR("Failed to start window capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
                 on_region_selected = nullptr;
             }
         }
 
-        if(region_selector.is_started()) {
+        if(region_selector->is_started()) {
             usleep(5 * 1000); // 5 ms
             return true;
         }
@@ -1114,7 +1143,7 @@ namespace gsr {
         if(visible)
             return;
 
-        if(region_selector.is_started())
+        if(region_selector->is_started())
             return;
 
         drawn_first_frame = false;
@@ -2653,7 +2682,7 @@ namespace gsr {
     }
 
     void Overlay::add_region_command(std::vector<const char*> &args, char *region_str, int region_str_size) {
-        Region region = region_selector.get_region_selection(x11_dpy, wayland_dpy);
+        Region region = region_selector->get_region_selection(x11_dpy, wayland_dpy);
         if(region.size.x <= 32 && region.size.y <= 32) {
             region.size.x = 0;
             region.size.y = 0;
@@ -2737,7 +2766,7 @@ namespace gsr {
 
     std::string Overlay::get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options) {
         if(capture_target == "window") {
-            return std::to_string(region_selector.get_window_selection());
+            return std::to_string(region_selector->get_window_selection());
         } else if(capture_target == "focused_monitor") {
             std::optional<CursorInfo> cursor_info;
             if(cursor_tracker) {
@@ -2951,7 +2980,7 @@ namespace gsr {
     }
 
     bool Overlay::on_press_start_replay(bool disable_notification, bool finished_selection, bool launched_manually) {
-        if(region_selector.is_started())
+        if(region_selector->is_started())
             return false;
 
         switch(recording_status) {
@@ -3122,7 +3151,7 @@ namespace gsr {
     }
 
     void Overlay::on_press_start_record(bool finished_selection, RecordForceType force_type) {
-        if(region_selector.is_started())
+        if(region_selector->is_started())
             return;
 
         switch(recording_status) {
@@ -3394,7 +3423,7 @@ namespace gsr {
     }
 
     void Overlay::on_press_start_stream(bool finished_selection) {
-        if(region_selector.is_started())
+        if(region_selector->is_started())
             return;
 
         switch(recording_status) {
@@ -3551,7 +3580,7 @@ namespace gsr {
     }
 
     void Overlay::on_press_take_screenshot(bool finished_selection, ScreenshotForceType force_type) {
-        if(region_selector.is_started())
+        if(region_selector->is_started())
             return;
 
         if(gpu_screen_recorder_screenshot_process > 0) {

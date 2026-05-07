@@ -8,10 +8,10 @@
 #include "WindowUtils.hpp"
 #include "GlobalHotkeys/GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
-#include "RegionSelector.hpp"
 #include "ClipboardFile.hpp"
 #include "LedIndicator.hpp"
 #include "CursorTracker/CursorTracker.hpp"
+#include "RegionSelector/RegionSelector.hpp"
 #include "DesktopEnvironment/DesktopEnvironment.hpp"
 
 #include <mglpp/window/Window.hpp>
@@ -118,7 +118,8 @@ namespace gsr {
 
         void hide();
 
-        void handle_keyboard_mapping_event();
+        void handle_x11_events();
+        void handle_wayland_events();
         void on_event(mgl::Event &event);
 
         void recreate_global_hotkeys(std::string_view hotkey_option);
@@ -285,7 +286,7 @@ namespace gsr {
 
         AudioPlayer audio_player;
     
-        RegionSelector region_selector;
+        std::unique_ptr<RegionSelector> region_selector;
         bool start_region_capture = false;
         std::function<void()> on_region_selected;
 
