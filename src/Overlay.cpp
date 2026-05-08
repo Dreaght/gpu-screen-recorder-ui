@@ -1310,8 +1310,8 @@ namespace gsr {
             window->set_fullscreen(true);
 
         // Wayland compositors have retarded fullscreen animations that we cant disable in a proper way
-        // without messing up window position.
-        show_overlay_timeout_seconds = prevent_game_minimizing ? 0.0 : 0.15;
+        // without messing up window position. For now let wayland do that.
+        show_overlay_timeout_seconds = 0.0;
         show_overlay_clock.restart();
         draw();
     }
