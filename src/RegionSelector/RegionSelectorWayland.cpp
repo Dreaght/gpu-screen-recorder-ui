@@ -539,10 +539,8 @@ namespace gsr {
                 ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
                 ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
             zwlr_layer_surface_v1_set_exclusive_zone(out->layer_surface, -1);
-            zwlr_layer_surface_v1_set_keyboard_interactivity(out->layer_surface,
-                ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
-            zwlr_layer_surface_v1_set_size(out->layer_surface,
-                (uint32_t)out->logical_size.x, (uint32_t)out->logical_size.y);
+            zwlr_layer_surface_v1_set_keyboard_interactivity(out->layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            zwlr_layer_surface_v1_set_size(out->layer_surface, (uint32_t)out->logical_size.x, (uint32_t)out->logical_size.y);
 
             wl_surface_set_buffer_scale(out->surface, out->scale);
             wl_surface_commit(out->surface);
