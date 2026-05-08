@@ -35,8 +35,8 @@ namespace gsr {
     };
 
     namespace {
-        bool title_is_ignored(const std::string &title) {
-            return title == "gsr-ui" || title == "gsr-notify";
+        bool app_id_is_ignored(const std::string &app_id) {
+            return app_id == "gsr-ui" || app_id == "gsr-notify";
         }
 
         void toplevel_handle_title(void *data, struct zwlr_foreign_toplevel_handle_v1*, const char *title) {
@@ -133,15 +133,19 @@ namespace gsr {
     }
 
     void DesktopEnvironmentWlroots::Impl::recompute_focused_title() {
+        if(toplevels.empty()) {
+            focused_window_title.clear();
+            return;
+        }
+
         for(const auto &t : toplevels) {
             if(t->closed || !t->activated)
                 continue;
-            if(title_is_ignored(t->title))
+            if(app_id_is_ignored(t->app_id))
                 continue;
             focused_window_title = t->title;
             return;
         }
-        focused_window_title.clear();
     }
 
     void DesktopEnvironmentWlroots::Impl::teardown() {
@@ -158,10 +162,12 @@ namespace gsr {
             zwlr_foreign_toplevel_manager_v1_destroy(toplevel_manager);
             toplevel_manager = nullptr;
         }
+
         if(registry) {
             wl_registry_destroy(registry);
             registry = nullptr;
         }
+
         display = nullptr;
         focused_window_title.clear();
     }
@@ -192,6 +198,7 @@ namespace gsr {
         struct wl_registry *registry = wl_display_get_registry(dpy);
         if(!registry)
             return false;
+
         wl_registry_add_listener(registry, &toplevel_manager_probe_registry_listener, &probe);
         wl_display_roundtrip(dpy);
         wl_registry_destroy(registry);
