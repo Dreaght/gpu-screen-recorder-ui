@@ -139,12 +139,6 @@ executable(
     ]
 )
 
-install_data(
-    'tools/gsr-kwin-helper/gsrkwinhelper.js',
-    install_dir: gsr_ui_resources_path,
-    install_mode: 'rwxr-xr-x'
-)
-
 executable(
     'gsr-gnome-helper',
     [
@@ -156,13 +150,6 @@ executable(
     ]
 )
 
-install_data(
-    'tools/gsr-gnome-helper/extension/metadata.json',
-    'tools/gsr-gnome-helper/extension/extension.js',
-    install_dir: join_paths(gsr_ui_resources_path, 'gnome-extension'),
-    install_mode: 'rw-r--r--'
-)
-
 executable(
     'gsr-game-tracker',
     [
@@ -170,6 +157,19 @@ executable(
         'tools/gsr-game-tracker/main.c'
     ],
     install : true
+)
+
+install_data(
+    'tools/gsr-kwin-helper/gsrkwinhelper.js',
+    install_dir: gsr_ui_resources_path,
+    install_mode: 'rwxr-xr-x'
+)
+
+install_data(
+    'tools/gsr-gnome-helper/extension/metadata.json',
+    'tools/gsr-gnome-helper/extension/extension.js',
+    install_dir: join_paths(gsr_ui_resources_path, 'gnome-extension'),
+    install_mode: 'rw-r--r--'
 )
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
