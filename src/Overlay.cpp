@@ -592,7 +592,7 @@ namespace gsr {
                 desktop_environment = std::make_unique<DesktopEnvironmentKde>();
                 supports_window_title = true;
             } else if(is_mutter) {
-                desktop_environment = std::make_unique<DesktopEnvironmentGnome>();
+                desktop_environment = std::make_unique<DesktopEnvironmentGnome>(x11_dpy);
                 supports_window_title = true;
             } else if(DesktopEnvironmentWlroots::is_supported(wayland_dpy)) {
                 desktop_environment = std::make_unique<DesktopEnvironmentWlroots>(wayland_dpy);

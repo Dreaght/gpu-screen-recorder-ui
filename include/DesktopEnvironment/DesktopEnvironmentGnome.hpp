@@ -1,11 +1,12 @@
 #pragma once
 
 #include "DesktopEnvironment.hpp"
+#include <X11/Xlib.h>
 
 namespace gsr {
     class DesktopEnvironmentGnome : public DesktopEnvironment {
     public:
-        DesktopEnvironmentGnome() = default;
+        DesktopEnvironmentGnome(Display *dpy) : x11_dpy(dpy) {}
         DesktopEnvironmentGnome(const DesktopEnvironmentGnome&) = delete;
         DesktopEnvironmentGnome& operator=(const DesktopEnvironmentGnome&) = delete;
         ~DesktopEnvironmentGnome();
@@ -24,5 +25,7 @@ namespace gsr {
 
         std::string window_title;
         std::string monitor_name;
+
+        Display *x11_dpy = NULL;
     };
 }

@@ -77,6 +77,7 @@ I'm looking for somebody that can create sound effects for the notifications.
 * Opening the UI when a game is fullscreen can mess up the game window a bit on Hyprland. This is an issue with Hyprland. Change your waybar dock mode to "dock" in its config to fix this.
 * The background of the UI is black when opening the UI while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
 * Unable to close the region selection with escape key while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
+* The program is first installed and launched on GNOME the game name is just "Game" instead of the actual game name (window title). To fix this you have to logout and login once after the initial install, to load the gnome extension that is installed on the system.
 
 # FAQ
 ## I use a non-qwerty keyboard layout and I have an issue with incorrect keys registered in the software

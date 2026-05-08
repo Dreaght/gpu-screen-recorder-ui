@@ -1,4 +1,5 @@
 #include "../../include/DesktopEnvironment/DesktopEnvironmentGnome.hpp"
+#include "../../include/WindowUtils.hpp"
 #include "../../include/Process.hpp"
 
 #include <fcntl.h>
@@ -83,6 +84,18 @@ namespace gsr {
     }
 
     std::string DesktopEnvironmentGnome::get_focused_window_title() {
-        return window_title;
+        if(!window_title.empty())
+            return window_title;
+
+        // The gnome extension is not loaded on the first install. In that case fallback to x11.
+        // The user has to logout and in to load the gnome extension.
+        if(!x11_dpy)
+            return "";
+
+        std::string focused_window_title = get_window_name_at_cursor_position(x11_dpy, "gsr-ui");
+        if(focused_window_title.empty())
+            focused_window_title = get_focused_window_name(x11_dpy, WindowCaptureType::FOCUSED, false);
+
+        return focused_window_title;
     }
 }
