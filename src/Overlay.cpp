@@ -2472,7 +2472,7 @@ namespace gsr {
     }
 
     void Overlay::update_system_startup_status() {
-        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || !try_replay_startup)
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || replay_launched_manually)
             return;
 
         const bool power_supply_allows_start = !config.replay_config.only_start_replay_if_power_supply_connected || power_supply_connected;
@@ -2480,7 +2480,7 @@ namespace gsr {
 
         if(recording_status == RecordingStatus::NONE && power_supply_allows_start) {
             if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
-                on_press_start_replay(true, false);
+                on_press_start_replay(false, false);
         } else if(recording_status == RecordingStatus::REPLAY && power_supply_disconnected) {
             on_press_start_replay(false, false);
         }
@@ -3002,7 +3002,6 @@ namespace gsr {
         }
 
         update_upause_status();
-        try_replay_startup = false;
         replay_launched_manually = launched_manually;
 
         close_gpu_screen_recorder_output();

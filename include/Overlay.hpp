@@ -274,7 +274,6 @@ namespace gsr {
         mgl::Clock replay_save_clock;
         bool replay_save_show_notification = false;
         ReplayStartupMode replay_startup_mode = ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
-        bool try_replay_startup = true;
         bool replay_launched_manually = false;
         bool replay_recording = false;
         int replay_save_duration_min = 0;
