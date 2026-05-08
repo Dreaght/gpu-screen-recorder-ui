@@ -15,6 +15,7 @@
 #include "../include/DesktopEnvironment/DesktopEnvironmentX11.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentWlroots.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
+#include "../include/DesktopEnvironment/DesktopEnvironmentGnome.hpp"
 #include "../include/gui/PageStack.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
@@ -581,13 +582,17 @@ namespace gsr {
             supports_window_title = true;
         } else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
             const std::string wm_name = x11_dpy ? get_window_manager_name(x11_dpy) : "";
-            const bool is_kwin_wayland = wm_name == "KWin" && gsr_info.system_info.display_server == DisplayServer::WAYLAND;
+            const bool is_kwin = wm_name == "KWin";
+            const bool is_mutter = wm_name.find("GNOME") != std::string::npos;
 
             if(!this->gsr_info.gpu_info.card_path.empty())
                 cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
 
-            if(is_kwin_wayland) {
+            if(is_kwin) {
                 desktop_environment = std::make_unique<DesktopEnvironmentKde>();
+                supports_window_title = true;
+            } else if(is_mutter) {
+                desktop_environment = std::make_unique<DesktopEnvironmentGnome>();
                 supports_window_title = true;
             } else if(DesktopEnvironmentWlroots::is_supported(wayland_dpy)) {
                 desktop_environment = std::make_unique<DesktopEnvironmentWlroots>(wayland_dpy);

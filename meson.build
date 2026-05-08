@@ -45,6 +45,7 @@ src = [
     'src/DesktopEnvironment/DesktopEnvironmentX11.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentWlroots.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentKde.cpp',
+    'src/DesktopEnvironment/DesktopEnvironmentGnome.cpp',
     'src/Utils.cpp',
     'src/WindowUtils.cpp',
     'src/WaylandHostBridge.cpp',
@@ -76,6 +77,7 @@ add_project_arguments('-DGSR_UI_VERSION="' + meson.project_version() + '"', lang
 add_project_arguments('-DGSR_FLATPAK_VERSION="5.13.3"', language: ['c', 'cpp'])
 
 add_project_arguments('-DKWIN_HELPER_SCRIPT_PATH="' + gsr_ui_resources_path + '/gsrkwinhelper.js"', language: ['c', 'cpp'])
+add_project_arguments('-DGNOME_EXTENSION_SOURCE_DIR="' + gsr_ui_resources_path + '/gnome-extension"', language: ['c', 'cpp'])
 
 executable(
     meson.project_name(),
@@ -141,6 +143,24 @@ install_data(
     'tools/gsr-kwin-helper/gsrkwinhelper.js',
     install_dir: gsr_ui_resources_path,
     install_mode: 'rwxr-xr-x'
+)
+
+executable(
+    'gsr-gnome-helper',
+    [
+        'tools/gsr-gnome-helper/main.cpp'
+    ],
+    install : true,
+    dependencies: [
+        dependency('dbus-1'),
+    ]
+)
+
+install_data(
+    'tools/gsr-gnome-helper/extension/metadata.json',
+    'tools/gsr-gnome-helper/extension/extension.js',
+    install_dir: join_paths(gsr_ui_resources_path, 'gnome-extension'),
+    install_mode: 'rw-r--r--'
 )
 
 executable(

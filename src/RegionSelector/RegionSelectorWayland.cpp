@@ -96,6 +96,7 @@ namespace gsr {
             bool canceled = false;
             bool failed = false;
             bool started = false;
+            bool dirty = true;
         };
 
         void output_geometry(void*, struct wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*, const char*, int32_t);
@@ -343,12 +344,14 @@ namespace gsr {
                 s->cursor_pos.x = out->logical_pos.x + (int)wl_fixed_to_double(sx);
                 s->cursor_pos.y = out->logical_pos.y + (int)wl_fixed_to_double(sy);
             }
+            s->dirty = true;
         }
 
         void pointer_leave(void *data, struct wl_pointer*, uint32_t, struct wl_surface*) {
             WlRegionState *s = (WlRegionState*)data;
             s->pointer_focus_output = nullptr;
             s->pointer_inside = false;
+            s->dirty = true;
         }
 
         void pointer_motion(void *data, struct wl_pointer*, uint32_t, wl_fixed_t sx, wl_fixed_t sy) {
@@ -361,6 +364,7 @@ namespace gsr {
                 s->region.size.x = s->cursor_pos.x - s->region.pos.x;
                 s->region.size.y = s->cursor_pos.y - s->region.pos.y;
             }
+            s->dirty = true;
         }
 
         void pointer_button(void *data, struct wl_pointer*, uint32_t, uint32_t,
@@ -375,6 +379,7 @@ namespace gsr {
                     s->region.pos = s->cursor_pos;
                     s->region.size = {0, 0};
                     s->selecting_region = true;
+                    s->dirty = true;
                 }
             } else if(state == WL_POINTER_BUTTON_STATE_RELEASED) {
                 if(s->selection_type == RegionSelector::SelectionType::REGION && !s->selecting_region)
@@ -885,6 +890,7 @@ namespace gsr {
         }
 
         impl->render_all();
+        impl->s.dirty = false;
         wl_display_flush(impl->s.display);
 
         impl->s.started = true;
@@ -915,7 +921,11 @@ namespace gsr {
             return;
         }
 
+        if(!impl->s.dirty)
+            return;
+
         impl->render_all();
+        impl->s.dirty = false;
         wl_display_flush(impl->s.display);
     }
 
