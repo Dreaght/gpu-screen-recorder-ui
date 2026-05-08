@@ -1167,10 +1167,12 @@ namespace gsr {
             return;
         }
 
+        const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
         const std::string wm_name = get_window_manager_name(display);
         const bool is_kwin = wm_name == "KWin";
         const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
         const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+        const bool is_niri = xdg_current_desktop && strcmp(xdg_current_desktop, "niri") == 0;
         //const bool is_smithay = wm_name.find("Smithay") != std::string::npos;
         const bool hyprland_waybar_is_dock = is_hyprland && is_hyprland_waybar_running_as_dock();
 
@@ -1202,7 +1204,8 @@ namespace gsr {
         const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND
             || (x11_focused_window && is_window_fullscreen_on_monitor(display, x11_focused_window, *focused_monitor))
             || is_wlroots
-            || is_hyprland;
+            || is_hyprland
+            || is_niri;
 
         const bool drm_cursor_pos = (!prevent_game_minimizing || is_wlroots || is_hyprland) && cursor_info;
         if(drm_cursor_pos)
