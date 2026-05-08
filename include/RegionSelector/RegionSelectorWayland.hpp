@@ -27,8 +27,9 @@ namespace gsr {
         Window get_window_selection() const override;
 
         SelectionType get_selection_type() const override;
-    private:
+
         struct Impl;
+    private:
         std::unique_ptr<Impl> impl;
     };
 }

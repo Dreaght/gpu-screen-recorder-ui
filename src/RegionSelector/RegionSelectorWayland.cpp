@@ -37,6 +37,7 @@ namespace gsr {
         static constexpr int output_num_buffers = 2;
 
         struct OutputState {
+            RegionSelectorWayland::Impl *owner = nullptr;
             uint32_t wl_name = 0;
             struct wl_output *output = nullptr;
             struct zxdg_output_v1 *xdg_output = nullptr;
@@ -56,10 +57,10 @@ namespace gsr {
             int next_buffer_idx = 0;
 
             bool configured = false;
-            bool needs_redraw = true;
         };
 
         struct WlRegionState {
+            RegionSelectorWayland::Impl *self_impl = nullptr;
             struct wl_display *display = nullptr;
             struct wl_registry *registry = nullptr;
             struct wl_compositor *compositor = nullptr;
@@ -266,6 +267,7 @@ namespace gsr {
                 s->xdg_output_manager = (struct zxdg_output_manager_v1*)wl_registry_bind(registry, name, &zxdg_output_manager_v1_interface, version >= 2 ? 2 : version);
             } else if(strcmp(interface, wl_output_interface.name) == 0) {
                 auto out = std::make_unique<OutputState>();
+                out->owner = s->self_impl;
                 out->wl_name = name;
                 out->output = (struct wl_output*)wl_registry_bind(registry, name, &wl_output_interface, version >= 4 ? 4 : version);
                 wl_output_add_listener(out->output, &output_listener, out.get());
@@ -313,7 +315,9 @@ namespace gsr {
             out->buffer_width = buf_w;
             out->buffer_height = buf_h;
             out->configured = true;
-            out->needs_redraw = true;
+
+            if(out->owner)
+                out->owner->render_output(out);
         }
 
         void layer_surface_closed(void *data, struct zwlr_layer_surface_v1*) {
@@ -536,7 +540,7 @@ namespace gsr {
                 ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
             zwlr_layer_surface_v1_set_exclusive_zone(out->layer_surface, -1);
             zwlr_layer_surface_v1_set_keyboard_interactivity(out->layer_surface,
-                ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+                ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
             zwlr_layer_surface_v1_set_size(out->layer_surface,
                 (uint32_t)out->logical_size.x, (uint32_t)out->logical_size.y);
 
@@ -756,22 +760,27 @@ namespace gsr {
         const uint32_t color = s.border_color_argb;
 
         if(s.selection_type == RegionSelector::SelectionType::REGION) {
-            Region r = s.region;
-            if(r.size.x < 0) { r.pos.x += r.size.x; r.size.x = -r.size.x; }
-            if(r.size.y < 0) { r.pos.y += r.size.y; r.size.y = -r.size.y; }
-            const int local_x = (r.pos.x - out->logical_pos.x) * scale;
-            const int local_y = (r.pos.y - out->logical_pos.y) * scale;
-            const int local_w = r.size.x * scale;
-            const int local_h = r.size.y * scale;
             const int thickness = region_border_size * scale;
-            draw_rect_border(dst, w, h, stride, local_x, local_y, local_w, local_h, thickness, color);
+            if(s.selecting_region) {
+                Region r = s.region;
+                if(r.size.x < 0) { r.pos.x += r.size.x; r.size.x = -r.size.x; }
+                if(r.size.y < 0) { r.pos.y += r.size.y; r.size.y = -r.size.y; }
+                const int local_x = (r.pos.x - out->logical_pos.x) * scale;
+                const int local_y = (r.pos.y - out->logical_pos.y) * scale;
+                const int local_w = r.size.x * scale;
+                const int local_h = r.size.y * scale;
+                draw_rect_border(dst, w, h, stride, local_x, local_y, local_w, local_h, thickness, color);
+            } else if(s.pointer_inside) {
+                const mgl::IntRect output_rect(out->logical_pos, out->logical_size);
+                if(output_rect.contains(s.cursor_pos))
+                    draw_rect_border(dst, w, h, stride, 0, 0, w, h, thickness, color);
+            }
         }
 
         buf->busy = true;
         wl_surface_attach(out->surface, buf->wl_buf, 0, 0);
         wl_surface_damage_buffer(out->surface, 0, 0, w, h);
         wl_surface_commit(out->surface);
-        out->needs_redraw = false;
     }
 
     void RegionSelectorWayland::Impl::render_all() {
@@ -840,6 +849,7 @@ namespace gsr {
 
     RegionSelectorWayland::RegionSelectorWayland(struct wl_display *dpy) : impl(std::make_unique<Impl>()) {
         impl->s.display = dpy;
+        impl->s.self_impl = impl.get();
     }
     RegionSelectorWayland::~RegionSelectorWayland() { stop(); }
 
@@ -850,6 +860,7 @@ namespace gsr {
         struct wl_display *dpy = impl->s.display;
         impl->s = WlRegionState{};
         impl->s.display = dpy;
+        impl->s.self_impl = impl.get();
         impl->s.border_color = border_color;
         impl->s.border_color_argb = mgl_color_to_argb(border_color);
         impl->s.selection_type = selection_type;
