@@ -107,13 +107,13 @@ namespace gsr {
             XDrawRectangle(dpy, window, gc, x, y, width, height);
     }
 
-    static Window create_cursor_window(Display *dpy, int width, int height, XVisualInfo *vinfo, unsigned long background_pixel) {
+    static Window create_cursor_window(Display *dpy, int width, int height, XVisualInfo *vinfo, unsigned long background_pixel, Colormap colormap) {
         XSetWindowAttributes window_attr;
         window_attr.background_pixel = background_pixel;
         window_attr.border_pixel = 0;
         window_attr.override_redirect = true;
         window_attr.event_mask = StructureNotifyMask | PointerMotionMask;
-        window_attr.colormap = XCreateColormap(dpy, DefaultRootWindow(dpy), vinfo->visual, AllocNone);
+        window_attr.colormap = colormap;
         const Window window = XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0, width, height, 0, vinfo->depth, InputOutput, vinfo->visual, CWBackPixel | CWBorderPixel | CWOverrideRedirect | CWEventMask | CWColormap, &window_attr);
         if(window) {
             set_window_size_not_resizable(dpy, window, width, height);
@@ -329,7 +329,7 @@ namespace gsr {
         XChangeProperty(dpy, region_window, XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
 
         if(!is_wayland) {
-            cursor_window = create_cursor_window(dpy, cursor_window_size, cursor_window_size, &vinfo, border_color_x11);
+            cursor_window = create_cursor_window(dpy, cursor_window_size, cursor_window_size, &vinfo, border_color_x11, region_window_colormap);
             if(!cursor_window)
                 fprintf(stderr, "Warning: RegionSelectorX11::start: failed to create cursor window\n");
             set_region_rectangle(dpy, region_window, 0, 0, 0, 0, 0);
@@ -419,6 +419,11 @@ namespace gsr {
         if(region_window_colormap) {
             XFreeColormap(dpy, region_window_colormap);
             region_window_colormap = 0;
+        }
+
+        if(cursor_window) {
+            XDestroyWindow(dpy, cursor_window);
+            cursor_window = 0;
         }
 
         if(region_window) {
