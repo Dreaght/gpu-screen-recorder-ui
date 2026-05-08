@@ -489,6 +489,14 @@ namespace gsr {
             // Right
             fill_rect_clipped(dst, width, height, stride, rx + rw - thickness, ry + thickness, thickness, rh - thickness*2, argb);
         }
+
+        static zwlr_layer_surface_v1_keyboard_interactivity compositor_to_keyboard_interactivity() {
+            const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+            if(xdg_current_desktop && strcmp(xdg_current_desktop, "Hyprland") == 0)
+                return ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+            else
+                return ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+        }
     }
 
     bool RegionSelectorWayland::Impl::init() {
@@ -544,7 +552,7 @@ namespace gsr {
                 ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
                 ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
             zwlr_layer_surface_v1_set_exclusive_zone(out->layer_surface, -1);
-            zwlr_layer_surface_v1_set_keyboard_interactivity(out->layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            zwlr_layer_surface_v1_set_keyboard_interactivity(out->layer_surface, compositor_to_keyboard_interactivity());
             zwlr_layer_surface_v1_set_size(out->layer_surface, (uint32_t)out->logical_size.x, (uint32_t)out->logical_size.y);
 
             wl_surface_set_buffer_scale(out->surface, out->scale);
