@@ -70,7 +70,6 @@ namespace gsr {
             struct zxdg_output_manager_v1 *xdg_output_manager = nullptr;
 
             struct wl_pointer *pointer = nullptr;
-            struct wl_keyboard *keyboard = nullptr;
 
             std::vector<std::unique_ptr<OutputState>> outputs;
 
@@ -159,18 +158,6 @@ namespace gsr {
             pointer_enter, pointer_leave, pointer_motion, pointer_button,
             pointer_axis, pointer_frame, pointer_axis_source, pointer_axis_stop,
             pointer_axis_discrete, pointer_axis_value120, pointer_axis_relative_direction,
-        };
-
-        void keyboard_keymap(void*, struct wl_keyboard*, uint32_t, int32_t, uint32_t);
-        void keyboard_enter(void*, struct wl_keyboard*, uint32_t, struct wl_surface*, struct wl_array*);
-        void keyboard_leave(void*, struct wl_keyboard*, uint32_t, struct wl_surface*);
-        void keyboard_key(void*, struct wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t);
-        void keyboard_modifiers(void*, struct wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-        void keyboard_repeat_info(void*, struct wl_keyboard*, int32_t, int32_t);
-
-        const struct wl_keyboard_listener keyboard_listener = {
-            keyboard_keymap, keyboard_enter, keyboard_leave, keyboard_key,
-            keyboard_modifiers, keyboard_repeat_info,
         };
 
         void output_buffer_release(void *data, struct wl_buffer*) {
@@ -281,7 +268,6 @@ namespace gsr {
         void seat_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
             WlRegionState *s = (WlRegionState*)data;
             const bool has_pointer = caps & WL_SEAT_CAPABILITY_POINTER;
-            const bool has_keyboard = caps & WL_SEAT_CAPABILITY_KEYBOARD;
 
             if(has_pointer && !s->pointer) {
                 s->pointer = wl_seat_get_pointer(seat);
@@ -289,14 +275,6 @@ namespace gsr {
             } else if(!has_pointer && s->pointer) {
                 wl_pointer_destroy(s->pointer);
                 s->pointer = nullptr;
-            }
-
-            if(has_keyboard && !s->keyboard) {
-                s->keyboard = wl_seat_get_keyboard(seat);
-                wl_keyboard_add_listener(s->keyboard, &keyboard_listener, s);
-            } else if(!has_keyboard && s->keyboard) {
-                wl_keyboard_destroy(s->keyboard);
-                s->keyboard = nullptr;
             }
         }
 
@@ -408,25 +386,6 @@ namespace gsr {
         void pointer_axis_discrete(void*, struct wl_pointer*, uint32_t, int32_t) {}
         void pointer_axis_value120(void*, struct wl_pointer*, uint32_t, int32_t) {}
         void pointer_axis_relative_direction(void*, struct wl_pointer*, uint32_t, uint32_t) {}
-
-        void keyboard_keymap(void*, struct wl_keyboard*, uint32_t, int32_t fd, uint32_t) {
-            close(fd);
-        }
-        void keyboard_enter(void*, struct wl_keyboard*, uint32_t, struct wl_surface*, struct wl_array*) {}
-        void keyboard_leave(void*, struct wl_keyboard*, uint32_t, struct wl_surface*) {}
-
-        void keyboard_key(void *data, struct wl_keyboard*, uint32_t, uint32_t,
-            uint32_t key, uint32_t state)
-        {
-            WlRegionState *s = (WlRegionState*)data;
-            if(state == WL_KEYBOARD_KEY_STATE_RELEASED && key == KEY_ESC) {
-                s->canceled = true;
-                s->selected = false;
-            }
-        }
-
-        void keyboard_modifiers(void*, struct wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t) {}
-        void keyboard_repeat_info(void*, struct wl_keyboard*, int32_t, int32_t) {}
     }
 
     namespace {
@@ -810,7 +769,6 @@ namespace gsr {
         s.outputs.clear();
 
         if(s.pointer) { wl_pointer_destroy(s.pointer); s.pointer = nullptr; }
-        if(s.keyboard) { wl_keyboard_destroy(s.keyboard); s.keyboard = nullptr; }
         if(s.seat) { wl_seat_destroy(s.seat); s.seat = nullptr; }
         if(s.xdg_output_manager) { zxdg_output_manager_v1_destroy(s.xdg_output_manager); s.xdg_output_manager = nullptr; }
         if(s.layer_shell) { zwlr_layer_shell_v1_destroy(s.layer_shell); s.layer_shell = nullptr; }
