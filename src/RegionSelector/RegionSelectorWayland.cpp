@@ -869,6 +869,12 @@ namespace gsr {
         impl->teardown();
     }
 
+    void RegionSelectorWayland::cancel() {
+        impl->s.canceled = true;
+        impl->s.selected = false;
+        stop();
+    }
+
     bool RegionSelectorWayland::is_started() const {
         return impl->s.started;
     }

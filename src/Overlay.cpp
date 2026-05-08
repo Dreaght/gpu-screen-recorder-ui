@@ -341,7 +341,7 @@ namespace gsr {
         };
     }
 
-    static void bind_linux_hotkeys(GlobalHotkeysLinux *global_hotkeys, Overlay *overlay) {
+    static void bind_linux_hotkeys(GlobalHotkeysLinux *global_hotkeys, Overlay *overlay, bool enable_region_exit) {
         global_hotkeys->bind_key_press(
             config_hotkey_to_hotkey(overlay->get_config().main_config.show_hide_hotkey),
             "toggle_show", [overlay](const std::string &id) {
@@ -439,14 +439,23 @@ namespace gsr {
                 fprintf(stderr, "pressed %s\n", id.c_str());
                 overlay->go_back_to_old_ui();
             });
+
+        if(enable_region_exit) {
+            global_hotkeys->bind_key_press(
+                config_hotkey_to_hotkey(ConfigHotkey{ mgl::Keyboard::Key::Escape }),
+                "cancel_region_selection", [overlay](const std::string &id) {
+                    fprintf(stderr, "pressed %s\n", id.c_str());
+                    overlay->cancel_region_selection();
+                });
+        }
     }
 
-    static std::unique_ptr<GlobalHotkeysLinux> register_linux_hotkeys(Overlay *overlay, GlobalHotkeysLinux::GrabType grab_type) {
+    static std::unique_ptr<GlobalHotkeysLinux> register_linux_hotkeys(Overlay *overlay, GlobalHotkeysLinux::GrabType grab_type, bool enable_region_exit) {
         auto global_hotkeys = std::make_unique<GlobalHotkeysLinux>(grab_type);
         if(!global_hotkeys->start())
             fprintf(stderr, "error: failed to start global hotkeys\n");
 
-        bind_linux_hotkeys(global_hotkeys.get(), overlay);
+        bind_linux_hotkeys(global_hotkeys.get(), overlay, enable_region_exit);
         global_hotkeys->on_gsr_ui_virtual_keyboard_grabbed = [overlay]() {
             overlay->global_hotkeys_ungrab_keyboard = true;
         };
@@ -560,11 +569,11 @@ namespace gsr {
         set_notification_speed(to_notification_speed(config.main_config.notification_speed));
 
         if(config.main_config.hotkeys_enable_option == "enable_hotkeys")
-            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL, on_region_selected != nullptr);
         else if(config.main_config.hotkeys_enable_option == "enable_hotkeys_virtual_devices")
-            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL, on_region_selected != nullptr);
         else if(config.main_config.hotkeys_enable_option == "enable_hotkeys_no_grab")
-            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB);
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB, on_region_selected != nullptr);
 
         if(config.main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
             global_hotkeys_js = register_joystick_hotkeys(this);
@@ -838,6 +847,13 @@ namespace gsr {
         }
     }
 
+    void Overlay::stop_region_selection() {
+        if(on_region_selected) {
+            on_region_selected = nullptr;
+            rebind_all_keyboard_hotkeys();
+        }
+    }
+
     void Overlay::handle_x11_events() {
         if(!x11_dpy)
             return;
@@ -912,7 +928,7 @@ namespace gsr {
         handle_wayland_events();
 
         if(region_selector->take_canceled()) {
-            on_region_selected = nullptr;
+            stop_region_selection();
         } else if(region_selector->take_selection() && on_region_selected) {
             switch(region_selector->get_selection_type()) {
                 case RegionSelector::SelectionType::NONE: {
@@ -935,7 +951,7 @@ namespace gsr {
                     break;
                 }
             }
-            on_region_selected = nullptr;
+            stop_region_selection();
         }
 
         if(!visible || !window)
@@ -999,18 +1015,20 @@ namespace gsr {
         if(start_region_capture) {
             start_region_capture = false;
             hide();
+            rebind_all_keyboard_hotkeys();
             if(!region_selector->start(RegionSelector::SelectionType::REGION, get_color_theme().tint_color)) {
                 show_notification(TR("Failed to start region capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                on_region_selected = nullptr;
+                stop_region_selection();
             }
         }
 
         if(start_window_capture) {
             start_window_capture = false;
             hide();
+            rebind_all_keyboard_hotkeys();
             if(!region_selector->start(RegionSelector::SelectionType::WINDOW, get_color_theme().tint_color)) {
                 show_notification(TR("Failed to start window capture"), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-                on_region_selected = nullptr;
+                stop_region_selection();
             }
         }
 
@@ -1327,11 +1345,11 @@ namespace gsr {
     void Overlay::recreate_global_hotkeys(std::string_view hotkey_option) {
         global_hotkeys.reset();
         if(hotkey_option == "enable_hotkeys")
-            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL);
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::ALL, on_region_selected != nullptr);
         else if(hotkey_option == "enable_hotkeys_virtual_devices")
-            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL);
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::VIRTUAL, on_region_selected != nullptr);
         else if(hotkey_option == "enable_hotkeys_no_grab")
-            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB);
+            global_hotkeys = register_linux_hotkeys(this, GlobalHotkeysLinux::GrabType::NO_GRAB, on_region_selected != nullptr);
         else if(hotkey_option == "disable_hotkeys")
             global_hotkeys.reset();
     }
@@ -2018,6 +2036,11 @@ namespace gsr {
         exit();
     }
 
+    void Overlay::cancel_region_selection() {
+        if(region_selector)
+            region_selector->cancel();
+    }
+
     const Config& Overlay::get_config() const {
         return config;
     }
@@ -2031,7 +2054,7 @@ namespace gsr {
         unbind_all_keyboard_hotkeys();
         // TODO: Check if type is GlobalHotkeysLinux
         if(global_hotkeys)
-            bind_linux_hotkeys(static_cast<GlobalHotkeysLinux*>(global_hotkeys.get()), this);
+            bind_linux_hotkeys(static_cast<GlobalHotkeysLinux*>(global_hotkeys.get()), this, on_region_selected != nullptr);
     }
 
     void Overlay::set_notification_speed(NotificationSpeed notification_speed) {

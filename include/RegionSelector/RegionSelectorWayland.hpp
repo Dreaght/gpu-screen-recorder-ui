@@ -16,6 +16,7 @@ namespace gsr {
 
         bool start(SelectionType selection_type, mgl::Color border_color) override;
         void stop() override;
+        void cancel() override;
         bool is_started() const override;
 
         bool failed() const override;

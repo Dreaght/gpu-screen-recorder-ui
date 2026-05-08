@@ -440,6 +440,12 @@ namespace gsr {
         windows.clear();
     }
 
+    void RegionSelectorX11::cancel() {
+        canceled = true;
+        selected = false;
+        stop();
+    }
+
     bool RegionSelectorX11::is_started() const {
         return started;
     }
@@ -455,9 +461,7 @@ namespace gsr {
         XEvent *xev = (XEvent*)native_event;
 
         if(xev->type == KeyRelease && XKeycodeToKeysym(dpy, xev->xkey.keycode, 0) == XK_Escape) {
-            canceled = true;
-            selected = false;
-            stop();
+            cancel();
             return;
         }
 

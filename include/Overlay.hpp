@@ -103,6 +103,7 @@ namespace gsr {
         bool should_exit(std::string &reason) const;
         void exit();
         void go_back_to_old_ui();
+        void cancel_region_selection();
 
         const Config& get_config() const;
 
@@ -180,6 +181,7 @@ namespace gsr {
         std::string get_capture_target(const std::string &capture_target, const SupportedCaptureOptions &capture_options);
 
         void force_window_on_top();
+        void stop_region_selection();
     private:
         using KeyBindingCallback = std::function<void()>;
         struct KeyBinding {

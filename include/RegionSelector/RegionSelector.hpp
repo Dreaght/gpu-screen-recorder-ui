@@ -34,6 +34,7 @@ namespace gsr {
 
         virtual bool start(SelectionType selection_type, mgl::Color border_color) = 0;
         virtual void stop() = 0;
+        virtual void cancel() = 0;
         virtual bool is_started() const = 0;
 
         virtual bool failed() const = 0;
