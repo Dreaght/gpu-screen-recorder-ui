@@ -9,6 +9,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 static const char *EXTENSION_UUID = "gpu-screen-recorder@dec05eba.com";
 
@@ -110,6 +111,39 @@ static bool install_extension(const std::string &source_dir, const std::string &
     return true;
 }
 
+static bool install_extension_via_host(const std::string &source_dir) {
+    const std::string cmd =
+        "set -e; "
+        "target=\"${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/extensions/" + std::string(EXTENSION_UUID) + "\"; "
+        "mkdir -p \"$target\" && "
+        "cp -f \"" + source_dir + "/metadata.json\" \"$target/metadata.json\" && "
+        "cp -f \"" + source_dir + "/extension.js\" \"$target/extension.js\"";
+
+    pid_t pid = fork();
+    if(pid == -1) {
+        perror("Error: gsr-gnome-helper: fork");
+        return false;
+    }
+    if(pid == 0) {
+        const char *args[] = { "flatpak-spawn", "--host", "--", "/bin/sh", "-c", cmd.c_str(), nullptr };
+        execvp(args[0], (char* const*)args);
+        _exit(127);
+    }
+
+    int status = 0;
+    while(waitpid(pid, &status, 0) == -1) {
+        if(errno != EINTR)
+            return false;
+    }
+    if(!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        std::cerr << "Error: gsr-gnome-helper: host install failed (exit "
+                  << (WIFEXITED(status) ? WEXITSTATUS(status) : -1) << ")\n";
+        return false;
+    }
+    std::cerr << "Info: gsr-gnome-helper: installed gnome shell extension on host\n";
+    return true;
+}
+
 class GsrGnomeHelper {
 public:
     DBusConnection *connection = nullptr;
@@ -153,7 +187,10 @@ public:
             ? GNOME_EXTENSION_SOURCE_DIR
             : "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gsr-ui/gnome-extension";
 
-        if(!install_extension(source_dir, get_extension_install_dir()))
+        const bool installed = inside_flatpak
+            ? install_extension_via_host(source_dir)
+            : install_extension(source_dir, get_extension_install_dir());
+        if(!installed)
             std::cerr << "Warning: gsr-gnome-helper: extension install failed\n";
 
         // Reload so an upgraded metadata.json / extension.js takes effect without
