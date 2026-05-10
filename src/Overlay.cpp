@@ -1178,7 +1178,7 @@ namespace gsr {
         const std::string wm_name = get_window_manager_name(display);
         const bool is_kwin = wm_name == "KWin";
         const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
-        const bool is_hyprland = wm_name.find("Hyprland") != std::string::npos;
+        const bool is_hyprland = xdg_current_desktop && strstr(xdg_current_desktop, "Hyprland");
         const bool is_niri = xdg_current_desktop && strstr(xdg_current_desktop, "niri");
         //const bool is_sway = xdg_current_desktop && strstr(xdg_current_desktop, "sway");
         const bool is_river = xdg_current_desktop && strstr(xdg_current_desktop, "river");
