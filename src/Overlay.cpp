@@ -1167,13 +1167,6 @@ namespace gsr {
 
         Display *display = x11_dpy;
 
-        const std::vector<Monitor> monitors = get_monitors(display);
-        if(monitors.empty()) {
-            fprintf(stderr, "gsr warning: no monitors found, not showing overlay\n");
-            window.reset();
-            return;
-        }
-
         const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
         const std::string wm_name = get_window_manager_name(display);
         const bool is_kwin = wm_name == "KWin";
@@ -1190,6 +1183,13 @@ namespace gsr {
         wayland_native_overlay =
             gsr_info.system_info.display_server == DisplayServer::WAYLAND &&
             (is_hyprland || is_niri || is_river);
+
+        const std::vector<Monitor> monitors = wayland_native_overlay ? get_monitors_wayland(wayland_dpy) : get_monitors(display);
+        if(monitors.empty()) {
+            fprintf(stderr, "gsr warning: no monitors found, not showing overlay\n");
+            window.reset();
+            return;
+        }
 
         std::optional<CursorInfo> cursor_info;
         if(cursor_tracker) {
@@ -1220,13 +1220,14 @@ namespace gsr {
             || (x11_focused_window && is_window_fullscreen_on_monitor(display, x11_focused_window, *focused_monitor))
             || is_wlroots
             || is_hyprland
-            || is_niri;
+            || is_niri
+            || wayland_native_overlay;
 
         const bool drm_cursor_pos = (!prevent_game_minimizing || is_wlroots || is_hyprland) && cursor_info;
         if(drm_cursor_pos)
             cursor_position = cursor_info->position;
 
-        if(prevent_game_minimizing) {
+        if(prevent_game_minimizing || wayland_native_overlay) {
             window_pos = focused_monitor->position;
             window_size = focused_monitor->size;
         } else {
