@@ -33,6 +33,8 @@ namespace gsr {
         struct zxdg_output_v1 *xdg_output;
         mgl::vec2i pos;
         mgl::vec2i size;
+        mgl::vec2i logical_pos;
+        mgl::vec2i logical_size;
         int32_t transform;
         std::string name;
     };
@@ -131,13 +133,15 @@ namespace gsr {
             struct wl_output *output = (struct wl_output*)wl_registry_bind(registry, name, &wl_output_interface, 4);
             wayland->outputs.push_back(
                 WaylandOutput{
-                    name,
-                    output,
-                    nullptr,
-                    mgl::vec2i{0, 0},
-                    mgl::vec2i{0, 0},
-                    0,
-                    ""
+                    name,                 // wl_name
+                    output,               // output
+                    nullptr,              // xdg_output
+                    mgl::vec2i{0, 0},     // pos (native)
+                    mgl::vec2i{0, 0},     // size (native)
+                    mgl::vec2i{0, 0},     // logical_pos
+                    mgl::vec2i{0, 0},     // logical_size
+                    0,                    // transform
+                    ""                    // name
                 });
             wl_output_add_listener(output, &output_listener, wayland);
         } else if(strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
@@ -169,15 +173,15 @@ namespace gsr {
     static void xdg_output_logical_position(void *data, struct zxdg_output_v1 *zxdg_output_v1, int32_t x, int32_t y) {
         (void)zxdg_output_v1;
         WaylandOutput *monitor = (WaylandOutput*)data;
-        monitor->pos.x = x;
-        monitor->pos.y = y;
+        monitor->logical_pos.x = x;
+        monitor->logical_pos.y = y;
     }
 
     static void xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output, int32_t width, int32_t height) {
         (void)xdg_output;
         WaylandOutput *monitor = (WaylandOutput*)data;
-        monitor->size.x = width;
-        monitor->size.y = height;
+        monitor->logical_size.x = width;
+        monitor->logical_size.y = height;
     }
 
     static void xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output) {
@@ -212,6 +216,17 @@ namespace gsr {
         for(WaylandOutput &output : wayland.outputs) {
             if(output.transform == transform_90 || output.transform == transform_270)
                 std::swap(output.size.x, output.size.y);
+
+            const int native_w = output.size.x;
+            const int native_h = output.size.y;
+            const int logical_w = output.logical_size.x > 0 ? output.logical_size.x : native_w;
+            const int logical_h = output.logical_size.y > 0 ? output.logical_size.y : native_h;
+            output.pos.x = (logical_w > 0)
+                ? (int)((int64_t)output.logical_pos.x * native_w / logical_w)
+                : output.logical_pos.x;
+            output.pos.y = (logical_h > 0)
+                ? (int)((int64_t)output.logical_pos.y * native_h / logical_h)
+                : output.logical_pos.y;
         }
     }
 
@@ -771,8 +786,8 @@ namespace gsr {
         // Fetch wl_output
         wl_display_roundtrip(dpy);
 
-        transform_monitors(wayland);
         set_monitor_outputs_from_xdg_output(wayland, dpy);
+        transform_monitors(wayland);
 
         std::vector<Monitor> monitors;
         for(WaylandOutput &output : wayland.outputs) {
