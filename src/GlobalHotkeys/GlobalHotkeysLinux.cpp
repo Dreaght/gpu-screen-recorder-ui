@@ -4,9 +4,6 @@
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
-extern "C" {
-#include <mgl/mgl.h>
-}
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <linux/input-event-codes.h>
@@ -63,7 +60,7 @@ namespace gsr {
         return (keysym >= XK_A && keysym <= XK_Z) || (keysym >= XK_a && keysym <= XK_z) || (keysym >= XK_0 && keysym <= XK_9);
     }
 
-    GlobalHotkeysLinux::GlobalHotkeysLinux(GrabType grab_type) : grab_type(grab_type) {
+    GlobalHotkeysLinux::GlobalHotkeysLinux(Display *x11_dpy, GrabType grab_type) : grab_type(grab_type), x11_dpy(x11_dpy) {
         for(int i = 0; i < 2; ++i) {
             read_pipes[i] = -1;
             write_pipes[i] = -1;
@@ -203,9 +200,11 @@ namespace gsr {
             return false;
         }
 
-        mgl_context *context = mgl_get_context();
-        Display *display = (Display*)context->connection;
-        const uint8_t keycode = x11_keycode_to_linux_keycode(XKeysymToKeycode(display, hotkey.key));
+        if(!x11_dpy) {
+            fprintf(stderr, "Error: GlobalHotkeysLinux::bind_key_press: no X11 display available — cannot translate keysym to keycode\n");
+            return false;
+        }
+        const uint8_t keycode = x11_keycode_to_linux_keycode(XKeysymToKeycode(x11_dpy, hotkey.key));
         const std::vector<uint8_t> modifiers = modifiers_to_linux_keys(hotkey.modifiers);
         const std::string modifiers_command = linux_keys_to_command_string(modifiers.data(), modifiers.size());
 

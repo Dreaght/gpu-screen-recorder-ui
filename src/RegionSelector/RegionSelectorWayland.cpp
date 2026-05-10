@@ -451,7 +451,7 @@ namespace gsr {
 
         static zwlr_layer_surface_v1_keyboard_interactivity compositor_to_keyboard_interactivity() {
             const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
-            if(xdg_current_desktop && strcmp(xdg_current_desktop, "Hyprland") == 0)
+            if(xdg_current_desktop && strstr(xdg_current_desktop, "Hyprland"))
                 return ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
             else
                 return ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;

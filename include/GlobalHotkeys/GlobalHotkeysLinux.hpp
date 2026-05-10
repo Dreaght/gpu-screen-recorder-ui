@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <sys/types.h>
 
+typedef struct _XDisplay Display;
+
 namespace gsr {
     class GlobalHotkeysLinux : public GlobalHotkeys {
     public:
@@ -13,7 +15,9 @@ namespace gsr {
             NO_GRAB
         };
 
-        GlobalHotkeysLinux(GrabType grab_type);
+        // |x11_dpy| is used to translate Hotkey::key (an X11 KeySym) into a keycode.
+        // May be nullptr — bind_key_press will then fail rather than crash.
+        GlobalHotkeysLinux(Display *x11_dpy, GrabType grab_type);
         GlobalHotkeysLinux(const GlobalHotkeysLinux&) = delete;
         GlobalHotkeysLinux& operator=(const GlobalHotkeysLinux&) = delete;
         ~GlobalHotkeysLinux() override;
@@ -33,5 +37,6 @@ namespace gsr {
         FILE *read_file = nullptr;
         std::unordered_map<std::string, GlobalHotkeyCallback> bound_actions_by_id;
         GrabType grab_type;
+        Display *x11_dpy = nullptr;
     };
 }

@@ -253,12 +253,3 @@ Webcam resolution list is too long for some people. Fix it by separating resolut
 Allow settings page to select input capture option/audio, to make sure it doesn't blindly select the default option when the sources aren't temporary available when opening the settings.
 
 Add simple video cutting in the ui.
-
-Keep replay turned on when opening a fullscreen application and alt-tabbing. Only stop replay when closing the application (when closing all fullscreen applications).
-    When alt-tabbing check if the previously fullscreen window still exists.
-
-Show vulkan codec options.
-
-Use wlroots protocol for region selection, if the protocol is available.
-
-Make window title stuff work on gnome (requires an extension).

@@ -65,7 +65,7 @@ src = [
 subdir('protocol')
 src += protocol_src
 
-mglpp_proj = subproject('mglpp', default_options : ['wayland=false'])
+mglpp_proj = subproject('mglpp', default_options : ['wayland=true'])
 mglpp_dep = mglpp_proj.get_variable('mglpp_dep')
 
 prefix = get_option('prefix')

@@ -76,7 +76,9 @@ namespace gsr {
 
     class Overlay {
     public:
-        Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs);
+        // |wayland_dpy| is a borrowed Wayland display owned by the caller. It
+        // must outlive the Overlay. Pass nullptr on X11 sessions.
+        Overlay(std::string resources_path, GsrInfo gsr_info, SupportedCaptureOptions capture_options, egl_functions egl_funcs, struct wl_display *wayland_dpy);
         Overlay(const Overlay&) = delete;
         Overlay& operator=(const Overlay&) = delete;
         ~Overlay();
@@ -265,6 +267,11 @@ namespace gsr {
         std::unique_ptr<GlobalHotkeysJoystick> global_hotkeys_js = nullptr;
         Display *x11_dpy = nullptr;
         XEvent x11_xev;
+        // True when the overlay window is a native Wayland surface (wlr-layer-shell)
+        // rather than an X11 window. Many X11-only operations (XGrabPointer,
+        // XChangeProperty on the overlay window, click-through atoms, …) are
+        // skipped when this is set.
+        bool wayland_native_overlay = false;
 
         int gsr_game_tracker_process_output_fd = -1;
         FILE *gsr_game_tracker_process_output_file = nullptr;

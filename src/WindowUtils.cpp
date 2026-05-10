@@ -342,7 +342,8 @@ namespace gsr {
         const Window direct_window = *window;
         *window = window_get_target_window_child(dpy, *window);
         // HACK: Count some other x11 windows as having an x11 window focused. Some games seem to create an Input window and that gets focused.
-        if(!*window) {
+        // direct_window can be None on Wayland sessions where the cursor isn't over any X11 window — querying its attributes would emit BadWindow.
+        if(!*window && direct_window) {
             XWindowAttributes attr;
             memset(&attr, 0, sizeof(attr));
             XGetWindowAttributes(dpy, direct_window, &attr);
@@ -375,6 +376,12 @@ namespace gsr {
 
             int revert_to = 0;
             XGetInputFocus(dpy, &focused_window, &revert_to);
+            // XGetInputFocus returns PointerRoot (= 1) when no client holds focus
+            // (typical on Wayland sessions where a native Wayland surface is focused).
+            // It's not a real Window — treat it as "no focus" and fall through to the
+            // cursor-position fallback below.
+            if(focused_window == PointerRoot)
+                focused_window = None;
             focused_window = get_window_graphics_parent(dpy, focused_window);
 
             if(focused_window && focused_window != DefaultRootWindow(dpy))

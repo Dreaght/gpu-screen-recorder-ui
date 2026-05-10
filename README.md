@@ -73,10 +73,7 @@ I'm looking for somebody that can create sound effects for the notifications.
 ![](https://dec05eba.com/images/settings_page.jpg)
 
 # Known issues
-* When the UI is open the wallpaper is shown instead of the game on Hyprland. This is an issue with Hyprland. It cant be fixed until the UI is redesigned to not be a fullscreen overlay. Change your waybar dock mode to "dock" in its config to fix this.
-* Opening the UI when a game is fullscreen can mess up the game window a bit on Hyprland. This is an issue with Hyprland. Change your waybar dock mode to "dock" in its config to fix this.
 * The background of the UI is black when opening the UI while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
-* Unable to close the region selection with escape key while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
 * The program is first installed and launched on GNOME the game name is just "Game" instead of the actual game name (window title). To fix this you have to logout and login once after the initial install, to load the gnome extension that is installed on the system.
 
 # FAQ
@@ -88,5 +85,5 @@ since Wayland doesn't support a non-focused application from setting the clipboa
 ## The controller hotkey and steam overlap (home button brings up steam overlay)
 You can either disable the steam overlay or in steam click Steam->Settings->Controller and then click "Begin Test" under "Test Device Inputs". Click on "Setup Device Inputs" and configure controller buttons there and when you get to the home button press X to unbind it from steam.
 ## The UI looks messed up on my Wayland system
-Wayland doesn't support GPU Screen Recorder UI properly. Some Wayland environments can display GPU Screen Recorder UI pretty well (such as KDE Plasma and Gnome) while others cannot (such as Hyprland and Niri).
+Wayland doesn't support GPU Screen Recorder UI properly. Some Wayland environments can display GPU Screen Recorder UI pretty well (such as KDE Plasma and Gnome) while others can't.
 This is an issue in Wayland and it may be the case that it will never be fixed. Use X11 if you experience issues.

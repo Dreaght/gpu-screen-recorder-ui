@@ -47,4 +47,10 @@ namespace gsr {
     bool wait_until_systemd_user_service_available();
     bool is_systemd_service_enabled(const char *service_name);
     bool disable_systemd_service(const char *service_name);
+
+    // True when the current session is a Wayland session running on a compositor
+    // we use the wlr-layer-shell native overlay path on (Hyprland, niri, sway, river).
+    // Decided purely from environment variables so it can be called before any X11
+    // or Wayland connection has been opened.
+    bool is_wayland_layer_shell_overlay_session();
 }

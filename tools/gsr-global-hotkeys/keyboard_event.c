@@ -550,13 +550,13 @@ static int setup_virtual_keyboard_input(const char *name) {
     success &= (ioctl(fd, UI_SET_EVBIT, EV_MSC) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_KEY) != -1);
     success &= (ioctl(fd, UI_SET_EVBIT, EV_REP) != -1);
-    success &= (ioctl(fd, UI_SET_EVBIT, EV_REL) != -1);
+    //success &= (ioctl(fd, UI_SET_EVBIT, EV_REL) != -1);
     //success &= (ioctl(fd, UI_SET_EVBIT, EV_LED) != -1);
 
     success &= (ioctl(fd, UI_SET_MSCBIT, MSC_SCAN) != -1);
     for(int i = 1; i < KEY_MAX; ++i) {
         // TODO: Check for joystick button? if we accidentally grab joystick
-        if(is_keyboard_key(i) || is_mouse_button(i))
+        if(is_keyboard_key(i))
             success &= (ioctl(fd, UI_SET_KEYBIT, i) != -1);
     }
 

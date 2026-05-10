@@ -6,7 +6,9 @@
 #include "../include/Rpc.hpp"
 #include "../include/Theme.hpp"
 #include "../include/Translation.hpp"
+#include "../include/WaylandHostBridge.hpp"
 
+#include <wayland-client.h>
 #include <signal.h>
 #include <string.h>
 #include <limits.h>
@@ -239,8 +241,24 @@ int main(int argc, char **argv) {
         gsr::exec_program_daemonized(args);
     }
 
-    if(mgl_init(MGL_WINDOW_SYSTEM_X11) != 0) {
-        fprintf(stderr, "Error: failed to initialize mgl. Failed to either connect to the X11 server or setup opengl\n");
+    // Open the Wayland display ourselves (so we can route through the flatpak
+    // host bridge) and lend it to mgl. Owned and disconnected by main(), see
+    // the bottom of this function.
+    struct wl_display *wayland_dpy = nullptr;
+    if(getenv("WAYLAND_DISPLAY"))
+        wayland_dpy = gsr::wayland_connect_to_host();
+
+    const mgl_window_system mgl_backend = gsr::is_wayland_layer_shell_overlay_session()
+        ? MGL_WINDOW_SYSTEM_WAYLAND
+        : MGL_WINDOW_SYSTEM_X11;
+    const int mgl_init_result = (mgl_backend == MGL_WINDOW_SYSTEM_WAYLAND && wayland_dpy)
+        ? mgl_init_with_wayland_display(wayland_dpy)
+        : mgl_init(mgl_backend);
+    if(mgl_init_result != 0) {
+        fprintf(stderr, "Error: failed to initialize mgl. Failed to connect to the %s server or set up opengl\n",
+            mgl_backend == MGL_WINDOW_SYSTEM_WAYLAND ? "Wayland" : "X11");
+        if(wayland_dpy)
+            wl_display_disconnect(wayland_dpy);
         return 1;
     }
 
@@ -299,7 +317,7 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
 
-    auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs);
+    auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs, wayland_dpy);
     if(launch_action == LaunchAction::LAUNCH_SHOW)
         overlay->show();
     else if(launch_action == LaunchAction::LAUNCH_HIDE_ANNOUNCE)
@@ -355,6 +373,10 @@ int main(int argc, char **argv) {
     rpc.reset();
     overlay.reset();
     mgl_deinit();
+    /* Disconnect the borrowed Wayland display only after mgl_deinit and the
+       overlay destructor — both may use the connection during teardown. */
+    if(wayland_dpy)
+        wl_display_disconnect(wayland_dpy);
 
     if(exit_reason == "back-to-old-ui") {
         gsr::set_xdg_autostart(false);

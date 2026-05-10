@@ -371,4 +371,18 @@ namespace gsr {
         std::string output;
         return exec_program_on_host_get_stdout(args, output, false) == 0;
     }
+
+    bool is_wayland_layer_shell_overlay_session() {
+        const char *wayland_display = getenv("WAYLAND_DISPLAY");
+        if(!wayland_display || !wayland_display[0])
+            return false;
+
+        const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+        if(!xdg_current_desktop || !xdg_current_desktop[0])
+            return false;
+
+        return strstr(xdg_current_desktop, "Hyprland") ||
+               strstr(xdg_current_desktop, "niri") ||
+               strstr(xdg_current_desktop, "river");
+    }
 }
