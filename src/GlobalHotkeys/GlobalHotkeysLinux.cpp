@@ -1,5 +1,7 @@
 #include "../../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
 #include <sys/wait.h>
+#include <sys/prctl.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <string.h>
@@ -138,6 +140,7 @@ namespace gsr {
             }
             return false;
         } else if(pid == 0) { /* child */
+            prctl(PR_SET_PDEATHSIG, SIGTERM);
             dup2(read_pipes[PIPE_WRITE], STDOUT_FILENO);
             for(int i = 0; i < 2; ++i) {
                 close(read_pipes[i]);

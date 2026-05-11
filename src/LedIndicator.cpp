@@ -3,7 +3,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <signal.h>
 #include <sys/wait.h>
+#include <sys/prctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -96,6 +98,7 @@ namespace gsr {
             fprintf(stderr, "Error: LedIndicator::run_gsr_global_hotkeys_set_leds: failed to fork\n");
             return false;
         } else if(gsr_global_hotkeys_pid == 0) { // Child
+            prctl(PR_SET_PDEATHSIG, SIGTERM);
             if(inside_flatpak) {
                 const char *args[] = { "flatpak-spawn", "--host", "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/kms-server-proxy", "launch-gsr-global-hotkeys", user_homepath, "--set-led", "Scroll Lock", enabled ? "on" : "off", nullptr };
                 execvp(args[0], (char* const*)args);

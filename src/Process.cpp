@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/prctl.h>
 #include <limits.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -117,6 +118,7 @@ namespace gsr {
             perror("Failed to vfork");
             return -1;
         } else if(pid == 0) { /* child */
+            prctl(PR_SET_PDEATHSIG, SIGTERM);
             dup2(fds[PIPE_WRITE], STDOUT_FILENO);
             close(fds[PIPE_READ]);
             close(fds[PIPE_WRITE]);

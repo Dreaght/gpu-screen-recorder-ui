@@ -6,13 +6,13 @@
 #include <string.h>
 #include <errno.h>
 #include <poll.h>
+#include <stddef.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
 namespace gsr {
-    static void get_socket_filepath(char *buffer, size_t buffer_size, const char *filename) {
+    static bool build_abstract_address(const char *name, struct sockaddr_un *addr, socklen_t *addrlen_out) {
         char dir[PATH_MAX];
-
         const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
         if(runtime_dir)
             snprintf(dir, sizeof(dir), "%s", runtime_dir);
@@ -22,22 +22,23 @@ namespace gsr {
         if(access(dir, F_OK) != 0)
             snprintf(dir, sizeof(dir), "/tmp");
 
-        snprintf(buffer, buffer_size, "%s/%s", dir, filename);
-    }
-
-    static int create_socket(const char *name, struct sockaddr_un *addr, std::string &socket_filepath) {
-        char socket_filepath_tmp[PATH_MAX];
-        get_socket_filepath(socket_filepath_tmp, sizeof(socket_filepath_tmp), name);
-        socket_filepath = socket_filepath_tmp;
-
-        memset(addr, 0, sizeof(*addr));
-        if(strlen(name) > sizeof(addr->sun_path))
+        /* Stay human-readable so the name shows up sensibly in
+           /proc/net/unix and `ss -xa`. Abstract names print with the
+           leading NUL rendered as '@'. */
+        char path[PATH_MAX];
+        const int path_len = snprintf(path, sizeof(path), "%s/%s", dir, name);
+        if(path_len <= 0)
+            return false;
+        /* Need room for the leading NUL byte plus path_len bytes of name. */
+        if((size_t)path_len + 1 > sizeof(addr->sun_path))
             return false;
 
+        memset(addr, 0, sizeof(*addr));
         addr->sun_family = AF_UNIX;
-        snprintf(addr->sun_path, sizeof(addr->sun_path), "%s", socket_filepath.c_str());
-
-        return socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+        addr->sun_path[0] = '\0';
+        memcpy(addr->sun_path + 1, path, (size_t)path_len);
+        *addrlen_out = (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + (size_t)path_len);
+        return true;
     }
 
     Rpc::Rpc() {
@@ -47,9 +48,8 @@ namespace gsr {
     Rpc::~Rpc() {
         if(socket_fd > 0)
             close(socket_fd);
-
-        if(!socket_filepath.empty())
-            unlink(socket_filepath.c_str());
+        /* No filesystem path to unlink — abstract sockets are reclaimed by
+           the kernel on close/process-exit. */
     }
 
     bool Rpc::create(const char *name) {
@@ -59,15 +59,19 @@ namespace gsr {
         }
 
         struct sockaddr_un addr;
-        socket_fd = create_socket(name, &addr, socket_filepath);
+        socklen_t addrlen = 0;
+        if(!build_abstract_address(name, &addr, &addrlen)) {
+            fprintf(stderr, "Error: Rpc::create: name too long\n");
+            return false;
+        }
+
+        socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
         if(socket_fd <= 0) {
             fprintf(stderr, "Error: Rpc::create: failed to create socket, error: %s\n", strerror(errno));
             return false;
         }
 
-        unlink(socket_filepath.c_str());
-
-        if(bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+        if(bind(socket_fd, (struct sockaddr*)&addr, addrlen) == -1) {
             const int err = errno;
             close(socket_fd);
             socket_fd = 0;
@@ -100,15 +104,20 @@ namespace gsr {
         }
 
         struct sockaddr_un addr;
-        socket_fd = create_socket(name, &addr, socket_filepath);
-        socket_filepath.clear(); /* We dont want to delete the socket on exit as the client */
+        socklen_t addrlen = 0;
+        if(!build_abstract_address(name, &addr, &addrlen)) {
+            fprintf(stderr, "Error: Rpc::open: name too long\n");
+            return RpcOpenResult::ERROR;
+        }
+
+        socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
         if(socket_fd <= 0) {
             fprintf(stderr, "Error: Rpc::open: failed to create socket, error: %s\n", strerror(errno));
             return RpcOpenResult::ERROR;
         }
 
         while(true) {
-            if(connect(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+            if(connect(socket_fd, (struct sockaddr*)&addr, addrlen) == -1) {
                 const int err = errno;
                 if(err == EWOULDBLOCK) {
                     usleep(10 * 1000);
@@ -116,7 +125,7 @@ namespace gsr {
                     close(socket_fd);
                     socket_fd = 0;
                     if(err != ENOENT && err != ECONNREFUSED)
-                        fprintf(stderr, "Error: Rpc::create: failed to connect, error: %s\n", strerror(err));
+                        fprintf(stderr, "Error: Rpc::open: failed to connect, error: %s\n", strerror(err));
                     return RpcOpenResult::ERROR;
                 }
             } else {
@@ -158,7 +167,7 @@ namespace gsr {
                         return;
                     }
 
-                    const int client_fd = accept(socket_fd, NULL, NULL);
+                    const int client_fd = accept4(socket_fd, NULL, NULL, SOCK_CLOEXEC);
                     if(num_polls >= GSR_RPC_MAX_POLLS) {
                         if(errno != EWOULDBLOCK)
                             fprintf(stderr, "Error: Rpc::poll: unable to accept more clients, error: %s\n", strerror(errno));

@@ -923,7 +923,11 @@ static void keyboard_event_process_stdin_command_data(keyboard_event *self, int 
     }
 
     const ssize_t bytes_read = read(fd, self->stdin_command_data + self->stdin_command_data_size, num_bytes_to_read);
-    if(bytes_read <= 0)
+    if(bytes_read == 0) {
+        self->stdin_failed = true;
+        return;
+    }
+    if(bytes_read < 0)
         return;
 
     const char *command_start = self->stdin_command_data;

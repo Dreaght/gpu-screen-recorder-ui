@@ -41,7 +41,6 @@ namespace gsr {
         void handle_client_data(int client_fd, PollData &poll_data);
     private:
         int socket_fd = 0;
-        std::string socket_filepath;
         struct pollfd polls[GSR_RPC_MAX_POLLS];
         PollData polls_data[GSR_RPC_MAX_POLLS];
         int num_polls = 0;

@@ -9,9 +9,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-static void get_socket_filepath(char *buffer, size_t buffer_size, const char *filename) {
+static bool build_abstract_address(const char *name, struct sockaddr_un *addr, socklen_t *addrlen_out) {
     char dir[PATH_MAX];
-
     const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
     if(runtime_dir)
         snprintf(dir, sizeof(dir), "%s", runtime_dir);
@@ -21,7 +20,23 @@ static void get_socket_filepath(char *buffer, size_t buffer_size, const char *fi
     if(access(dir, F_OK) != 0)
         snprintf(dir, sizeof(dir), "/tmp");
 
-    snprintf(buffer, buffer_size, "%s/%s", dir, filename);
+    /* Stay human-readable so the name shows up sensibly in
+        /proc/net/unix and `ss -xa`. Abstract names print with the
+        leading NUL rendered as '@'. */
+    char path[PATH_MAX];
+    const int path_len = snprintf(path, sizeof(path), "%s/%s", dir, name);
+    if(path_len <= 0)
+        return false;
+    /* Need room for the leading NUL byte plus path_len bytes of name. */
+    if((size_t)path_len + 1 > sizeof(addr->sun_path))
+        return false;
+
+    memset(addr, 0, sizeof(*addr));
+    addr->sun_family = AF_UNIX;
+    addr->sun_path[0] = '\0';
+    memcpy(addr->sun_path + 1, path, (size_t)path_len);
+    *addrlen_out = (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + (size_t)path_len);
+    return true;
 }
 
 /* Assumes |str| size is less than 256 */
@@ -120,21 +135,21 @@ int main(int argc, char **argv) {
         usage();
     }
 
-    char socket_filepath[PATH_MAX];
-    get_socket_filepath(socket_filepath, sizeof(socket_filepath), "gsr-ui");
+    struct sockaddr_un addr;
+    socklen_t addrlen = 0;
+    if(!build_abstract_address("gsr-ui", &addr, &addrlen)) {
+        fprintf(stderr, "Error: Rpc::create: name too long\n");
+        return false;
+    }
 
-    const int socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    const int socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if(socket_fd <= 0) {
         fprintf(stderr, "Error: failed to create socket\n");
         exit(2);
     }
 
-    struct sockaddr_un addr = {0};
-    addr.sun_family = AF_UNIX;
-    snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", socket_filepath);
-
     for(;;) {
-        if(connect(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+        if(connect(socket_fd, (struct sockaddr*)&addr, addrlen) == -1) {
             const int err = errno;
             if(err == EWOULDBLOCK) {
                 usleep(10 * 1000);
