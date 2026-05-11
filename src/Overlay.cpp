@@ -1167,22 +1167,11 @@ namespace gsr {
 
         Display *display = x11_dpy;
 
-        const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
         const std::string wm_name = get_window_manager_name(display);
         const bool is_kwin = wm_name == "KWin";
         const bool is_wlroots = wm_name.find("wlroots") != std::string::npos;
-        const bool is_hyprland = xdg_current_desktop && strstr(xdg_current_desktop, "Hyprland");
-        const bool is_niri = xdg_current_desktop && strstr(xdg_current_desktop, "niri");
-        //const bool is_sway = xdg_current_desktop && strstr(xdg_current_desktop, "sway");
-        const bool is_river = xdg_current_desktop && strstr(xdg_current_desktop, "river");
-        //const bool is_smithay = wm_name.find("Smithay") != std::string::npos;
-        // On compositors where override-redirect X11 doesn't work and that advertise wlr-layer-shell,
-        // create the overlay as a native Wayland layer surface instead. Restricted to Hyprland, niri,
-        // Sway, and river — these are wlroots-based and reliably support layer-shell. KWin and GNOME
-        // are intentionally excluded.
-        wayland_native_overlay =
-            gsr_info.system_info.display_server == DisplayServer::WAYLAND &&
-            (is_hyprland || is_niri || is_river);
+        // On compositors where override-redirect X11 doesn't work and that advertise wlr-layer-shell
+        wayland_native_overlay = is_wayland_layer_shell_overlay_session();
 
         const std::vector<Monitor> monitors = wayland_native_overlay ? get_monitors_wayland(wayland_dpy) : get_monitors(display);
         if(monitors.empty()) {
@@ -1219,11 +1208,9 @@ namespace gsr {
         const bool prevent_game_minimizing = gsr_info.system_info.display_server != DisplayServer::WAYLAND
             || (x11_focused_window && is_window_fullscreen_on_monitor(display, x11_focused_window, *focused_monitor))
             || is_wlroots
-            || is_hyprland
-            || is_niri
             || wayland_native_overlay;
 
-        const bool drm_cursor_pos = (!prevent_game_minimizing || is_wlroots || is_hyprland) && cursor_info;
+        const bool drm_cursor_pos = (!prevent_game_minimizing || is_wlroots) && cursor_info;
         if(drm_cursor_pos)
             cursor_position = cursor_info->position;
 
