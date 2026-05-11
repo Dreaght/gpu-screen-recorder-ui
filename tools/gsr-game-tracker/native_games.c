@@ -7,7 +7,7 @@
 static const char *process_names_len_2[] = { "fm", "et", NULL };
 static const char *process_names_len_3[] = { "0ad", "etl", "RMG", "etr", NULL };
 static const char *process_names_len_4[] = { "hwcl", "osu!", "rott", "xemu", "cemu", "suyu", "yuzu", "eden", "mame", NULL };
-static const char *process_names_len_5[] = { "sober", "zdoom", "cen64", "mesen", "higan", "rpcs3", NULL };
+static const char *process_names_len_5[] = { "sober", "zdoom", "cen64", "mesen", "higan", "86Box", "rpcs3", NULL };
 static const char *process_names_len_6[] = { "luanti", "Mobbos", "glhwcl", "hexen2", "dhewm3", "Funkin", "quake2", "gzdoom", "quake3", "ecwolf", "ut-bin", "fs-uae", "dosbox", NULL };
 static const char *process_names_len_7[] = { "Etterna", "etterna", "vkquake", "melonDS", "ryujinx", "sdlmame", "scummvm", "blastem", "redream", "shadps4", "TETR.IO", NULL };
 static const char *process_names_len_8[] = { "glhexen2", "alephone", "openrct2", "freesynd", "rottexpr", "tyr-qwcl", "ioquake3", "ironwail", "vkquake2", "cen64-qt", "mednafen", "PPSSPPQt", "pcsx2-qt", NULL };
@@ -20,6 +20,8 @@ static const char *process_names_len_14[] = { "sober_services", "chocolate-doom"
 static const char *process_names_len_15[] = { "UnleashedRecomp", "CoherentUI_Host", "linux_64_client", "rott-registered", "UnrealLinux.bin", "Quake3-UrT.i386", "DuckStation-x64", "tarEN.Arknights", "xon.bluearchive", "o.GenshinImpact", "iHoYo.bh3global", "se.hkrpgoversea", "ng.grayraven.en", ".en.reverse1999", "ingwaves.global", "m.HoYoverse.Nap", NULL };
 static const char *process_names_len_16[] = { "unreal-bin-amd64", "xenia_canary.exe", "elyprismlauncher", NULL };
 static const char *process_names_len_17[] = { "yamagi-quake2-git", "Zelda64Recompiled", "xonotic-local-sdl", NULL };
+static const char *process_names_len_18[] = { "mcpelauncher-ui-qt", NULL };
+static const char *process_names_len_19[] = { "mcpelauncher-client", NULL };
 static const char *process_names_len_21[] = { "launch_openmohaa_base", NULL };
 static const char *process_names_len_26[] = { "launch_openmohaa_spearhead", NULL };
 static const char *process_names_len_29[] = { "launch_openmohaa_breakthrough", NULL };
@@ -134,6 +136,20 @@ bool is_process_name_native_game(const char *process_name, size_t size) {
         case 17: {
             for(size_t i = 0; process_names_len_17[i] != NULL; ++i) {
                 if(memcmp(process_name, process_names_len_17[i], 17) == 0)
+                    return true;
+            }
+            return false;
+        }
+        case 18: {
+            for(size_t i = 0; process_names_len_18[i] != NULL; ++i) {
+                if(memcmp(process_name, process_names_len_18[i], 18) == 0)
+                    return true;
+            }
+            return false;
+        }
+        case 19: {
+            for(size_t i = 0; process_names_len_19[i] != NULL; ++i) {
+                if(memcmp(process_name, process_names_len_19[i], 19) == 0)
                     return true;
             }
             return false;

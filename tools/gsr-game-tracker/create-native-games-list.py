@@ -111,6 +111,9 @@ def main():
     all_games.append("etr") # extreme tux racer
     all_games.append("TETR.IO")
 
+    blacklisted_games = ("lsfg-vk-ui ")
+    all_games = filter(lambda game: game not in blacklisted_games, all_games)
+
     script_dir = os.path.dirname(os.path.realpath(__file__))
     write_process_name_matcher_code_file(os.path.join(script_dir, "native_games.c"), all_games)
 
