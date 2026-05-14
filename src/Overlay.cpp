@@ -21,6 +21,8 @@
 #include "../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
 #include "../include/CursorTracker/CursorTrackerX11.hpp"
 #include "../include/CursorTracker/CursorTrackerWayland.hpp"
+#include "../include/Clipboard/ClipboardX11.hpp"
+#include "../include/Clipboard/ClipboardWayland.hpp"
 #include "../include/RegionSelector/RegionSelectorX11.hpp"
 #include "../include/RegionSelector/RegionSelectorWayland.hpp"
 
@@ -602,6 +604,11 @@ namespace gsr {
             region_selector = std::make_unique<RegionSelectorWayland>(wayland_dpy);
         else
             region_selector = std::make_unique<RegionSelectorX11>(x11_dpy);
+
+        if(wayland_dpy && ClipboardWayland::is_supported(wayland_dpy))
+            clipboard = std::make_unique<ClipboardWayland>(wayland_dpy);
+        else
+            clipboard = std::make_unique<ClipboardX11>();
 
         desktop_environment->start();
         update_led_indicator_after_settings_change();
@@ -2167,13 +2174,13 @@ namespace gsr {
         return replay_duration_sec;
     }
 
-    static ClipboardFile::FileType filename_to_clipboard_file_type(const std::string &filename) {
+    static Clipboard::FileType filename_to_clipboard_file_type(const std::string &filename) {
         if(ends_with(filename, ".jpg") || ends_with(filename, ".jpeg"))
-            return ClipboardFile::FileType::JPG;
+            return Clipboard::FileType::JPG;
         else if(ends_with(filename, ".png"))
-            return ClipboardFile::FileType::PNG;
+            return Clipboard::FileType::PNG;
         assert(false);
-        return ClipboardFile::FileType::PNG;
+        return Clipboard::FileType::PNG;
     }
 
     void Overlay::save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type) {
@@ -2454,8 +2461,8 @@ namespace gsr {
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
             }
 
-            if(config.screenshot_config.save_screenshot_to_clipboard)
-                clipboard_file.set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
+            if(config.screenshot_config.save_screenshot_to_clipboard && clipboard)
+                clipboard->set_current_file(screenshot_filepath, filename_to_clipboard_file_type(screenshot_filepath));
 
             if(led_indicator && config.screenshot_config.use_led_indicator)
                 led_indicator->blink();
@@ -3714,7 +3721,8 @@ namespace gsr {
 
         args.push_back(nullptr);
 
-        clipboard_file.set_current_file("", ClipboardFile::FileType::JPG);
+        if(clipboard)
+            clipboard->set_current_file("", Clipboard::FileType::JPG);
 
         screenshot_filepath = output_file;
         gpu_screen_recorder_screenshot_process = exec_program(args.data(), nullptr);
