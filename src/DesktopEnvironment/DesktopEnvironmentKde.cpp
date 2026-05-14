@@ -1,6 +1,6 @@
 #include "../../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
 #include "../../include/Process.hpp"
-
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 

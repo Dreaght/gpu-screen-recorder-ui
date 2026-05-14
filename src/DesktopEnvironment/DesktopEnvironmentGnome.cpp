@@ -2,6 +2,7 @@
 #include "../../include/WindowUtils.hpp"
 #include "../../include/Process.hpp"
 
+#include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>

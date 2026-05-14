@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DesktopEnvironment.hpp"
+#include <sys/types.h>
 
 namespace gsr {
     class DesktopEnvironmentKde : public DesktopEnvironment {
