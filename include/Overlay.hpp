@@ -8,7 +8,7 @@
 #include "WindowUtils.hpp"
 #include "GlobalHotkeys/GlobalHotkeysJoystick.hpp"
 #include "AudioPlayer.hpp"
-#include "ClipboardFile.hpp"
+#include "Clipboard/Clipboard.hpp"
 #include "LedIndicator.hpp"
 #include "CursorTracker/CursorTracker.hpp"
 #include "RegionSelector/RegionSelector.hpp"
@@ -311,7 +311,7 @@ namespace gsr {
         bool reopen_settings_after_reload = false;
         int pending_settings_scroll_y = 0;
         double notification_duration_multiplier = 1.0;
-        ClipboardFile clipboard_file;
+        std::unique_ptr<Clipboard> clipboard;
 
         std::unique_ptr<LedIndicator> led_indicator = nullptr;
 
