@@ -3711,7 +3711,7 @@ namespace gsr {
         screenshot_texture.clear();
         screenshot_sprite.set_texture(nullptr);
 
-        if(gsr_info.system_info.display_server != DisplayServer::X11)
+        if(gsr_info.system_info.display_server != DisplayServer::X11 || wayland_native_overlay)
             return false;
 
         Display *display = (Display*)mgl_get_context()->connection;
@@ -3746,9 +3746,9 @@ namespace gsr {
     }
 
     void Overlay::force_window_on_top() {
-        // Layer-shell on the OVERLAY layer is already the topmost layer; no X11 raise.
         if(wayland_native_overlay)
             return;
+
         if(force_window_on_top_clock.get_elapsed_time_seconds() >= force_window_on_top_timeout_seconds) {
             force_window_on_top_clock.restart();
 
