@@ -236,6 +236,7 @@ namespace gsr {
                 pending_sends.pop_front();
             }
 
+            // TODO: Use epoll instead of timeout
             if(!transfer_clipboard_transfer_file(pending_send.file, pending_send.fd, clipboard_transfer_write_timeout_ms))
                 fprintf(stderr, "gsr ui: error: ClipboardWayland: failed to send clipboard data, error: %s\n", strerror(errno));
             close(pending_send.fd);
@@ -369,15 +370,19 @@ namespace gsr {
         }
 
         ext_data_control_source_v1_add_listener(impl->source, &source_listener, impl.get());
-        switch(file_type) {
-            case FileType::JPG:
-                ext_data_control_source_v1_offer(impl->source, "image/jpg");
-                ext_data_control_source_v1_offer(impl->source, "image/jpeg");
-                break;
-            case FileType::PNG:
-                ext_data_control_source_v1_offer(impl->source, "image/png");
-                break;
-        }
+        // switch(file_type) {
+        //     case FileType::JPG:
+        //         ext_data_control_source_v1_offer(impl->source, "image/jpg");
+        //         ext_data_control_source_v1_offer(impl->source, "image/jpeg");
+        //         break;
+        //     case FileType::PNG:
+        //         ext_data_control_source_v1_offer(impl->source, "image/png");
+        //         break;
+        // }
+        // TODO: Convert image to requested image type. Right now sending a jpg file when a png file is requested works ok in browsers (discord and element)
+        ext_data_control_source_v1_offer(impl->source, "image/jpg");
+        ext_data_control_source_v1_offer(impl->source, "image/jpeg");
+        ext_data_control_source_v1_offer(impl->source, "image/png");
 
         ext_data_control_device_v1_set_selection(impl->device, impl->source);
         wl_display_flush(impl->display);
