@@ -150,7 +150,8 @@ namespace gsr {
 
         void replay_status_update_status();
         void update_power_supply_status();
-        void update_system_startup_status();
+        bool replay_program_autostart_capture_options_available();
+        void update_replay_program_startup_status();
         void update_gsr_game_tracker_replay_status();
 
         void on_stop_recording(int exit_code, std::string &video_filepath);
@@ -242,6 +243,7 @@ namespace gsr {
         mgl::Clock replay_status_update_clock;
         std::string power_supply_online_filepath;
         bool power_supply_connected = false;
+        bool replay_program_startup_power_supply_connected = false;
 
         std::string record_filepath;
         std::string screenshot_filepath;
@@ -284,6 +286,7 @@ namespace gsr {
         bool replay_save_show_notification = false;
         ReplayStartupMode replay_startup_mode = ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP;
         bool replay_launched_manually = false;
+        bool replay_launched_once = false;
         bool replay_recording = false;
         int replay_save_duration_min = 0;
         mgl::Clock replay_duration_clock;

@@ -2481,7 +2481,7 @@ namespace gsr {
 
         replay_status_update_clock.restart();
         update_power_supply_status();
-        update_system_startup_status();
+        update_replay_program_startup_status();
     }
 
     // TODO: Instead of checking power supply status periodically listen to power supply event
@@ -2492,18 +2492,35 @@ namespace gsr {
         power_supply_connected = power_supply_online_filepath.empty() || power_supply_is_connected(power_supply_online_filepath.c_str());
     }
 
-    void Overlay::update_system_startup_status() {
-        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP || replay_launched_manually)
+    bool Overlay::replay_program_autostart_capture_options_available() {
+        return are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options);
+    }
+
+    void Overlay::update_replay_program_startup_status() {
+        if(replay_startup_mode != ReplayStartupMode::TURN_ON_AT_SYSTEM_STARTUP)
             return;
 
-        const bool power_supply_allows_start = !config.replay_config.only_start_replay_if_power_supply_connected || power_supply_connected;
-        const bool power_supply_disconnected = config.replay_config.only_start_replay_if_power_supply_connected && !power_supply_connected;
+        if(config.replay_config.only_start_replay_if_power_supply_connected) {
+            if(recording_status == RecordingStatus::NONE) {
+                if(replay_program_autostart_capture_options_available() || replay_launched_once) {
+                    const bool power_supply_connected_status_changed = power_supply_connected != replay_program_startup_power_supply_connected;
+                    replay_program_startup_power_supply_connected = power_supply_connected;
 
-        if(recording_status == RecordingStatus::NONE && power_supply_allows_start) {
-            if(are_all_audio_tracks_available_to_capture(config.replay_config.record_options.audio_tracks_list) && is_webcam_available_to_capture(config.replay_config.record_options))
-                on_press_start_replay(false, false);
-        } else if(recording_status == RecordingStatus::REPLAY && power_supply_disconnected) {
-            on_press_start_replay(false, false);
+                    if(power_supply_connected_status_changed && power_supply_connected)
+                        on_press_start_replay(false, false);
+                }
+            } else if(recording_status == RecordingStatus::REPLAY) {
+                const bool power_supply_connected_status_changed = power_supply_connected != replay_program_startup_power_supply_connected;
+                replay_program_startup_power_supply_connected = power_supply_connected;
+
+                if(power_supply_connected_status_changed && !power_supply_connected && !replay_launched_manually)
+                    on_press_start_replay(false, false);
+            }
+        } else {
+            if(recording_status == RecordingStatus::NONE && !replay_launched_once) {
+                if(replay_program_autostart_capture_options_available())
+                    on_press_start_replay(false, false);
+            }
         }
     }
 
@@ -3023,6 +3040,7 @@ namespace gsr {
 
         update_upause_status();
         replay_launched_manually = launched_manually;
+        replay_launched_once = true;
 
         close_gpu_screen_recorder_output();
 
