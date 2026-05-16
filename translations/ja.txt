@@ -264,7 +264,7 @@ Screen=画面
 Image resolution limit:=画像解像度の上限:
 Change image resolution=画像解像度を変更
 Restore portal session=ポータルセッションを復元
-* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* システムで HDR が有効になっています キャプチャ対象を "デスクトップポータル" に変更することをお勧めします
+HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=HDR がシステムで有効になっています 画面を正しくキャプチャするためにキャプチャ対象を「デスクトップポータル」に変更することをお勧めします
 
 Image quality:=画質:
 Medium=中
@@ -336,7 +336,7 @@ Add input device=入力デバイスを追加
 Add output device=出力デバイスを追加
 Add application audio=アプリ音声を追加
 Record audio from all applications except the selected ones=選択したアプリ以外のすべてのアプリ音声を録音
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=出力デバイスとアプリ音声を同時に録音すると すべての出力音声が録音される可能性があります\n通常は意図した動作ではないため 出力デバイスを削除してください
+Recording output devices and application audio may record all output audio, which is likely not what you want to do. Remove the output devices.=出力デバイスとアプリ音声を同時に録音すると すべての出力音声が録音される可能性があります通常は意図した動作ではないため 出力デバイスを削除してください
 
 Video=映像
 

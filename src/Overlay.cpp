@@ -1416,10 +1416,8 @@ namespace gsr {
             replay_dropdown_button_ptr = button.get();
             button->add_item(TR("Turn on"), "start", config.replay_config.start_stop_hotkey.to_string(false, false));
             button->add_item(TR("Save"), "save", config.replay_config.save_hotkey.to_string(false, false));
-            if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-                button->add_item(TR("Save 1 min"), "save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
-                button->add_item(TR("Save 10 min"), "save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
-            }
+            button->add_item(TR("Save 1 min"), "save_1_min", config.replay_config.save_1_min_hotkey.to_string(false, false));
+            button->add_item(TR("Save 10 min"), "save_10_min", config.replay_config.save_10_min_hotkey.to_string(false, false));
             button->add_item(TR("Settings"), "settings");
             button->set_item_icon("start", &get_theme().play_texture);
             button->set_item_icon("save", &get_theme().save_texture);
@@ -2311,8 +2309,12 @@ namespace gsr {
             if(line[line_len - 1] == '\n')
                 line[line_len - 1] = '\0';
 
-            if(starts_with({line, (size_t)line_len}, "Error: ")) {
-                show_notification(line + 7, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), recording_status_to_notification_type(recording_status), nullptr, NotificationLevel::ERROR);
+            if(starts_with({line, (size_t)line_len}, "gsr error: ")) {
+                //show_notification(line + 11, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), recording_status_to_notification_type(recording_status), nullptr, NotificationLevel::ERROR);
+                if(replay_recording) {
+                    std::string dummy;
+                    on_stop_recording(1, dummy);
+                }
                 return;
             }
 
@@ -3140,7 +3142,7 @@ namespace gsr {
             "-o", output_directory.c_str()
         };
 
-        if(config.replay_config.restart_replay_on_save && gsr_info.system_info.gsr_version >= GsrVersion{5, 0, 3}) {
+        if(config.replay_config.restart_replay_on_save) {
             args.push_back("-restart-replay-on-save");
             args.push_back("yes");
             replay_restart_on_save = true;
@@ -3148,18 +3150,14 @@ namespace gsr {
             replay_restart_on_save = false;
         }
 
-        if(gsr_info.system_info.gsr_version >= GsrVersion{5, 5, 0}) {
-            args.push_back("-replay-storage");
-            args.push_back(config.replay_config.replay_storage.c_str());
-        }
+        args.push_back("-replay-storage");
+        args.push_back(config.replay_config.replay_storage.c_str());
 
         char region_str[128];
         add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.replay_config.record_options.record_area_option);
 
-        if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-            args.push_back("-ro");
-            args.push_back(config.record_config.save_directory.c_str());
-        }
+        args.push_back("-ro");
+        args.push_back(config.record_config.save_directory.c_str());
 
         args.push_back(nullptr);
 
@@ -3215,64 +3213,56 @@ namespace gsr {
                 if(gpu_screen_recorder_process <= 0)
                     return;
 
-                if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-                    if(!replay_recording) {
-                        if(config.record_config.record_options.show_notifications)
-                            show_notification(TR("Started recording in the replay session"), short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
-                        update_ui_recording_started();
+                if(!replay_recording) {
+                    if(config.record_config.record_options.show_notifications)
+                        show_notification(TR("Started recording in the replay session"), short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+                    update_ui_recording_started();
 
-                        // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
-                        // selected what to capture and accepted it.
-                        recording_duration_clock.restart();
-                        update_upause_status();
+                    // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
+                    // selected what to capture and accepted it.
+                    recording_duration_clock.restart();
+                    update_upause_status();
 
-                        if(led_indicator) {
-                            if(config.record_config.record_options.use_led_indicator) {
-                                if(!current_recording_config.replay_config.record_options.use_led_indicator)
-                                    led_indicator->set_led(true);
-                                else
-                                    led_indicator->blink();
-                            }
+                    if(led_indicator) {
+                        if(config.record_config.record_options.use_led_indicator) {
+                            if(!current_recording_config.replay_config.record_options.use_led_indicator)
+                                led_indicator->set_led(true);
+                            else
+                                led_indicator->blink();
                         }
                     }
-
-                    replay_recording = true;
-                    kill(gpu_screen_recorder_process, SIGRTMIN);
-                } else {
-                    show_notification(TR("Unable to start recording when replay is turned on. Turn off replay before starting recording."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
                 }
+
+                replay_recording = true;
+                kill(gpu_screen_recorder_process, SIGRTMIN);
                 return;
             }
             case RecordingStatus::STREAM: {
                 if(gpu_screen_recorder_process <= 0)
                     return;
 
-                if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-                    if(!replay_recording) {
-                        if(config.record_config.record_options.show_notifications)
-                            show_notification(TR("Started recording in the streaming session"), short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
-                        update_ui_recording_started();
+                if(!replay_recording) {
+                    if(config.record_config.record_options.show_notifications)
+                        show_notification(TR("Started recording in the streaming session"), short_notification_timeout_seconds, get_color_theme().tint_color, get_color_theme().tint_color, NotificationType::RECORD);
+                    update_ui_recording_started();
 
-                        // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
-                        // selected what to capture and accepted it.
-                        recording_duration_clock.restart();
-                        update_upause_status();
+                    // TODO: This will be incorrect if the user uses portal capture, as capture wont start until the user has
+                    // selected what to capture and accepted it.
+                    recording_duration_clock.restart();
+                    update_upause_status();
 
-                        if(led_indicator) {
-                            if(config.record_config.record_options.use_led_indicator) {
-                                if(!current_recording_config.streaming_config.record_options.use_led_indicator)
-                                    led_indicator->set_led(true);
-                                else
-                                    led_indicator->blink();
-                            }
+                    if(led_indicator) {
+                        if(config.record_config.record_options.use_led_indicator) {
+                            if(!current_recording_config.streaming_config.record_options.use_led_indicator)
+                                led_indicator->set_led(true);
+                            else
+                                led_indicator->blink();
                         }
                     }
-
-                    replay_recording = true;
-                    kill(gpu_screen_recorder_process, SIGRTMIN);
-                } else {
-                    show_notification(TR("Unable to start recording when streaming. Stop streaming before starting recording."), notification_error_timeout_seconds, mgl::Color(255, 0, 0), get_color_theme().tint_color, NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
                 }
+
+                replay_recording = true;
+                kill(gpu_screen_recorder_process, SIGRTMIN);
                 return;
             }
         }
@@ -3590,10 +3580,8 @@ namespace gsr {
         char region_str[128];
         add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.streaming_config.record_options.record_area_option);
 
-        if(gsr_info.system_info.gsr_version >= GsrVersion{5, 4, 0}) {
-            args.push_back("-ro");
-            args.push_back(config.record_config.save_directory.c_str());
-        }
+        args.push_back("-ro");
+        args.push_back(config.record_config.save_directory.c_str());
 
         args.push_back(nullptr);
 

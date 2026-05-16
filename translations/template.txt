@@ -268,7 +268,7 @@ Screen=
 Image resolution limit:=
 Change image resolution=
 Restore portal session=
-* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=
+HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=
 
 Image quality:=
 Medium=
@@ -340,7 +340,7 @@ Add input device=
 Add output device=
 Add application audio=
 Record audio from all applications except the selected ones=
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=
+Recording output devices and application audio may record all output audio, which is likely not what you want to do. Remove the output devices.=
 
 Video=
 

@@ -254,7 +254,7 @@ Screen=Екран
 Image resolution limit:=Обмеження роздільної здатності зображення:
 Change image resolution=Змінювати роздільну здатність зображення
 Restore portal session=Відновити сесію порталу
-* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* HDR увімкнено у вашій системі. Рекомендується змінити ціль захоплення на "Портал робочого стола"
+HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=На вашій системі увімкнено HDR. Рекомендується змінити ціль захоплення на "Портал робочого стола" для коректного захоплення екрана.
 
 Image quality:=Якість зображення:
 Medium=Середня
@@ -324,7 +324,7 @@ Add input device=Додати вхід
 Add output device=Додати вихід
 Add application audio=Додати аудіо програми
 Record audio from all applications except the selected ones=Записувати аудіо з усіх програм окрім вибраних
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=Запис вихідних пристроїв та аудіо програм може записати весь вихідний звук,\nщо, ймовірно, не те, що ви хочете. Видаліть вихідні пристрої.
+Recording output devices and application audio may record all output audio, which is likely not what you want to do. Remove the output devices.=Запис вихідних пристроїв та аудіо програм може записати весь вихідний звук, що, ймовірно, не те, що ви хочете. Видаліть вихідні пристрої.
 
 Video=Відео
 

@@ -65,6 +65,7 @@ namespace gsr {
         std::unique_ptr<CheckBox> create_restore_portal_session_checkbox();
         std::unique_ptr<List> create_restore_portal_session_section();
         std::unique_ptr<Widget> create_change_video_resolution_section();
+        std::unique_ptr<Widget> create_hdr_warning();
         std::unique_ptr<Widget> create_capture_target_section();
         std::unique_ptr<List> create_webcam_sources();
         std::unique_ptr<List> create_webcam_video_setups();
@@ -235,7 +236,7 @@ namespace gsr {
         CheckBox *replay_power_supply_checkbox_ptr = nullptr;
         CheckBox *enable_vulkan_checkbox_ptr = nullptr;
         List *vulkan_video_list_ptr = nullptr;
-        Label *hdr_warning_label_ptr = nullptr;
+        List *hdr_warning_list_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 

@@ -252,7 +252,7 @@ Screen=屏幕
 Image resolution limit:=图像分辨率限制：
 Change image resolution=更改图像分辨率
 Restore portal session=恢复门户会话
-* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* 你的系统已启用 HDR。建议将捕获目标更改为"桌面门户"
+HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=你的系统已启用 HDR。建议将捕获目标更改为"桌面门户"以正确捕获屏幕。
 
 Image quality:=图像质量：
 Medium=中
@@ -324,7 +324,7 @@ Add input device=添加输入设备
 Add output device=添加输出设备
 Add application audio=添加应用程序音频
 Record audio from all applications except the selected ones=录制除选中应用程序之外的所有应用程序音频
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=录制输出设备和应用程序音频可能会录制所有输出音频，这可能不是你想要的效果。请移除输出设备。
+Recording output devices and application audio may record all output audio, which is likely not what you want to do. Remove the output devices.=录制输出设备和应用程序音频可能会录制所有输出音频，这可能不是你想要的效果。请移除输出设备。
 
 Video=视频
 

@@ -262,7 +262,7 @@ Screen=Écran
 Image resolution limit:=Limite de résolution de l’image
 Change image resolution=Modifier la résolution de l’image
 Restore portal session=Restaurer la session du portail
-* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* Le HDR est activé sur votre système. Il est recommandé de changer la cible de capture pour "Portail du bureau"
+HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=Le HDR est activé sur votre système. Il est recommandé de changer la cible de capture en "Portail du bureau" afin de capturer correctement votre écran.
 
 Image quality:=Qualité de l’image
 Medium=Moyenne
@@ -334,7 +334,7 @@ Add input device=Ajouter appareil d’entrée
 Add output device=Ajouter appareil de sortie
 Add application audio=Ajouter l’audio d’application
 Record audio from all applications except the selected ones=Enregistrer l’audio de toutes les applications sauf celles sélectionnées
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=L’enregistrement des périphériques de sortie et de l’audio d’application peut enregistrer tout l’audio de sortie, ce qui n’est probablement pas souhaité.\nSupprimez les périphériques de sortie.
+Recording output devices and application audio may record all output audio, which is likely not what you want to do. Remove the output devices.=L’enregistrement des périphériques de sortie et de l’audio d’application peut enregistrer tout l’audio de sortie, ce qui n’est probablement pas souhaité. Supprimez les périphériques de sortie.
 
 Video=Vidéo
 

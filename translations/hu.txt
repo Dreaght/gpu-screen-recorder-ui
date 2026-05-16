@@ -252,7 +252,7 @@ Screen=Képernyő
 Image resolution limit:=Képfelbontás korlát:
 Change image resolution=Képfelbontás módosítása
 Restore portal session=Portál munkamenet visszaállítása
-* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* A HDR engedélyezve van a rendszereden. Ajánlott a rögzítési célt "Asztali portál"-ra módosítani
+HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=A HDR engedélyezve van a rendszereden. Javasolt, hogy a rögzítési célt "Asztali portál"-ra állítsd a képernyő megfelelő rögzítéséhez.
 
 Image quality:=Képminőség:
 Medium=Közepes
@@ -324,7 +324,7 @@ Add input device=Bemeneti eszköz hozzáadása
 Add output device=Kimeneti eszköz hozzáadása
 Add application audio=Alkalmazáshang hozzáadása
 Record audio from all applications except the selected ones=Hang rögzítése minden alkalmazásból a kiválasztottak kivételével
-Recording output devices and application audio may record all output audio, which is likely\nnot what you want to do. Remove the output devices.=A kimeneti eszközök és az alkalmazáshang rögzítése minden kimeneti hangot felvehet, ami valószínűleg\nnem kívánt. Távolítsd el a kimeneti eszközöket.
+Recording output devices and application audio may record all output audio, which is likely not what you want to do. Remove the output devices.=A kimeneti eszközök és az alkalmazáshang rögzítése minden kimeneti hangot felvehet, ami valószínűleg nem kívánt. Távolítsd el a kimeneti eszközöket.
 
 Video=Videó
 
