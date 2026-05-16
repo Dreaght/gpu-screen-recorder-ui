@@ -21,12 +21,13 @@ namespace gsr {
         return result;
     }
 
-    ScreenshotSettingsPage::ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title) :
+    ScreenshotSettingsPage::ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title, bool propery_supports_clipboard_image) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         config(config),
         gsr_info(gsr_info),
         page_stack(page_stack),
-        supports_window_title(supports_window_title)
+        supports_window_title(supports_window_title),
+        propery_supports_clipboard_image(propery_supports_clipboard_image)
     {
         capture_options = get_supported_capture_options(*gsr_info);
 
@@ -131,6 +132,12 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_image_resolution_section());
+
+        auto hdr_warning_label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("* HDR is enabled on your system. It's recommended that you change capture target to \"Desktop portal\""), get_color_theme().text_color);
+        hdr_warning_label_ptr = hdr_warning_label.get();
+        hdr_warning_label->set_wrap_width(hdr_warning_label->get_font_size() * 60);
+        ll->add_widget(std::move(hdr_warning_label));
+
         return std::make_unique<Subsection>(TR("Capture"), std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
@@ -227,7 +234,7 @@ namespace gsr {
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_clipboard() {
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), gsr_info->system_info.display_server == DisplayServer::X11 ? TR("Save screenshot to clipboard") : TR("Save screenshot to clipboard (Not supported properly by Wayland)"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), propery_supports_clipboard_image ? TR("Save screenshot to clipboard") : TR("Save screenshot to clipboard (Not supported properly by Wayland)"));
         save_screenshot_to_clipboard_checkbox_ptr = checkbox.get();
         return checkbox;
     }
@@ -315,6 +322,7 @@ namespace gsr {
             const bool portal_selected = id == "portal";
             image_resolution_list_ptr->set_visible(change_image_resolution_checkbox_ptr->is_checked());
             restore_portal_session_list_ptr->set_visible(portal_selected);
+            hdr_warning_label_ptr->set_visible(!portal_selected && gsr_info->system_info.display_server == DisplayServer::WAYLAND && drm_card_has_connector_with_hdr_enabled(gsr_info->gpu_info.card_path.c_str()));
             return true;
         };
 

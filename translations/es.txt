@@ -176,10 +176,6 @@ System language=Idioma del sistema
 Exit program=Salir del programa
 Go back to the old UI=Volver a la interfaz antigua
 
-If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:=Si deseas hacer una donación, puedes hacerlo en https://buymeacoffee.com/dec05eba:
-Donate=Donar
-All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.=Todas las donaciones se destinan al desarrollo de software (incluido GPU Screen Recorder)\ny a la compra de hardware para probar el software.
-
 # Subsection headers
 Global=Global
 Back=Atrás
@@ -256,6 +252,7 @@ Screen=Pantalla
 Image resolution limit:=Límite de resolución de imagen:
 Change image resolution=Cambiar la resolución de imagen
 Restore portal session=Restaurar sesión de portal
+* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* HDR está habilitado en tu sistema. Se recomienda cambiar el objetivo de captura a "Portal de escritorio"
 
 Image quality:=Calidad de imagen
 Medium=Media
@@ -293,7 +290,6 @@ Focused monitor=Monitor activo
 Area size:=Tamaño del área:
 Video resolution limit:=Límite de resolución de vídeo:
 Change video resolution=Cambiar la resolución de vídeo
-Restore portal session=Restaurar sesión de portal
 
 # Webcam settings
 Webcam=Webcam

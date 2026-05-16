@@ -605,10 +605,12 @@ namespace gsr {
         else
             region_selector = std::make_unique<RegionSelectorX11>(x11_dpy);
 
-        if(wayland_dpy && ClipboardWayland::is_supported(wayland_dpy))
+        if(wayland_dpy && ClipboardWayland::is_supported(wayland_dpy)) {
             clipboard = std::make_unique<ClipboardWayland>(wayland_dpy);
-        else
+            wayland_native_clipboard = true;
+        } else {
             clipboard = std::make_unique<ClipboardX11>();
+        }
 
         desktop_environment->start();
         update_led_indicator_after_settings_change();
@@ -1528,7 +1530,8 @@ namespace gsr {
             button->set_icon(&get_theme().screenshot_texture);
             button->set_icon_padding_scale(1.2f);
             button->on_click = [&]() {
-                auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack, supports_window_title);
+                const bool properly_supports_clipboard_image = gsr_info.system_info.display_server == DisplayServer::X11 || wayland_native_clipboard;
+                auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack, supports_window_title, properly_supports_clipboard_image);
                 screenshot_settings_page->on_config_changed = [this]() {
                     update_led_indicator_after_settings_change();
                 };

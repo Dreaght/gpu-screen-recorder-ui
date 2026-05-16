@@ -4,11 +4,13 @@
 #include <stdio.h>
 #include <optional>
 #include <unistd.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <xf86drmMode.h>
 extern "C" {
 #include <mgl/system/clock.h>
 }
@@ -384,5 +386,65 @@ namespace gsr {
         return strstr(xdg_current_desktop, "Hyprland") ||
                strstr(xdg_current_desktop, "niri") ||
                strstr(xdg_current_desktop, "river");
+    }
+
+    static bool get_drm_property_by_name(int drm_fd, drmModeObjectPropertiesPtr props, const char *name, uint64_t *result) {
+        for(uint32_t i = 0; i < props->count_props; ++i) {
+            drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
+            if(!prop)
+                continue;
+
+            if(strcmp(name, prop->name) == 0) {
+                *result = props->prop_values[i];
+                drmModeFreeProperty(prop);
+                return true;
+            }
+            drmModeFreeProperty(prop);
+        }
+        return false;
+    }
+
+    static bool connector_get_property_by_name(int drm_fd, drmModeConnectorPtr props, const char *name, uint64_t *result) {
+        drmModeObjectProperties properties;
+        properties.count_props = (uint32_t)props->count_props;
+        properties.props = props->props;
+        properties.prop_values = props->prop_values;
+        return get_drm_property_by_name(drm_fd, &properties, name, result);
+    }
+
+    bool drm_card_has_connector_with_hdr_enabled(const char *drm_card_path) {
+        bool hdr_enabled = false;
+        const int drm_fd = open(drm_card_path, O_RDONLY);
+        if(drm_fd <= 0)
+            return false;
+
+        std::string result;
+        drmModeResPtr resources = drmModeGetResources(drm_fd);
+        if(!resources)
+            goto done;
+
+        for(int i = 0; i < resources->count_connectors; ++i) {
+            uint64_t hdr_output_metadata_blob_id = 0;
+            drmModeConnectorPtr connector = drmModeGetConnectorCurrent(drm_fd, resources->connectors[i]);
+            if(!connector)
+                continue;
+
+            if(connector->connection != DRM_MODE_CONNECTED)
+                goto next;
+
+            if(connector_get_property_by_name(drm_fd, connector, "HDR_OUTPUT_METADATA", &hdr_output_metadata_blob_id) && hdr_output_metadata_blob_id != 0) {
+                drmModeFreeConnector(connector);
+                hdr_enabled = true;
+                break;
+            }
+
+            next:
+            drmModeFreeConnector(connector);
+        }
+
+        done:
+        drmModeFreeResources(resources);
+        close(drm_fd);
+        return hdr_enabled;
     }
 }

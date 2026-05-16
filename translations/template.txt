@@ -192,10 +192,6 @@ System language=
 Exit program=
 Go back to the old UI=
 
-If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:=
-Donate=
-All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.=
-
 # Subsection headers
 Global=
 Back=
@@ -272,6 +268,7 @@ Screen=
 Image resolution limit:=
 Change image resolution=
 Restore portal session=
+* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=
 
 Image quality:=
 Medium=
@@ -309,7 +306,6 @@ Focused monitor=
 Area size:=
 Video resolution limit:=
 Change video resolution=
-Restore portal session=
 
 # Webcam settings
 Webcam=

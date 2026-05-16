@@ -25,6 +25,8 @@ namespace gsr {
 
         // Set to 0 to disable
         void set_max_rows(int max_rows);
+
+        int get_font_size() const;
     private:
         mgl::Text text;
     };

@@ -179,10 +179,6 @@ System language=Системна мова
 Exit program=Вийти з програми
 Go back to the old UI=Повернутися до старого інтерфейсу
 
-If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:=Якщо ви хочете підтримати проєкт, ви можете зробити це на https://buymeacoffee.com/dec05eba:
-Donate=Підтримати
-All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.=Всі донати йдуть на розробку ПЗ (включно з GPU Screen Recorder) та купівлю\nобладнання для тестування.
-
 # Subsection headers
 Global=Глобальні
 Back=Назад
@@ -258,6 +254,7 @@ Screen=Екран
 Image resolution limit:=Обмеження роздільної здатності зображення:
 Change image resolution=Змінювати роздільну здатність зображення
 Restore portal session=Відновити сесію порталу
+* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* HDR увімкнено у вашій системі. Рекомендується змінити ціль захоплення на "Портал робочого стола"
 
 Image quality:=Якість зображення:
 Medium=Середня
@@ -294,7 +291,6 @@ Focused monitor=Активний монітор
 Area size:=Розмір області:
 Video resolution limit:=Обмеження роздільної здатності відео:
 Change video resolution=Змінювати роздільну здатність відео
-Restore portal session=Відновити сесію порталу
 
 # Webcam settings
 Webcam=Веб-камера

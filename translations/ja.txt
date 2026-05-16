@@ -188,10 +188,6 @@ System language=システムの言語
 Exit program=プログラムを終了
 Go back to the old UI=旧 UI に戻る
 
-If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:=支援したい場合は https://buymeacoffee.com/dec05eba から寄付できます:
-Donate=寄付する
-All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.=寄付は GPU Screen Recorder を含むソフトウェア開発と テスト用ハードウェア購入に使われます
-
 # Subsection headers
 Global=全体
 Back=戻る
@@ -268,6 +264,7 @@ Screen=画面
 Image resolution limit:=画像解像度の上限:
 Change image resolution=画像解像度を変更
 Restore portal session=ポータルセッションを復元
+* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* システムで HDR が有効になっています キャプチャ対象を "デスクトップポータル" に変更することをお勧めします
 
 Image quality:=画質:
 Medium=中
@@ -305,7 +302,6 @@ Focused monitor=フォーカス中のモニタ
 Area size:=領域サイズ:
 Video resolution limit:=動画解像度の上限:
 Change video resolution=動画解像度を変更
-Restore portal session=ポータルセッションを復元
 
 # Webcam settings
 Webcam=Webカメラ

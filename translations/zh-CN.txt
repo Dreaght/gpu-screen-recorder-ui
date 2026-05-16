@@ -176,10 +176,6 @@ System language=系统语言
 Exit program=退出程序
 Go back to the old UI=回到旧版界面
 
-If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:=如果你想捐赠，可以通过 https://buymeacoffee.com/dec05eba 进行捐赠：
-Donate=捐赠
-All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.=所有捐赠将用于软件开发（包括 GPU Screen Recorder）\n以及购买测试软件所需的硬件。
-
 # Subsection headers
 Global=全局
 Back=返回
@@ -256,6 +252,7 @@ Screen=屏幕
 Image resolution limit:=图像分辨率限制：
 Change image resolution=更改图像分辨率
 Restore portal session=恢复门户会话
+* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* 你的系统已启用 HDR。建议将捕获目标更改为"桌面门户"
 
 Image quality:=图像质量：
 Medium=中
@@ -293,7 +290,6 @@ Focused monitor=焦点显示器
 Area size:=区域大小：
 Video resolution limit:=视频分辨率限制：
 Change video resolution=更改视频分辨率
-Restore portal session=恢复门户会话
 
 # Webcam settings
 Webcam=摄像头

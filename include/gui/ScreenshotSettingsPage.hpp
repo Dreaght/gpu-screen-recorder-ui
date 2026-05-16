@@ -13,10 +13,11 @@ namespace gsr {
     class GsrPage;
     class ScrollablePage;
     class Button;
+    class Label;
 
     class ScreenshotSettingsPage : public StaticPage {
     public:
-        ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title);
+        ScreenshotSettingsPage(const GsrInfo *gsr_info, Config &config, PageStack *page_stack, bool supports_window_title, bool propery_supports_clipboard_image);
         ScreenshotSettingsPage(const ScreenshotSettingsPage&) = delete;
         ScreenshotSettingsPage& operator=(const ScreenshotSettingsPage&) = delete;
 
@@ -83,9 +84,11 @@ namespace gsr {
         CheckBox *show_notification_checkbox_ptr = nullptr;
         CheckBox *led_indicator_checkbox_ptr = nullptr;
         Entry *create_custom_script_screenshot_entry_ptr = nullptr;
+        Label *hdr_warning_label_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 
         bool supports_window_title = false;
+        bool propery_supports_clipboard_image = false;
     };
 }

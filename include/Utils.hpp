@@ -53,4 +53,6 @@ namespace gsr {
     // Decided purely from environment variables so it can be called before any X11
     // or Wayland connection has been opened.
     bool is_wayland_layer_shell_overlay_session();
+
+    bool drm_card_has_connector_with_hdr_enabled(const char *drm_card_path);
 }

@@ -42,4 +42,8 @@ namespace gsr {
     void Label::set_max_rows(int max_rows) {
         text.set_max_rows(max_rows);
     }
+
+    int Label::get_font_size() const {
+        return text.get_font_size();
+    }
 }

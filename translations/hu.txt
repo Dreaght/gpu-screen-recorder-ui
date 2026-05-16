@@ -176,10 +176,6 @@ System language=Rendszer nyelve
 Exit program=Kilépés
 Go back to the old UI=Visszatérés a régi felülethez
 
-If you would like to donate you can do so by donating at https://buymeacoffee.com/dec05eba:=Ha szeretnél támogatni, megteheted itt: https://buymeacoffee.com/dec05eba
-Donate=Adományozás
-All donations go toward developing software (including GPU Screen Recorder)\nand buying hardware to test the software.=Minden adomány a szoftverek fejlesztésére (beleértve a GPU Screen Recordert)\nés a teszteléshez szükséges hardverek beszerzésére fordítódik.
-
 # Subsection headers
 Global=Általános
 Back=Vissza
@@ -256,6 +252,7 @@ Screen=Képernyő
 Image resolution limit:=Képfelbontás korlát:
 Change image resolution=Képfelbontás módosítása
 Restore portal session=Portál munkamenet visszaállítása
+* HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal"=* A HDR engedélyezve van a rendszereden. Ajánlott a rögzítési célt "Asztali portál"-ra módosítani
 
 Image quality:=Képminőség:
 Medium=Közepes
@@ -293,7 +290,6 @@ Focused monitor=Fókuszált monitor
 Area size:=Terület mérete:
 Video resolution limit:=Videófelbontás korlát:
 Change video resolution=Videófelbontás módosítása
-Restore portal session=Portál munkamenet visszaállítása
 
 # Webcam settings
 Webcam=Webkamera

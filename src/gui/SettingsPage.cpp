@@ -241,6 +241,12 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_video_resolution_section());
+
+        auto hdr_warning_label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("* HDR is enabled on your system. It's recommended that you change capture target to \"Desktop portal\""), get_color_theme().text_color);
+        hdr_warning_label_ptr = hdr_warning_label.get();
+        hdr_warning_label->set_wrap_width(hdr_warning_label->get_font_size() * 60);
+        ll->add_widget(std::move(hdr_warning_label));
+
         return std::make_unique<Subsection>(TR("Capture"), std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
@@ -1075,6 +1081,7 @@ namespace gsr {
             video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
             change_video_resolution_checkbox_ptr->set_visible(!focused_selected);
             restore_portal_session_list_ptr->set_visible(portal_selected);
+            hdr_warning_label_ptr->set_visible(!portal_selected && gsr_info->system_info.display_server == DisplayServer::WAYLAND && drm_card_has_connector_with_hdr_enabled(gsr_info->gpu_info.card_path.c_str()));
             return true;
         };
 
