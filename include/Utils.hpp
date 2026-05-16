@@ -54,5 +54,5 @@ namespace gsr {
     // or Wayland connection has been opened.
     bool is_wayland_layer_shell_overlay_session();
 
-    bool drm_card_has_connector_with_hdr_enabled(const char *drm_card_path);
+    bool has_connector_with_hdr_enabled();
 }

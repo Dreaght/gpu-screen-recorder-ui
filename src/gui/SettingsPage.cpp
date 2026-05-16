@@ -1081,7 +1081,7 @@ namespace gsr {
             video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
             change_video_resolution_checkbox_ptr->set_visible(!focused_selected);
             restore_portal_session_list_ptr->set_visible(portal_selected);
-            hdr_warning_label_ptr->set_visible(!portal_selected && gsr_info->system_info.display_server == DisplayServer::WAYLAND && drm_card_has_connector_with_hdr_enabled(gsr_info->gpu_info.card_path.c_str()));
+            hdr_warning_label_ptr->set_visible(!portal_selected && gsr_info->system_info.display_server == DisplayServer::WAYLAND && has_connector_with_hdr_enabled());
             return true;
         };
 

@@ -412,7 +412,7 @@ namespace gsr {
         return get_drm_property_by_name(drm_fd, &properties, name, result);
     }
 
-    bool drm_card_has_connector_with_hdr_enabled(const char *drm_card_path) {
+    static bool drm_card_has_connector_with_hdr_enabled(const char *drm_card_path) {
         bool hdr_enabled = false;
         const int drm_fd = open(drm_card_path, O_RDONLY);
         if(drm_fd <= 0)
@@ -446,5 +446,15 @@ namespace gsr {
         drmModeFreeResources(resources);
         close(drm_fd);
         return hdr_enabled;
+    }
+
+    bool has_connector_with_hdr_enabled() {
+        char path[256];
+        for(int i = 0; i < 8; ++i) {
+            snprintf(path, sizeof(path), "/dev/dri/card%d", i);
+            if(drm_card_has_connector_with_hdr_enabled(path))
+                return true;
+        }
+        return false;
     }
 }
