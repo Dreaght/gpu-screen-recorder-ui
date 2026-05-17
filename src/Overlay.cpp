@@ -1526,6 +1526,7 @@ namespace gsr {
             for (int i = 0; i < 16; i++) {
                 {
                     auto button = std::make_unique<ContainerButton>(mgl::vec2f(recently_recorded_item_width, recently_recorded_item_height), mgl::Color(0, 0, 0, 180));
+                    button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
 
                     auto row = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
                     row->add_widget(std::make_unique<Image>(&get_theme().play_texture, mgl::vec2f(recently_recorded_item_height, recently_recorded_item_height), Image::ScaleBehavior::SCALE));
