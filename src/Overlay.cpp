@@ -16,6 +16,10 @@
 #include "../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentGnome.hpp"
 #include "../include/gui/PageStack.hpp"
+#include "../include/gui/ScrollablePage.hpp"
+#include "../include/gui/ContainerButton.hpp"
+#include "../include/gui/Label.hpp"
+#include "../include/gui/Image.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
@@ -1507,6 +1511,46 @@ namespace gsr {
         const mgl::vec2f main_buttons_list_size = main_buttons_list->get_size();
         main_buttons_list->set_position((mgl::vec2f(window_size.x * 0.5f, window_size.y * 0.25f) - main_buttons_list_size * 0.5f).floor());
         front_page_ptr->add_widget(std::move(main_buttons_list));
+
+        // Recent recorded items
+        {
+            const mgl::vec2f recently_recorded_entries_page_size = mgl::vec2f(window_size.x / 4.0f, window_size.y / 2.0f);
+            auto recently_recorded_entries_scrollable_page = std::make_unique<ScrollablePage>(recently_recorded_entries_page_size);
+            // ScrollablePage * recently_recorded_entries_scrollable_page_ptr = recently_recorded_entries_scrollable_page.get();
+
+            auto recently_recorded_entries_list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+            const int recently_recorded_item_height = window_size.y / 7.0f;
+            const int recently_recorded_item_width = recently_recorded_entries_scrollable_page->get_inner_size().x;
+
+            for (int i = 0; i < 16; i++) {
+                {
+                    auto button = std::make_unique<ContainerButton>(mgl::vec2f(recently_recorded_item_width, recently_recorded_item_height), mgl::Color(0, 0, 0, 180));
+
+                    auto row = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+                    row->add_widget(std::make_unique<Image>(&get_theme().play_texture, mgl::vec2f(recently_recorded_item_height, recently_recorded_item_height), Image::ScaleBehavior::SCALE));
+
+                    auto metadata = std::make_unique<List>(List::Orientation::VERTICAL);
+                    metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), "video_2026-05-16_20-41-03.mp4", mgl::Color(255, 255, 255, 255)));
+                    metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), "1920x1080 • 02:13 • 148 MB", mgl::Color(255, 255, 255, 255)));
+                    metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), "/home/user/Videos", mgl::Color(255, 255, 255, 255)));
+                    row->add_widget(std::move(metadata));
+
+                    button->set_widget(std::move(row));
+
+                    recently_recorded_entries_list->add_widget(std::move(button));
+                }
+            }
+
+            recently_recorded_entries_scrollable_page->add_widget(std::move(recently_recorded_entries_list));
+
+            const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
+            const mgl::vec2f margin = mgl::vec2f(main_buttons_size.y * 0.33f * 0.333f, 0.0f);
+            recently_recorded_entries_scrollable_page->set_position(main_buttons_list_ptr->get_position() - margin - mgl::vec2f(recently_recorded_entries_page_size.x, 0.0f));
+
+            front_page_ptr->add_widget(std::move(recently_recorded_entries_scrollable_page));
+        }
+        // ===
 
         {
             const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();

@@ -16,6 +16,7 @@ namespace gsr {
         friend class List;
         friend class Page;
         friend class Subsection;
+        friend class ContainerButton;
     public:
         enum class Alignment {
             START,

@@ -24,6 +24,7 @@ src = [
     'src/gui/List.cpp',
     'src/gui/Utils.cpp',
     'src/gui/DropdownButton.cpp',
+    'src/gui/ContainerButton.cpp',
     'src/gui/Label.cpp',
     'src/gui/Image.cpp',
     'src/gui/LineSeparator.cpp',
