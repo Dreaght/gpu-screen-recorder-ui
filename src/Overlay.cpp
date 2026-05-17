@@ -1515,7 +1515,7 @@ namespace gsr {
         // Recent recorded items
         {
             const mgl::vec2f recently_recorded_entries_page_size = mgl::vec2f(window_size.x / 4.0f, window_size.y / 2.0f);
-            auto recently_recorded_entries_scrollable_page = std::make_unique<ScrollablePage>(recently_recorded_entries_page_size);
+            auto recently_recorded_entries_scrollable_page = std::make_unique<ScrollablePage>(recently_recorded_entries_page_size, ScrollablePage::ScrollbarSide::LEFT);
             // ScrollablePage * recently_recorded_entries_scrollable_page_ptr = recently_recorded_entries_scrollable_page.get();
 
             auto recently_recorded_entries_list = std::make_unique<List>(List::Orientation::VERTICAL);
