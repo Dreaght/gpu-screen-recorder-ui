@@ -13,7 +13,7 @@ namespace gsr {
     static const float scrollbar_width_scale = 0.004f;
     static const float scrollbar_spacing_scale = 0.004f;
 
-    ScrollablePage::ScrollablePage(mgl::vec2f size) : size(size) {}
+    ScrollablePage::ScrollablePage(mgl::vec2f size, ScrollbarSide scrollbar_side) : size(size), scrollbar_side(scrollbar_side) {}
 
     ScrollablePage::~ScrollablePage() {
         widgets.for_each([this](std::unique_ptr<Widget> &widget) {
@@ -27,7 +27,8 @@ namespace gsr {
         if(!visible)
             return true;
 
-        offset = position + offset;
+        const mgl::vec2f draw_pos = position + offset;
+        offset = draw_pos + get_content_offset();
 
         const mgl::vec2f content_size = get_inner_size();
         const mgl::vec2i scissor_pos(offset.x, offset.y);
@@ -95,10 +96,8 @@ namespace gsr {
             return;
         }
 
-        const double scrollbar_width = get_scrollbar_width();
-        const mgl::vec2f scrollbar_pos = position + offset + mgl::vec2f(size.x - scrollbar_width, 0.0f);
-
-        offset = position + offset;
+        const mgl::vec2f draw_pos = position + offset;
+        offset = draw_pos + get_content_offset();
 
         const mgl::Scissor prev_scissor = window.get_scissor();
 
@@ -162,6 +161,15 @@ namespace gsr {
 
         window.set_scissor(prev_scissor);
 
+        draw_scrollbar(window, draw_pos, child_height);
+    }
+
+    void ScrollablePage::draw_scrollbar(mgl::Window &window, mgl::vec2f draw_pos, const double child_height) {
+        const double scrollbar_width = get_scrollbar_width();
+        const mgl::vec2f scrollbar_pos = scrollbar_side == ScrollbarSide::RIGHT
+            ? draw_pos + mgl::vec2f(size.x - scrollbar_width, 0.0f)
+            : draw_pos;
+
         double scrollbar_height = 1.0;
         if(child_height > 0.001)
             scrollbar_height = size.y / child_height;
@@ -189,6 +197,13 @@ namespace gsr {
         }
 
         limit_scroll_cursor(window, child_height, scrollbar_empty_space);
+    }
+
+    mgl::vec2f ScrollablePage::get_content_offset() {
+        if(scrollbar_side == ScrollbarSide::RIGHT)
+            return {0.0f, 0.0f};
+
+        return {size.x - get_inner_size().x, 0.0f};
     }
 
     void ScrollablePage::apply_animation() {
