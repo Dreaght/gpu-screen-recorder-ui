@@ -34,6 +34,7 @@ src = [
     'src/gui/ScreenshotSettingsPage.cpp',
     'src/gui/GlobalSettingsPage.cpp',
     'src/gui/GsrPage.cpp',
+    'src/gui/TrimmerPage.cpp',
     'src/gui/Subsection.cpp',
     'src/gui/Tooltip.cpp',
     'src/GlobalHotkeys/GlobalHotkeysX11.cpp',

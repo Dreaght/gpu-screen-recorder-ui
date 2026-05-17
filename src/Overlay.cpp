@@ -9,6 +9,7 @@
 #include "../include/gui/SettingsPage.hpp"
 #include "../include/gui/ScreenshotSettingsPage.hpp"
 #include "../include/gui/GlobalSettingsPage.hpp"
+#include "../include/gui/TrimmerPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Translation.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentX11.hpp"
@@ -1538,6 +1539,10 @@ namespace gsr {
                     row->add_widget(std::move(metadata));
 
                     button->set_widget(std::move(row));
+                    button->on_click = [this]() {
+                        auto trimmer_page = std::make_unique<TrimmerPage>(&page_stack);
+                        page_stack.push(std::move(trimmer_page));
+                    };
 
                     recently_recorded_entries_list->add_widget(std::move(button));
                 }
