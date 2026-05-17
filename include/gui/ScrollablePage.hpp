@@ -9,7 +9,12 @@
 namespace gsr {
     class ScrollablePage : public Widget {
     public:
-        ScrollablePage(mgl::vec2f size);
+        enum class ScrollbarSide {
+            RIGHT,
+            LEFT
+        };
+
+        ScrollablePage(mgl::vec2f size, ScrollbarSide scrollbar_side = ScrollbarSide::RIGHT);
         ScrollablePage(const ScrollablePage&) = delete;
         ScrollablePage& operator=(const ScrollablePage&) = delete;
         virtual ~ScrollablePage() override;
@@ -30,10 +35,12 @@ namespace gsr {
         void apply_animation();
         void limit_scroll(double child_height);
         void limit_scroll_cursor(mgl::Window &window, double child_height, double scrollbar_empty_space);
-        void draw_scrollbar();
+        void draw_scrollbar(mgl::Window &window, mgl::vec2f draw_pos, double child_height);
+        mgl::vec2f get_content_offset();
         float get_scrollbar_width() const;
     private:
         mgl::vec2f size;
+        ScrollbarSide scrollbar_side;
         SafeVector<std::unique_ptr<Widget>> widgets;
         int scroll_target_y = 0;
         double scroll_y = 0.0;
