@@ -13,6 +13,7 @@
 #include "CursorTracker/CursorTracker.hpp"
 #include "RegionSelector/RegionSelector.hpp"
 #include "DesktopEnvironment/DesktopEnvironment.hpp"
+#include "RecentVideos.hpp"
 
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -23,6 +24,9 @@
 #include <mglpp/system/Clock.hpp>
 
 #include <array>
+#include <atomic>
+#include <mutex>
+#include <thread>
 
 struct wl_display;
 
@@ -128,6 +132,7 @@ namespace gsr {
         void recreate_global_hotkeys(std::string_view hotkey_option);
         void update_led_indicator_after_settings_change();
         void recreate_frontpage_ui_components();
+        void load_recent_videos_async();
         void open_settings_page(int scroll_y = 0);
         void xi_setup();
         void handle_xi_events();
@@ -216,6 +221,7 @@ namespace gsr {
 
         WindowTexture window_texture;
         PageStack page_stack;
+        Page *front_page_ptr = nullptr;
         mgl::Rectangle top_bar_background;
         mgl::Text top_bar_text;
         mgl::Sprite logo_sprite;
@@ -254,6 +260,14 @@ namespace gsr {
         XEvent *xi_output_xev = nullptr;
 
         std::array<KeyBinding, 1> key_bindings;
+        std::function<void()> on_recent_videos_updated;
+        std::thread recent_videos_thread;
+        std::mutex recent_videos_mutex;
+        std::vector<RecentVideo> recent_videos;
+        std::atomic<bool> recent_videos_callback_pending = false;
+        std::atomic<bool> recent_videos_load_failed_pending = false;
+        std::atomic<bool> recent_videos_loading = false;
+        bool recent_videos_ui_dirty = false;
         bool drawn_first_frame = false;
 
         bool do_exit = false;
