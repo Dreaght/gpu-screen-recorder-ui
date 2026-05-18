@@ -49,6 +49,7 @@ src = [
     'src/DesktopEnvironment/DesktopEnvironmentKde.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentGnome.cpp',
     'src/Utils.cpp',
+    'src/RecentVideos.cpp',
     'src/WindowUtils.cpp',
     'src/WaylandHostBridge.cpp',
     'src/Clipboard/ClipboardTransfer.cpp',

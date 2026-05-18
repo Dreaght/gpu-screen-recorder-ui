@@ -12,6 +12,7 @@
 #include "../include/gui/TrimmerPage.hpp"
 #include "../include/gui/Utils.hpp"
 #include "../include/Translation.hpp"
+#include "../include/RecentVideos.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentX11.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentWlroots.hpp"
 #include "../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
@@ -74,6 +75,10 @@ namespace gsr {
     static const double notification_timeout_seconds = 3.0;
     static const double notification_error_timeout_seconds = 5.0;
     static const double cursor_tracker_update_timeout_sec = 0.1;
+
+    static std::string recent_video_metadata_to_string(const RecentVideo &recent_video);
+    static std::string recent_video_filename(const RecentVideo &recent_video);
+    static std::string recent_video_directory(const RecentVideo &recent_video);
 
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
@@ -1524,28 +1529,36 @@ namespace gsr {
             const int recently_recorded_item_height = window_size.y / 7.0f;
             const int recently_recorded_item_width = recently_recorded_entries_scrollable_page->get_inner_size().x;
 
-            for (int i = 0; i < 16; i++) {
-                {
-                    auto button = std::make_unique<ContainerButton>(mgl::vec2f(recently_recorded_item_width, recently_recorded_item_height), mgl::Color(0, 0, 0, 180));
-                    button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
+            const std::optional<std::vector<RecentVideo>> recent_videos = get_recent_videos();
+            if(!recent_videos)
+                show_notification(TR("Failed to load recent videos"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
 
-                    auto row = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-                    row->add_widget(std::make_unique<Image>(&get_theme().play_texture, mgl::vec2f(recently_recorded_item_height, recently_recorded_item_height), Image::ScaleBehavior::SCALE));
+            for(const RecentVideo &recent_video : recent_videos.value_or(std::vector<RecentVideo>{})) {
+                auto button = std::make_unique<ContainerButton>(mgl::vec2f(recently_recorded_item_width, recently_recorded_item_height), mgl::Color(0, 0, 0, 180));
+                button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
 
-                    auto metadata = std::make_unique<List>(List::Orientation::VERTICAL);
-                    metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), "video_2026-05-16_20-41-03.mp4", mgl::Color(255, 255, 255, 255)));
-                    metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), "1920x1080 • 02:13 • 148 MB", mgl::Color(255, 255, 255, 255)));
-                    metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), "/home/user/Videos", mgl::Color(255, 255, 255, 255)));
-                    row->add_widget(std::move(metadata));
+                auto row = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+                row->add_widget(std::make_unique<Image>(&get_theme().play_texture, mgl::vec2f(recently_recorded_item_height, recently_recorded_item_height), Image::ScaleBehavior::SCALE));
 
-                    button->set_widget(std::move(row));
-                    button->on_click = [this]() {
-                        auto trimmer_page = std::make_unique<TrimmerPage>(&page_stack);
-                        page_stack.push(std::move(trimmer_page));
-                    };
+                auto metadata = std::make_unique<List>(List::Orientation::VERTICAL);
+                const std::string filename_text = recent_video_filename(recent_video);
+                metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), filename_text.c_str(), mgl::Color(255, 255, 255, 255)));
 
-                    recently_recorded_entries_list->add_widget(std::move(button));
-                }
+                const std::string metadata_text = recent_video_metadata_to_string(recent_video);
+                if(!metadata_text.empty())
+                    metadata->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), metadata_text.c_str(), mgl::Color(255, 255, 255, 255)));
+
+                const std::string directory_text = recent_video_directory(recent_video);
+                metadata->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), directory_text.c_str(), mgl::Color(255, 255, 255, 255)));
+                row->add_widget(std::move(metadata));
+
+                button->set_widget(std::move(row));
+                button->on_click = [this]() {
+                    auto trimmer_page = std::make_unique<TrimmerPage>(&page_stack);
+                    page_stack.push(std::move(trimmer_page));
+                };
+
+                recently_recorded_entries_list->add_widget(std::move(button));
             }
 
             recently_recorded_entries_scrollable_page->add_widget(std::move(recently_recorded_entries_list));
@@ -2218,6 +2231,53 @@ namespace gsr {
         return result;
     }
 
+    static std::string file_size_to_string(int64_t file_size) {
+        if(file_size <= 0)
+            return "";
+
+        char buffer[64];
+        const double file_size_mb = file_size / 1024.0 / 1024.0;
+        if(file_size_mb >= 1024.0)
+            snprintf(buffer, sizeof(buffer), "%.2f GB", file_size_mb / 1024.0);
+        else
+            snprintf(buffer, sizeof(buffer), "%.2f MB", file_size_mb);
+        return buffer;
+    }
+
+    static std::string recent_video_metadata_to_string(const RecentVideo &recent_video) {
+        std::string result;
+
+        if(recent_video.width > 0 && recent_video.height > 0)
+            result = std::to_string(recent_video.width) + "x" + std::to_string(recent_video.height);
+
+        if(recent_video.duration_seconds > 0.0) {
+            if(!result.empty())
+                result += " • ";
+            result += to_duration_string(recent_video.duration_seconds);
+        }
+
+        const std::string file_size_str = file_size_to_string(recent_video.file_size);
+        if(!file_size_str.empty()) {
+            if(!result.empty())
+                result += " • ";
+            result += file_size_str;
+        }
+
+        return result;
+    }
+
+    static std::string recent_video_filename(const RecentVideo &recent_video) {
+        return filepath_get_filename(recent_video.filepath.c_str());
+    }
+
+    static std::string recent_video_directory(const RecentVideo &recent_video) {
+        std::string directory = filepath_get_directory(recent_video.filepath.c_str());
+        const std::string home_dir = get_home_dir();
+        if(starts_with(directory, home_dir.c_str()))
+            directory.replace(0, home_dir.size(), "~");
+        return directory;
+    }
+
     double Overlay::get_time_passed_in_replay_buffer_seconds() {
         double replay_duration_sec = replay_saved_duration_sec;
         if(replay_duration_sec > current_recording_config.replay_config.replay_time)
@@ -2309,8 +2369,8 @@ namespace gsr {
 
     void Overlay::on_replay_saved(const char *replay_saved_filepath) {
         replay_save_show_notification = false;
+        std::string filepath = replay_saved_filepath;
         if(config.replay_config.save_video_in_game_folder) {
-            std::string filepath = replay_saved_filepath;
             save_video_in_current_game_directory(filepath, NotificationType::REPLAY);
         } else if(config.replay_config.record_options.show_notifications) {
             const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
@@ -2321,6 +2381,9 @@ namespace gsr {
                 capture_target_get_notification_name(x11_dpy, recording_capture_target.c_str(), true).c_str());
             show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY, recording_capture_target.c_str());
         }
+
+        if(!add_recent_video(filepath))
+            show_notification(TR("Failed to save recent video history"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
 
         if(led_indicator && config.replay_config.record_options.use_led_indicator)
             led_indicator->blink();
@@ -2616,6 +2679,9 @@ namespace gsr {
                     capture_target_get_notification_name(x11_dpy, recording_capture_target.c_str(), true).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD, recording_capture_target.c_str());
             }
+
+            if(!add_recent_video(video_filepath))
+                show_notification(TR("Failed to save recent video history"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
 
             if(led_indicator) {
                 if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
