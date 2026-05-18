@@ -563,6 +563,12 @@ namespace gsr {
         key_bindings[0].callback = [this]() {
             page_stack.pop();
         };
+        on_recent_videos_updated = [this]() {
+            if(recent_videos_load_failed_pending.exchange(false)) {
+                show_notification(TR("Failed to load recent videos"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+            }
+            recent_videos_ui_dirty = true;
+        };
 
         memset(&window_texture, 0, sizeof(window_texture));
 
@@ -666,9 +672,14 @@ namespace gsr {
         } else {
             fprintf(stderr, "Warning: failed to launch gsr-game-tracker. The feature to start replay when a game starts will not work\n");
         }
+
+        load_recent_videos_async();
     }
 
     Overlay::~Overlay() {
+        if(recent_videos_thread.joinable())
+            recent_videos_thread.join();
+
         hide();
 
         if(notification_process > 0) {
@@ -1004,8 +1015,16 @@ namespace gsr {
             stop_region_selection();
         }
 
+        if(recent_videos_callback_pending.exchange(false) && on_recent_videos_updated)
+            on_recent_videos_updated();
+
         if(!visible || !window)
             return;
+
+        if(recent_videos_ui_dirty && page_stack.top() == front_page_ptr) {
+            recent_videos_ui_dirty = false;
+            recreate_frontpage_ui_components();
+        }
 
         handle_xi_events();
 
@@ -1447,6 +1466,31 @@ namespace gsr {
         }
     }
 
+    void Overlay::load_recent_videos_async() {
+        if(recent_videos_loading)
+            return;
+
+        if(recent_videos_thread.joinable())
+            recent_videos_thread.join();
+
+        recent_videos_loading = true;
+        recent_videos_thread = std::thread([this]() {
+            std::optional<std::vector<RecentVideo>> loaded_recent_videos = get_recent_videos();
+
+            {
+                std::lock_guard<std::mutex> lock(recent_videos_mutex);
+                if(loaded_recent_videos) {
+                    recent_videos = std::move(loaded_recent_videos.value());
+                } else {
+                    recent_videos_load_failed_pending = true;
+                }
+            }
+
+            recent_videos_loading = false;
+            recent_videos_callback_pending = true;
+        });
+    }
+
     static const char* get_first_usable_hardware_video_codec_name(const GsrInfo &gsr_info) {
         if(gsr_info.supported_video_codecs.h264)
             return "h264";
@@ -1501,6 +1545,7 @@ namespace gsr {
 
         auto front_page = std::make_unique<StaticPage>(window_size.to_vec2f());
         StaticPage *front_page_ptr = front_page.get();
+        this->front_page_ptr = front_page_ptr;
         page_stack.push(std::move(front_page));
 
         const int button_height = window_size.y / 5.0f;
@@ -1596,11 +1641,13 @@ namespace gsr {
             const int recently_recorded_item_height = window_size.y / 7.0f;
             const int recently_recorded_item_width = recently_recorded_entries_scrollable_page->get_inner_size().x;
 
-            const std::optional<std::vector<RecentVideo>> recent_videos = get_recent_videos();
-            if(!recent_videos)
-                show_notification(TR("Failed to load recent videos"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+            std::vector<RecentVideo> recent_videos_copy;
+            {
+                std::lock_guard<std::mutex> lock(recent_videos_mutex);
+                recent_videos_copy = recent_videos;
+            }
 
-            for(const RecentVideo &recent_video : recent_videos.value_or(std::vector<RecentVideo>{})) {
+            for(const RecentVideo &recent_video : recent_videos_copy) {
                 auto button = std::make_unique<ContainerButton>(mgl::vec2f(recently_recorded_item_width, recently_recorded_item_height), mgl::Color(0, 0, 0, 180));
                 button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
 
@@ -2643,6 +2690,8 @@ namespace gsr {
 
         if(!add_recent_video(filepath))
             show_notification(TR("Failed to save recent video history"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+        else
+            load_recent_videos_async();
 
         if(led_indicator && config.replay_config.record_options.use_led_indicator)
             led_indicator->blink();
@@ -2967,6 +3016,8 @@ namespace gsr {
 
             if(!add_recent_video(video_filepath))
                 show_notification(TR("Failed to save recent video history"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+            else
+                load_recent_videos_async();
 
             if(led_indicator) {
                 if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
