@@ -7,16 +7,17 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
-    TrimmerPage::TrimmerPage(PageStack *page_stack, std::string video_path) :
+    TrimmerPage::TrimmerPage(PageStack *page_stack, std::string video_path, const mgl::vec2i size) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         page_stack(page_stack),
         video_path(std::move(video_path)),
+        size(size),
         video_path_text(this->video_path, get_theme().title_font_desc.c_str())
     {
-        auto player = std::make_unique<VideoPlayer>(get_size(), this->video_path);
+        auto player = std::make_unique<VideoPlayer>(TrimmerPage::get_size(), this->video_path);
         player->set_position({0.0f, 0.0f});
         video_player_ptr = player.get();
-        add_widget(std::move(player));
+        Page::add_widget(std::move(player));
     }
 
     bool TrimmerPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
@@ -53,11 +54,6 @@ namespace gsr {
         if(video_player_ptr)
             video_player_ptr->set_size(content_page_size);
 
-        mgl::Rectangle background(content_page_size);
-        background.set_position(content_page_position);
-        background.set_color(get_color_theme().page_bg_color);
-        window.draw(background);
-
         video_path_text.set_position((content_page_position + mgl::vec2f(
             content_page_size.x * 0.5f - video_path_text.get_bounds().size.x * 0.5f,
             - video_path_text.get_bounds().size.y * 1.5f
@@ -85,9 +81,7 @@ namespace gsr {
         if(!visible)
             return {0.0f, 0.0f};
 
-        const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
-        const mgl::vec2f content_page_size = (window_size * mgl::vec2f(0.6666f, 0.7f)).floor();
-        return content_page_size;
+        return size.to_vec2f();
     }
 
     mgl::vec2f TrimmerPage::get_content_position() {
