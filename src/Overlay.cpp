@@ -1600,8 +1600,8 @@ namespace gsr {
                 row->add_widget(std::move(metadata));
 
                 button->set_widget(std::move(row));
-                button->on_click = [this]() {
-                    auto trimmer_page = std::make_unique<TrimmerPage>(&page_stack);
+                button->on_click = [this, recent_video]() {
+                    auto trimmer_page = std::make_unique<TrimmerPage>(&page_stack, recent_video.filepath);
                     page_stack.push(std::move(trimmer_page));
                 };
 

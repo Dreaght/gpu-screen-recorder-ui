@@ -2,12 +2,14 @@
 
 #include "StaticPage.hpp"
 
+#include <mglpp/graphics/Text.hpp>
+
 namespace gsr {
     class PageStack;
 
     class TrimmerPage : public StaticPage {
     public:
-        explicit TrimmerPage(PageStack *page_stack);
+        explicit TrimmerPage(PageStack *page_stack, std::string video_path);
         TrimmerPage(const TrimmerPage&) = delete;
         TrimmerPage& operator=(const TrimmerPage&) = delete;
 
@@ -19,5 +21,7 @@ namespace gsr {
         mgl::vec2f get_content_position();
     private:
         PageStack *page_stack = nullptr;
+        std::string video_path;
+        mgl::Text video_path_text;
     };
 }
