@@ -34,7 +34,7 @@ namespace gsr {
         static const double seek_display_settle_timeout_seconds = 0.35;
         static const int64_t thumbnail_interval_ms = 1000;
         static const int thumbnail_request_radius = 3;
-        static const int thumbnail_width = 320;
+        static const int thumbnail_width = 224;
         static const float thumbnail_popup_width_scale = 0.22f;
         static const float thumbnail_popup_max_width = 260.0f;
         static const float thumbnail_popup_min_width = 140.0f;
@@ -113,6 +113,8 @@ namespace gsr {
     }
 
     VideoPlayer::~VideoPlayer() {
+        libmpv.set_render_update_callback(nullptr);
+
         {
             std::lock_guard<std::mutex> lock(thumbnail_mutex);
             stop_thumbnail_worker = true;
@@ -405,7 +407,7 @@ namespace gsr {
 
         const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(draw_pos, item_size);
         const float relative_x = clamp_float((mouse_pos.x - seekbar_hitbox.position.x) / seekbar_hitbox.size.x, 0.0f, 1.0f);
-        dragging_seek_position_ms = (int64_t)(relative_x * (double)duration_ms);
+        dragging_seek_position_ms = std::min<int64_t>((int64_t)(relative_x * (double)duration_ms), std::max<int64_t>(0, duration_ms - 1));
         dragging_seek_position_valid = true;
         displayed_seek_position_valid = true;
         displayed_seek_position_ms = dragging_seek_position_ms;
@@ -435,26 +437,37 @@ namespace gsr {
     }
 
     void VideoPlayer::queue_thumbnail_requests(int64_t position_ms) {
-        const int64_t center_second = std::max<int64_t>(0, position_ms / thumbnail_interval_ms);
+        const int64_t duration_ms = cached_duration_ms.load();
+        const int64_t max_second = std::max<int64_t>(0, (duration_ms > 0 ? duration_ms - 1 : 0) / thumbnail_interval_ms);
+        const int64_t center_second = std::min<int64_t>(std::max<int64_t>(0, position_ms / thumbnail_interval_ms), max_second);
+        static const int progressive_steps[] = {10, 5, 3, 1};
 
         std::lock_guard<std::mutex> lock(thumbnail_mutex);
-        for(int offset = -thumbnail_request_radius; offset <= thumbnail_request_radius; ++offset) {
-            const int64_t second = center_second + offset;
+        auto enqueue_second = [this](int64_t second) {
             if(second < 0)
-                continue;
+                return;
 
             auto it = thumbnails.find(second);
             if(it != thumbnails.end()) {
                 if(it->second.state == ThumbnailEntry::State::QUEUED ||
                    it->second.state == ThumbnailEntry::State::READY_CPU ||
                    it->second.state == ThumbnailEntry::State::READY_GPU)
-                    continue;
+                    return;
             }
 
             ThumbnailEntry &entry = thumbnails[second];
             entry.state = ThumbnailEntry::State::QUEUED;
             if(std::find(thumbnail_request_queue.begin(), thumbnail_request_queue.end(), second) == thumbnail_request_queue.end())
                 thumbnail_request_queue.push_back(second);
+        };
+
+        enqueue_second(center_second);
+
+        for(int step : progressive_steps) {
+            for(int offset = 1; offset <= thumbnail_request_radius; ++offset) {
+                enqueue_second(center_second - (int64_t)offset * step);
+                enqueue_second(center_second + (int64_t)offset * step);
+            }
         }
 
         thumbnail_cv.notify_one();
@@ -508,7 +521,7 @@ namespace gsr {
                 continue;
 
             const std::string second_str = std::to_string((double)second);
-            const std::string scale_str = "scale=" + std::to_string(thumbnail_width) + ":-1";
+            const std::string scale_str = "scale=" + std::to_string(thumbnail_width) + ":-2";
             const char *args[] = {
                 "ffmpeg",
                 "-loglevel", "error",
@@ -516,8 +529,10 @@ namespace gsr {
                 "-i", path.c_str(),
                 "-frames:v", "1",
                 "-vf", scale_str.c_str(),
+                "-pix_fmt", "yuvj420p",
                 "-f", "image2pipe",
-                "-vcodec", "png",
+                "-vcodec", "mjpeg",
+                "-q:v", "5",
                 "-",
                 nullptr
             };
@@ -539,8 +554,6 @@ namespace gsr {
             } else {
                 it->second.state = ThumbnailEntry::State::FAILED;
             }
-
-            libmpv.process_events();
         }
     }
 
@@ -674,7 +687,9 @@ namespace gsr {
         window.draw(seeker_fill);
 
         if(dragging_seekbar && dragging_seek_position_valid) {
-            const int64_t preview_second = std::max<int64_t>(0, dragging_seek_position_ms / thumbnail_interval_ms);
+            const int64_t duration_ms_limit = cached_duration_ms.load();
+            const int64_t max_second = std::max<int64_t>(0, (duration_ms_limit > 0 ? duration_ms_limit - 1 : 0) / thumbnail_interval_ms);
+            const int64_t preview_second = std::min<int64_t>(std::max<int64_t>(0, dragging_seek_position_ms / thumbnail_interval_ms), max_second);
             std::lock_guard<std::mutex> lock(thumbnail_mutex);
             auto it = thumbnails.find(preview_second);
             if(it != thumbnails.end() && it->second.state == ThumbnailEntry::State::READY_GPU && it->second.texture) {
