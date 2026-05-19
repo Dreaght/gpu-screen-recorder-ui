@@ -5,6 +5,12 @@
 #include <mglpp/graphics/Text.hpp>
 
 namespace gsr {
+    class VideoPlayer;
+}
+
+#include <memory>
+
+namespace gsr {
     class PageStack;
 
     class TrimmerPage : public StaticPage {
@@ -23,5 +29,6 @@ namespace gsr {
         PageStack *page_stack = nullptr;
         std::string video_path;
         mgl::Text video_path_text;
+        VideoPlayer *video_player_ptr = nullptr;
     };
 }
