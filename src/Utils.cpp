@@ -145,15 +145,27 @@ namespace gsr {
     }
 
     std::string get_state_dir() {
-        std::string config_dir;
+        std::string state_dir;
         const char *xdg_config_home = getenv("XDG_STATE_HOME");
         if(xdg_config_home) {
-            config_dir = xdg_config_home;
+            state_dir = xdg_config_home;
         } else {
-            config_dir = get_home_dir() + "/.local/state";
+            state_dir = get_home_dir() + "/.local/state";
         }
-        config_dir += "/gpu-screen-recorder";
-        return config_dir;
+        state_dir += "/gpu-screen-recorder";
+        return state_dir;
+    }
+
+    std::string get_cache_dir() {
+        std::string cache_dir;
+        const char *xdg_config_home = getenv("XDG_CACHE_HOME");
+        if(xdg_config_home) {
+            cache_dir = xdg_config_home;
+        } else {
+            cache_dir = get_home_dir() + "/.cache";
+        }
+        cache_dir += "/gpu-screen-recorder";
+        return cache_dir;
     }
 
     // Whoever designed xdg-user-dirs is retarded. Why are some XDG variables environment variables

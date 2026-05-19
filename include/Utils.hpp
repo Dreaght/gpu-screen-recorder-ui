@@ -21,6 +21,7 @@ namespace gsr {
     std::string get_home_dir();
     std::string get_config_dir();
     std::string get_state_dir();
+    std::string get_cache_dir();
 
     // Whoever designed xdg-user-dirs is retarded. Why are some XDG variables environment variables
     // while others are in this pseudo shell config file ~/.config/user-dirs.dirs

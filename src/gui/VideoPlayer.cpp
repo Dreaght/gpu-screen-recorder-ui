@@ -1,9 +1,9 @@
 #include "../../include/gui/VideoPlayer.hpp"
 #include "../../include/Process.hpp"
+#include "../../include/Utils.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 
-#include <mglpp/graphics/Image.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/system/FloatRect.hpp>
@@ -14,9 +14,9 @@ extern "C" {
 #include <mgl/mgl.h>
 }
 
-#include <algorithm>
 #include <dlfcn.h>
 #include <GL/gl.h>
+#include <sys/stat.h>
 
 namespace gsr {
     namespace {
@@ -32,13 +32,7 @@ namespace gsr {
 
         static const int64_t seek_display_settle_threshold_ms = 120;
         static const double seek_display_settle_timeout_seconds = 0.35;
-        static const int64_t thumbnail_interval_ms = 1000;
-        static const int thumbnail_request_radius = 3;
-        static const int thumbnail_width = 224;
-        static const float thumbnail_popup_width_scale = 0.22f;
-        static const float thumbnail_popup_max_width = 260.0f;
-        static const float thumbnail_popup_min_width = 140.0f;
-        static const float thumbnail_popup_bottom_spacing_scale = 0.02f;
+        static const double drag_seek_dispatch_interval_seconds = 1.0 / 30.0;
 
         static const float ui_scale = 2.0f;
         static const float seeker_horizontal_padding_scale = 0.018f * ui_scale;
@@ -51,6 +45,19 @@ namespace gsr {
         static const float center_button_size_scale = 0.065f * ui_scale;
         static const float center_button_min_size = 46.0f * ui_scale;
         static const float center_button_max_size = 88.0f * ui_scale;
+
+        static std::string get_proxy_video_path(const std::string &video_path) {
+            struct stat st;
+            std::string key = video_path;
+            if(stat(video_path.c_str(), &st) == 0)
+                key += ":" + std::to_string((int64_t)st.st_mtim.tv_sec) + ":" + std::to_string((int64_t)st.st_size);
+
+            std::string proxy_dir = get_cache_dir() + "/video-proxies";
+            char proxy_dir_buffer[4096];
+            snprintf(proxy_dir_buffer, sizeof(proxy_dir_buffer), "%s", proxy_dir.c_str());
+            create_directory_recursive(proxy_dir_buffer);
+            return proxy_dir + "/" + std::to_string(std::hash<std::string>{}(key)) + ".mkv";
+        }
 
         static float clamp_float(float value, float min_value, float max_value) {
             if(value < min_value)
@@ -98,8 +105,9 @@ namespace gsr {
         }
     }
 
-    VideoPlayer::VideoPlayer(mgl::vec2f size, std::string video_path) :
+    VideoPlayer::VideoPlayer(mgl::vec2f size, std::string video_path, PreviewSource preview_source) :
         size(size),
+        preview_source(preview_source),
         video_path(std::move(video_path)),
         video_sprite(&video_texture),
         status_text("", get_theme().body_font_desc.c_str())
@@ -107,7 +115,9 @@ namespace gsr {
         libmpv.set_render_update_callback([this]() {
             render_update_pending.store(true);
         });
-        thumbnail_worker_thread = std::thread([this]() { thumbnail_worker_loop(); });
+        proxy_worker_thread = std::thread([this]() { proxy_worker_loop(); });
+        if(this->preview_source == PreviewSource::PROXY_FAST && !this->video_path.empty())
+            queue_proxy_generation();
         refresh_cached_player_state();
         update_status_text();
     }
@@ -116,12 +126,12 @@ namespace gsr {
         libmpv.set_render_update_callback(nullptr);
 
         {
-            std::lock_guard<std::mutex> lock(thumbnail_mutex);
-            stop_thumbnail_worker = true;
+            std::lock_guard<std::mutex> lock(proxy_mutex);
+            stop_proxy_worker = true;
         }
-        thumbnail_cv.notify_one();
-        if(thumbnail_worker_thread.joinable())
-            thumbnail_worker_thread.join();
+        proxy_cv.notify_one();
+        if(proxy_worker_thread.joinable())
+            proxy_worker_thread.join();
 
         destroy_render_target();
     }
@@ -218,7 +228,9 @@ namespace gsr {
 
             if(get_seekbar_hitbox(draw_pos, item_size).contains(mouse_pos)) {
                 dragging_seekbar = true;
+                dragging_seekbar_resume_on_release = !cached_pause.load();
                 dragging_seek_position_valid = false;
+                libmpv.pause();
                 set_widget_as_selected_in_parent();
                 update_drag_seek(draw_pos, item_size, mouse_pos);
                 return false;
@@ -239,6 +251,9 @@ namespace gsr {
             }
             dragging_seekbar = false;
             dragging_seek_position_valid = false;
+            if(dragging_seekbar_resume_on_release)
+                libmpv.play();
+            dragging_seekbar_resume_on_release = false;
             remove_widget_as_selected_in_parent();
             return false;
         }
@@ -259,7 +274,6 @@ namespace gsr {
         libmpv.process_events();
         refresh_cached_player_state();
         process_pending_seek_display_state();
-        process_ready_thumbnails();
         update_status_text();
 
         const mgl::vec2f draw_pos = (position + offset).floor();
@@ -302,19 +316,26 @@ namespace gsr {
     void VideoPlayer::set_video_path(std::string video_path) {
         this->video_path = std::move(video_path);
         ++video_generation;
-        ++thumbnail_generation;
         loaded_video_path.clear();
         pending_video_path.clear();
+        proxy_video_path.clear();
         displayed_seek_position_valid = false;
         dragging_seek_position_valid = false;
         {
-            std::lock_guard<std::mutex> lock(thumbnail_mutex);
-            thumbnail_request_queue.clear();
-            thumbnails.clear();
+            std::lock_guard<std::mutex> lock(proxy_mutex);
+            pending_proxy_request = false;
+            proxy_ready = false;
+            proxy_failed = false;
+            pending_proxy_source_path.clear();
+            ready_proxy_path.clear();
+            pending_proxy_generation = video_generation;
+            ready_proxy_generation = 0;
         }
 
         if(this->video_path.empty())
             libmpv.clear_file();
+        else if(preview_source == PreviewSource::PROXY_FAST)
+            queue_proxy_generation();
 
         video_texture_has_content = false;
 
@@ -323,6 +344,18 @@ namespace gsr {
 
     const std::string& VideoPlayer::get_video_path() const {
         return video_path;
+    }
+
+    void VideoPlayer::set_preview_source(PreviewSource preview_source) {
+        if(this->preview_source == preview_source)
+            return;
+
+        this->preview_source = preview_source;
+        set_video_path(video_path);
+    }
+
+    VideoPlayer::PreviewSource VideoPlayer::get_preview_source() const {
+        return preview_source;
     }
 
     bool VideoPlayer::is_backend_available() const {
@@ -365,7 +398,27 @@ namespace gsr {
         return cached_duration_ms.load();
     }
 
+    void VideoPlayer::queue_proxy_generation() {
+        std::lock_guard<std::mutex> lock(proxy_mutex);
+        pending_proxy_request = true;
+        proxy_ready = false;
+        proxy_failed = false;
+        pending_proxy_source_path = video_path;
+        pending_proxy_generation = video_generation;
+        proxy_cv.notify_one();
+    }
+
+    void VideoPlayer::process_proxy_generation_result() {
+        std::lock_guard<std::mutex> lock(proxy_mutex);
+        if(proxy_ready && ready_proxy_generation == video_generation)
+            proxy_video_path = ready_proxy_path;
+        else if(!proxy_ready)
+            proxy_video_path.clear();
+    }
+
     void VideoPlayer::ensure_video_loaded() {
+        process_proxy_generation_result();
+
         if(!pending_video_path.empty() && cached_file_loaded.load()) {
             loaded_video_path = pending_video_path;
             pending_video_path.clear();
@@ -373,11 +426,13 @@ namespace gsr {
             pending_video_path.clear();
         }
 
-        if(video_path.empty() || video_path == loaded_video_path || pending_video_path == video_path || !libmpv.is_available())
+        const std::string effective_video_path = preview_source == PreviewSource::PROXY_FAST ? proxy_video_path : video_path;
+
+        if(effective_video_path.empty() || effective_video_path == loaded_video_path || pending_video_path == effective_video_path || !libmpv.is_available())
             return;
 
-        if(libmpv.load_file(video_path))
-            pending_video_path = video_path;
+        if(libmpv.load_file(effective_video_path))
+            pending_video_path = effective_video_path;
         else
             pending_video_path.clear();
     }
@@ -387,6 +442,8 @@ namespace gsr {
             status_text.set_string("No video selected");
         } else if(!libmpv.is_available()) {
             status_text.set_string("mpv is not installed");
+        } else if(preview_source == PreviewSource::PROXY_FAST && proxy_video_path.empty()) {
+            status_text.set_string("Preparing fast preview...");
         } else if(!libmpv.get_error().empty() && !cached_file_loaded.load()) {
             status_text.set_string(libmpv.get_error());
         } else if(!pending_video_path.empty()) {
@@ -412,7 +469,9 @@ namespace gsr {
         displayed_seek_position_valid = true;
         displayed_seek_position_ms = dragging_seek_position_ms;
         displayed_seek_position_timer = 0.0;
-        queue_thumbnail_requests(dragging_seek_position_ms);
+
+        if(drag_seek_dispatch_clock.get_elapsed_time_seconds() >= drag_seek_dispatch_interval_seconds)
+            drag_seek_dispatch_clock.restart(), libmpv.seek_to_ms(dragging_seek_position_ms, true);
     }
 
     void VideoPlayer::process_pending_seek_display_state() {
@@ -436,124 +495,55 @@ namespace gsr {
         cached_position_ms.store(libmpv.get_position_ms());
     }
 
-    void VideoPlayer::queue_thumbnail_requests(int64_t position_ms) {
-        const int64_t duration_ms = cached_duration_ms.load();
-        const int64_t max_second = std::max<int64_t>(0, (duration_ms > 0 ? duration_ms - 1 : 0) / thumbnail_interval_ms);
-        const int64_t center_second = std::min<int64_t>(std::max<int64_t>(0, position_ms / thumbnail_interval_ms), max_second);
-        static const int progressive_steps[] = {10, 5, 3, 1};
-
-        std::lock_guard<std::mutex> lock(thumbnail_mutex);
-        auto enqueue_second = [this](int64_t second) {
-            if(second < 0)
-                return;
-
-            auto it = thumbnails.find(second);
-            if(it != thumbnails.end()) {
-                if(it->second.state == ThumbnailEntry::State::QUEUED ||
-                   it->second.state == ThumbnailEntry::State::READY_CPU ||
-                   it->second.state == ThumbnailEntry::State::READY_GPU)
-                    return;
-            }
-
-            ThumbnailEntry &entry = thumbnails[second];
-            entry.state = ThumbnailEntry::State::QUEUED;
-            if(std::find(thumbnail_request_queue.begin(), thumbnail_request_queue.end(), second) == thumbnail_request_queue.end())
-                thumbnail_request_queue.push_back(second);
-        };
-
-        enqueue_second(center_second);
-
-        for(int step : progressive_steps) {
-            for(int offset = 1; offset <= thumbnail_request_radius; ++offset) {
-                enqueue_second(center_second - (int64_t)offset * step);
-                enqueue_second(center_second + (int64_t)offset * step);
-            }
-        }
-
-        thumbnail_cv.notify_one();
-    }
-
-    void VideoPlayer::process_ready_thumbnails() {
-        std::lock_guard<std::mutex> lock(thumbnail_mutex);
-        for(auto &it : thumbnails) {
-            ThumbnailEntry &entry = it.second;
-            if(entry.state != ThumbnailEntry::State::READY_CPU)
-                continue;
-
-            mgl::Image image;
-            if(!image.load_from_memory((const unsigned char*)entry.encoded_image.data(), entry.encoded_image.size())) {
-                entry.state = ThumbnailEntry::State::FAILED;
-                entry.encoded_image.clear();
-                continue;
-            }
-
-            auto texture = std::make_unique<mgl::Texture>();
-            if(!texture->load_from_image(image)) {
-                entry.state = ThumbnailEntry::State::FAILED;
-                entry.encoded_image.clear();
-                continue;
-            }
-
-            entry.texture = std::move(texture);
-            entry.encoded_image.clear();
-            entry.state = ThumbnailEntry::State::READY_GPU;
-        }
-    }
-
-    void VideoPlayer::thumbnail_worker_loop() {
+    void VideoPlayer::proxy_worker_loop() {
         for(;;) {
-            int64_t second = -1;
+            std::string source_path;
             uint64_t generation = 0;
-            std::string path;
             {
-                std::unique_lock<std::mutex> lock(thumbnail_mutex);
-                thumbnail_cv.wait(lock, [this]() { return stop_thumbnail_worker || !thumbnail_request_queue.empty(); });
-                if(stop_thumbnail_worker)
+                std::unique_lock<std::mutex> lock(proxy_mutex);
+                proxy_cv.wait(lock, [this]() { return stop_proxy_worker || pending_proxy_request; });
+                if(stop_proxy_worker)
                     break;
 
-                second = thumbnail_request_queue.front();
-                thumbnail_request_queue.erase(thumbnail_request_queue.begin());
-                generation = thumbnail_generation;
-                path = video_path;
+                source_path = pending_proxy_source_path;
+                generation = pending_proxy_generation;
+                pending_proxy_request = false;
             }
 
-            if(path.empty())
+            if(source_path.empty())
                 continue;
 
-            const std::string second_str = std::to_string((double)second);
-            const std::string scale_str = "scale=" + std::to_string(thumbnail_width) + ":-2";
-            const char *args[] = {
-                "ffmpeg",
-                "-loglevel", "error",
-                "-ss", second_str.c_str(),
-                "-i", path.c_str(),
-                "-frames:v", "1",
-                "-vf", scale_str.c_str(),
-                "-pix_fmt", "yuvj420p",
-                "-f", "image2pipe",
-                "-vcodec", "mjpeg",
-                "-q:v", "5",
-                "-",
-                nullptr
-            };
+            const std::string output_path = get_proxy_video_path(source_path);
+            struct stat st;
+            bool success = stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
 
-            std::string output;
-            const int exit_status = exec_program_on_host_get_stdout(args, output, false);
+            if(!success) {
+                const std::string scale_str = "scale=1280:-2,fps=15";
 
-            std::lock_guard<std::mutex> lock(thumbnail_mutex);
-            if(generation != thumbnail_generation)
-                continue;
-
-            auto it = thumbnails.find(second);
-            if(it == thumbnails.end())
-                continue;
-
-            if(exit_status == 0 && !output.empty()) {
-                it->second.encoded_image = std::move(output);
-                it->second.state = ThumbnailEntry::State::READY_CPU;
-            } else {
-                it->second.state = ThumbnailEntry::State::FAILED;
+                const char *args[] = {
+                    "ffmpeg",
+                    "-loglevel", "error",
+                    "-y",
+                    "-i", source_path.c_str(),
+                    "-an",
+                    "-vf", scale_str.c_str(),
+                    "-c:v", "mjpeg",
+                    "-q:v", "2",
+                    output_path.c_str(),
+                    nullptr
+                };
+                std::string ffmpeg_output;
+                success = exec_program_on_host_get_stdout(args, ffmpeg_output, false) == 0;
             }
+
+            std::lock_guard<std::mutex> lock(proxy_mutex);
+            if(generation != video_generation)
+                continue;
+
+            proxy_failed = !success;
+            proxy_ready = success;
+            ready_proxy_generation = generation;
+            ready_proxy_path = success ? output_path : std::string();
         }
     }
 
@@ -686,30 +676,6 @@ namespace gsr {
         seeker_fill.set_color(get_color_theme().tint_color);
         window.draw(seeker_fill);
 
-        if(dragging_seekbar && dragging_seek_position_valid) {
-            const int64_t duration_ms_limit = cached_duration_ms.load();
-            const int64_t max_second = std::max<int64_t>(0, (duration_ms_limit > 0 ? duration_ms_limit - 1 : 0) / thumbnail_interval_ms);
-            const int64_t preview_second = std::min<int64_t>(std::max<int64_t>(0, dragging_seek_position_ms / thumbnail_interval_ms), max_second);
-            std::lock_guard<std::mutex> lock(thumbnail_mutex);
-            auto it = thumbnails.find(preview_second);
-            if(it != thumbnails.end() && it->second.state == ThumbnailEntry::State::READY_GPU && it->second.texture) {
-                mgl::Sprite thumbnail_sprite(it->second.texture.get());
-                const float popup_width = clamp_float(item_size.x * thumbnail_popup_width_scale, thumbnail_popup_min_width, thumbnail_popup_max_width);
-                thumbnail_sprite.set_width(popup_width);
-                const mgl::vec2f popup_size = thumbnail_sprite.get_size();
-                const float popup_x = clamp_float(window.get_mouse_position().x - popup_size.x * 0.5f, draw_pos.x, draw_pos.x + item_size.x - popup_size.x);
-                const float popup_y = seekbar_hitbox.position.y - popup_size.y - item_size.y * thumbnail_popup_bottom_spacing_scale;
-
-                mgl::Rectangle popup_bg(popup_size);
-                popup_bg.set_position({ popup_x, popup_y });
-                popup_bg.set_color(mgl::Color(0, 0, 0, 220));
-                window.draw(popup_bg);
-
-                thumbnail_sprite.set_position({ popup_x, popup_y });
-                window.draw(thumbnail_sprite);
-                draw_rectangle_outline(window, { popup_x, popup_y }, popup_size, mgl::Color(255, 255, 255, 70), std::max(1.0f, get_theme().window_height * 0.0012f));
-            }
-        }
     }
 
     mgl::FloatRect VideoPlayer::get_seekbar_hitbox(mgl::vec2f draw_pos, mgl::vec2f item_size) const {

@@ -14,7 +14,7 @@ namespace gsr {
         size(size),
         video_path_text(this->video_path, get_theme().title_font_desc.c_str())
     {
-        auto player = std::make_unique<VideoPlayer>(TrimmerPage::get_size(), this->video_path);
+        auto player = std::make_unique<VideoPlayer>(TrimmerPage::get_size(), this->video_path, VideoPlayer::PreviewSource::PROXY_FAST);
         player->set_position({0.0f, 0.0f});
         video_player_ptr = player.get();
         Page::add_widget(std::move(player));
