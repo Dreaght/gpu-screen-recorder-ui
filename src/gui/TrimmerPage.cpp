@@ -5,9 +5,11 @@
 #include <mglpp/window/Window.hpp>
 
 namespace gsr {
-    TrimmerPage::TrimmerPage(PageStack *page_stack) :
+    TrimmerPage::TrimmerPage(PageStack *page_stack, std::string video_path) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
-        page_stack(page_stack)
+        page_stack(page_stack),
+        video_path(std::move(video_path)),
+        video_path_text(this->video_path, get_theme().title_font_desc.c_str())
     {
 
     }
@@ -29,6 +31,9 @@ namespace gsr {
         background.set_position(content_page_position);
         background.set_color(get_color_theme().page_bg_color);
         window.draw(background);
+
+        video_path_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - video_path_text.get_bounds().size.x * 0.5f, 0)).floor());
+        window.draw(video_path_text);
     }
 
     mgl::vec2f TrimmerPage::get_size() {
