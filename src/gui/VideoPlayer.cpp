@@ -40,14 +40,17 @@ namespace gsr {
         static const float thumbnail_popup_min_width = 140.0f;
         static const float thumbnail_popup_bottom_spacing_scale = 0.02f;
 
-        static const float seeker_horizontal_padding_scale = 0.018f;
-        static const float seeker_vertical_padding_scale = 0.018f;
-        static const float seeker_height_scale = 0.005f;
-        static const float seeker_hitbox_padding_scale = 0.012f;
+        static const float ui_scale = 2.0f;
+        static const float seeker_horizontal_padding_scale = 0.018f * ui_scale;
+        static const float seeker_vertical_padding_scale = 0.018f * ui_scale;
+        static const float seeker_height_scale = 0.005f * ui_scale;
+        static const float seeker_hitbox_padding_scale = 0.012f * ui_scale;
+
         static const float overlay_darkness_alpha = 110.0f;
-        static const float center_button_size_scale = 0.065f;
-        static const float center_button_min_size = 46.0f;
-        static const float center_button_max_size = 88.0f;
+
+        static const float center_button_size_scale = 0.065f * ui_scale;
+        static const float center_button_min_size = 46.0f * ui_scale;
+        static const float center_button_max_size = 88.0f * ui_scale;
 
         static float clamp_float(float value, float min_value, float max_value) {
             if(value < min_value)
@@ -553,7 +556,7 @@ namespace gsr {
         if(!ensure_render_target(window, item_size))
             return;
 
-        if(!dragging_seekbar && render_update_pending.exchange(false)) {
+        if(render_update_pending.exchange(false)) {
             mgl_context *context = mgl_get_context();
             if(!context)
                 return;
@@ -635,9 +638,9 @@ namespace gsr {
 
         mgl::Rectangle play_pause_bg(play_pause_rect.size);
         play_pause_bg.set_position(play_pause_rect.position);
-        play_pause_bg.set_color(play_pause_hovered ? mgl::Color(255, 255, 255, 58) : mgl::Color(255, 255, 255, 38));
+        play_pause_bg.set_color(play_pause_hovered ? mgl::Color(0, 0, 0, 80) : mgl::Color(0, 0, 0, 50));
         window.draw(play_pause_bg);
-        draw_rectangle_outline(window, play_pause_rect.position, play_pause_rect.size, mgl::Color(255, 255, 255, 80), std::max(1.0f, get_theme().window_height * 0.0014f));
+        // draw_rectangle_outline(window, play_pause_rect.position, play_pause_rect.size, mgl::Color(0, 0, 0, 80), std::max(1.0f, get_theme().window_height * 0.0014f));
 
         mgl::Sprite play_pause_icon(cached_pause.load() ? &get_theme().play_texture : &get_theme().pause_texture);
         play_pause_icon.set_height(play_pause_rect.size.y * 0.42f);

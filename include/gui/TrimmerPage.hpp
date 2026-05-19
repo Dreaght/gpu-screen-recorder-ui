@@ -15,7 +15,7 @@ namespace gsr {
 
     class TrimmerPage : public StaticPage {
     public:
-        explicit TrimmerPage(PageStack *page_stack, std::string video_path);
+        explicit TrimmerPage(PageStack *page_stack, std::string video_path, mgl::vec2i size);
         TrimmerPage(const TrimmerPage&) = delete;
         TrimmerPage& operator=(const TrimmerPage&) = delete;
 
@@ -28,6 +28,7 @@ namespace gsr {
     private:
         PageStack *page_stack = nullptr;
         std::string video_path;
+        mgl::vec2i size;
         mgl::Text video_path_text;
         VideoPlayer *video_player_ptr = nullptr;
     };
