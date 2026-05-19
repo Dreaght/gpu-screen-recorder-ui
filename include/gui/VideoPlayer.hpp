@@ -6,21 +6,24 @@
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/graphics/Texture.hpp>
 #include <mglpp/graphics/Text.hpp>
+#include <mglpp/system/Clock.hpp>
 
 #include <atomic>
 #include <condition_variable>
-#include <memory>
+#include <cstdint>
 #include <mutex>
 #include <string>
 #include <thread>
-#include <cstdint>
-#include <unordered_map>
-#include <vector>
 
 namespace gsr {
     class VideoPlayer : public Widget {
     public:
-        VideoPlayer(mgl::vec2f size, std::string video_path = "");
+        enum class PreviewSource {
+            ORIGINAL_SLOW,
+            PROXY_FAST,
+        };
+
+        VideoPlayer(mgl::vec2f size, std::string video_path = "", PreviewSource preview_source = PreviewSource::ORIGINAL_SLOW);
         VideoPlayer(const VideoPlayer&) = delete;
         VideoPlayer& operator=(const VideoPlayer&) = delete;
         ~VideoPlayer() override;
@@ -33,6 +36,8 @@ namespace gsr {
 
         void set_video_path(std::string video_path);
         const std::string& get_video_path() const;
+        void set_preview_source(PreviewSource preview_source);
+        PreviewSource get_preview_source() const;
 
         bool is_backend_available() const;
         bool is_file_loaded() const;
@@ -46,26 +51,13 @@ namespace gsr {
         int64_t get_position_ms() const;
         int64_t get_duration_ms() const;
     private:
-        struct ThumbnailEntry {
-            enum class State {
-                QUEUED,
-                READY_CPU,
-                READY_GPU,
-                FAILED,
-            };
-
-            State state = State::QUEUED;
-            std::string encoded_image;
-            std::unique_ptr<mgl::Texture> texture;
-        };
-
         void ensure_video_loaded();
+        void queue_proxy_generation();
+        void process_proxy_generation_result();
         bool ensure_render_target(mgl::Window &window, mgl::vec2f item_size);
         void destroy_render_target();
         void process_pending_seek_display_state();
-        void queue_thumbnail_requests(int64_t position_ms);
-        void process_ready_thumbnails();
-        void thumbnail_worker_loop();
+        void proxy_worker_loop();
         void refresh_cached_player_state();
         void update_status_text();
         void update_drag_seek(mgl::vec2f draw_pos, mgl::vec2f item_size, mgl::vec2f mouse_pos);
@@ -77,18 +69,22 @@ namespace gsr {
     private:
         Libmpv libmpv;
         mgl::vec2f size;
+        PreviewSource preview_source;
         std::string video_path;
         std::string loaded_video_path;
         std::string pending_video_path;
+        std::string proxy_video_path;
         mgl::Texture video_texture;
         mgl::Sprite video_sprite;
         mgl::Text status_text;
         bool dragging_seekbar = false;
+        bool dragging_seekbar_resume_on_release = false;
         bool dragging_seek_position_valid = false;
         int64_t dragging_seek_position_ms = 0;
         bool displayed_seek_position_valid = false;
         int64_t displayed_seek_position_ms = 0;
         double displayed_seek_position_timer = 0.0;
+        mgl::Clock drag_seek_dispatch_clock;
         bool video_texture_has_content = false;
         std::atomic_bool cached_pause { true };
         std::atomic_bool cached_eof_reached { false };
@@ -96,14 +92,18 @@ namespace gsr {
         std::atomic<int64_t> cached_duration_ms { 0 };
         std::atomic<int64_t> cached_position_ms { 0 };
         std::atomic_bool render_update_pending { false };
-        std::thread thumbnail_worker_thread;
-        std::mutex thumbnail_mutex;
-        std::condition_variable thumbnail_cv;
-        bool stop_thumbnail_worker = false;
+        std::thread proxy_worker_thread;
+        std::mutex proxy_mutex;
+        std::condition_variable proxy_cv;
+        bool stop_proxy_worker = false;
+        bool pending_proxy_request = false;
+        bool proxy_ready = false;
+        bool proxy_failed = false;
+        std::string pending_proxy_source_path;
+        std::string ready_proxy_path;
+        uint64_t pending_proxy_generation = 0;
+        uint64_t ready_proxy_generation = 0;
         uint64_t video_generation = 0;
-        uint64_t thumbnail_generation = 0;
-        std::vector<int64_t> thumbnail_request_queue;
-        std::unordered_map<int64_t, ThumbnailEntry> thumbnails;
         unsigned int video_texture_id = 0;
         unsigned int video_framebuffer_id = 0;
         mgl::vec2i render_target_size = {0, 0};
