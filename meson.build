@@ -1,5 +1,7 @@
 project('gsr-ui', ['c', 'cpp'], version : '1.12.1', default_options : ['warning_level=2', 'cpp_std=c++17'], subproject_dir : 'depends')
 
+cpp_compiler = meson.get_compiler('cpp')
+
 add_project_arguments('-D_FILE_OFFSET_BITS=64', language : ['c', 'cpp'])
 
 if get_option('buildtype') == 'debug'
@@ -29,6 +31,7 @@ src = [
     'src/gui/Image.cpp',
     'src/gui/LineSeparator.cpp',
     'src/gui/CustomRendererWidget.cpp',
+    'src/gui/VideoPlayer.cpp',
     'src/gui/FileChooser.cpp',
     'src/gui/SettingsPage.cpp',
     'src/gui/ScreenshotSettingsPage.cpp',
@@ -57,7 +60,9 @@ src = [
     'src/Clipboard/ClipboardWayland.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
+    'src/Libmpv.cpp',
     'src/Process.cpp',
+    'src/SharedLibrary.cpp',
     'src/Overlay.cpp',
     'src/AudioPlayer.cpp',
     'src/Hotplug.cpp',
@@ -91,6 +96,7 @@ executable(
     install : true,
     dependencies : [
         mglpp_dep,
+        cpp_compiler.find_library('dl'),
         dependency('threads'),
         dependency('xcomposite'),
         dependency('xfixes'),
