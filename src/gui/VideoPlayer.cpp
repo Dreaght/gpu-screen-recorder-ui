@@ -241,8 +241,7 @@ namespace gsr {
             return;
 
         ensure_video_loaded();
-        if(!dragging_seekbar)
-            libmpv.process_events();
+        libmpv.process_events();
         refresh_cached_player_state();
         process_pending_seek_display_state();
         update_status_text();
@@ -398,7 +397,6 @@ namespace gsr {
         displayed_seek_position_valid = true;
         displayed_seek_position_ms = dragging_seek_position_ms;
         displayed_seek_position_timer = 0.0;
-        queue_seek_request(dragging_seek_position_ms, false);
     }
 
     void VideoPlayer::process_pending_seek_display_state() {
