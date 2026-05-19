@@ -9,10 +9,13 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 namespace gsr {
     class VideoPlayer : public Widget {
@@ -43,14 +46,26 @@ namespace gsr {
         int64_t get_position_ms() const;
         int64_t get_duration_ms() const;
     private:
+        struct ThumbnailEntry {
+            enum class State {
+                QUEUED,
+                READY_CPU,
+                READY_GPU,
+                FAILED,
+            };
+
+            State state = State::QUEUED;
+            std::string encoded_image;
+            std::unique_ptr<mgl::Texture> texture;
+        };
+
         void ensure_video_loaded();
         bool ensure_render_target(mgl::Window &window, mgl::vec2f item_size);
         void destroy_render_target();
         void process_pending_seek_display_state();
-        void queue_seek_request(int64_t position_ms, bool exact);
-        void queue_play_request(bool restart_from_beginning);
-        void queue_pause_request();
-        void seek_worker_loop();
+        void queue_thumbnail_requests(int64_t position_ms);
+        void process_ready_thumbnails();
+        void thumbnail_worker_loop();
         void refresh_cached_player_state();
         void update_status_text();
         void update_drag_seek(mgl::vec2f draw_pos, mgl::vec2f item_size, mgl::vec2f mouse_pos);
@@ -81,19 +96,14 @@ namespace gsr {
         std::atomic<int64_t> cached_duration_ms { 0 };
         std::atomic<int64_t> cached_position_ms { 0 };
         std::atomic_bool render_update_pending { false };
-        std::thread seek_worker_thread;
-        std::mutex seek_mutex;
-        std::condition_variable seek_cv;
-        bool stop_seek_worker = false;
-        bool wakeup_pending = false;
-        bool pending_seek_request = false;
-        bool pending_seek_exact = false;
-        int64_t pending_seek_position_ms = 0;
-        uint64_t pending_seek_generation = 0;
+        std::thread thumbnail_worker_thread;
+        std::mutex thumbnail_mutex;
+        std::condition_variable thumbnail_cv;
+        bool stop_thumbnail_worker = false;
         uint64_t video_generation = 0;
-        bool pending_play_request = false;
-        bool pending_play_restart_from_beginning = false;
-        bool pending_pause_request = false;
+        uint64_t thumbnail_generation = 0;
+        std::vector<int64_t> thumbnail_request_queue;
+        std::unordered_map<int64_t, ThumbnailEntry> thumbnails;
         unsigned int video_texture_id = 0;
         unsigned int video_framebuffer_id = 0;
         mgl::vec2i render_target_size = {0, 0};
