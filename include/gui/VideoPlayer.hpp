@@ -11,6 +11,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -38,6 +39,13 @@ namespace gsr {
         const std::string& get_video_path() const;
         void set_preview_source(PreviewSource preview_source);
         PreviewSource get_preview_source() const;
+        void set_seekbar_enabled(bool enabled);
+        bool is_seekbar_enabled() const;
+        const std::string& get_proxy_video_path() const;
+        void set_seek_state_callback(std::function<void(int64_t position_ms, int64_t duration_ms, bool paused)> callback);
+        void begin_external_scrub();
+        void update_external_scrub(int64_t position_ms);
+        void end_external_scrub(bool resume_playback);
 
         bool is_backend_available() const;
         bool is_file_loaded() const;
@@ -46,7 +54,7 @@ namespace gsr {
         bool play();
         bool pause();
         bool toggle_pause();
-        bool seek_to_ms(int64_t position_ms);
+        bool seek_to_ms(int64_t position_ms, bool exact = true);
 
         int64_t get_position_ms() const;
         int64_t get_duration_ms() const;
@@ -59,6 +67,7 @@ namespace gsr {
         void process_pending_seek_display_state();
         void proxy_worker_loop();
         void refresh_cached_player_state();
+        void notify_seek_state_changed();
         void update_status_text();
         void update_drag_seek(mgl::vec2f draw_pos, mgl::vec2f item_size, mgl::vec2f mouse_pos);
         void draw_video_surface(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size);
@@ -77,6 +86,7 @@ namespace gsr {
         mgl::Texture video_texture;
         mgl::Sprite video_sprite;
         mgl::Text status_text;
+        bool seekbar_enabled = true;
         bool dragging_seekbar = false;
         bool dragging_seekbar_resume_on_release = false;
         bool dragging_seek_position_valid = false;
@@ -104,6 +114,10 @@ namespace gsr {
         uint64_t pending_proxy_generation = 0;
         uint64_t ready_proxy_generation = 0;
         uint64_t video_generation = 0;
+        std::function<void(int64_t position_ms, int64_t duration_ms, bool paused)> seek_state_callback;
+        int64_t last_notified_position_ms = -1;
+        int64_t last_notified_duration_ms = -1;
+        bool last_notified_pause_state = true;
         unsigned int video_texture_id = 0;
         unsigned int video_framebuffer_id = 0;
         mgl::vec2i render_target_size = {0, 0};
