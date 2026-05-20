@@ -11,7 +11,8 @@ namespace gsr {
     public:
         enum class ScrollbarSide {
             RIGHT,
-            LEFT
+            LEFT,
+            BOTTOM,
         };
 
         ScrollablePage(mgl::vec2f size, ScrollbarSide scrollbar_side = ScrollbarSide::RIGHT);
@@ -29,21 +30,27 @@ namespace gsr {
         void add_widget(std::unique_ptr<Widget> widget);
 
         void reset_scroll();
-        int get_scroll_target_y() const { return scroll_target_y; }
-        void set_scroll(int y) { scroll_y = y; scroll_target_y = y; }
+        mgl::vec2f get_scroll_target() const { return scroll_target; }
+        void set_scroll(mgl::vec2f new_scroll) { this->scroll = new_scroll; scroll_target = new_scroll; }
     private:
+        bool is_horizontal() const {
+            return scrollbar_side == ScrollbarSide::BOTTOM;
+        }
+        int get_scroll_axis() const {
+            return is_horizontal() ? 0 : 1;
+        }
         void apply_animation();
-        void limit_scroll(double child_height);
-        void limit_scroll_cursor(mgl::Window &window, double child_height, double scrollbar_empty_space);
-        void draw_scrollbar(mgl::Window &window, mgl::vec2f draw_pos, double child_height);
+        void limit_scroll(mgl::vec2f child_size);
+        void limit_scroll_cursor(mgl::Window &window, mgl::vec2f child_size, double scrollbar_empty_space);
+        void draw_scrollbar(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f child_size);
         mgl::vec2f get_content_offset();
         float get_scrollbar_width() const;
     private:
         mgl::vec2f size;
         ScrollbarSide scrollbar_side;
         SafeVector<std::unique_ptr<Widget>> widgets;
-        int scroll_target_y = 0;
-        double scroll_y = 0.0;
+        mgl::vec2f scroll_target = {0.0f, 0.0f};
+        mgl::vec2f scroll = {0.0f, 0.0f};
         mgl::FloatRect scrollbar_rect;
         bool moving_scrollbar_with_cursor = false;
         mgl::vec2f scrollbar_move_cursor_start_pos;
