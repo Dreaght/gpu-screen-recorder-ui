@@ -593,11 +593,11 @@ namespace gsr {
                 desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
             }
 
-            if(!config.main_config.wayland_warning_shown) {
-                config.main_config.wayland_warning_shown = true;
-                save_config(config);
-                show_notification(TR("Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues."), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
-            }
+            // if(!config.main_config.wayland_warning_shown) {
+            //     config.main_config.wayland_warning_shown = true;
+            //     save_config(config);
+            //     show_notification(TR("Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues."), notification_error_timeout_seconds, mgl::Color(255, 255, 255), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
+            // }
         }
 
         if(wayland_dpy && RegionSelectorWayland::is_supported(wayland_dpy))
