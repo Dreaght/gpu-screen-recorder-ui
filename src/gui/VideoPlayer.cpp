@@ -46,7 +46,7 @@ namespace gsr {
         static const float center_button_min_size = 46.0f * ui_scale;
         static const float center_button_max_size = 88.0f * ui_scale;
 
-        static std::string get_proxy_video_path(const std::string &video_path) {
+        static std::string build_proxy_video_path(const std::string &video_path) {
             struct stat st;
             std::string key = video_path;
             if(stat(video_path.c_str(), &st) == 0)
@@ -226,7 +226,7 @@ namespace gsr {
             if(!bounds.contains(mouse_pos))
                 return true;
 
-            if(get_seekbar_hitbox(draw_pos, item_size).contains(mouse_pos)) {
+            if(seekbar_enabled && get_seekbar_hitbox(draw_pos, item_size).contains(mouse_pos)) {
                 dragging_seekbar = true;
                 dragging_seekbar_resume_on_release = !cached_pause.load();
                 dragging_seek_position_valid = false;
@@ -247,12 +247,12 @@ namespace gsr {
                 displayed_seek_position_valid = true;
                 displayed_seek_position_ms = dragging_seek_position_ms;
                 displayed_seek_position_timer = 0.0;
-                libmpv.seek_to_ms(dragging_seek_position_ms, true);
+                seek_to_ms(dragging_seek_position_ms, true);
             }
             dragging_seekbar = false;
             dragging_seek_position_valid = false;
             if(dragging_seekbar_resume_on_release)
-                libmpv.play();
+                play();
             dragging_seekbar_resume_on_release = false;
             remove_widget_as_selected_in_parent();
             return false;
@@ -358,6 +358,72 @@ namespace gsr {
         return preview_source;
     }
 
+    void VideoPlayer::set_seekbar_enabled(bool enabled) {
+        seekbar_enabled = enabled;
+        if(!seekbar_enabled) {
+            dragging_seekbar = false;
+            dragging_seek_position_valid = false;
+            dragging_seekbar_resume_on_release = false;
+        }
+    }
+
+    bool VideoPlayer::is_seekbar_enabled() const {
+        return seekbar_enabled;
+    }
+
+    const std::string& VideoPlayer::get_proxy_video_path() const {
+        return proxy_video_path;
+    }
+
+    void VideoPlayer::set_seek_state_callback(std::function<void(int64_t position_ms, int64_t duration_ms, bool paused)> callback) {
+        seek_state_callback = std::move(callback);
+        last_notified_position_ms = -1;
+        last_notified_duration_ms = -1;
+        notify_seek_state_changed();
+    }
+
+    void VideoPlayer::begin_external_scrub() {
+        dragging_seekbar = true;
+        dragging_seekbar_resume_on_release = !cached_pause.load();
+        dragging_seek_position_valid = false;
+        libmpv.pause();
+    }
+
+    void VideoPlayer::update_external_scrub(int64_t position_ms) {
+        const int64_t duration_ms = cached_duration_ms.load();
+        if(duration_ms <= 0) {
+            dragging_seek_position_valid = false;
+            return;
+        }
+
+        dragging_seek_position_ms = std::min<int64_t>(position_ms, std::max<int64_t>(0, duration_ms - 1));
+        dragging_seek_position_valid = true;
+        displayed_seek_position_valid = true;
+        displayed_seek_position_ms = dragging_seek_position_ms;
+        displayed_seek_position_timer = 0.0;
+        notify_seek_state_changed();
+
+        if(drag_seek_dispatch_clock.get_elapsed_time_seconds() >= drag_seek_dispatch_interval_seconds) {
+            drag_seek_dispatch_clock.restart();
+            libmpv.seek_to_ms(dragging_seek_position_ms, false);
+        }
+    }
+
+    void VideoPlayer::end_external_scrub(bool resume_playback) {
+        if(dragging_seek_position_valid) {
+            displayed_seek_position_valid = true;
+            displayed_seek_position_ms = dragging_seek_position_ms;
+            displayed_seek_position_timer = 0.0;
+            seek_to_ms(dragging_seek_position_ms, true);
+        }
+
+        dragging_seekbar = false;
+        dragging_seek_position_valid = false;
+        if(resume_playback)
+            play();
+        dragging_seekbar_resume_on_release = false;
+    }
+
     bool VideoPlayer::is_backend_available() const {
         return libmpv.is_available();
     }
@@ -383,11 +449,15 @@ namespace gsr {
     }
 
     bool VideoPlayer::toggle_pause() {
-        return cached_pause.load() ? play() : libmpv.pause();
+        return cached_pause.load() ? play() : pause();
     }
 
-    bool VideoPlayer::seek_to_ms(int64_t position_ms) {
-        return libmpv.seek_to_ms(position_ms, true);
+    bool VideoPlayer::seek_to_ms(int64_t position_ms, bool exact) {
+        displayed_seek_position_valid = true;
+        displayed_seek_position_ms = position_ms;
+        displayed_seek_position_timer = 0.0;
+        notify_seek_state_changed();
+        return libmpv.seek_to_ms(position_ms, exact);
     }
 
     int64_t VideoPlayer::get_position_ms() const {
@@ -469,6 +539,7 @@ namespace gsr {
         displayed_seek_position_valid = true;
         displayed_seek_position_ms = dragging_seek_position_ms;
         displayed_seek_position_timer = 0.0;
+        notify_seek_state_changed();
 
         if(drag_seek_dispatch_clock.get_elapsed_time_seconds() >= drag_seek_dispatch_interval_seconds)
             drag_seek_dispatch_clock.restart(), libmpv.seek_to_ms(dragging_seek_position_ms, true);
@@ -493,6 +564,26 @@ namespace gsr {
 
         cached_duration_ms.store(libmpv.get_duration_ms());
         cached_position_ms.store(libmpv.get_position_ms());
+        notify_seek_state_changed();
+    }
+
+    void VideoPlayer::notify_seek_state_changed() {
+        if(!seek_state_callback)
+            return;
+
+        const int64_t duration_ms = cached_duration_ms.load();
+        const bool paused = cached_pause.load();
+        const int64_t position_ms = (dragging_seekbar && dragging_seek_position_valid)
+            ? dragging_seek_position_ms
+            : (displayed_seek_position_valid ? displayed_seek_position_ms : cached_position_ms.load());
+
+        if(position_ms == last_notified_position_ms && duration_ms == last_notified_duration_ms && paused == last_notified_pause_state)
+            return;
+
+        last_notified_position_ms = position_ms;
+        last_notified_duration_ms = duration_ms;
+        last_notified_pause_state = paused;
+        seek_state_callback(position_ms, duration_ms, paused);
     }
 
     void VideoPlayer::proxy_worker_loop() {
@@ -513,7 +604,7 @@ namespace gsr {
             if(source_path.empty())
                 continue;
 
-            const std::string output_path = get_proxy_video_path(source_path);
+            const std::string output_path = build_proxy_video_path(source_path);
             struct stat st;
             bool success = stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
 
@@ -651,30 +742,32 @@ namespace gsr {
         play_pause_icon.set_color(mgl::Color(255, 255, 255, 255));
         window.draw(play_pause_icon);
 
-        const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(draw_pos, item_size);
-        const float seeker_height = std::max(2.0f, item_size.y * seeker_height_scale);
-        const mgl::vec2f seeker_pos = mgl::vec2f(seekbar_hitbox.position.x, seekbar_hitbox.position.y + seekbar_hitbox.size.y * 0.5f - seeker_height * 0.5f).floor();
-        const mgl::vec2f seeker_size(seekbar_hitbox.size.x, seeker_height);
-        const int64_t duration_ms = cached_duration_ms.load();
-        const int64_t position_ms = (dragging_seekbar && dragging_seek_position_valid)
-            ? dragging_seek_position_ms
-            : (displayed_seek_position_valid ? displayed_seek_position_ms : cached_position_ms.load());
-        const bool using_displayed_scrub_position = !dragging_seekbar && displayed_seek_position_valid;
-        const float progress = duration_ms > 0
-            ? ((cached_eof_reached.load() && !dragging_seekbar && !using_displayed_scrub_position)
-                ? 1.0f
-                : clamp_float((float)((double)position_ms / (double)duration_ms), 0.0f, 1.0f))
-            : 0.0f;
+        if(seekbar_enabled) {
+            const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(draw_pos, item_size);
+            const float seeker_height = std::max(2.0f, item_size.y * seeker_height_scale);
+            const mgl::vec2f seeker_pos = mgl::vec2f(seekbar_hitbox.position.x, seekbar_hitbox.position.y + seekbar_hitbox.size.y * 0.5f - seeker_height * 0.5f).floor();
+            const mgl::vec2f seeker_size(seekbar_hitbox.size.x, seeker_height);
+            const int64_t duration_ms = cached_duration_ms.load();
+            const int64_t position_ms = (dragging_seekbar && dragging_seek_position_valid)
+                ? dragging_seek_position_ms
+                : (displayed_seek_position_valid ? displayed_seek_position_ms : cached_position_ms.load());
+            const bool using_displayed_scrub_position = !dragging_seekbar && displayed_seek_position_valid;
+            const float progress = duration_ms > 0
+                ? ((cached_eof_reached.load() && !dragging_seekbar && !using_displayed_scrub_position)
+                    ? 1.0f
+                    : clamp_float((float)((double)position_ms / (double)duration_ms), 0.0f, 1.0f))
+                : 0.0f;
 
-        mgl::Rectangle seeker_track(seeker_size);
-        seeker_track.set_position(seeker_pos);
-        seeker_track.set_color(mgl::Color(255, 255, 255, 70));
-        window.draw(seeker_track);
+            mgl::Rectangle seeker_track(seeker_size);
+            seeker_track.set_position(seeker_pos);
+            seeker_track.set_color(mgl::Color(255, 255, 255, 70));
+            window.draw(seeker_track);
 
-        mgl::Rectangle seeker_fill({ seeker_size.x * progress, seeker_size.y });
-        seeker_fill.set_position(seeker_pos);
-        seeker_fill.set_color(get_color_theme().tint_color);
-        window.draw(seeker_fill);
+            mgl::Rectangle seeker_fill({ seeker_size.x * progress, seeker_size.y });
+            seeker_fill.set_position(seeker_pos);
+            seeker_fill.set_color(get_color_theme().tint_color);
+            window.draw(seeker_fill);
+        }
 
     }
 

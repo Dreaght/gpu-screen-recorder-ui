@@ -129,6 +129,9 @@ namespace gsr {
 
         file_loaded = false;
         shutdown = false;
+        active_seek_command_userdata = 0;
+        next_async_command_userdata = 1;
+        pending_seek = false;
         render_update_requested = false;
     }
 
@@ -267,6 +270,18 @@ namespace gsr {
         if(!initialize())
             return false;
 
+        if(active_seek_command_userdata != 0) {
+            pending_seek = true;
+            pending_seek_position_ms = position_ms;
+            pending_seek_exact = exact;
+            return true;
+        }
+
+        return dispatch_seek_to_ms(position_ms, exact);
+    }
+
+    bool Libmpv::dispatch_seek_to_ms(int64_t position_ms, bool exact) {
+
         const std::string seconds_str = std::to_string((double)position_ms / 1000.0);
         const char *args[] = {
             "seek",
@@ -275,7 +290,12 @@ namespace gsr {
             exact ? "exact" : "keyframes",
             nullptr
         };
-        return command_async(args);
+        const uint64_t reply_userdata = next_async_command_userdata++;
+        if(!command_async(args, reply_userdata))
+            return false;
+
+        active_seek_command_userdata = reply_userdata;
+        return true;
     }
 
     bool Libmpv::seek_relative_ms(int64_t offset_ms) {
@@ -404,6 +424,17 @@ namespace gsr {
         switch(event->event_id) {
             case MPV_EVENT_SHUTDOWN:
                 shutdown = true;
+                break;
+            case MPV_EVENT_COMMAND_REPLY:
+                if(event->reply_userdata == active_seek_command_userdata) {
+                    active_seek_command_userdata = 0;
+                    if(pending_seek) {
+                        const int64_t position_ms = pending_seek_position_ms;
+                        const bool exact = pending_seek_exact;
+                        pending_seek = false;
+                        dispatch_seek_to_ms(position_ms, exact);
+                    }
+                }
                 break;
             case MPV_EVENT_FILE_LOADED:
                 file_loaded = true;

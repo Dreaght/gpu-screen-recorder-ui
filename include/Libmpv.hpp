@@ -66,6 +66,7 @@ namespace gsr {
         bool set_option_string(const char *name, const char *value);
         bool command(const char **args);
         bool command_async(const char **args, uint64_t reply_userdata = 0);
+        bool dispatch_seek_to_ms(int64_t position_ms, bool exact);
         bool set_error(const std::string &error_message);
         bool set_mpv_error(int error_code, const std::string &action);
         bool get_property_flag(const char *name, bool default_value) const;
@@ -82,6 +83,11 @@ namespace gsr {
         mgl_window *render_window = nullptr;
         bool file_loaded = false;
         bool shutdown = false;
+        uint64_t next_async_command_userdata = 1;
+        uint64_t active_seek_command_userdata = 0;
+        bool pending_seek = false;
+        int64_t pending_seek_position_ms = 0;
+        bool pending_seek_exact = true;
         std::atomic_bool render_update_requested { false };
         mutable std::mutex callback_mutex;
         std::function<void()> wakeup_handler;
