@@ -612,12 +612,12 @@ namespace gsr {
     }
 
     int GlobalSettingsPage::get_scroll_y() const {
-        return scrollable_page_ptr ? scrollable_page_ptr->get_scroll_target_y() : 0;
+        return scrollable_page_ptr ? scrollable_page_ptr->get_scroll_target().y : 0;
     }
 
     void GlobalSettingsPage::set_scroll_y(int y) {
         if(scrollable_page_ptr)
-            scrollable_page_ptr->set_scroll(y);
+            scrollable_page_ptr->set_scroll(mgl::vec2f(0.0f, y));
     }
 
     void GlobalSettingsPage::on_navigate_away_from_page() {
