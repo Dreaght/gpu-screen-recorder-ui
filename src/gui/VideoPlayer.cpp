@@ -415,10 +415,7 @@ namespace gsr {
             displayed_seek_position_valid = true;
             displayed_seek_position_ms = dragging_seek_position_ms;
             displayed_seek_position_timer = 0.0;
-            if(exact_seek)
-                seek_to_ms(dragging_seek_position_ms, true);
-            else
-                notify_seek_state_changed();
+            seek_to_ms(dragging_seek_position_ms, exact_seek);
         }
 
         dragging_seekbar = false;

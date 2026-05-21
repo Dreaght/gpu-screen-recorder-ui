@@ -340,6 +340,17 @@ namespace gsr {
         scroll_target = {0.0f, 0.0f};
     }
 
+    void ScrollablePage::reset_scrollbar_drag_anchor(mgl::Window &window) {
+        if(!moving_scrollbar_with_cursor)
+            return;
+
+        scrollbar_move_cursor_start_pos = window.get_mouse_position().to_vec2f();
+        if(is_horizontal())
+            scrollbar_move_cursor_scroll_y_start = scroll.x;
+        else
+            scrollbar_move_cursor_scroll_y_start = scroll.y;
+    }
+
     float ScrollablePage::get_scrollbar_width() const {
         return std::max(5.0f, scrollbar_width_scale * get_theme().window_height);
     }
