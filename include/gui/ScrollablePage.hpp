@@ -32,6 +32,7 @@ namespace gsr {
         void reset_scroll();
         mgl::vec2f get_scroll_target() const { return scroll_target; }
         void set_scroll(mgl::vec2f new_scroll) { this->scroll = new_scroll; scroll_target = new_scroll; }
+        bool is_moving_scrollbar_with_cursor() const { return moving_scrollbar_with_cursor; }
     private:
         bool is_horizontal() const {
             return scrollbar_side == ScrollbarSide::BOTTOM;

@@ -1,24 +1,17 @@
 #include "../../include/gui/TrimmerPage.hpp"
 #include "../../include/Theme.hpp"
+#include "../../include/gui/CustomRendererWidget.hpp"
+#include "../../include/gui/ScrollablePage.hpp"
+#include "../../include/gui/TimelineWidget.hpp"
 #include "../../include/gui/VideoPlayer.hpp"
 #include "../../include/gui/Utils.hpp"
 
 #include <mglpp/graphics/Rectangle.hpp>
-#include <mglpp/window/Event.hpp>
 #include <mglpp/window/Window.hpp>
 
-#include <algorithm>
 #include <cmath>
 
 namespace gsr {
-    namespace {
-        static const double seek_dispatch_interval_seconds = 1.0 / 30.0;
-        static const float seekbar_horizontal_padding_ratio = 0.08f;
-        static const float seekbar_vertical_offset_ratio = 0.06f;
-        static const float seekbar_height_ratio = 0.02f;
-        static const float seekbar_hitbox_height_ratio = 0.08f;
-    }
-
     TrimmerPage::TrimmerPage(PageStack *page_stack, std::string video_path, const mgl::vec2i size) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         page_stack(page_stack),
@@ -33,11 +26,39 @@ namespace gsr {
             playback_position_ms = position_ms;
             playback_duration_ms = duration_ms;
             playback_paused = paused;
-            if(!dragging_seekbar)
-                seekbar_drag_position_ms = position_ms;
+            if(timeline_ptr) {
+                timeline_ptr->set_duration_ms(duration_ms);
+                timeline_ptr->set_position_ms(position_ms);
+                timeline_ptr->set_paused(paused);
+
+                const std::string proxy_path = video_player_ptr ? video_player_ptr->get_proxy_video_path() : std::string();
+                if(!proxy_path.empty())
+                    timeline_ptr->set_source_video_path(proxy_path);
+            }
         });
         video_player_ptr = player.get();
         Page::add_widget(std::move(player));
+
+        auto timeline_scroll = std::make_unique<ScrollablePage>(TrimmerPage::get_size() * mgl::vec2f(1.0f, 0.14f), ScrollablePage::ScrollbarSide::BOTTOM);
+        timeline_scroll->set_position({0.0f, 0.0f});
+        timeline_scroll_ptr = timeline_scroll.get();
+
+        auto left_padding = std::make_unique<CustomRendererWidget>(mgl::vec2f(1.0f, timeline_scroll_ptr->get_inner_size().y));
+        left_padding->set_position({0.0f, 0.0f});
+        timeline_left_padding_ptr = left_padding.get();
+        timeline_scroll_ptr->add_widget(std::move(left_padding));
+
+        auto timeline = std::make_unique<TimelineWidget>(timeline_scroll_ptr->get_inner_size());
+        timeline->set_position({0.0f, 0.0f});
+        timeline_ptr = timeline.get();
+        timeline_scroll_ptr->add_widget(std::move(timeline));
+
+        auto right_padding = std::make_unique<CustomRendererWidget>(mgl::vec2f(1.0f, timeline_scroll_ptr->get_inner_size().y));
+        right_padding->set_position({0.0f, 0.0f});
+        timeline_right_padding_ptr = right_padding.get();
+        timeline_scroll_ptr->add_widget(std::move(right_padding));
+
+        Page::add_widget(std::move(timeline_scroll));
     }
 
     bool TrimmerPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
@@ -48,36 +69,8 @@ namespace gsr {
         const mgl::vec2f content_page_size = get_size();
         if(video_player_ptr)
             video_player_ptr->set_size(content_page_size);
-
-        if(event.type == mgl::Event::MouseButtonPressed && event.mouse_button.button == mgl::Mouse::Left) {
-            const mgl::vec2f mouse_pos((float)event.mouse_button.x, (float)event.mouse_button.y);
-            if(get_seekbar_hitbox(content_page_position, content_page_size).contains(mouse_pos)) {
-                dragging_seekbar = true;
-                dragging_seekbar_resume_on_release = !playback_paused;
-                seekbar_drag_position_ms = playback_position_ms;
-                seekbar_seek_clock.restart();
-                if(video_player_ptr)
-                    video_player_ptr->begin_external_scrub();
-                playback_paused = true;
-                update_seekbar_drag(content_page_position, content_page_size, mouse_pos);
-                return false;
-            }
-        }
-
-        if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && dragging_seekbar) {
-            dragging_seekbar = false;
-            if(video_player_ptr)
-                video_player_ptr->end_external_scrub(dragging_seekbar_resume_on_release);
-            dragging_seekbar_resume_on_release = false;
-            return false;
-        }
-
-        if(event.type == mgl::Event::MouseMoved && dragging_seekbar) {
-            update_seekbar_drag(content_page_position, content_page_size, {(float)event.mouse_move.x, (float)event.mouse_move.y});
-            return false;
-        }
-
         Widget *selected_widget = selected_child_widget;
+
         if(selected_widget) {
             if(!selected_widget->on_event(event, window, content_page_position))
                 return false;
@@ -93,7 +86,7 @@ namespace gsr {
         });
     }
 
-    void TrimmerPage::draw(mgl::Window &window, mgl::vec2f offset) {
+    void TrimmerPage::draw(mgl::Window &window, mgl::vec2f) {
         if(!visible)
             return;
 
@@ -105,14 +98,86 @@ namespace gsr {
         video_path_text.set_position((content_page_position + mgl::vec2f(
             content_page_size.x * 0.5f - video_path_text.get_bounds().size.x * 0.5f,
             - video_path_text.get_bounds().size.y * 1.5f
-        )).floor());
+            )).floor());
         window.draw(video_path_text);
+
+        if(timeline_scroll_ptr && timeline_ptr && timeline_left_padding_ptr && timeline_right_padding_ptr) {
+            timeline_scroll_ptr->set_size(content_page_size * mgl::vec2f(1.0f, 0.14f));
+            timeline_scroll_ptr->set_position({0.0f, content_page_size.y + get_theme().window_height / 70});
+
+            const mgl::vec2f timeline_inner_size = timeline_scroll_ptr->get_inner_size();
+            const float timeline_side_padding = timeline_inner_size.x * 0.5f;
+
+            timeline_left_padding_ptr->set_size({timeline_side_padding, timeline_inner_size.y});
+            timeline_left_padding_ptr->set_position({0.0f, 0.0f});
+
+            timeline_ptr->set_duration_ms(playback_duration_ms);
+            timeline_ptr->set_position_ms(playback_position_ms);
+            timeline_ptr->set_paused(playback_paused);
+            timeline_ptr->set_size({timeline_ptr->get_timeline_width(), timeline_inner_size.y});
+            timeline_ptr->set_position({timeline_side_padding, 0.0f});
+
+            timeline_right_padding_ptr->set_size({timeline_side_padding, timeline_inner_size.y});
+            timeline_right_padding_ptr->set_position({timeline_side_padding + timeline_ptr->get_size().x, 0.0f});
+
+            if(video_player_ptr) {
+                const std::string &proxy_path = video_player_ptr->get_proxy_video_path();
+                if(!proxy_path.empty())
+                    timeline_ptr->set_source_video_path(proxy_path);
+            }
+
+            const float desired_scroll_x = timeline_ptr->position_ms_to_scroll(playback_position_ms);
+            const float current_scroll_x = timeline_scroll_ptr->get_scroll_target().x;
+            const bool timeline_scroll_changed = std::abs(current_scroll_x - last_timeline_scroll_x) > 0.5f;
+            const bool scrollbar_is_being_dragged = timeline_scroll_ptr->is_moving_scrollbar_with_cursor();
+
+            if(scrollbar_is_being_dragged && !timeline_scroll_dragging) {
+                timeline_scroll_dragging = true;
+                timeline_scroll_resume_on_release = !playback_paused;
+                if(video_player_ptr)
+                    video_player_ptr->begin_external_scrub();
+                playback_paused = true;
+                timeline_ptr->set_paused(true);
+                timeline_scroll_settle_clock.restart();
+            }
+
+            if(timeline_scroll_changed) {
+                last_timeline_scroll_x = current_scroll_x;
+                const int64_t requested_position_ms = timeline_ptr->scroll_to_position_ms(current_scroll_x);
+                if(requested_position_ms != playback_position_ms) {
+                    if(video_player_ptr && !timeline_scroll_dragging) {
+                        timeline_scroll_dragging = true;
+                        timeline_scroll_resume_on_release = !playback_paused;
+                        video_player_ptr->begin_external_scrub();
+                        playback_paused = true;
+                        timeline_ptr->set_paused(true);
+                    }
+
+                    playback_position_ms = requested_position_ms;
+                    if(video_player_ptr) {
+                        video_player_ptr->update_external_scrub(requested_position_ms);
+                    }
+                    timeline_scroll_settle_clock.restart();
+                }
+            } else if(std::abs(current_scroll_x - desired_scroll_x) > 0.5f) {
+                timeline_scroll_ptr->set_scroll({desired_scroll_x, 0.0f});
+                last_timeline_scroll_x = desired_scroll_x;
+            }
+
+            if(!scrollbar_is_being_dragged && timeline_scroll_dragging && timeline_scroll_settle_clock.get_elapsed_time_seconds() >= 0.12) {
+                timeline_scroll_dragging = false;
+                if(video_player_ptr)
+                    video_player_ptr->end_external_scrub(timeline_scroll_resume_on_release, false);
+                timeline_scroll_resume_on_release = false;
+            }
+        }
 
         Widget *selected_widget = selected_child_widget;
 
         const mgl::Scissor prev_scissor = window.get_scissor();
         mgl::vec2f scissor_size = content_page_size;
-        scissor_size.y += get_theme().window_height * 0.12f;
+        if(timeline_scroll_ptr)
+            scissor_size.y += get_theme().window_height / 70 + timeline_scroll_ptr->get_size().y;
         window.set_scissor(scissor_get_sub_area(prev_scissor, {content_page_position.to_vec2i(), scissor_size.to_vec2i()}));
 
         for(size_t i = 0; i < widgets.size(); ++i) {
@@ -124,37 +189,17 @@ namespace gsr {
         if(selected_widget)
             selected_widget->draw(window, content_page_position);
 
-        const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(content_page_position, content_page_size);
-        const float seekbar_height = std::max(3.0f, content_page_size.y * seekbar_height_ratio);
-        const mgl::vec2f seekbar_pos = mgl::vec2f(
-            seekbar_hitbox.position.x,
-            seekbar_hitbox.position.y + seekbar_hitbox.size.y * 0.5f - seekbar_height * 0.5f
-        ).floor();
-        const mgl::vec2f seekbar_size(seekbar_hitbox.size.x, seekbar_height);
-        const int64_t visible_position_ms = dragging_seekbar ? seekbar_drag_position_ms : playback_position_ms;
-        const float progress = playback_duration_ms > 0
-            ? std::clamp((float)((double)visible_position_ms / (double)playback_duration_ms), 0.0f, 1.0f)
-            : 0.0f;
-
-        mgl::Rectangle seekbar_track(seekbar_size);
-        seekbar_track.set_position(seekbar_pos);
-        seekbar_track.set_color(mgl::Color(255, 255, 255, 70));
-        window.draw(seekbar_track);
-
-        mgl::Rectangle seekbar_fill({seekbar_size.x * progress, seekbar_size.y});
-        seekbar_fill.set_position(seekbar_pos);
-        seekbar_fill.set_color(get_color_theme().tint_color);
-        window.draw(seekbar_fill);
-
-        mgl::Rectangle seekbar_pointer({std::max(3.0f, content_page_size.x * 0.003f), content_page_size.y * 0.10f});
-        seekbar_pointer.set_position({
-            content_page_position.x + content_page_size.x * 0.5f - seekbar_pointer.get_size().x * 0.5f,
-            seekbar_pos.y + seekbar_size.y * 0.5f - seekbar_pointer.get_size().y * 0.5f
-        });
-        seekbar_pointer.set_color(get_color_theme().tint_color);
-        window.draw(seekbar_pointer);
-
         window.set_scissor(prev_scissor);
+
+        if(timeline_scroll_ptr) {
+            mgl::Rectangle timeline_pointer(content_page_size * mgl::vec2f(0.003f, 0.13f));
+            timeline_pointer.set_position(content_page_position + mgl::vec2f(
+                content_page_size.x / 2 - timeline_pointer.get_size().x / 2,
+                content_page_size.y + get_theme().window_height / 70 - timeline_pointer.get_size().y / 2 + timeline_scroll_ptr->get_inner_size().y / 2
+                ));
+            timeline_pointer.set_color(get_color_theme().tint_color);
+            window.draw(timeline_pointer);
+        }
     }
 
     mgl::vec2f TrimmerPage::get_size() {
@@ -168,29 +213,5 @@ namespace gsr {
         const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
         const mgl::vec2f content_page_size = get_size();
         return mgl::vec2f(window_size * 0.5f - content_page_size * 0.5f).floor();
-    }
-
-    mgl::FloatRect TrimmerPage::get_seekbar_hitbox(mgl::vec2f content_page_position, mgl::vec2f content_page_size) const {
-        const float padding_x = std::max(12.0f, content_page_size.x * seekbar_horizontal_padding_ratio);
-        const float offset_y = std::max(16.0f, content_page_size.y * seekbar_vertical_offset_ratio);
-        const float hitbox_height = std::max(18.0f, content_page_size.y * seekbar_hitbox_height_ratio);
-        return {
-            content_page_position + mgl::vec2f(padding_x, content_page_size.y + offset_y),
-            mgl::vec2f(std::max(1.0f, content_page_size.x - padding_x * 2.0f), hitbox_height)
-        };
-    }
-
-    void TrimmerPage::update_seekbar_drag(mgl::vec2f content_page_position, mgl::vec2f content_page_size, mgl::vec2f mouse_pos) {
-        if(playback_duration_ms <= 0)
-            return;
-
-        const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(content_page_position, content_page_size);
-        const float relative_x = std::clamp((mouse_pos.x - seekbar_hitbox.position.x) / seekbar_hitbox.size.x, 0.0f, 1.0f);
-        seekbar_drag_position_ms = std::min<int64_t>((int64_t)(relative_x * (double)playback_duration_ms), std::max<int64_t>(0, playback_duration_ms - 1));
-
-        if(video_player_ptr && seekbar_seek_clock.get_elapsed_time_seconds() >= seek_dispatch_interval_seconds) {
-            video_player_ptr->update_external_scrub(seekbar_drag_position_ms);
-            seekbar_seek_clock.restart();
-        }
     }
 }

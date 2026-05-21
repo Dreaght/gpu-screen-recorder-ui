@@ -44,7 +44,7 @@ namespace gsr {
         bool set_pause(bool pause);
         bool play();
         bool pause();
-        bool seek_to_ms(int64_t position_ms, bool exact = true);
+        bool seek_to_ms(int64_t position_ms, bool exact = false);
         bool seek_relative_ms(int64_t offset_ms);
 
         bool get_pause() const;
@@ -87,7 +87,7 @@ namespace gsr {
         uint64_t active_seek_command_userdata = 0;
         bool pending_seek = false;
         int64_t pending_seek_position_ms = 0;
-        bool pending_seek_exact = true;
+        bool pending_seek_exact = false;
         std::atomic_bool render_update_requested { false };
         mutable std::mutex callback_mutex;
         std::function<void()> wakeup_handler;

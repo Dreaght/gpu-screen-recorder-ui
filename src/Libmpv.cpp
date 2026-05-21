@@ -307,7 +307,7 @@ namespace gsr {
             "seek",
             seconds_str.c_str(),
             "relative",
-            "exact",
+            "keyframes",
             nullptr
         };
         return command_async(args);

@@ -242,23 +242,24 @@ namespace gsr {
             }
         }
 
-        if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && dragging_seekbar) {
+        if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && dragging_seekbar && !external_scrub_active) {
             if(dragging_seek_position_valid) {
                 displayed_seek_position_valid = true;
                 displayed_seek_position_ms = dragging_seek_position_ms;
                 displayed_seek_position_timer = 0.0;
-                seek_to_ms(dragging_seek_position_ms, true);
+                libmpv.seek_to_ms(dragging_seek_position_ms, false);
+                notify_seek_state_changed();
             }
             dragging_seekbar = false;
             dragging_seek_position_valid = false;
             if(dragging_seekbar_resume_on_release)
-                play();
+                libmpv.play();
             dragging_seekbar_resume_on_release = false;
             remove_widget_as_selected_in_parent();
             return false;
         }
 
-        if(event.type == mgl::Event::MouseMoved && dragging_seekbar) {
+        if(event.type == mgl::Event::MouseMoved && dragging_seekbar && !external_scrub_active) {
             update_drag_seek(draw_pos, item_size, { (float)event.mouse_move.x, (float)event.mouse_move.y });
             return false;
         }
@@ -362,6 +363,7 @@ namespace gsr {
         seekbar_enabled = enabled;
         if(!seekbar_enabled) {
             dragging_seekbar = false;
+            external_scrub_active = false;
             dragging_seek_position_valid = false;
             dragging_seekbar_resume_on_release = false;
         }
@@ -383,6 +385,7 @@ namespace gsr {
     }
 
     void VideoPlayer::begin_external_scrub() {
+        external_scrub_active = true;
         dragging_seekbar = true;
         dragging_seekbar_resume_on_release = !cached_pause.load();
         dragging_seek_position_valid = false;
@@ -403,21 +406,23 @@ namespace gsr {
         displayed_seek_position_timer = 0.0;
         notify_seek_state_changed();
 
-        if(drag_seek_dispatch_clock.get_elapsed_time_seconds() >= drag_seek_dispatch_interval_seconds) {
-            drag_seek_dispatch_clock.restart();
-            libmpv.seek_to_ms(dragging_seek_position_ms, false);
-        }
+        // Push every scrub update and let Libmpv collapse superseded seeks to the latest target.
+        libmpv.seek_to_ms(dragging_seek_position_ms, false);
     }
 
-    void VideoPlayer::end_external_scrub(bool resume_playback) {
+    void VideoPlayer::end_external_scrub(bool resume_playback, bool exact_seek) {
         if(dragging_seek_position_valid) {
             displayed_seek_position_valid = true;
             displayed_seek_position_ms = dragging_seek_position_ms;
             displayed_seek_position_timer = 0.0;
-            seek_to_ms(dragging_seek_position_ms, true);
+            if(exact_seek)
+                seek_to_ms(dragging_seek_position_ms, true);
+            else
+                notify_seek_state_changed();
         }
 
         dragging_seekbar = false;
+        external_scrub_active = false;
         dragging_seek_position_valid = false;
         if(resume_playback)
             play();
@@ -439,7 +444,7 @@ namespace gsr {
     bool VideoPlayer::play() {
         const bool should_restart_from_beginning = cached_eof_reached.load() && !displayed_seek_position_valid;
         if(should_restart_from_beginning)
-            libmpv.seek_to_ms(0, true);
+            libmpv.seek_to_ms(0, false);
 
         return libmpv.play();
     }
@@ -542,7 +547,7 @@ namespace gsr {
         notify_seek_state_changed();
 
         if(drag_seek_dispatch_clock.get_elapsed_time_seconds() >= drag_seek_dispatch_interval_seconds)
-            drag_seek_dispatch_clock.restart(), libmpv.seek_to_ms(dragging_seek_position_ms, true);
+            drag_seek_dispatch_clock.restart(), libmpv.seek_to_ms(dragging_seek_position_ms, false);
     }
 
     void VideoPlayer::process_pending_seek_display_state() {
