@@ -35,6 +35,8 @@ namespace gsr {
         float get_pixels_per_ms() const;
         float position_ms_to_scroll(int64_t position_ms) const;
         int64_t scroll_to_position_ms(float scroll_x) const;
+        bool take_zoom_changed();
+        void set_zoom_interaction_region(mgl::vec2f offset, mgl::vec2f size);
     private:
         struct Thumbnail {
             int64_t start_ms = 0;
@@ -68,6 +70,9 @@ namespace gsr {
         int64_t position_ms = 0;
         bool paused = true;
         float zoom = 1.0f;
+        bool zoom_changed = false;
+        mgl::vec2f zoom_interaction_offset = {0.0f, 0.0f};
+        mgl::vec2f zoom_interaction_size = {0.0f, 0.0f};
         mgl::Text status_text;
         std::vector<Thumbnail> thumbnails;
         std::thread thumbnail_worker_thread;

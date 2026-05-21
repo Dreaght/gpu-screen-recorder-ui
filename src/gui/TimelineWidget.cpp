@@ -87,7 +87,13 @@ namespace gsr {
 
         const mgl::vec2f draw_pos = position + offset;
         const mgl::vec2f item_size = get_size().floor();
-        const mgl::FloatRect bounds(draw_pos, item_size);
+        const mgl::vec2f interaction_size = zoom_interaction_size.x > 0.0f && zoom_interaction_size.y > 0.0f
+            ? zoom_interaction_size.floor()
+            : item_size;
+        const mgl::vec2f interaction_pos = zoom_interaction_size.x > 0.0f && zoom_interaction_size.y > 0.0f
+            ? (draw_pos + zoom_interaction_offset).floor()
+            : draw_pos;
+        const mgl::FloatRect bounds(interaction_pos, interaction_size);
 
         if(event.type == mgl::Event::MouseWheelScrolled) {
             const mgl::vec2f mouse_pos((float)event.mouse_wheel_scroll.x, (float)event.mouse_wheel_scroll.y);
@@ -99,6 +105,7 @@ namespace gsr {
                     zoom = std::min(max_zoom, zoom * std::pow(zoom_speed, (float)event.mouse_wheel_scroll.delta));
                 else if(event.mouse_wheel_scroll.delta < 0)
                     zoom = std::max(min_zoom, zoom / std::pow(zoom_speed, (float)-event.mouse_wheel_scroll.delta));
+                zoom_changed = true;
                 return false;
             }
         }
@@ -165,6 +172,17 @@ namespace gsr {
 
     int64_t TimelineWidget::get_position_ms() const {
         return position_ms;
+    }
+
+    bool TimelineWidget::take_zoom_changed() {
+        const bool changed = zoom_changed;
+        zoom_changed = false;
+        return changed;
+    }
+
+    void TimelineWidget::set_zoom_interaction_region(mgl::vec2f offset, mgl::vec2f size) {
+        zoom_interaction_offset = offset;
+        zoom_interaction_size = size;
     }
 
     void TimelineWidget::set_paused(bool paused) {
