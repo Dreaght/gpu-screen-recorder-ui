@@ -127,7 +127,7 @@ namespace gsr {
             }
 
             const float desired_scroll_x = timeline_ptr->position_ms_to_scroll(playback_position_ms);
-            const float current_scroll_x = timeline_scroll_ptr->get_scroll_target().x;
+            const float current_scroll_x = timeline_scroll_ptr->get_scroll().x;
             const bool timeline_scroll_changed = std::abs(current_scroll_x - last_timeline_scroll_x) > 0.5f;
             const bool scrollbar_is_being_dragged = timeline_scroll_ptr->is_moving_scrollbar_with_cursor();
 
@@ -159,7 +159,7 @@ namespace gsr {
                     }
                     timeline_scroll_settle_clock.restart();
                 }
-            } else if(std::abs(current_scroll_x - desired_scroll_x) > 0.5f) {
+            } else if(!timeline_scroll_dragging && std::abs(current_scroll_x - desired_scroll_x) > 0.5f) {
                 timeline_scroll_ptr->set_scroll({desired_scroll_x, 0.0f});
                 last_timeline_scroll_x = desired_scroll_x;
             }
