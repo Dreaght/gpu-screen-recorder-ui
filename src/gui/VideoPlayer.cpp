@@ -792,6 +792,6 @@ namespace gsr {
     }
 
     bool VideoPlayer::controls_visible(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size) const {
-        return dragging_seekbar || mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
+        return mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
     }
 }
