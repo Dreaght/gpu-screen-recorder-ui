@@ -45,7 +45,7 @@ namespace gsr {
         void set_seek_state_callback(std::function<void(int64_t position_ms, int64_t duration_ms, bool paused)> callback);
         void begin_external_scrub();
         void update_external_scrub(int64_t position_ms);
-        void end_external_scrub(bool resume_playback);
+        void end_external_scrub(bool resume_playback, bool exact_seek = false);
 
         bool is_backend_available() const;
         bool is_file_loaded() const;
@@ -54,7 +54,7 @@ namespace gsr {
         bool play();
         bool pause();
         bool toggle_pause();
-        bool seek_to_ms(int64_t position_ms, bool exact = true);
+        bool seek_to_ms(int64_t position_ms, bool exact = false);
 
         int64_t get_position_ms() const;
         int64_t get_duration_ms() const;
@@ -88,6 +88,7 @@ namespace gsr {
         mgl::Text status_text;
         bool seekbar_enabled = true;
         bool dragging_seekbar = false;
+        bool external_scrub_active = false;
         bool dragging_seekbar_resume_on_release = false;
         bool dragging_seek_position_valid = false;
         int64_t dragging_seek_position_ms = 0;
