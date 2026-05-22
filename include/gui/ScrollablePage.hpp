@@ -2,6 +2,8 @@
 
 #include "Widget.hpp"
 #include "../SafeVector.hpp"
+
+#include <functional>
 #include <memory>
 
 #include <mglpp/system/FloatRect.hpp>
@@ -35,6 +37,8 @@ namespace gsr {
         void set_scroll(mgl::vec2f new_scroll) { this->scroll = new_scroll; scroll_target = new_scroll; }
         bool is_moving_scrollbar_with_cursor() const { return moving_scrollbar_with_cursor; }
         void reset_scrollbar_drag_anchor(mgl::Window &window);
+        void set_scroll_input_callback(std::function<void(mgl::vec2f)> callback);
+        void set_scroll_changed_callback(std::function<void(mgl::vec2f)> callback);
     private:
         bool is_horizontal() const {
             return scrollbar_side == ScrollbarSide::BOTTOM;
@@ -48,6 +52,8 @@ namespace gsr {
         void draw_scrollbar(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f child_size);
         mgl::vec2f get_content_offset();
         float get_scrollbar_width() const;
+        void notify_scroll_input(mgl::vec2f scroll_value);
+        void notify_scroll_changed(mgl::vec2f scroll_value);
     private:
         mgl::vec2f size;
         ScrollbarSide scrollbar_side;
@@ -58,5 +64,7 @@ namespace gsr {
         bool moving_scrollbar_with_cursor = false;
         mgl::vec2f scrollbar_move_cursor_start_pos;
         double scrollbar_move_cursor_scroll_y_start = 0.0;
+        std::function<void(mgl::vec2f)> scroll_input_callback;
+        std::function<void(mgl::vec2f)> scroll_changed_callback;
     };
 }

@@ -31,6 +31,13 @@ namespace gsr {
 
         auto timeline_scroll = std::make_unique<ScrollablePage>(TrimmerPage::get_size() * mgl::vec2f(1.0f, 0.14f), ScrollablePage::ScrollbarSide::BOTTOM);
         timeline_scroll->set_position({0.0f, 0.0f});
+        timeline_scroll->set_scroll_input_callback([this](mgl::vec2f scroll) {
+            begin_timeline_scrub();
+            timeline_scroll_settle_clock.restart();
+        });
+        timeline_scroll->set_scroll_changed_callback([this](mgl::vec2f scroll) {
+            sync_timeline_scrub_position(scroll.x);
+        });
         timeline_scroll_ptr = timeline_scroll.get();
 
         auto left_padding = std::make_unique<CustomRendererWidget>(mgl::vec2f(1.0f, timeline_scroll_ptr->get_inner_size().y));
@@ -148,11 +155,7 @@ namespace gsr {
             }
 
             if(scrollbar_is_being_dragged && !timeline_scrub_active && !timeline_zoom_changed) {
-                timeline_scrub_active = true;
-                timeline_scrub_resume_on_release = !playback_state.paused;
-                timeline_scrub_position_ms = playback_state.position_ms;
-                if(video_player_ptr)
-                    video_player_ptr->begin_external_scrub();
+                begin_timeline_scrub();
                 timeline_scroll_settle_clock.restart();
             }
 
@@ -233,5 +236,36 @@ namespace gsr {
         const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
         const mgl::vec2f content_page_size = get_size();
         return mgl::vec2f(window_size * 0.5f - content_page_size * 0.5f).floor();
+    }
+
+    void TrimmerPage::begin_timeline_scrub() {
+        if(timeline_scrub_active)
+            return;
+
+        timeline_scrub_active = true;
+        timeline_scrub_resume_on_release = !playback_state.paused;
+        timeline_scrub_position_ms = playback_state.position_ms;
+        if(video_player_ptr)
+            video_player_ptr->begin_external_scrub();
+    }
+
+    void TrimmerPage::sync_timeline_scrub_position(float scroll_x) {
+        if(!timeline_ptr)
+            return;
+
+        last_timeline_scroll_x = scroll_x;
+
+        if(!timeline_scrub_active)
+            return;
+
+        const int64_t requested_position_ms = timeline_ptr->scroll_to_position_ms(scroll_x);
+        if(requested_position_ms == timeline_scrub_position_ms)
+            return;
+
+        timeline_scrub_position_ms = requested_position_ms;
+        if(video_player_ptr)
+            video_player_ptr->update_external_scrub(requested_position_ms);
+
+        timeline_scroll_settle_clock.restart();
     }
 }
