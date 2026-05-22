@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StaticPage.hpp"
+#include "VideoPlayer.hpp"
 
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/system/Clock.hpp>
@@ -9,7 +10,6 @@ namespace gsr {
     class CustomRendererWidget;
     class ScrollablePage;
     class TimelineWidget;
-    class VideoPlayer;
 }
 
 #include <memory>
@@ -39,9 +39,7 @@ namespace gsr {
         TimelineWidget *timeline_ptr = nullptr;
         CustomRendererWidget *timeline_left_padding_ptr = nullptr;
         CustomRendererWidget *timeline_right_padding_ptr = nullptr;
-        int64_t playback_position_ms = 0;
-        int64_t playback_duration_ms = 0;
-        bool playback_paused = true;
+        VideoPlayer::PlaybackState playback_state;
         float last_timeline_scroll_x = -1.0f;
         bool timeline_scrub_active = false;
         bool timeline_scrub_resume_on_release = false;
