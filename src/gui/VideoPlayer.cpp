@@ -18,6 +18,8 @@ extern "C" {
 #include <GL/gl.h>
 #include <sys/stat.h>
 
+#include <algorithm>
+
 namespace gsr {
     namespace {
         using FUNC_glPushAttrib = void (*)(unsigned int);
@@ -29,10 +31,6 @@ namespace gsr {
         using FUNC_glBindFramebuffer = void (*)(unsigned int, unsigned int);
         using FUNC_glFramebufferTexture2D = void (*)(unsigned int, unsigned int, unsigned int, unsigned int, int);
         using FUNC_glCheckFramebufferStatus = unsigned int (*)(unsigned int);
-
-        static const int64_t seek_display_settle_threshold_ms = 120;
-        static const double seek_display_settle_timeout_seconds = 0.35;
-        static const double drag_seek_dispatch_interval_seconds = 1.0 / 30.0;
 
         static const float ui_scale = 2.0f;
         static const float seeker_horizontal_padding_scale = 0.018f * ui_scale;
@@ -118,7 +116,7 @@ namespace gsr {
         proxy_worker_thread = std::thread([this]() { proxy_worker_loop(); });
         if(this->preview_source == PreviewSource::PROXY_FAST && !this->video_path.empty())
             queue_proxy_generation();
-        refresh_cached_player_state();
+        refresh_playback_state();
         update_status_text();
     }
 
@@ -227,10 +225,7 @@ namespace gsr {
                 return true;
 
             if(seekbar_enabled && get_seekbar_hitbox(draw_pos, item_size).contains(mouse_pos)) {
-                dragging_seekbar = true;
-                dragging_seekbar_resume_on_release = !cached_pause.load();
-                dragging_seek_position_valid = false;
-                libmpv.pause();
+                begin_scrub(ScrubOwner::Internal);
                 set_widget_as_selected_in_parent();
                 update_drag_seek(draw_pos, item_size, mouse_pos);
                 return false;
@@ -242,24 +237,13 @@ namespace gsr {
             }
         }
 
-        if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && dragging_seekbar && !external_scrub_active) {
-            if(dragging_seek_position_valid) {
-                displayed_seek_position_valid = true;
-                displayed_seek_position_ms = dragging_seek_position_ms;
-                displayed_seek_position_timer = 0.0;
-                libmpv.seek_to_ms(dragging_seek_position_ms, false);
-                notify_seek_state_changed();
-            }
-            dragging_seekbar = false;
-            dragging_seek_position_valid = false;
-            if(dragging_seekbar_resume_on_release)
-                libmpv.play();
-            dragging_seekbar_resume_on_release = false;
+        if(event.type == mgl::Event::MouseButtonReleased && event.mouse_button.button == mgl::Mouse::Left && is_scrubbing() && !is_external_scrubbing()) {
+            end_scrub(scrub_session->resume_playback_on_release, false);
             remove_widget_as_selected_in_parent();
             return false;
         }
 
-        if(event.type == mgl::Event::MouseMoved && dragging_seekbar && !external_scrub_active) {
+        if(event.type == mgl::Event::MouseMoved && is_scrubbing() && !is_external_scrubbing()) {
             update_drag_seek(draw_pos, item_size, { (float)event.mouse_move.x, (float)event.mouse_move.y });
             return false;
         }
@@ -273,8 +257,7 @@ namespace gsr {
 
         ensure_video_loaded();
         libmpv.process_events();
-        refresh_cached_player_state();
-        process_pending_seek_display_state();
+        refresh_playback_state();
         update_status_text();
 
         const mgl::vec2f draw_pos = (position + offset).floor();
@@ -294,7 +277,7 @@ namespace gsr {
             window.draw(overlay);
         }
 
-        if(!cached_file_loaded.load()) {
+        if(!playback_state.file_loaded) {
             status_text.set_position((draw_pos + item_size * 0.5f - status_text.get_bounds().size * 0.5f).floor());
             window.draw(status_text);
         }
@@ -320,8 +303,8 @@ namespace gsr {
         loaded_video_path.clear();
         pending_video_path.clear();
         proxy_video_path.clear();
-        displayed_seek_position_valid = false;
-        dragging_seek_position_valid = false;
+        playback_state = {};
+        scrub_session.reset();
         {
             std::lock_guard<std::mutex> lock(proxy_mutex);
             pending_proxy_request = false;
@@ -362,10 +345,7 @@ namespace gsr {
     void VideoPlayer::set_seekbar_enabled(bool enabled) {
         seekbar_enabled = enabled;
         if(!seekbar_enabled) {
-            dragging_seekbar = false;
-            external_scrub_active = false;
-            dragging_seek_position_valid = false;
-            dragging_seekbar_resume_on_release = false;
+            scrub_session.reset();
         }
     }
 
@@ -377,53 +357,22 @@ namespace gsr {
         return proxy_video_path;
     }
 
-    void VideoPlayer::set_seek_state_callback(std::function<void(int64_t position_ms, int64_t duration_ms, bool paused)> callback) {
-        seek_state_callback = std::move(callback);
-        last_notified_position_ms = -1;
-        last_notified_duration_ms = -1;
-        notify_seek_state_changed();
-    }
-
     void VideoPlayer::begin_external_scrub() {
-        external_scrub_active = true;
-        dragging_seekbar = true;
-        dragging_seekbar_resume_on_release = !cached_pause.load();
-        dragging_seek_position_valid = false;
-        libmpv.pause();
+        begin_scrub(ScrubOwner::External);
     }
 
     void VideoPlayer::update_external_scrub(int64_t position_ms) {
-        const int64_t duration_ms = cached_duration_ms.load();
-        if(duration_ms <= 0) {
-            dragging_seek_position_valid = false;
+        if(!is_external_scrubbing())
             return;
-        }
 
-        dragging_seek_position_ms = std::min<int64_t>(position_ms, std::max<int64_t>(0, duration_ms - 1));
-        dragging_seek_position_valid = true;
-        displayed_seek_position_valid = true;
-        displayed_seek_position_ms = dragging_seek_position_ms;
-        displayed_seek_position_timer = 0.0;
-        notify_seek_state_changed();
-
-        // Push every scrub update and let Libmpv collapse superseded seeks to the latest target.
-        libmpv.seek_to_ms(dragging_seek_position_ms, false);
+        update_scrub_position(position_ms, false);
     }
 
     void VideoPlayer::end_external_scrub(bool resume_playback, bool exact_seek) {
-        if(dragging_seek_position_valid) {
-            displayed_seek_position_valid = true;
-            displayed_seek_position_ms = dragging_seek_position_ms;
-            displayed_seek_position_timer = 0.0;
-            seek_to_ms(dragging_seek_position_ms, exact_seek);
-        }
+        if(!is_external_scrubbing())
+            return;
 
-        dragging_seekbar = false;
-        external_scrub_active = false;
-        dragging_seek_position_valid = false;
-        if(resume_playback)
-            play();
-        dragging_seekbar_resume_on_release = false;
+        end_scrub(resume_playback, exact_seek);
     }
 
     bool VideoPlayer::is_backend_available() const {
@@ -431,15 +380,15 @@ namespace gsr {
     }
 
     bool VideoPlayer::is_file_loaded() const {
-        return cached_file_loaded;
+        return playback_state.file_loaded;
     }
 
     bool VideoPlayer::is_paused() const {
-        return cached_pause;
+        return playback_state.paused;
     }
 
     bool VideoPlayer::play() {
-        const bool should_restart_from_beginning = cached_eof_reached.load() && !displayed_seek_position_valid;
+        const bool should_restart_from_beginning = playback_state.eof_reached && !is_scrubbing();
         if(should_restart_from_beginning)
             libmpv.seek_to_ms(0, false);
 
@@ -451,23 +400,28 @@ namespace gsr {
     }
 
     bool VideoPlayer::toggle_pause() {
-        return cached_pause.load() ? play() : pause();
+        return playback_state.paused ? play() : pause();
     }
 
     bool VideoPlayer::seek_to_ms(int64_t position_ms, bool exact) {
-        displayed_seek_position_valid = true;
-        displayed_seek_position_ms = position_ms;
-        displayed_seek_position_timer = 0.0;
-        notify_seek_state_changed();
-        return libmpv.seek_to_ms(position_ms, exact);
+        if(playback_state.duration_ms > 0)
+            playback_state.position_ms = clamp_to_duration(position_ms);
+        else
+            playback_state.position_ms = std::max<int64_t>(0, position_ms);
+
+        return libmpv.seek_to_ms(playback_state.position_ms, exact);
+    }
+
+    VideoPlayer::PlaybackState VideoPlayer::get_playback_state() const {
+        return get_reported_playback_state();
     }
 
     int64_t VideoPlayer::get_position_ms() const {
-        return cached_position_ms.load();
+        return get_reported_playback_state().position_ms;
     }
 
     int64_t VideoPlayer::get_duration_ms() const {
-        return cached_duration_ms.load();
+        return playback_state.duration_ms;
     }
 
     void VideoPlayer::queue_proxy_generation() {
@@ -491,7 +445,7 @@ namespace gsr {
     void VideoPlayer::ensure_video_loaded() {
         process_proxy_generation_result();
 
-        if(!pending_video_path.empty() && cached_file_loaded.load()) {
+        if(!pending_video_path.empty() && playback_state.file_loaded) {
             loaded_video_path = pending_video_path;
             pending_video_path.clear();
         } else if(!pending_video_path.empty() && !libmpv.get_error().empty()) {
@@ -516,11 +470,11 @@ namespace gsr {
             status_text.set_string("mpv is not installed");
         } else if(preview_source == PreviewSource::PROXY_FAST && proxy_video_path.empty()) {
             status_text.set_string("Preparing fast preview...");
-        } else if(!libmpv.get_error().empty() && !cached_file_loaded.load()) {
+        } else if(!libmpv.get_error().empty() && !playback_state.file_loaded) {
             status_text.set_string(libmpv.get_error());
         } else if(!pending_video_path.empty()) {
             status_text.set_string("Loading video...");
-        } else if(!cached_file_loaded.load()) {
+        } else if(!playback_state.file_loaded) {
             status_text.set_string("Loading video...");
         } else {
             status_text.set_string("");
@@ -528,64 +482,96 @@ namespace gsr {
     }
 
     void VideoPlayer::update_drag_seek(mgl::vec2f draw_pos, mgl::vec2f item_size, mgl::vec2f mouse_pos) {
-        const int64_t duration_ms = cached_duration_ms.load();
-        if(duration_ms <= 0) {
-            dragging_seek_position_valid = false;
+        if(!is_scrubbing() || playback_state.duration_ms <= 0)
             return;
-        }
 
         const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(draw_pos, item_size);
         const float relative_x = clamp_float((mouse_pos.x - seekbar_hitbox.position.x) / seekbar_hitbox.size.x, 0.0f, 1.0f);
-        dragging_seek_position_ms = std::min<int64_t>((int64_t)(relative_x * (double)duration_ms), std::max<int64_t>(0, duration_ms - 1));
-        dragging_seek_position_valid = true;
-        displayed_seek_position_valid = true;
-        displayed_seek_position_ms = dragging_seek_position_ms;
-        displayed_seek_position_timer = 0.0;
-        notify_seek_state_changed();
-
-        if(drag_seek_dispatch_clock.get_elapsed_time_seconds() >= drag_seek_dispatch_interval_seconds)
-            drag_seek_dispatch_clock.restart(), libmpv.seek_to_ms(dragging_seek_position_ms, false);
+        update_scrub_position((int64_t)(relative_x * (double)playback_state.duration_ms), false);
     }
 
-    void VideoPlayer::process_pending_seek_display_state() {
-        if(displayed_seek_position_valid && !dragging_seekbar) {
-            displayed_seek_position_timer += get_frame_delta_seconds();
-            const int64_t diff_ms = std::llabs(cached_position_ms.load() - displayed_seek_position_ms);
-            if(diff_ms <= seek_display_settle_threshold_ms || displayed_seek_position_timer >= seek_display_settle_timeout_seconds)
-                displayed_seek_position_valid = false;
+    void VideoPlayer::refresh_playback_state() {
+        const PlaybackState backend_state = get_backend_playback_state();
+        playback_state.duration_ms = backend_state.duration_ms;
+        playback_state.file_loaded = backend_state.file_loaded;
+        playback_state.eof_reached = backend_state.eof_reached;
+
+        if(is_scrubbing()) {
+            playback_state.paused = true;
+            playback_state.position_ms = clamp_to_duration(scrub_session->position_ms);
+        } else {
+            playback_state.paused = backend_state.paused;
+            playback_state.position_ms = backend_state.position_ms;
         }
     }
 
-    void VideoPlayer::refresh_cached_player_state() {
-        if(dragging_seekbar)
-            return;
-
-        cached_file_loaded.store(libmpv.is_file_loaded());
-        cached_pause.store(libmpv.get_pause());
-        cached_eof_reached.store(libmpv.is_eof_reached());
-
-        cached_duration_ms.store(libmpv.get_duration_ms());
-        cached_position_ms.store(libmpv.get_position_ms());
-        notify_seek_state_changed();
+    VideoPlayer::PlaybackState VideoPlayer::get_reported_playback_state() const {
+        PlaybackState state = playback_state;
+        if(is_scrubbing()) {
+            state.paused = true;
+            state.position_ms = clamp_to_duration(scrub_session->position_ms);
+        }
+        return state;
     }
 
-    void VideoPlayer::notify_seek_state_changed() {
-        if(!seek_state_callback)
+    VideoPlayer::PlaybackState VideoPlayer::get_backend_playback_state() const {
+        PlaybackState state;
+        state.position_ms = libmpv.get_position_ms();
+        state.duration_ms = libmpv.get_duration_ms();
+        state.paused = libmpv.get_pause();
+        state.file_loaded = libmpv.is_file_loaded();
+        state.eof_reached = libmpv.is_eof_reached();
+        if(state.duration_ms > 0)
+            state.position_ms = std::clamp<int64_t>(state.position_ms, 0, std::max<int64_t>(0, state.duration_ms - 1));
+        else
+            state.position_ms = std::max<int64_t>(0, state.position_ms);
+        return state;
+    }
+
+    int64_t VideoPlayer::clamp_to_duration(int64_t position_ms) const {
+        if(playback_state.duration_ms <= 0)
+            return std::max<int64_t>(0, position_ms);
+
+        return std::clamp<int64_t>(position_ms, 0, std::max<int64_t>(0, playback_state.duration_ms - 1));
+    }
+
+    bool VideoPlayer::is_scrubbing() const {
+        return scrub_session.has_value();
+    }
+
+    bool VideoPlayer::is_external_scrubbing() const {
+        return scrub_session && scrub_session->owner == ScrubOwner::External;
+    }
+
+    void VideoPlayer::begin_scrub(ScrubOwner owner) {
+        ScrubSession session;
+        session.owner = owner;
+        session.resume_playback_on_release = !playback_state.paused;
+        session.position_ms = playback_state.position_ms;
+        scrub_session = session;
+        libmpv.pause();
+        playback_state.paused = true;
+        playback_state.position_ms = session.position_ms;
+    }
+
+    void VideoPlayer::update_scrub_position(int64_t position_ms, bool exact_seek) {
+        if(!scrub_session)
             return;
 
-        const int64_t duration_ms = cached_duration_ms.load();
-        const bool paused = cached_pause.load();
-        const int64_t position_ms = (dragging_seekbar && dragging_seek_position_valid)
-            ? dragging_seek_position_ms
-            : (displayed_seek_position_valid ? displayed_seek_position_ms : cached_position_ms.load());
+        scrub_session->position_ms = clamp_to_duration(position_ms);
+        playback_state.position_ms = scrub_session->position_ms;
+        libmpv.seek_to_ms(scrub_session->position_ms, exact_seek);
+    }
 
-        if(position_ms == last_notified_position_ms && duration_ms == last_notified_duration_ms && paused == last_notified_pause_state)
+    void VideoPlayer::end_scrub(bool resume_playback, bool exact_seek) {
+        if(!scrub_session)
             return;
 
-        last_notified_position_ms = position_ms;
-        last_notified_duration_ms = duration_ms;
-        last_notified_pause_state = paused;
-        seek_state_callback(position_ms, duration_ms, paused);
+        const int64_t final_position_ms = clamp_to_duration(scrub_session->position_ms);
+        scrub_session.reset();
+        seek_to_ms(final_position_ms, exact_seek);
+        if(resume_playback)
+            play();
     }
 
     void VideoPlayer::proxy_worker_loop() {
@@ -646,7 +632,7 @@ namespace gsr {
         background.set_color(mgl::Color(8, 10, 12));
         window.draw(background);
 
-        if(!libmpv.is_available() || !cached_file_loaded.load())
+        if(!libmpv.is_available() || !playback_state.file_loaded)
             return;
 
         if(!ensure_render_target(window, item_size))
@@ -738,7 +724,7 @@ namespace gsr {
         window.draw(play_pause_bg);
         // draw_rectangle_outline(window, play_pause_rect.position, play_pause_rect.size, mgl::Color(0, 0, 0, 80), std::max(1.0f, get_theme().window_height * 0.0014f));
 
-        mgl::Sprite play_pause_icon(cached_pause.load() ? &get_theme().play_texture : &get_theme().pause_texture);
+        mgl::Sprite play_pause_icon(playback_state.paused ? &get_theme().play_texture : &get_theme().pause_texture);
         play_pause_icon.set_height(play_pause_rect.size.y * 0.42f);
         play_pause_icon.set_position((play_pause_rect.position + play_pause_rect.size * 0.5f - play_pause_icon.get_size() * 0.5f).floor());
         play_pause_icon.set_color(mgl::Color(255, 255, 255, 255));
@@ -749,15 +735,10 @@ namespace gsr {
             const float seeker_height = std::max(2.0f, item_size.y * seeker_height_scale);
             const mgl::vec2f seeker_pos = mgl::vec2f(seekbar_hitbox.position.x, seekbar_hitbox.position.y + seekbar_hitbox.size.y * 0.5f - seeker_height * 0.5f).floor();
             const mgl::vec2f seeker_size(seekbar_hitbox.size.x, seeker_height);
-            const int64_t duration_ms = cached_duration_ms.load();
-            const int64_t position_ms = (dragging_seekbar && dragging_seek_position_valid)
-                ? dragging_seek_position_ms
-                : (displayed_seek_position_valid ? displayed_seek_position_ms : cached_position_ms.load());
-            const bool using_displayed_scrub_position = !dragging_seekbar && displayed_seek_position_valid;
-            const float progress = duration_ms > 0
-                ? ((cached_eof_reached.load() && !dragging_seekbar && !using_displayed_scrub_position)
+            const float progress = playback_state.duration_ms > 0
+                ? ((playback_state.eof_reached && !is_scrubbing())
                     ? 1.0f
-                    : clamp_float((float)((double)position_ms / (double)duration_ms), 0.0f, 1.0f))
+                    : clamp_float((float)((double)playback_state.position_ms / (double)playback_state.duration_ms), 0.0f, 1.0f))
                 : 0.0f;
 
             mgl::Rectangle seeker_track(seeker_size);

@@ -23,20 +23,6 @@ namespace gsr {
         auto player = std::make_unique<VideoPlayer>(TrimmerPage::get_size(), this->video_path, VideoPlayer::PreviewSource::PROXY_FAST);
         player->set_position({0.0f, 0.0f});
         player->set_seekbar_enabled(false);
-        player->set_seek_state_callback([this](int64_t position_ms, int64_t duration_ms, bool paused) {
-            playback_position_ms = position_ms;
-            playback_duration_ms = duration_ms;
-            playback_paused = paused;
-            if(timeline_ptr) {
-                timeline_ptr->set_duration_ms(duration_ms);
-                timeline_ptr->set_position_ms(position_ms);
-                timeline_ptr->set_paused(paused);
-
-                const std::string proxy_path = video_player_ptr ? video_player_ptr->get_proxy_video_path() : std::string();
-                if(!proxy_path.empty())
-                    timeline_ptr->set_source_video_path(proxy_path);
-            }
-        });
         video_player_ptr = player.get();
         Page::add_widget(std::move(player));
 
@@ -122,9 +108,10 @@ namespace gsr {
             timeline_left_padding_ptr->set_size({timeline_side_padding, timeline_inner_size.y});
             timeline_left_padding_ptr->set_position({0.0f, 0.0f});
 
-            timeline_ptr->set_duration_ms(playback_duration_ms);
-            timeline_ptr->set_position_ms(playback_position_ms);
-            timeline_ptr->set_paused(playback_paused);
+            const VideoPlayer::PlaybackState playback_state = video_player_ptr ? video_player_ptr->get_playback_state() : VideoPlayer::PlaybackState{};
+            timeline_ptr->set_duration_ms(playback_state.duration_ms);
+            timeline_ptr->set_position_ms(playback_state.position_ms);
+            timeline_ptr->set_paused(playback_state.paused);
             timeline_ptr->set_size({timeline_ptr->get_timeline_width(), timeline_inner_size.y});
             timeline_ptr->set_position({timeline_side_padding, 0.0f});
             timeline_ptr->set_zoom_interaction_region({-timeline_side_padding + timeline_scroll_ptr->get_scroll().x, 0.0f}, timeline_inner_size);
@@ -138,13 +125,14 @@ namespace gsr {
                     timeline_ptr->set_source_video_path(proxy_path);
             }
 
-            const float desired_scroll_x = timeline_ptr->position_ms_to_scroll(playback_position_ms);
+            const float desired_scroll_x = timeline_ptr->position_ms_to_scroll(playback_state.position_ms);
             const float current_scroll_x = timeline_scroll_ptr->get_scroll().x;
             const bool timeline_scroll_changed = std::abs(current_scroll_x - last_timeline_scroll_x) > 0.5f;
             const bool scrollbar_is_being_dragged = timeline_scroll_ptr->is_moving_scrollbar_with_cursor();
             const bool timeline_zoom_changed = timeline_ptr->take_zoom_changed();
 
             if(timeline_zoom_changed) {
+                fprintf(stderr, "TIMELINE ZOOM CHANGECF\n");
                 const float total_timeline_width = timeline_side_padding * 2.0f + timeline_ptr->get_size().x;
                 const float max_scroll_x = std::max(0.0f, total_timeline_width - timeline_scroll_ptr->get_size().x);
                 const float clamped_scroll_x = std::clamp(desired_scroll_x, 0.0f, max_scroll_x);
@@ -153,12 +141,11 @@ namespace gsr {
                 last_timeline_scroll_x = clamped_scroll_x;
             }
 
-            if(scrollbar_is_being_dragged && !timeline_scroll_dragging && !timeline_zoom_changed) {
-                timeline_scroll_dragging = true;
-                timeline_scroll_resume_on_release = !playback_paused;
+            if(scrollbar_is_being_dragged && !timeline_scrub_active && !timeline_zoom_changed) {
+                timeline_scrub_active = true;
+                timeline_scrub_resume_on_release = !playback_state.paused;
                 if(video_player_ptr)
                     video_player_ptr->begin_external_scrub();
-                playback_paused = true;
                 timeline_ptr->set_paused(true);
                 timeline_scroll_settle_clock.restart();
             }
@@ -166,31 +153,32 @@ namespace gsr {
             if(timeline_scroll_changed && !timeline_zoom_changed) {
                 last_timeline_scroll_x = current_scroll_x;
                 const int64_t requested_position_ms = timeline_ptr->scroll_to_position_ms(current_scroll_x);
-                if(requested_position_ms != playback_position_ms) {
-                    if(video_player_ptr && !timeline_scroll_dragging) {
-                        timeline_scroll_dragging = true;
-                        timeline_scroll_resume_on_release = !playback_paused;
+                if(requested_position_ms != playback_state.position_ms) {
+                    if(video_player_ptr && !timeline_scrub_active) {
+                        timeline_scrub_active = true;
+                        timeline_scrub_resume_on_release = !playback_state.paused;
                         video_player_ptr->begin_external_scrub();
-                        playback_paused = true;
                         timeline_ptr->set_paused(true);
                     }
 
-                    playback_position_ms = requested_position_ms;
+                    // START BAD PERFORMANCE CODE BLOCK: Slow wheeling and dragging
                     if(video_player_ptr) {
                         video_player_ptr->update_external_scrub(requested_position_ms);
                     }
+                    // END BAD performance code block
+
                     timeline_scroll_settle_clock.restart();
                 }
-            } else if(!timeline_scroll_dragging && std::abs(current_scroll_x - desired_scroll_x) > 0.5f) {
+            } else if(!timeline_scrub_active && std::abs(current_scroll_x - desired_scroll_x) > 0.5f) {
                 timeline_scroll_ptr->set_scroll({desired_scroll_x, 0.0f});
                 last_timeline_scroll_x = desired_scroll_x;
             }
 
-            if(!scrollbar_is_being_dragged && timeline_scroll_dragging && timeline_scroll_settle_clock.get_elapsed_time_seconds() >= 0.12) {
-                timeline_scroll_dragging = false;
+            if(!scrollbar_is_being_dragged && timeline_scrub_active && timeline_scroll_settle_clock.get_elapsed_time_seconds() >= 0.12) {
+                timeline_scrub_active = false;
                 if(video_player_ptr)
-                    video_player_ptr->end_external_scrub(timeline_scroll_resume_on_release, false);
-                timeline_scroll_resume_on_release = false;
+                    video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, false);
+                timeline_scrub_resume_on_release = false;
             }
         }
 
