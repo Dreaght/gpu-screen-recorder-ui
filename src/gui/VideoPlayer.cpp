@@ -357,6 +357,12 @@ namespace gsr {
         return proxy_video_path;
     }
 
+    void VideoPlayer::set_playback_state_callback(std::function<void(const PlaybackState&)> callback) {
+        playback_state_callback = std::move(callback);
+        has_notified_playback_state = false;
+        notify_playback_state_changed();
+    }
+
     void VideoPlayer::begin_external_scrub() {
         begin_scrub(ScrubOwner::External);
     }
@@ -409,6 +415,7 @@ namespace gsr {
         else
             playback_state.position_ms = std::max<int64_t>(0, position_ms);
 
+        notify_playback_state_changed();
         return libmpv.seek_to_ms(playback_state.position_ms, exact);
     }
 
@@ -491,18 +498,34 @@ namespace gsr {
     }
 
     void VideoPlayer::refresh_playback_state() {
-        const PlaybackState backend_state = get_backend_playback_state();
-        playback_state.duration_ms = backend_state.duration_ms;
-        playback_state.file_loaded = backend_state.file_loaded;
-        playback_state.eof_reached = backend_state.eof_reached;
-
         if(is_scrubbing()) {
             playback_state.paused = true;
             playback_state.position_ms = clamp_to_duration(scrub_session->position_ms);
-        } else {
-            playback_state.paused = backend_state.paused;
-            playback_state.position_ms = backend_state.position_ms;
+            notify_playback_state_changed();
+            return;
         }
+
+        const PlaybackState backend_state = get_backend_playback_state();
+        playback_state = backend_state;
+        notify_playback_state_changed();
+    }
+
+    void VideoPlayer::notify_playback_state_changed() {
+        if(!playback_state_callback)
+            return;
+
+        const PlaybackState state = get_reported_playback_state();
+        if(has_notified_playback_state
+            && state.position_ms == last_notified_playback_state.position_ms
+            && state.duration_ms == last_notified_playback_state.duration_ms
+            && state.paused == last_notified_playback_state.paused
+            && state.file_loaded == last_notified_playback_state.file_loaded
+            && state.eof_reached == last_notified_playback_state.eof_reached)
+            return;
+
+        last_notified_playback_state = state;
+        has_notified_playback_state = true;
+        playback_state_callback(state);
     }
 
     VideoPlayer::PlaybackState VideoPlayer::get_reported_playback_state() const {
@@ -552,6 +575,7 @@ namespace gsr {
         libmpv.pause();
         playback_state.paused = true;
         playback_state.position_ms = session.position_ms;
+        notify_playback_state_changed();
     }
 
     void VideoPlayer::update_scrub_position(int64_t position_ms, bool exact_seek) {
@@ -560,6 +584,7 @@ namespace gsr {
 
         scrub_session->position_ms = clamp_to_duration(position_ms);
         playback_state.position_ms = scrub_session->position_ms;
+        notify_playback_state_changed();
         libmpv.seek_to_ms(scrub_session->position_ms, exact_seek);
     }
 

@@ -282,6 +282,8 @@ namespace gsr {
 
     bool Libmpv::dispatch_seek_to_ms(int64_t position_ms, bool exact) {
 
+        // fprintf(stderr, "SEEKING %ld %d\n", position_ms, exact);
+
         const std::string seconds_str = std::to_string((double)position_ms / 1000.0);
         const char *args[] = {
             "seek",
