@@ -13,6 +13,8 @@
 namespace gsr {
     static const int scroll_speed = 80;
     static const double scroll_update_speed = 10.0;
+    static const double max_scroll_animation_step_seconds = 1.0 / 60.0;
+    static const double max_scroll_animation_step = scroll_speed * scroll_update_speed * max_scroll_animation_step_seconds;
     static const float scrollbar_width_scale = 0.004f;
     static const float scrollbar_spacing_scale = 0.004f;
 
@@ -92,8 +94,10 @@ namespace gsr {
 
             if (is_horizontal()) {
                 scroll_target.x -= delta;
+                notify_scroll_input({scroll_target.x, scroll.y});
             } else {
                 scroll_target.y -= delta;
+                notify_scroll_input({scroll.x, scroll_target.y});
             }
             return false;
         }
@@ -246,14 +250,19 @@ namespace gsr {
     }
 
     void ScrollablePage::apply_animation() {
+        const mgl::vec2f previous_scroll = scroll;
         mgl::vec2f scroll_diff = scroll_target - scroll;
-        const double frame_scroll_speed = std::min(1.0, get_frame_delta_seconds() * scroll_update_speed);
+        const double frame_delta_seconds = std::min(get_frame_delta_seconds(), max_scroll_animation_step_seconds);
+        const double frame_scroll_speed = std::min(1.0, frame_delta_seconds * scroll_update_speed);
 
         if (std::abs(scroll_diff.x) < 0.1f) scroll.x = scroll_target.x;
-        else scroll.x += (scroll_diff.x * frame_scroll_speed);
+        else scroll.x += std::clamp<double>(scroll_diff.x * frame_scroll_speed, -max_scroll_animation_step, max_scroll_animation_step);
 
         if (std::abs(scroll_diff.y) < 0.1f) scroll.y = scroll_target.y;
-        else scroll.y += (scroll_diff.y * frame_scroll_speed);
+        else scroll.y += std::clamp<double>(scroll_diff.y * frame_scroll_speed, -max_scroll_animation_step, max_scroll_animation_step);
+
+        if(std::abs(scroll.x - previous_scroll.x) > 0.001f || std::abs(scroll.y - previous_scroll.y) > 0.001f)
+            notify_scroll_changed(scroll);
     }
 
     void ScrollablePage::limit_scroll(mgl::vec2f child_size) {
@@ -294,6 +303,8 @@ namespace gsr {
             scroll.x = std::clamp(scroll.x, 0.0f, scroll_right_limit);
 
             scroll_target.x = scroll.x;
+            notify_scroll_input(scroll);
+            notify_scroll_changed(scroll);
         } else {
             const float scroll_bottom_limit = std::max(0.0f, child_size.y - size.y);
             const double scroll_amount = scrollbar_move_diff.y / scrollbar_empty_space;
@@ -302,6 +313,8 @@ namespace gsr {
             scroll.y = std::clamp(scroll.y, 0.0f, scroll_bottom_limit);
 
             scroll_target.y = scroll.y;
+            notify_scroll_input(scroll);
+            notify_scroll_changed(scroll);
         }
     }
 
@@ -349,6 +362,24 @@ namespace gsr {
             scrollbar_move_cursor_scroll_y_start = scroll.x;
         else
             scrollbar_move_cursor_scroll_y_start = scroll.y;
+    }
+
+    void ScrollablePage::set_scroll_input_callback(std::function<void(mgl::vec2f)> callback) {
+        scroll_input_callback = std::move(callback);
+    }
+
+    void ScrollablePage::set_scroll_changed_callback(std::function<void(mgl::vec2f)> callback) {
+        scroll_changed_callback = std::move(callback);
+    }
+
+    void ScrollablePage::notify_scroll_input(mgl::vec2f scroll_value) {
+        if(scroll_input_callback)
+            scroll_input_callback(scroll_value);
+    }
+
+    void ScrollablePage::notify_scroll_changed(mgl::vec2f scroll_value) {
+        if(scroll_changed_callback)
+            scroll_changed_callback(scroll_value);
     }
 
     float ScrollablePage::get_scrollbar_width() const {

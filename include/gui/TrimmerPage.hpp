@@ -29,6 +29,8 @@ namespace gsr {
         mgl::vec2f get_size() override;
     private:
         mgl::vec2f get_content_position();
+        void begin_timeline_scrub();
+        void sync_timeline_scrub_position(float scroll_x);
     private:
         PageStack *page_stack = nullptr;
         std::string video_path;
