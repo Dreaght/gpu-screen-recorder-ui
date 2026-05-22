@@ -23,6 +23,11 @@ namespace gsr {
         auto player = std::make_unique<VideoPlayer>(TrimmerPage::get_size(), this->video_path, VideoPlayer::PreviewSource::PROXY_FAST);
         player->set_position({0.0f, 0.0f});
         player->set_seekbar_enabled(false);
+        player->set_playback_state_callback([this](const VideoPlayer::PlaybackState &state) {
+            playback_position_ms = state.position_ms;
+            playback_duration_ms = state.duration_ms;
+            playback_paused = state.paused;
+        });
         video_player_ptr = player.get();
         Page::add_widget(std::move(player));
 
@@ -108,10 +113,14 @@ namespace gsr {
             timeline_left_padding_ptr->set_size({timeline_side_padding, timeline_inner_size.y});
             timeline_left_padding_ptr->set_position({0.0f, 0.0f});
 
-            const VideoPlayer::PlaybackState playback_state = video_player_ptr ? video_player_ptr->get_playback_state() : VideoPlayer::PlaybackState{};
-            timeline_ptr->set_duration_ms(playback_state.duration_ms);
-            timeline_ptr->set_position_ms(playback_state.position_ms);
-            timeline_ptr->set_paused(playback_state.paused);
+            const int64_t visible_position_ms = (timeline_scrub_active && timeline_scrub_position_ms >= 0)
+                ? timeline_scrub_position_ms
+                : playback_position_ms;
+            const bool visible_paused = timeline_scrub_active ? true : playback_paused;
+
+            timeline_ptr->set_duration_ms(playback_duration_ms);
+            timeline_ptr->set_position_ms(visible_position_ms);
+            timeline_ptr->set_paused(visible_paused);
             timeline_ptr->set_size({timeline_ptr->get_timeline_width(), timeline_inner_size.y});
             timeline_ptr->set_position({timeline_side_padding, 0.0f});
             timeline_ptr->set_zoom_interaction_region({-timeline_side_padding + timeline_scroll_ptr->get_scroll().x, 0.0f}, timeline_inner_size);
@@ -125,14 +134,13 @@ namespace gsr {
                     timeline_ptr->set_source_video_path(proxy_path);
             }
 
-            const float desired_scroll_x = timeline_ptr->position_ms_to_scroll(playback_state.position_ms);
+            const float desired_scroll_x = timeline_ptr->position_ms_to_scroll(visible_position_ms);
             const float current_scroll_x = timeline_scroll_ptr->get_scroll().x;
             const bool timeline_scroll_changed = std::abs(current_scroll_x - last_timeline_scroll_x) > 0.5f;
             const bool scrollbar_is_being_dragged = timeline_scroll_ptr->is_moving_scrollbar_with_cursor();
             const bool timeline_zoom_changed = timeline_ptr->take_zoom_changed();
 
             if(timeline_zoom_changed) {
-                fprintf(stderr, "TIMELINE ZOOM CHANGECF\n");
                 const float total_timeline_width = timeline_side_padding * 2.0f + timeline_ptr->get_size().x;
                 const float max_scroll_x = std::max(0.0f, total_timeline_width - timeline_scroll_ptr->get_size().x);
                 const float clamped_scroll_x = std::clamp(desired_scroll_x, 0.0f, max_scroll_x);
@@ -143,23 +151,28 @@ namespace gsr {
 
             if(scrollbar_is_being_dragged && !timeline_scrub_active && !timeline_zoom_changed) {
                 timeline_scrub_active = true;
-                timeline_scrub_resume_on_release = !playback_state.paused;
+                timeline_scrub_resume_on_release = !playback_paused;
+                timeline_scrub_position_ms = playback_position_ms;
                 if(video_player_ptr)
                     video_player_ptr->begin_external_scrub();
-                timeline_ptr->set_paused(true);
                 timeline_scroll_settle_clock.restart();
             }
 
             if(timeline_scroll_changed && !timeline_zoom_changed) {
                 last_timeline_scroll_x = current_scroll_x;
+
                 const int64_t requested_position_ms = timeline_ptr->scroll_to_position_ms(current_scroll_x);
-                if(requested_position_ms != playback_state.position_ms) {
+
+                const int64_t active_scrub_position_ms = timeline_scrub_active ? timeline_scrub_position_ms : playback_position_ms;
+                if(requested_position_ms != active_scrub_position_ms) {
                     if(video_player_ptr && !timeline_scrub_active) {
                         timeline_scrub_active = true;
-                        timeline_scrub_resume_on_release = !playback_state.paused;
+                        timeline_scrub_resume_on_release = !playback_paused;
+                        timeline_scrub_position_ms = playback_position_ms;
                         video_player_ptr->begin_external_scrub();
-                        timeline_ptr->set_paused(true);
                     }
+
+                    timeline_scrub_position_ms = requested_position_ms;
 
                     // START BAD PERFORMANCE CODE BLOCK: Slow wheeling and dragging
                     if(video_player_ptr) {
@@ -176,6 +189,7 @@ namespace gsr {
 
             if(!scrollbar_is_being_dragged && timeline_scrub_active && timeline_scroll_settle_clock.get_elapsed_time_seconds() >= 0.12) {
                 timeline_scrub_active = false;
+                timeline_scrub_position_ms = -1;
                 if(video_player_ptr)
                     video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, false);
                 timeline_scrub_resume_on_release = false;

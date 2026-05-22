@@ -39,9 +39,13 @@ namespace gsr {
         TimelineWidget *timeline_ptr = nullptr;
         CustomRendererWidget *timeline_left_padding_ptr = nullptr;
         CustomRendererWidget *timeline_right_padding_ptr = nullptr;
+        int64_t playback_position_ms = 0;
+        int64_t playback_duration_ms = 0;
+        bool playback_paused = true;
         float last_timeline_scroll_x = -1.0f;
         bool timeline_scrub_active = false;
         bool timeline_scrub_resume_on_release = false;
+        int64_t timeline_scrub_position_ms = -1;
         mgl::Clock timeline_scroll_settle_clock;
     };
 }

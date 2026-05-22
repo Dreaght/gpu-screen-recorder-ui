@@ -49,6 +49,7 @@ namespace gsr {
         void set_seekbar_enabled(bool enabled);
         bool is_seekbar_enabled() const;
         const std::string& get_proxy_video_path() const;
+        void set_playback_state_callback(std::function<void(const PlaybackState&)> callback);
         void begin_external_scrub();
         void update_external_scrub(int64_t position_ms);
         void end_external_scrub(bool resume_playback, bool exact_seek = false);
@@ -83,6 +84,7 @@ namespace gsr {
         bool ensure_render_target(mgl::Window &window, mgl::vec2f item_size);
         void destroy_render_target();
         void proxy_worker_loop();
+        void notify_playback_state_changed();
         void refresh_playback_state();
         void update_status_text();
         PlaybackState get_reported_playback_state() const;
@@ -127,6 +129,9 @@ namespace gsr {
         uint64_t pending_proxy_generation = 0;
         uint64_t ready_proxy_generation = 0;
         uint64_t video_generation = 0;
+        std::function<void(const PlaybackState&)> playback_state_callback;
+        PlaybackState last_notified_playback_state;
+        bool has_notified_playback_state = false;
         unsigned int video_texture_id = 0;
         unsigned int video_framebuffer_id = 0;
         mgl::vec2i render_target_size = {0, 0};
