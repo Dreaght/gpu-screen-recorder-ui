@@ -7,19 +7,18 @@
 #include <mglpp/system/Clock.hpp>
 
 namespace gsr {
+    struct GsrInfo;
     class CustomRendererWidget;
     class ScrollablePage;
     class TimelineWidget;
 }
-
-#include <memory>
 
 namespace gsr {
     class PageStack;
 
     class TrimmerPage : public StaticPage {
     public:
-        explicit TrimmerPage(PageStack *page_stack, std::string video_path, mgl::vec2i size);
+        explicit TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, std::string video_path, mgl::vec2i size);
         TrimmerPage(const TrimmerPage&) = delete;
         TrimmerPage& operator=(const TrimmerPage&) = delete;
 
@@ -32,6 +31,7 @@ namespace gsr {
         void begin_timeline_scrub();
         void sync_timeline_scrub_position(float scroll_x);
     private:
+        const GsrInfo *gsr_info = nullptr;
         PageStack *page_stack = nullptr;
         std::string video_path;
         mgl::vec2i size;
