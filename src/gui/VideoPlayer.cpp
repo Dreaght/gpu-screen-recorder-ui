@@ -602,7 +602,7 @@ namespace gsr {
             play();
     }
 
-    // TODO: Please tweak this and check if they're valid for all GPUs
+    // TODO: Please tweak this for performance/quality/size and compatibility
     std::vector<std::string> get_best_encoder_args(const GsrInfo& gsr_info) {
         const auto& codecs = gsr_info.supported_video_codecs;
 
