@@ -622,17 +622,16 @@ namespace gsr {
             bool success = stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
 
             if(!success) {
-                const std::string scale_str = "scale=1280:-2,fps=15";
-
                 const char *args[] = {
-                    "ffmpeg",
-                    "-loglevel", "error",
-                    "-y",
+                    "ffmpeg", "-loglevel", "error", "-y",
                     "-i", source_path.c_str(),
                     "-an",
-                    "-vf", scale_str.c_str(),
-                    "-c:v", "mjpeg",
-                    "-q:v", "2",
+                    "-vf", "scale=1280:-2,fps=30",
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-tune", "zerolatency",
+                    "-g", "15",
+                    "-crf", "26",
                     output_path.c_str(),
                     nullptr
                 };
