@@ -1601,7 +1601,7 @@ namespace gsr {
 
                 button->set_widget(std::move(row));
                 button->on_click = [this, recent_video]() {
-                    auto trimmer_page = std::make_unique<TrimmerPage>(&page_stack, recent_video.filepath, mgl::vec2i(recent_video.width / 1.7f, recent_video.height / 1.7f).floor());
+                    auto trimmer_page = std::make_unique<TrimmerPage>(&gsr_info, &page_stack, recent_video.filepath, mgl::vec2i(recent_video.width / 1.7f, recent_video.height / 1.7f).floor());
                     page_stack.push(std::move(trimmer_page));
                 };
 

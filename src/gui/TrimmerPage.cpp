@@ -13,14 +13,15 @@
 #include <cmath>
 
 namespace gsr {
-    TrimmerPage::TrimmerPage(PageStack *page_stack, std::string video_path, const mgl::vec2i size) :
+    TrimmerPage::TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, std::string video_path, const mgl::vec2i size) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
+        gsr_info(gsr_info),
         page_stack(page_stack),
         video_path(std::move(video_path)),
         size(size),
         video_path_text(this->video_path, get_theme().title_font_desc.c_str())
     {
-        auto player = std::make_unique<VideoPlayer>(TrimmerPage::get_size(), this->video_path, VideoPlayer::PreviewSource::PROXY_FAST);
+        auto player = std::make_unique<VideoPlayer>(gsr_info, TrimmerPage::get_size(), this->video_path, VideoPlayer::PreviewSource::PROXY_FAST);
         player->set_position({0.0f, 0.0f});
         player->set_seekbar_enabled(false);
         player->set_playback_state_callback([this](const VideoPlayer::PlaybackState &state) {
@@ -190,7 +191,7 @@ namespace gsr {
                 timeline_scrub_active = false;
                 timeline_scrub_position_ms = -1;
                 if(video_player_ptr)
-                    video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, false);
+                    video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, true);
                 timeline_scrub_resume_on_release = false;
             }
         }

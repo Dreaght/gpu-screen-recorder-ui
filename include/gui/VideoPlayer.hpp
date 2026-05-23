@@ -16,6 +16,8 @@
 #include <thread>
 
 namespace gsr {
+    struct GsrInfo;
+
     class VideoPlayer : public Widget {
     public:
         struct PlaybackState {
@@ -31,7 +33,7 @@ namespace gsr {
             PROXY_FAST,
         };
 
-        VideoPlayer(mgl::vec2f size, std::string video_path = "", PreviewSource preview_source = PreviewSource::ORIGINAL_SLOW);
+        VideoPlayer(const GsrInfo *gsr_info, mgl::vec2f size, std::string video_path = "", PreviewSource preview_source = PreviewSource::ORIGINAL_SLOW);
         VideoPlayer(const VideoPlayer&) = delete;
         VideoPlayer& operator=(const VideoPlayer&) = delete;
         ~VideoPlayer() override;
@@ -102,6 +104,7 @@ namespace gsr {
         mgl::FloatRect get_play_pause_hitbox(mgl::vec2f draw_pos, mgl::vec2f item_size) const;
         bool controls_visible(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size) const;
     private:
+        const GsrInfo *gsr_info = nullptr;
         Libmpv libmpv;
         mgl::vec2f size;
         PreviewSource preview_source;

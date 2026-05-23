@@ -10,6 +10,8 @@
 #include <mglpp/window/Event.hpp>
 #include <mglpp/window/Window.hpp>
 
+#include "include/GsrInfo.hpp"
+
 extern "C" {
 #include <mgl/mgl.h>
 }
@@ -103,7 +105,8 @@ namespace gsr {
         }
     }
 
-    VideoPlayer::VideoPlayer(mgl::vec2f size, std::string video_path, PreviewSource preview_source) :
+    VideoPlayer::VideoPlayer(const GsrInfo *gsr_info, mgl::vec2f size, std::string video_path, PreviewSource preview_source) :
+        gsr_info(gsr_info),
         size(size),
         preview_source(preview_source),
         video_path(std::move(video_path)),
@@ -371,7 +374,7 @@ namespace gsr {
         if(!is_external_scrubbing())
             return;
 
-        update_scrub_position(position_ms, false);
+        update_scrub_position(position_ms, true);
     }
 
     void VideoPlayer::end_external_scrub(bool resume_playback, bool exact_seek) {
@@ -599,6 +602,57 @@ namespace gsr {
             play();
     }
 
+    // TODO: Please tweak this and check if they're valid for all GPUs
+    std::vector<std::string> get_best_encoder_args(const GsrInfo& gsr_info) {
+        const auto& codecs = gsr_info.supported_video_codecs;
+
+        if (gsr_info.gpu_info.vendor == GpuVendor::NVIDIA && codecs.h264) {
+            return {
+                // Optimized for small file size, probably requires good GPU.
+                // 10-20x smaller size than source video
+                "-vf", "scale=1280:-2,fps=30",
+                "-c:v", "h264_nvenc",
+                "-preset", "p6",
+                "-rc", "vbr",
+                "-cq", "26",
+                "-b:v", "0",
+                "-g", "60",
+                "-bf", "2",
+                "-b_ref_mode", "middle",
+                "-rc-lookahead", "20",
+            };
+        }
+
+        if (codecs.h264_vulkan) {
+            return {
+                "-init_hw_device", "vulkan=vkdev:0",
+                "-filter_hw_device", "vkdev",
+                "-vf", "scale=1280:-2,fps=30,format=nv12,hwupload",
+                "-c:v", "h264_vulkan",
+                "-g", "15"
+            };
+        }
+
+        if (codecs.h264 && !gsr_info.gpu_info.card_path.empty()) {
+            // VA-API for AMD / Intel
+            return {
+                "-vaapi_device", gsr_info.gpu_info.card_path,
+                "-vf", "scale=1280:-2,fps=30,format=nv12,hwupload",
+                "-c:v", "h264_vaapi",
+                "-g", "15"
+            };
+        }
+
+        return {
+            "-vf", "scale=1280:-2,fps=30",
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-tune", "zerolatency",
+            "-g", "15",
+            "-crf", "26"
+        };
+    }
+
     void VideoPlayer::proxy_worker_loop() {
         for(;;) {
             std::string source_path;
@@ -622,21 +676,26 @@ namespace gsr {
             bool success = stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
 
             if(!success) {
-                const char *args[] = {
+                std::vector<std::string> args_str = {
                     "ffmpeg", "-loglevel", "error", "-y",
-                    "-i", source_path.c_str(),
-                    "-an",
-                    "-vf", "scale=1280:-2,fps=30",
-                    "-c:v", "libx264",
-                    "-preset", "ultrafast",
-                    "-tune", "zerolatency",
-                    "-g", "15",
-                    "-crf", "26",
-                    output_path.c_str(),
-                    nullptr
+                    "-i", source_path,
+                    "-an"
                 };
+
+                std::vector<std::string> encoder_args = get_best_encoder_args(*gsr_info);
+                args_str.insert(args_str.end(), encoder_args.begin(), encoder_args.end());
+
+                args_str.push_back(output_path);
+
+                std::vector<const char*> args;
+                args.reserve(args_str.size() + 1);
+                for (const auto& arg : args_str) {
+                    args.push_back(arg.c_str());
+                }
+                args.push_back(nullptr);
+
                 std::string ffmpeg_output;
-                success = exec_program_on_host_get_stdout(args, ffmpeg_output, false) == 0;
+                success = exec_program_on_host_get_stdout(args.data(), ffmpeg_output, false) == 0;
             }
 
             std::lock_guard<std::mutex> lock(proxy_mutex);
