@@ -1,13 +1,15 @@
 #include "../../include/gui/TrimmerPage.hpp"
 #include "../../include/Theme.hpp"
 #include "../../include/Utils.hpp"
+#include "../../include/gui/PageStack.hpp"
+#include "../../include/gui/Button.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/TimelineWidget.hpp"
 #include "../../include/gui/VideoPlayer.hpp"
 #include "../../include/gui/Utils.hpp"
-#include "include/gui/List.hpp"
-#include "include/gui/Label.hpp"
+#include "../../include/gui/List.hpp"
+#include "../../include/Translation.hpp"
 
 #include <mglpp/window/Window.hpp>
 
@@ -106,17 +108,34 @@ namespace gsr {
                                                     mgl::vec2f(1, video_metadata.height) / mgl::vec2f(1, video_metadata.width)) * 0.666f));
         content_list->add_widget(create_timeline(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.1f)));
 
-        auto vertical_page_list_spacer_size = mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, (content_page_ptr->get_inner_size().y - content_list->get_size().y) / 2);
+        const auto content_list_height = content_list->get_size().y;
+
+        auto vertical_page_list_spacer_size = mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, (content_page_ptr->get_inner_size().y - content_list_height) / 2);
         vertical_page_list->add_widget(std::make_unique<CustomRendererWidget>(vertical_page_list_spacer_size));
         vertical_page_list->add_widget(std::move(content_list));
         vertical_page_list->add_widget(std::make_unique<CustomRendererWidget>(vertical_page_list_spacer_size));
 
-        auto horizontal_page_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        auto horizontal_page_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::START);
+        horizontal_page_list->set_spacing(0.025);
         auto horizontal_page_list_spacer_size = mgl::vec2f((content_page_ptr->get_inner_size().x - vertical_page_list->get_size().x) / 2, content_page_ptr->get_inner_size().y);
         horizontal_page_list->add_widget(std::make_unique<CustomRendererWidget>(horizontal_page_list_spacer_size));
         horizontal_page_list->add_widget(std::move(vertical_page_list));
-        horizontal_page_list->add_widget(std::make_unique<CustomRendererWidget>(horizontal_page_list_spacer_size));
 
+        auto vertical_buttons_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+
+        auto button_size = mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor();
+        auto back_button = std::make_unique<Button>(get_theme().title_font_desc.c_str(), TR("Back"), button_size, get_color_theme().page_bg_color);
+        back_button->on_click = [this]() {
+            page_stack->pop();
+        };
+
+        vertical_buttons_list->add_widget(std::make_unique<CustomRendererWidget>(mgl::vec2f(
+            button_size.x,
+            (horizontal_page_list_spacer_size.y - content_list_height) / 2
+            )));
+        vertical_buttons_list->add_widget(std::move(back_button));
+
+        horizontal_page_list->add_widget(std::move(vertical_buttons_list));
         content_page_ptr->add_widget(std::move(horizontal_page_list));
     }
 
