@@ -241,44 +241,18 @@ namespace gsr {
 
         draw_children(window, content_page_position);
 
-        // TODO: It flickers sometimes, probably due to race conditions. Though, it passes all the assertions on 1920x1080 screen, the problem may be in rendering.
+        // TODO: It may flicker. The issue is not in the widget properties.
         if(timeline_scroll_ptr && timeline_ptr && playback_state.file_loaded) {
             auto timeline_scroll_ptr_size = timeline_scroll_ptr->get_size();
             auto timeline_ptr_inner_size = timeline_ptr->get_inner_size();
             auto timeline_scroll_ptr_pos = timeline_scroll_ptr->get_position();
-            // fprintf(stderr, "timeline_scroll_ptr_size: %f %f\n", timeline_scroll_ptr_size.x, timeline_scroll_ptr_size.y);
-            // fprintf(stderr, "timeline_ptr_inner_size: %f %f\n", timeline_ptr_inner_size.x, timeline_ptr_inner_size.y);
-            // fprintf(stderr, "timeline_scroll_ptr_pos: %f %f\n", timeline_scroll_ptr_pos.x, timeline_scroll_ptr_pos.y);
 
-            mgl::Rectangle timeline_pointer(mgl::vec2f(timeline_scroll_ptr_size.x * 0.003f, timeline_ptr_inner_size.y));
+            mgl::Rectangle timeline_pointer(mgl::vec2f(timeline_scroll_ptr_size.x * 0.003f, timeline_ptr_inner_size.y + 1));
 
             auto timeline_pointer_size = timeline_pointer.get_size();
 
-            auto window_width = get_theme().window_width;
-            auto window_height = get_theme().window_height;
-
-            // fprintf(stderr, "=== Window size: %f %f\n", window_width, window_height);
-
-            // fprintf(stderr, "=== Actual timeline pointer size: %f %f\n", timeline_pointer_size.x, timeline_pointer_size.y);
-
-            assert(timeline_pointer_size.x > 3 && timeline_pointer_size.x < 4);
-            assert(timeline_pointer_size.y > 82 && timeline_pointer_size.y < 83);
-
-            if (window_width > 1919 && window_width < 1921 && window_height > 1079 && window_height < 1081) {
-                assert(timeline_pointer_size.x > 3 && timeline_pointer_size.x < 4);
-                assert(timeline_pointer_size.y > 82 && timeline_pointer_size.y < 83);
-            }
-
             timeline_pointer.set_position(timeline_scroll_ptr_pos + mgl::vec2f(
                 timeline_scroll_ptr_size.x / 2 - timeline_pointer_size.x / 2, 0));
-
-            auto timeline_pointer_position = timeline_pointer.get_position();
-
-            // fprintf(stderr, "=== Actual timeline pointer position: %f %f\n", timeline_pointer_position.x, timeline_pointer_position.y);
-            if (window_width > 1919 && window_width < 1921 && window_height > 1079 && window_height < 1081) {
-                assert(timeline_pointer_position.x > 957 && timeline_pointer_position.x < 958);
-                assert(timeline_pointer_position.y > 881 && timeline_pointer_position.y < 882);
-            }
 
             timeline_pointer.set_color(get_color_theme().tint_color);
             window.draw(timeline_pointer);
