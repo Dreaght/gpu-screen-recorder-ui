@@ -141,8 +141,6 @@ namespace gsr {
             }
             return true;
         });
-
-        return true;
     }
 
     void TrimmerPage::draw(mgl::Window &window, mgl::vec2f) {
@@ -151,7 +149,15 @@ namespace gsr {
 
         const mgl::vec2f content_page_position = get_content_position();
 
+        draw_children(window, content_page_position);
+
         if(timeline_scroll_ptr && timeline_ptr && timeline_left_padding_ptr && timeline_right_padding_ptr) {
+            mgl::Rectangle timeline_pointer(mgl::vec2f(timeline_scroll_ptr->get_size().x * 0.003f, timeline_ptr->get_inner_size().y));
+            timeline_pointer.set_position(timeline_scroll_ptr->get_position() + mgl::vec2f(
+                timeline_scroll_ptr->get_size().x / 2 - timeline_pointer.get_size().x / 2, 0));
+            timeline_pointer.set_color(get_color_theme().tint_color);
+            window.draw(timeline_pointer);
+
             const mgl::vec2f timeline_inner_size = timeline_scroll_ptr->get_inner_size();
             const float timeline_side_padding = timeline_inner_size.x * 0.5f;
 
@@ -239,16 +245,6 @@ namespace gsr {
                     video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, true);
                 timeline_scrub_resume_on_release = false;
             }
-        }
-
-        draw_children(window, content_page_position);
-
-        if(timeline_scroll_ptr && timeline_ptr) {
-            mgl::Rectangle timeline_pointer(mgl::vec2f(timeline_scroll_ptr->get_size().x * 0.003f, timeline_ptr->get_inner_size().y));
-            timeline_pointer.set_position(timeline_scroll_ptr->get_position() + mgl::vec2f(
-                timeline_scroll_ptr->get_size().x / 2 - timeline_pointer.get_size().x / 2, 0));
-            timeline_pointer.set_color(get_color_theme().tint_color);
-            window.draw(timeline_pointer);
         }
     }
 
