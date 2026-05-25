@@ -4,6 +4,7 @@
 #include "../../include/gui/PageStack.hpp"
 #include "../../include/gui/Button.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
+#include "../../include/gui/ContainerButton.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/TimelineWidget.hpp"
 #include "../../include/gui/VideoPlayer.hpp"
@@ -48,7 +49,7 @@ namespace gsr {
             background.set_color(mgl::Color(0, 0, 0, 180));
             window.draw(background);
 
-            mgl::Rectangle border(mgl::vec2f(size.x, size.y * 0.15f));
+            mgl::Rectangle border(mgl::vec2f(size.x, 0.004f * get_theme().window_height));
             border.set_position(pos);
             border.set_color(get_color_theme().tint_color);
             window.draw(border);
@@ -99,6 +100,31 @@ namespace gsr {
         return timeline_scroll;
     }
 
+    std::unique_ptr<ContainerButton> TrimmerPage::create_back_button(mgl::vec2f size) {
+        auto container_button = std::make_unique<ContainerButton>(size, mgl::Color(0, 0, 0, 180));
+
+        auto back_button_content = std::make_unique<CustomRendererWidget>(size);
+        back_button_content->draw_handler = [](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+            mgl::Rectangle border(mgl::vec2f(size.x, 0.004f * get_theme().window_height));
+            border.set_position(pos);
+            border.set_color(get_color_theme().tint_color);
+            window.draw(border);
+
+            mgl::Text video_path_text(TR("Back"), get_theme().title_font_desc.c_str());
+            video_path_text.set_position(pos + size / 2 - video_path_text.get_bounds().size / 2);
+            video_path_text.set_color(mgl::Color(255, 255, 255, 255));
+            window.draw(video_path_text);
+        };
+
+        container_button->set_widget(std::move(back_button_content));
+        container_button->on_click = [this]() {
+            page_stack->pop();
+        };
+        container_button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
+
+        return container_button;
+    }
+
     void TrimmerPage::add_widgets() {
         auto vertical_page_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
 
@@ -124,16 +150,11 @@ namespace gsr {
         auto vertical_buttons_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
 
         auto button_size = mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor();
-        auto back_button = std::make_unique<Button>(get_theme().title_font_desc.c_str(), TR("Back"), button_size, get_color_theme().page_bg_color);
-        back_button->on_click = [this]() {
-            page_stack->pop();
-        };
-
         vertical_buttons_list->add_widget(std::make_unique<CustomRendererWidget>(mgl::vec2f(
             button_size.x,
             (horizontal_page_list_spacer_size.y - content_list_height) / 2
             )));
-        vertical_buttons_list->add_widget(std::move(back_button));
+        vertical_buttons_list->add_widget(create_back_button(button_size));
 
         horizontal_page_list->add_widget(std::move(vertical_buttons_list));
         content_page_ptr->add_widget(std::move(horizontal_page_list));
