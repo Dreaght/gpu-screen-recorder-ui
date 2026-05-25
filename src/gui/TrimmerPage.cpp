@@ -98,7 +98,7 @@ namespace gsr {
     }
 
     void TrimmerPage::add_widgets() {
-        auto page_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+        auto vertical_page_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
 
         auto content_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
         content_list->add_widget(create_header(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.033f)));
@@ -106,12 +106,18 @@ namespace gsr {
                                                     mgl::vec2f(1, video_metadata.height) / mgl::vec2f(1, video_metadata.width)) * 0.666f));
         content_list->add_widget(create_timeline(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.1f)));
 
-        auto spacer_size = mgl::vec2f(content_page_ptr->get_inner_size().x, (content_page_ptr->get_inner_size().y - content_list->get_size().y) / 2);
-        page_list->add_widget(std::make_unique<CustomRendererWidget>(spacer_size));
-        page_list->add_widget(std::move(content_list));
-        page_list->add_widget(std::make_unique<CustomRendererWidget>(spacer_size));
+        auto vertical_page_list_spacer_size = mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, (content_page_ptr->get_inner_size().y - content_list->get_size().y) / 2);
+        vertical_page_list->add_widget(std::make_unique<CustomRendererWidget>(vertical_page_list_spacer_size));
+        vertical_page_list->add_widget(std::move(content_list));
+        vertical_page_list->add_widget(std::make_unique<CustomRendererWidget>(vertical_page_list_spacer_size));
 
-        content_page_ptr->add_widget(std::move(page_list));
+        auto horizontal_page_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        auto horizontal_page_list_spacer_size = mgl::vec2f((content_page_ptr->get_inner_size().x - vertical_page_list->get_size().x) / 2, content_page_ptr->get_inner_size().y);
+        horizontal_page_list->add_widget(std::make_unique<CustomRendererWidget>(horizontal_page_list_spacer_size));
+        horizontal_page_list->add_widget(std::move(vertical_page_list));
+        horizontal_page_list->add_widget(std::make_unique<CustomRendererWidget>(horizontal_page_list_spacer_size));
+
+        content_page_ptr->add_widget(std::move(horizontal_page_list));
     }
 
     bool TrimmerPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
