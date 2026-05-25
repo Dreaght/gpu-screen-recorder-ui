@@ -29,7 +29,7 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
     private:
-        std::unique_ptr<Label> create_header();
+        std::unique_ptr<CustomRendererWidget> create_header(mgl::vec2f size);
         std::unique_ptr<VideoPlayer> create_videoplayer(mgl::vec2f size);
         std::unique_ptr<ScrollablePage> create_timeline(mgl::vec2f size);
         void add_widgets();

@@ -38,8 +38,25 @@ namespace gsr {
         save_state();
     }
 
-    std::unique_ptr<Label> TrimmerPage::create_header() {
-        return std::make_unique<Label>(get_theme().title_font_desc.c_str(), video_metadata.filepath.c_str(), mgl::Color(255, 255, 255, 255));
+    std::unique_ptr<CustomRendererWidget> TrimmerPage::create_header(mgl::vec2f size) {
+        auto header = std::make_unique<CustomRendererWidget>(size);
+        header->draw_handler = [this, size](mgl::Window &window, mgl::vec2f pos, mgl::vec2f) {
+            mgl::Rectangle background(size);
+            background.set_position(pos);
+            background.set_color(mgl::Color(0, 0, 0, 180));
+            window.draw(background);
+
+            mgl::Rectangle border(mgl::vec2f(size.x, size.y * 0.15f));
+            border.set_position(pos);
+            border.set_color(get_color_theme().tint_color);
+            window.draw(border);
+
+            mgl::Text video_path_text(video_metadata.filepath, get_theme().title_font_desc.c_str());
+            video_path_text.set_position(pos + size / 2 - video_path_text.get_bounds().size / 2);
+            video_path_text.set_color(mgl::Color(255, 255, 255, 255));
+            window.draw(video_path_text);
+        };
+        return header;
     }
 
     std::unique_ptr<VideoPlayer> TrimmerPage::create_videoplayer(mgl::vec2f size) {
@@ -84,7 +101,7 @@ namespace gsr {
         auto page_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
 
         auto content_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
-        content_list->add_widget(create_header());
+        content_list->add_widget(create_header(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.033f)));
         content_list->add_widget(create_videoplayer(mgl::vec2f(content_page_ptr->get_inner_size().x, content_page_ptr->get_inner_size().x) * (
                                                     mgl::vec2f(1, video_metadata.height) / mgl::vec2f(1, video_metadata.width)) * 0.666f));
         content_list->add_widget(create_timeline(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.1f)));
