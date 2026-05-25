@@ -296,10 +296,6 @@ namespace gsr {
         return size;
     }
 
-    void VideoPlayer::set_size(mgl::vec2f size) {
-        this->size = size;
-    }
-
     void VideoPlayer::set_video_path(std::string video_path) {
         this->video_path = std::move(video_path);
         ++video_generation;

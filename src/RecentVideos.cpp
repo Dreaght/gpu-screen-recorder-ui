@@ -73,7 +73,7 @@ namespace gsr {
         return true;
     }
 
-    static void parse_recent_video_metadata(RecentVideo &recent_video) {
+    static void parse_recent_video_metadata(VideoMetadata &recent_video) {
         struct stat st;
         if(stat(recent_video.filepath.c_str(), &st) == 0)
             recent_video.file_size = st.st_size;
@@ -121,7 +121,7 @@ namespace gsr {
         if(!filepaths_opt)
             return false;
 
-        std::vector<std::string> filepaths = std::move(filepaths_opt.value());
+        std::vector<std::string> filepaths = filepaths_opt.value();
         filepaths.erase(std::remove(filepaths.begin(), filepaths.end(), filepath), filepaths.end());
         filepaths.insert(filepaths.begin(), filepath);
 
@@ -131,7 +131,7 @@ namespace gsr {
         return save_recent_video_paths_no_lock(filepaths);
     }
 
-    std::optional<std::vector<RecentVideo>> get_recent_videos() {
+    std::optional<std::vector<VideoMetadata>> get_recent_videos() {
         std::lock_guard<std::mutex> lock(recent_videos_mutex);
 
         const std::optional<std::vector<std::string>> filepaths_opt = get_recent_video_paths_no_lock();
@@ -139,11 +139,11 @@ namespace gsr {
             return std::nullopt;
 
         const std::vector<std::string> &filepaths = filepaths_opt.value();
-        std::vector<RecentVideo> result;
+        std::vector<VideoMetadata> result;
         result.reserve(filepaths.size());
 
         for(const std::string &filepath : filepaths) {
-            RecentVideo recent_video;
+            VideoMetadata recent_video;
             recent_video.filepath = filepath;
             parse_recent_video_metadata(recent_video);
             result.push_back(std::move(recent_video));

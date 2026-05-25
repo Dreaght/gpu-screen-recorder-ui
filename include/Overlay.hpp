@@ -263,7 +263,7 @@ namespace gsr {
         std::function<void()> on_recent_videos_updated;
         std::thread recent_videos_thread;
         std::mutex recent_videos_mutex;
-        std::vector<RecentVideo> recent_videos;
+        std::vector<VideoMetadata> recent_videos;
         std::atomic<bool> recent_videos_callback_pending = false;
         std::atomic<bool> recent_videos_load_failed_pending = false;
         std::atomic<bool> recent_videos_loading = false;

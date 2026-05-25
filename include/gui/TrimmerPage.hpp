@@ -2,12 +2,13 @@
 
 #include "StaticPage.hpp"
 #include "VideoPlayer.hpp"
+#include "../RecentVideos.hpp"
 
-#include <mglpp/graphics/Text.hpp>
 #include <mglpp/system/Clock.hpp>
 
 namespace gsr {
     struct GsrInfo;
+    class Label;
     class CustomRendererWidget;
     class ScrollablePage;
     class TimelineWidget;
@@ -18,7 +19,7 @@ namespace gsr {
 
     class TrimmerPage : public StaticPage {
     public:
-        explicit TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, std::string video_path, mgl::vec2i size);
+        explicit TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, VideoMetadata video_metadata);
         TrimmerPage(const TrimmerPage&) = delete;
         TrimmerPage& operator=(const TrimmerPage&) = delete;
 
@@ -27,15 +28,21 @@ namespace gsr {
 
         mgl::vec2f get_size() override;
     private:
+        std::unique_ptr<Label> create_header();
+        std::unique_ptr<VideoPlayer> create_videoplayer(mgl::vec2f size);
+        std::unique_ptr<ScrollablePage> create_timeline(mgl::vec2f size);
+        void add_widgets();
+
+        void draw_children(mgl::Window &window, mgl::vec2f position);
+
         mgl::vec2f get_content_position();
         void begin_timeline_scrub();
         void sync_timeline_scrub_position(float scroll_x);
     private:
         const GsrInfo *gsr_info = nullptr;
+        StaticPage *content_page_ptr = nullptr;
         PageStack *page_stack = nullptr;
-        std::string video_path;
-        mgl::vec2i size;
-        mgl::Text video_path_text;
+        VideoMetadata video_metadata;
         VideoPlayer *video_player_ptr = nullptr;
         ScrollablePage *timeline_scroll_ptr = nullptr;
         TimelineWidget *timeline_ptr = nullptr;

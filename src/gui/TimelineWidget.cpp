@@ -142,6 +142,14 @@ namespace gsr {
         return size;
     }
 
+    mgl::vec2f TimelineWidget::get_inner_size() {
+        if(!visible)
+            return {0.0f, 0.0f};
+
+        // TODO: Replace the magic number!
+        return size - (size * 0.16);
+    }
+
     void TimelineWidget::set_size(mgl::vec2f size) {
         this->size = size;
     }

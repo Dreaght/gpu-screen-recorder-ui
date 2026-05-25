@@ -76,9 +76,9 @@ namespace gsr {
     static const double notification_error_timeout_seconds = 5.0;
     static const double cursor_tracker_update_timeout_sec = 0.1;
 
-    static std::string recent_video_metadata_to_string(const RecentVideo &recent_video);
-    static std::string recent_video_filename(const RecentVideo &recent_video);
-    static std::string recent_video_directory(const RecentVideo &recent_video);
+    static std::string recent_video_metadata_to_string(const VideoMetadata &recent_video);
+    static std::string recent_video_filename(const VideoMetadata &recent_video);
+    static std::string recent_video_directory(const VideoMetadata &recent_video);
 
     static mgl::Texture texture_from_ximage(XImage *img) {
         uint8_t *texture_data = (uint8_t*)malloc(img->width * img->height * 3);
@@ -1414,7 +1414,7 @@ namespace gsr {
 
         recent_videos_loading = true;
         recent_videos_thread = std::thread([this]() {
-            std::optional<std::vector<RecentVideo>> loaded_recent_videos = get_recent_videos();
+            std::optional<std::vector<VideoMetadata>> loaded_recent_videos = get_recent_videos();
 
             {
                 std::lock_guard<std::mutex> lock(recent_videos_mutex);
@@ -1574,13 +1574,13 @@ namespace gsr {
             const int recently_recorded_item_height = window_size.y / 7.0f;
             const int recently_recorded_item_width = recently_recorded_entries_scrollable_page->get_inner_size().x;
 
-            std::vector<RecentVideo> recent_videos_copy;
+            std::vector<VideoMetadata> recent_videos_copy;
             {
                 std::lock_guard<std::mutex> lock(recent_videos_mutex);
                 recent_videos_copy = recent_videos;
             }
 
-            for(const RecentVideo &recent_video : recent_videos_copy) {
+            for(const VideoMetadata &recent_video : recent_videos_copy) {
                 auto button = std::make_unique<ContainerButton>(mgl::vec2f(recently_recorded_item_width, recently_recorded_item_height), mgl::Color(0, 0, 0, 180));
                 button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
 
@@ -1601,7 +1601,7 @@ namespace gsr {
 
                 button->set_widget(std::move(row));
                 button->on_click = [this, recent_video]() {
-                    auto trimmer_page = std::make_unique<TrimmerPage>(&gsr_info, &page_stack, recent_video.filepath, mgl::vec2i(recent_video.width / 1.7f, recent_video.height / 1.7f).floor());
+                    auto trimmer_page = std::make_unique<TrimmerPage>(&gsr_info, &page_stack, recent_video);
                     page_stack.push(std::move(trimmer_page));
                 };
 
@@ -2291,7 +2291,7 @@ namespace gsr {
         return buffer;
     }
 
-    static std::string recent_video_metadata_to_string(const RecentVideo &recent_video) {
+    static std::string recent_video_metadata_to_string(const VideoMetadata &recent_video) {
         std::string result;
 
         if(recent_video.width > 0 && recent_video.height > 0)
@@ -2313,11 +2313,11 @@ namespace gsr {
         return result;
     }
 
-    static std::string recent_video_filename(const RecentVideo &recent_video) {
+    static std::string recent_video_filename(const VideoMetadata &recent_video) {
         return filepath_get_filename(recent_video.filepath.c_str());
     }
 
-    static std::string recent_video_directory(const RecentVideo &recent_video) {
+    static std::string recent_video_directory(const VideoMetadata &recent_video) {
         std::string directory = filepath_get_directory(recent_video.filepath.c_str());
         const std::string home_dir = get_home_dir();
         if(starts_with(directory, home_dir.c_str()))
