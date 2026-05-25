@@ -40,7 +40,7 @@ namespace gsr {
 
     std::unique_ptr<CustomRendererWidget> TrimmerPage::create_header(mgl::vec2f size) {
         auto header = std::make_unique<CustomRendererWidget>(size);
-        header->draw_handler = [this, size](mgl::Window &window, mgl::vec2f pos, mgl::vec2f) {
+        header->draw_handler = [this](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
             mgl::Rectangle background(size);
             background.set_position(pos);
             background.set_color(mgl::Color(0, 0, 0, 180));
