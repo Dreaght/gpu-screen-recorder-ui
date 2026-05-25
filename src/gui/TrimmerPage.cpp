@@ -242,7 +242,7 @@ namespace gsr {
         draw_children(window, content_page_position);
 
         // TODO: It flickers sometimes, probably due to race conditions. Though, it passes all the assertions on 1920x1080 screen, the problem may be in rendering.
-        if(timeline_scroll_ptr && timeline_ptr) {
+        if(timeline_scroll_ptr && timeline_ptr && playback_state.file_loaded) {
             auto timeline_scroll_ptr_size = timeline_scroll_ptr->get_size();
             auto timeline_ptr_inner_size = timeline_ptr->get_inner_size();
             auto timeline_scroll_ptr_pos = timeline_scroll_ptr->get_position();
