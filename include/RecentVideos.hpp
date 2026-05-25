@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace gsr {
-    struct RecentVideo {
+    struct VideoMetadata {
         std::string filepath;
         int64_t file_size = 0;
         int32_t width = 0;
@@ -14,5 +14,5 @@ namespace gsr {
     };
 
     bool add_recent_video(const std::string &filepath);
-    std::optional<std::vector<RecentVideo>> get_recent_videos();
+    std::optional<std::vector<VideoMetadata>> get_recent_videos();
 }

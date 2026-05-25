@@ -42,7 +42,6 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
-        void set_size(mgl::vec2f size);
 
         void set_video_path(std::string video_path);
         const std::string& get_video_path() const;

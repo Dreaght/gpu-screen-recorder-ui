@@ -5,34 +5,50 @@
 #include "../../include/gui/TimelineWidget.hpp"
 #include "../../include/gui/VideoPlayer.hpp"
 #include "../../include/gui/Utils.hpp"
+#include "include/gui/List.hpp"
+#include "include/gui/Label.hpp"
 
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
+
+#include "mglpp/graphics/Rectangle.hpp"
 
 namespace gsr {
-    TrimmerPage::TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, std::string video_path, const mgl::vec2i size) :
+    TrimmerPage::TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, VideoMetadata video_metadata) :
         StaticPage(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor()),
         gsr_info(gsr_info),
         page_stack(page_stack),
-        video_path(std::move(video_path)),
-        size(size),
-        video_path_text(this->video_path, get_theme().title_font_desc.c_str())
+        video_metadata(std::move(video_metadata))
     {
-        auto player = std::make_unique<VideoPlayer>(gsr_info, TrimmerPage::get_size(), this->video_path, VideoPlayer::PreviewSource::PROXY_FAST);
-        player->set_position({0.0f, 0.0f});
+        auto content_page = std::make_unique<StaticPage>(mgl::vec2f(get_theme().window_width, get_theme().window_height).floor());
+        content_page_ptr = content_page.get();
+        add_widget(std::move(content_page));
+
+        add_widgets();
+    }
+
+    std::unique_ptr<Label> TrimmerPage::create_header() {
+        return std::make_unique<Label>(get_theme().title_font_desc.c_str(), video_metadata.filepath.c_str(), mgl::Color(255, 255, 255, 255));
+    }
+
+    std::unique_ptr<VideoPlayer> TrimmerPage::create_videoplayer(mgl::vec2f size) {
+        auto player = std::make_unique<VideoPlayer>(gsr_info, size, video_metadata.filepath, VideoPlayer::PreviewSource::PROXY_FAST);
+
         player->set_seekbar_enabled(false);
         player->set_playback_state_callback([this](const VideoPlayer::PlaybackState &state) {
             playback_state = state;
         });
-        video_player_ptr = player.get();
-        Page::add_widget(std::move(player));
 
-        auto timeline_scroll = std::make_unique<ScrollablePage>(TrimmerPage::get_size() * mgl::vec2f(1.0f, 0.14f), ScrollablePage::ScrollbarSide::BOTTOM);
-        timeline_scroll->set_position({0.0f, 0.0f});
-        timeline_scroll->set_scroll_input_callback([this](mgl::vec2f scroll) {
+        video_player_ptr = player.get();
+        return player;
+    }
+
+    std::unique_ptr<ScrollablePage> TrimmerPage::create_timeline(mgl::vec2f size) {
+        auto timeline_scroll = std::make_unique<ScrollablePage>(size, ScrollablePage::ScrollbarSide::BOTTOM);
+        timeline_scroll->set_scroll_input_callback([this](mgl::vec2f) {
             begin_timeline_scrub();
             timeline_scroll_settle_clock.restart();
         });
@@ -42,21 +58,35 @@ namespace gsr {
         timeline_scroll_ptr = timeline_scroll.get();
 
         auto left_padding = std::make_unique<CustomRendererWidget>(mgl::vec2f(1.0f, timeline_scroll_ptr->get_inner_size().y));
-        left_padding->set_position({0.0f, 0.0f});
         timeline_left_padding_ptr = left_padding.get();
         timeline_scroll_ptr->add_widget(std::move(left_padding));
 
         auto timeline = std::make_unique<TimelineWidget>(timeline_scroll_ptr->get_inner_size());
-        timeline->set_position({0.0f, 0.0f});
         timeline_ptr = timeline.get();
         timeline_scroll_ptr->add_widget(std::move(timeline));
 
         auto right_padding = std::make_unique<CustomRendererWidget>(mgl::vec2f(1.0f, timeline_scroll_ptr->get_inner_size().y));
-        right_padding->set_position({0.0f, 0.0f});
         timeline_right_padding_ptr = right_padding.get();
         timeline_scroll_ptr->add_widget(std::move(right_padding));
 
-        Page::add_widget(std::move(timeline_scroll));
+        return timeline_scroll;
+    }
+
+    void TrimmerPage::add_widgets() {
+        auto page_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+
+        auto content_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+        content_list->add_widget(create_header());
+        content_list->add_widget(create_videoplayer(mgl::vec2f(content_page_ptr->get_inner_size().x, content_page_ptr->get_inner_size().x) * (
+                                                    mgl::vec2f(1, video_metadata.height) / mgl::vec2f(1, video_metadata.width)) * 0.666f));
+        content_list->add_widget(create_timeline(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.1f)));
+
+        auto spacer_size = mgl::vec2f(content_page_ptr->get_inner_size().x, (content_page_ptr->get_inner_size().y - content_list->get_size().y) / 2);
+        page_list->add_widget(std::make_unique<CustomRendererWidget>(spacer_size));
+        page_list->add_widget(std::move(content_list));
+        page_list->add_widget(std::make_unique<CustomRendererWidget>(spacer_size));
+
+        content_page_ptr->add_widget(std::move(page_list));
     }
 
     bool TrimmerPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
@@ -64,14 +94,8 @@ namespace gsr {
             return true;
 
         const mgl::vec2f content_page_position = get_content_position();
-        const mgl::vec2f content_page_size = get_size();
-        if(video_player_ptr)
-            video_player_ptr->set_size(content_page_size);
 
         if(timeline_scroll_ptr && timeline_ptr && timeline_left_padding_ptr && timeline_right_padding_ptr) {
-            timeline_scroll_ptr->set_size(content_page_size * mgl::vec2f(1.0f, 0.14f));
-            timeline_scroll_ptr->set_position({0.0f, content_page_size.y + get_theme().window_height / 70});
-
             const mgl::vec2f timeline_inner_size = timeline_scroll_ptr->get_inner_size();
             const float timeline_side_padding = timeline_inner_size.x * 0.5f;
             timeline_ptr->set_zoom_interaction_region({-timeline_side_padding + timeline_scroll_ptr->get_scroll().x, 0.0f}, timeline_inner_size);
@@ -92,6 +116,8 @@ namespace gsr {
             }
             return true;
         });
+
+        return true;
     }
 
     void TrimmerPage::draw(mgl::Window &window, mgl::vec2f) {
@@ -99,20 +125,8 @@ namespace gsr {
             return;
 
         const mgl::vec2f content_page_position = get_content_position();
-        const mgl::vec2f content_page_size = get_size();
-        if(video_player_ptr)
-            video_player_ptr->set_size(content_page_size);
-
-        video_path_text.set_position((content_page_position + mgl::vec2f(
-            content_page_size.x * 0.5f - video_path_text.get_bounds().size.x * 0.5f,
-            - video_path_text.get_bounds().size.y * 1.5f
-            )).floor());
-        window.draw(video_path_text);
 
         if(timeline_scroll_ptr && timeline_ptr && timeline_left_padding_ptr && timeline_right_padding_ptr) {
-            timeline_scroll_ptr->set_size(content_page_size * mgl::vec2f(1.0f, 0.14f));
-            timeline_scroll_ptr->set_position({0.0f, content_page_size.y + get_theme().window_height / 70});
-
             const mgl::vec2f timeline_inner_size = timeline_scroll_ptr->get_inner_size();
             const float timeline_side_padding = timeline_inner_size.x * 0.5f;
 
@@ -124,6 +138,7 @@ namespace gsr {
                 : playback_state.position_ms;
             const bool visible_paused = timeline_scrub_active ? true : playback_state.paused;
 
+            // TODO: Avoid modifying widget properties in `draw`, use callbacks instead!
             timeline_ptr->set_duration_ms(playback_state.duration_ms);
             timeline_ptr->set_position_ms(visible_position_ms);
             timeline_ptr->set_paused(visible_paused);
@@ -196,46 +211,46 @@ namespace gsr {
             }
         }
 
+        draw_children(window, content_page_position);
+
+        if(timeline_scroll_ptr && timeline_ptr) {
+            mgl::Rectangle timeline_pointer(mgl::vec2f(timeline_scroll_ptr->get_size().x * 0.003f, timeline_ptr->get_inner_size().y));
+            timeline_pointer.set_position(timeline_scroll_ptr->get_position() + mgl::vec2f(
+                timeline_scroll_ptr->get_size().x / 2 - timeline_pointer.get_size().x / 2, 0));
+            timeline_pointer.set_color(get_color_theme().tint_color);
+            window.draw(timeline_pointer);
+        }
+    }
+
+    void TrimmerPage::draw_children(mgl::Window &window, mgl::vec2f position) {
         Widget *selected_widget = selected_child_widget;
 
         const mgl::Scissor prev_scissor = window.get_scissor();
-        mgl::vec2f scissor_size = content_page_size;
-        if(timeline_scroll_ptr)
-            scissor_size.y += get_theme().window_height / 70 + timeline_scroll_ptr->get_size().y;
-        window.set_scissor(scissor_get_sub_area(prev_scissor, {content_page_position.to_vec2i(), scissor_size.to_vec2i()}));
+        window.set_scissor({position.to_vec2i(), content_page_ptr->get_inner_size().to_vec2i()});
 
         for(size_t i = 0; i < widgets.size(); ++i) {
             auto &widget = widgets[i];
             if(widget.get() != selected_widget)
-                widget->draw(window, content_page_position);
+                widget->draw(window, position);
         }
 
         if(selected_widget)
-            selected_widget->draw(window, content_page_position);
+            selected_widget->draw(window, position);
 
         window.set_scissor(prev_scissor);
-
-        if(timeline_scroll_ptr) {
-            mgl::Rectangle timeline_pointer(content_page_size * mgl::vec2f(0.003f, 0.13f));
-            timeline_pointer.set_position(content_page_position + mgl::vec2f(
-                content_page_size.x / 2 - timeline_pointer.get_size().x / 2,
-                content_page_size.y + get_theme().window_height / 70 - timeline_pointer.get_size().y / 2 + timeline_scroll_ptr->get_inner_size().y / 2
-                ));
-            timeline_pointer.set_color(get_color_theme().tint_color);
-            window.draw(timeline_pointer);
-        }
     }
 
     mgl::vec2f TrimmerPage::get_size() {
         if(!visible)
             return {0.0f, 0.0f};
 
-        return size.to_vec2f();
+        return content_page_ptr->get_size();
     }
 
     mgl::vec2f TrimmerPage::get_content_position() {
-        const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
-        const mgl::vec2f content_page_size = get_size();
+        const mgl::vec2f window_size = get_size();
+        const mgl::vec2f content_page_size = content_page_ptr->get_size();
+
         return mgl::vec2f(window_size * 0.5f - content_page_size * 0.5f).floor();
     }
 
