@@ -1,5 +1,6 @@
 #include "../../include/gui/TrimmerPage.hpp"
 #include "../../include/Theme.hpp"
+#include "../../include/Utils.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/TimelineWidget.hpp"
@@ -12,6 +13,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <sstream>
+#include <sys/stat.h>
 #include <utility>
 
 #include "mglpp/graphics/Rectangle.hpp"
@@ -28,6 +32,10 @@ namespace gsr {
         add_widget(std::move(content_page));
 
         add_widgets();
+    }
+
+    TrimmerPage::~TrimmerPage() {
+        save_state();
     }
 
     std::unique_ptr<Label> TrimmerPage::create_header() {
@@ -132,6 +140,11 @@ namespace gsr {
 
             timeline_left_padding_ptr->set_size({timeline_side_padding, timeline_inner_size.y});
             timeline_left_padding_ptr->set_position({0.0f, 0.0f});
+
+            if(!state_loaded && playback_state.duration_ms > 0) {
+                load_state();
+                state_loaded = true;
+            }
 
             const int64_t visible_position_ms = (timeline_scrub_active && timeline_scrub_position_ms >= 0)
                 ? timeline_scrub_position_ms
@@ -238,6 +251,132 @@ namespace gsr {
             selected_widget->draw(window, position);
 
         window.set_scissor(prev_scissor);
+    }
+
+    void TrimmerPage::save_state() {
+        if(video_metadata.filepath.empty() || playback_state.duration_ms <= 0)
+            return;
+
+        struct stat st;
+        std::string key = video_metadata.filepath;
+        if(stat(video_metadata.filepath.c_str(), &st) == 0)
+            key += ":" + std::to_string((int64_t)st.st_mtim.tv_sec) + ":" + std::to_string((int64_t)st.st_size);
+
+        const std::string trimmer_dir = get_state_dir() + "/trimmer";
+        char dir_buffer[4096];
+        snprintf(dir_buffer, sizeof(dir_buffer), "%s", trimmer_dir.c_str());
+        create_directory_recursive(dir_buffer);
+
+        const std::string path = trimmer_dir + "/" + std::to_string(std::hash<std::string>{}(key));
+
+        const auto &chunks = timeline_ptr->get_chunks();
+
+        std::string interval_line;
+        std::string state_line;
+
+        if(chunks.empty()) {
+            interval_line = "0 " + std::to_string(playback_state.duration_ms);
+            state_line = "1";
+        } else {
+            for(size_t i = 0; i < chunks.size(); ++i) {
+                if(i > 0) {
+                    interval_line += " ";
+                    state_line += " ";
+                }
+                interval_line += std::to_string(chunks[i].start_ms) + " " + std::to_string(chunks[i].end_ms);
+                state_line += chunks[i].enabled ? "1" : "0";
+            }
+        }
+
+        file_overwrite(path.c_str(), interval_line + "\n" + state_line + "\n");
+    }
+
+    void TrimmerPage::load_state() {
+        if(video_metadata.filepath.empty())
+            return;
+
+        struct stat st;
+        std::string key = video_metadata.filepath;
+        if(stat(video_metadata.filepath.c_str(), &st) == 0)
+            key += ":" + std::to_string((int64_t)st.st_mtim.tv_sec) + ":" + std::to_string((int64_t)st.st_size);
+
+        const std::string path = get_state_dir() + "/trimmer/" + std::to_string(std::hash<std::string>{}(key));
+
+        std::string content;
+        if(!file_get_content(path.c_str(), content))
+            return;
+
+        std::istringstream stream(content);
+        std::string line;
+
+        if(!std::getline(stream, line))
+            return;
+
+        std::vector<int64_t> intervals;
+        {
+            std::istringstream iss(line);
+            int64_t val;
+            while(iss >> val)
+                intervals.push_back(val);
+        }
+
+        if(intervals.size() < 2 || intervals.size() % 2 != 0) {
+            std::filesystem::remove(path.c_str());
+            return;
+        }
+
+        if(!std::getline(stream, line)) {
+            std::filesystem::remove(path.c_str());
+            return;
+        }
+
+        std::vector<int> states;
+        {
+            std::istringstream iss(line);
+            int val;
+            while(iss >> val)
+                states.push_back(val);
+        }
+
+        const size_t expected_chunks = intervals.size() / 2;
+        if(states.size() != expected_chunks) {
+            std::filesystem::remove(path.c_str());
+            return;
+        }
+
+        if(intervals[0] != 0 || intervals.back() > playback_state.duration_ms) {
+            std::filesystem::remove(path.c_str());
+            return;
+        }
+
+        bool valid = true;
+        for(size_t i = 0; i + 1 < intervals.size(); i += 2) {
+            if(intervals[i] >= intervals[i + 1]) {
+                valid = false;
+                break;
+            }
+            if(i + 2 < intervals.size() && intervals[i + 1] != intervals[i + 2]) {
+                valid = false;
+                break;
+            }
+        }
+
+        if(!valid) {
+            std::filesystem::remove(path.c_str());
+            return;
+        }
+
+        std::vector<TimelineWidget::TimelineChunk> chunk_list;
+        chunk_list.reserve(expected_chunks);
+        for(size_t i = 0; i < expected_chunks; ++i) {
+            TimelineWidget::TimelineChunk chunk;
+            chunk.start_ms = intervals[i * 2];
+            chunk.end_ms = intervals[i * 2 + 1];
+            chunk.enabled = states[i] != 0;
+            chunk_list.push_back(chunk);
+        }
+
+        timeline_ptr->set_chunks(std::move(chunk_list));
     }
 
     mgl::vec2f TrimmerPage::get_size() {
