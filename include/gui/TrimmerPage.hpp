@@ -22,6 +22,7 @@ namespace gsr {
         explicit TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, VideoMetadata video_metadata);
         TrimmerPage(const TrimmerPage&) = delete;
         TrimmerPage& operator=(const TrimmerPage&) = delete;
+        ~TrimmerPage() override;
 
         bool on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f offset) override;
         void draw(mgl::Window &window, mgl::vec2f offset) override;
@@ -38,6 +39,8 @@ namespace gsr {
         mgl::vec2f get_content_position();
         void begin_timeline_scrub();
         void sync_timeline_scrub_position(float scroll_x);
+        void save_state();
+        void load_state();
     private:
         const GsrInfo *gsr_info = nullptr;
         StaticPage *content_page_ptr = nullptr;
@@ -54,5 +57,6 @@ namespace gsr {
         bool timeline_scrub_resume_on_release = false;
         int64_t timeline_scrub_position_ms = -1;
         mgl::Clock timeline_scroll_settle_clock;
+        bool state_loaded = false;
     };
 }

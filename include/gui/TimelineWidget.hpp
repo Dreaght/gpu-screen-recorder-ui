@@ -15,6 +15,12 @@
 namespace gsr {
     class TimelineWidget : public Widget {
     public:
+        struct TimelineChunk {
+            int64_t start_ms = 0;
+            int64_t end_ms = 0;
+            bool enabled = true;
+        };
+
         explicit TimelineWidget(mgl::vec2f size);
         TimelineWidget(const TimelineWidget&) = delete;
         TimelineWidget& operator=(const TimelineWidget&) = delete;
@@ -38,6 +44,10 @@ namespace gsr {
         int64_t scroll_to_position_ms(float scroll_x) const;
         bool take_zoom_changed();
         void set_zoom_interaction_region(mgl::vec2f offset, mgl::vec2f size);
+
+        const std::vector<TimelineChunk>& get_chunks() const;
+        void set_chunks(std::vector<TimelineChunk> new_chunks);
+        void set_cut_point_proximity_ms(int64_t ms);
     private:
         struct Thumbnail {
             int64_t start_ms = 0;
@@ -60,10 +70,16 @@ namespace gsr {
         void draw_ticks(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right);
         void draw_thumbnails(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right);
         void draw_status(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size);
+        void draw_cut_points(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) const;
+        void draw_chunk_overlay(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) const;
         int64_t clamp_position_ms(int64_t position) const;
         float get_pixels_per_second() const;
         float get_visible_duration_ms(float visible_width) const;
         double get_tick_step_ms(float visible_width) const;
+        void ensure_chunks();
+        int find_chunk_at_ms(int64_t ms) const;
+        void split_chunk_at(int64_t ms);
+        bool try_remove_cut_point_at(int64_t ms);
     private:
         mgl::vec2f size;
         std::string source_video_path;
@@ -75,6 +91,8 @@ namespace gsr {
         mgl::vec2f zoom_interaction_offset = {0.0f, 0.0f};
         mgl::vec2f zoom_interaction_size = {0.0f, 0.0f};
         mgl::Text status_text;
+        std::vector<TimelineChunk> chunks;
+        int64_t cut_point_proximity_ms = 1000;
         std::vector<Thumbnail> thumbnails;
         std::thread thumbnail_worker_thread;
         std::mutex thumbnail_mutex;

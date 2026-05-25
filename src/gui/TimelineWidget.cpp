@@ -110,6 +110,39 @@ namespace gsr {
             }
         }
 
+        if(event.type == mgl::Event::MouseButtonPressed) {
+            const mgl::vec2f mouse_pos((float)event.mouse_button.x, (float)event.mouse_button.y);
+            if(!bounds.contains(mouse_pos))
+                return true;
+
+            if(event.mouse_button.button == mgl::Mouse::Left) {
+                ensure_chunks();
+                if(chunks.empty())
+                    return true;
+
+                const float relative_x = mouse_pos.x - draw_pos.x;
+                const int64_t click_ms = clamp_position_ms((int64_t)std::llround(relative_x / get_pixels_per_ms()));
+
+                const int idx = find_chunk_at_ms(click_ms);
+                if(idx >= 0) {
+                    chunks[idx].enabled = !chunks[idx].enabled;
+                    return false;
+                }
+            }
+
+            if(event.mouse_button.button == mgl::Mouse::Right) {
+                ensure_chunks();
+                if(chunks.empty())
+                    return true;
+
+                if(try_remove_cut_point_at(position_ms))
+                    return false;
+
+                split_chunk_at(position_ms);
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -131,6 +164,8 @@ namespace gsr {
 
         draw_background(window, draw_pos, {visible_left, visible_top}, {visible_right - visible_left, visible_bottom - visible_top}, item_size);
         draw_thumbnails(window, draw_pos, item_size, visible_left, visible_right);
+        draw_cut_points(window, draw_pos, item_size, visible_left, visible_right);
+        draw_chunk_overlay(window, draw_pos, item_size, visible_left, visible_right);
         draw_ticks(window, draw_pos, item_size, visible_left, visible_right);
         draw_status(window, draw_pos, item_size);
     }
@@ -195,6 +230,80 @@ namespace gsr {
 
     void TimelineWidget::set_paused(bool paused) {
         this->paused = paused;
+    }
+
+    const std::vector<TimelineWidget::TimelineChunk>& TimelineWidget::get_chunks() const {
+        return chunks;
+    }
+
+    void TimelineWidget::set_chunks(std::vector<TimelineChunk> new_chunks) {
+        chunks = std::move(new_chunks);
+    }
+
+    void TimelineWidget::set_cut_point_proximity_ms(int64_t ms) {
+        cut_point_proximity_ms = std::max<int64_t>(1, ms);
+    }
+
+    void TimelineWidget::ensure_chunks() {
+        if(chunks.empty() && duration_ms > 0)
+            chunks.push_back({0, duration_ms, true});
+    }
+
+    int TimelineWidget::find_chunk_at_ms(int64_t ms) const {
+        if(chunks.empty())
+            return (ms >= 0 && ms <= duration_ms) ? 0 : -1;
+
+        for(size_t i = 0; i < chunks.size(); ++i) {
+            if(ms >= chunks[i].start_ms && ms < chunks[i].end_ms)
+                return (int)i;
+        }
+        return -1;
+    }
+
+    void TimelineWidget::split_chunk_at(int64_t ms) {
+        ensure_chunks();
+        const int idx = find_chunk_at_ms(ms);
+        if(idx < 0)
+            return;
+
+        TimelineChunk &chunk = chunks[idx];
+        if(ms <= chunk.start_ms || ms >= chunk.end_ms)
+            return;
+
+        TimelineChunk new_chunk;
+        new_chunk.start_ms = ms;
+        new_chunk.end_ms = chunk.end_ms;
+        new_chunk.enabled = chunk.enabled;
+
+        chunk.end_ms = ms;
+
+        chunks.insert(chunks.begin() + idx + 1, new_chunk);
+    }
+
+    bool TimelineWidget::try_remove_cut_point_at(int64_t ms) {
+        ensure_chunks();
+        if(chunks.size() <= 1)
+            return false;
+
+        int best_idx = -1;
+        int64_t best_dist = cut_point_proximity_ms;
+
+        for(size_t i = 0; i < chunks.size() - 1; ++i) {
+            const int64_t dist = std::abs(chunks[i].end_ms - ms);
+            if(dist <= best_dist) {
+                best_dist = dist;
+                best_idx = (int)i;
+            }
+        }
+
+        if(best_idx < 0)
+            return false;
+
+        chunks[best_idx].enabled = chunks[best_idx].enabled || chunks[best_idx + 1].enabled;
+        chunks[best_idx].end_ms = chunks[best_idx + 1].end_ms;
+        chunks.erase(chunks.begin() + best_idx + 1);
+
+        return true;
     }
 
     void TimelineWidget::queue_thumbnail_generation() {
@@ -416,6 +525,52 @@ namespace gsr {
         (void)window;
         (void)draw_pos;
         (void)item_size;
+    }
+
+    void TimelineWidget::draw_cut_points(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) const {
+        if(chunks.empty() || duration_ms <= 0)
+            return;
+
+        const float thumbnail_height = item_size.y * 0.84f;
+
+        for(size_t i = 0; i < chunks.size() - 1; ++i) {
+            const float cut_x = draw_pos.x + chunks[i].end_ms * get_pixels_per_ms();
+            if(cut_x < visible_left || cut_x > visible_right)
+                continue;
+
+            mgl::Rectangle cut_tick({std::max(1.0f, (visible_right - visible_left) * 0.01f), thumbnail_height});
+            cut_tick.set_position(mgl::vec2f(cut_x - cut_tick.get_size().x * 0.5f, draw_pos.y).floor());
+            cut_tick.set_color(mgl::Color(255, 80, 80, 200));
+            window.draw(cut_tick);
+        }
+    }
+
+    void TimelineWidget::draw_chunk_overlay(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) const {
+        if(chunks.empty() || duration_ms <= 0)
+            return;
+
+        const float thumbnail_height = item_size.y * 0.84f;
+        const float pixels_per_ms = get_pixels_per_ms();
+
+        for(const TimelineChunk &chunk : chunks) {
+            if(chunk.enabled)
+                continue;
+
+            const float start_x = draw_pos.x + chunk.start_ms * pixels_per_ms;
+            const float end_x = draw_pos.x + chunk.end_ms * pixels_per_ms;
+
+            if(end_x <= visible_left || start_x >= visible_right)
+                continue;
+
+            const float clamped_start = std::max(visible_left, start_x);
+            const float clamped_end = std::min(visible_right, end_x);
+            const float width = std::max(1.0f, clamped_end - clamped_start);
+
+            mgl::Rectangle overlay({width, thumbnail_height});
+            overlay.set_position(mgl::vec2f(clamped_start, draw_pos.y).floor());
+            overlay.set_color(mgl::Color(0, 0, 0, 140));
+            window.draw(overlay);
+        }
     }
 
     int64_t TimelineWidget::clamp_position_ms(int64_t position) const {
