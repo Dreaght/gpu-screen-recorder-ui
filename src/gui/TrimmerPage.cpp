@@ -144,16 +144,21 @@ namespace gsr {
         vertical_page_list->add_widget(std::make_unique<CustomRendererWidget>(vertical_page_list_spacer_size));
 
         auto horizontal_page_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::START);
-        horizontal_page_list->set_spacing(0.025);
-        auto horizontal_page_list_spacer_size = mgl::vec2f((content_page_ptr->get_inner_size().x - vertical_page_list->get_size().x) / 2, content_page_ptr->get_inner_size().y);
+        constexpr float horizontal_page_list_spacing_scale = 0.025f;
+        horizontal_page_list->set_spacing(horizontal_page_list_spacing_scale);
+        const float horizontal_page_list_spacing = (int)(horizontal_page_list_spacing_scale * get_theme().window_height);
+        auto horizontal_page_list_spacer_size = mgl::vec2f(
+            (content_page_ptr->get_inner_size().x - vertical_page_list->get_size().x - horizontal_page_list_spacing * 2.0f) / 2.0f,
+            content_page_ptr->get_inner_size().y
+        );
         horizontal_page_list->add_widget(std::make_unique<CustomRendererWidget>(horizontal_page_list_spacer_size));
         horizontal_page_list->add_widget(std::move(vertical_page_list));
 
-        auto vertical_buttons_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+        auto vertical_buttons_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::START);
 
         auto button_size = mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor();
         vertical_buttons_list->add_widget(std::make_unique<CustomRendererWidget>(mgl::vec2f(
-            button_size.x,
+            horizontal_page_list_spacer_size.x,
             (horizontal_page_list_spacer_size.y - content_list_height) / 2
             )));
         vertical_buttons_list->add_widget(create_back_button(button_size));
