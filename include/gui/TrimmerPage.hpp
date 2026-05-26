@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StaticPage.hpp"
+#include "TimelineWidget.hpp"
 #include "VideoPlayer.hpp"
 #include "../RecentVideos.hpp"
 
@@ -12,7 +13,6 @@ namespace gsr {
     class CustomRendererWidget;
     class ContainerButton;
     class ScrollablePage;
-    class TimelineWidget;
 }
 
 namespace gsr {
@@ -39,6 +39,14 @@ namespace gsr {
         void draw_children(mgl::Window &window, mgl::vec2f position);
 
         mgl::vec2f get_content_position();
+        bool open_fullscreen_preview();
+        void set_fullscreen_preview_active(bool active);
+        void handle_playback_state_changed(const VideoPlayer::PlaybackState &state);
+        void skip_disabled_chunks_if_needed();
+        std::vector<TimelineWidget::TimelineChunk> get_effective_chunks() const;
+        int find_enabled_chunk_index_for_position(int64_t position_ms) const;
+        int find_next_enabled_chunk_index(int64_t position_ms) const;
+        int find_last_enabled_chunk_index() const;
         void begin_timeline_scrub();
         void sync_timeline_scrub_position(float scroll_x);
         void save_state();
@@ -60,5 +68,7 @@ namespace gsr {
         int64_t timeline_scrub_position_ms = -1;
         mgl::Clock timeline_scroll_settle_clock;
         bool state_loaded = false;
+        bool fullscreen_preview_active = false;
+        bool skipping_disabled_chunk = false;
     };
 }
