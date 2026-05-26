@@ -5,6 +5,7 @@
 #include "../../include/gui/Button.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
 #include "../../include/gui/ContainerButton.hpp"
+#include "../../include/gui/FullscreenVideoPreviewPage.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/TimelineWidget.hpp"
 #include "../../include/gui/VideoPlayer.hpp"
@@ -22,6 +23,7 @@
 #include <utility>
 
 #include "mglpp/graphics/Rectangle.hpp"
+#include "mglpp/window/Event.hpp"
 
 namespace gsr {
     TrimmerPage::TrimmerPage(const GsrInfo *gsr_info, PageStack *page_stack, VideoMetadata video_metadata) :
@@ -67,7 +69,7 @@ namespace gsr {
 
         player->set_seekbar_enabled(false);
         player->set_playback_state_callback([this](const VideoPlayer::PlaybackState &state) {
-            playback_state = state;
+            handle_playback_state_changed(state);
         });
 
         video_player_ptr = player.get();
@@ -170,6 +172,11 @@ namespace gsr {
             const mgl::vec2f timeline_inner_size = timeline_scroll_ptr->get_inner_size();
             const float timeline_side_padding = timeline_inner_size.x * 0.5f;
             timeline_ptr->set_zoom_interaction_region({-timeline_side_padding + timeline_scroll_ptr->get_scroll().x, 0.0f}, timeline_inner_size);
+        }
+
+        if(event.type == mgl::Event::KeyPressed && event.key.code == mgl::Keyboard::Key::F) {
+            open_fullscreen_preview();
+            return false;
         }
 
         Widget *selected_widget = selected_child_widget;
@@ -461,6 +468,122 @@ namespace gsr {
         const mgl::vec2f content_page_size = content_page_ptr->get_size();
 
         return mgl::vec2f(window_size * 0.5f - content_page_size * 0.5f).floor();
+    }
+
+    bool TrimmerPage::open_fullscreen_preview() {
+        if(!page_stack || !video_player_ptr || fullscreen_preview_active)
+            return false;
+
+        page_stack->push(std::make_unique<FullscreenVideoPreviewPage>(
+            page_stack,
+            video_player_ptr,
+            video_metadata.width,
+            video_metadata.height,
+            [this](bool active) { set_fullscreen_preview_active(active); },
+            [this]() { return get_effective_chunks(); }
+        ));
+        return true;
+    }
+
+    void TrimmerPage::set_fullscreen_preview_active(bool active) {
+        fullscreen_preview_active = active;
+        if(fullscreen_preview_active)
+            skip_disabled_chunks_if_needed();
+    }
+
+    void TrimmerPage::handle_playback_state_changed(const VideoPlayer::PlaybackState &state) {
+        playback_state = state;
+        skip_disabled_chunks_if_needed();
+    }
+
+    void TrimmerPage::skip_disabled_chunks_if_needed() {
+        if(!fullscreen_preview_active || skipping_disabled_chunk || !video_player_ptr || !timeline_ptr)
+            return;
+
+        if(!playback_state.file_loaded || timeline_scrub_active || playback_state.duration_ms <= 0)
+            return;
+
+        const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
+        if(chunks.empty())
+            return;
+
+        const int enabled_chunk_index = find_enabled_chunk_index_for_position(playback_state.position_ms);
+        if(enabled_chunk_index >= 0)
+            return;
+
+        const int next_enabled_chunk_index = find_next_enabled_chunk_index(playback_state.position_ms);
+        skipping_disabled_chunk = true;
+
+        if(next_enabled_chunk_index >= 0) {
+            const auto &chunk = chunks[next_enabled_chunk_index];
+            video_player_ptr->seek_to_ms(chunk.start_ms, true);
+            if(!playback_state.paused)
+                video_player_ptr->play();
+        } else {
+            const int last_enabled_chunk_index = find_last_enabled_chunk_index();
+            video_player_ptr->pause();
+
+            if(last_enabled_chunk_index >= 0) {
+                const auto &chunk = chunks[last_enabled_chunk_index];
+                const int64_t final_position_ms = std::max<int64_t>(chunk.start_ms, chunk.end_ms - 1);
+                video_player_ptr->seek_to_ms(final_position_ms, true);
+            }
+        }
+
+        skipping_disabled_chunk = false;
+    }
+
+    std::vector<TimelineWidget::TimelineChunk> TrimmerPage::get_effective_chunks() const {
+        if(playback_state.duration_ms <= 0)
+            return {};
+
+        if(!timeline_ptr)
+            return { TimelineWidget::TimelineChunk{0, playback_state.duration_ms, true} };
+
+        const auto &chunks = timeline_ptr->get_chunks();
+        if(!chunks.empty())
+            return chunks;
+
+        return { TimelineWidget::TimelineChunk{0, playback_state.duration_ms, true} };
+    }
+
+    int TrimmerPage::find_enabled_chunk_index_for_position(int64_t position_ms) const {
+        const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
+        if(chunks.empty())
+            return -1;
+
+        for(size_t i = 0; i < chunks.size(); ++i) {
+            const auto &chunk = chunks[i];
+            const bool in_chunk = position_ms >= chunk.start_ms && position_ms < chunk.end_ms;
+            if(in_chunk)
+                return chunk.enabled ? (int)i : -1;
+        }
+        return -1;
+    }
+
+    int TrimmerPage::find_next_enabled_chunk_index(int64_t position_ms) const {
+        const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
+        if(chunks.empty())
+            return -1;
+
+        for(size_t i = 0; i < chunks.size(); ++i) {
+            const auto &chunk = chunks[i];
+            if(chunk.enabled && chunk.end_ms > position_ms)
+                return (int)i;
+        }
+        return -1;
+    }
+
+    int TrimmerPage::find_last_enabled_chunk_index() const {
+        const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
+        if(chunks.empty())
+            return -1;
+
+        for(int i = (int)chunks.size() - 1; i >= 0; --i) {
+            if(chunks[i].enabled)
+                return i;
+        }
+        return -1;
     }
 
     void TrimmerPage::begin_timeline_scrub() {

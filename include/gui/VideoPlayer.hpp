@@ -42,6 +42,7 @@ namespace gsr {
         void draw(mgl::Window &window, mgl::vec2f offset) override;
 
         mgl::vec2f get_size() override;
+        void set_size(mgl::vec2f size);
 
         void set_video_path(std::string video_path);
         const std::string& get_video_path() const;
@@ -54,6 +55,8 @@ namespace gsr {
         void begin_external_scrub();
         void update_external_scrub(int64_t position_ms);
         void end_external_scrub(bool resume_playback, bool exact_seek = false);
+        void cancel_scrub(bool resume_playback = false, bool exact_seek = true);
+        void request_redraw();
 
         bool is_backend_available() const;
         bool is_file_loaded() const;

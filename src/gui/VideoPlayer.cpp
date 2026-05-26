@@ -190,6 +190,8 @@ namespace gsr {
         video_texture = mgl::Texture(video_texture_id, MGL_TEXTURE_FORMAT_RGBA);
         video_sprite.set_texture(&video_texture);
         render_target_size = desired_size;
+        render_update_pending.store(true);
+        video_texture_has_content = false;
         return true;
     }
 
@@ -296,6 +298,10 @@ namespace gsr {
         return size;
     }
 
+    void VideoPlayer::set_size(mgl::vec2f size) {
+        this->size = size;
+    }
+
     void VideoPlayer::set_video_path(std::string video_path) {
         this->video_path = std::move(video_path);
         ++video_generation;
@@ -378,6 +384,20 @@ namespace gsr {
             return;
 
         end_scrub(resume_playback, exact_seek);
+    }
+
+    void VideoPlayer::cancel_scrub(bool resume_playback, bool exact_seek) {
+        if(!scrub_session)
+            return;
+
+        const bool was_internal_scrub = scrub_session->owner == ScrubOwner::Internal;
+        end_scrub(resume_playback, exact_seek);
+        if(was_internal_scrub)
+            remove_widget_as_selected_in_parent();
+    }
+
+    void VideoPlayer::request_redraw() {
+        render_update_pending.store(true);
     }
 
     bool VideoPlayer::is_backend_available() const {
