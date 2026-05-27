@@ -288,13 +288,8 @@ namespace gsr {
                 last_timeline_scroll_x = desired_scroll_x;
             }
 
-            if(!scrollbar_is_being_dragged && timeline_scrub_active && timeline_scroll_settle_clock.get_elapsed_time_seconds() >= 0.12) {
-                timeline_scrub_active = false;
-                timeline_scrub_position_ms = -1;
-                if(video_player_ptr)
-                    video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, true);
-                timeline_scrub_resume_on_release = false;
-            }
+            if(!scrollbar_is_being_dragged && timeline_scrub_active && timeline_scroll_settle_clock.get_elapsed_time_seconds() >= 0.12)
+                end_timeline_scrub(true);
         }
 
         draw_children(window, content_page_position);
@@ -479,6 +474,8 @@ namespace gsr {
         if(!page_stack || !video_player_ptr || fullscreen_preview_active)
             return false;
 
+        end_timeline_scrub(true);
+
         page_stack->push(std::make_unique<FullscreenVideoPreviewPage>(
             page_stack,
             video_player_ptr,
@@ -600,6 +597,19 @@ namespace gsr {
         timeline_scrub_position_ms = playback_state.position_ms;
         if(video_player_ptr)
             video_player_ptr->begin_external_scrub();
+    }
+
+    void TrimmerPage::end_timeline_scrub(bool exact_seek) {
+        if(!timeline_scrub_active)
+            return;
+
+        timeline_scrub_active = false;
+        timeline_scrub_position_ms = -1;
+
+        if(video_player_ptr)
+            video_player_ptr->end_external_scrub(timeline_scrub_resume_on_release, exact_seek);
+
+        timeline_scrub_resume_on_release = false;
     }
 
     void TrimmerPage::sync_timeline_scrub_position(float scroll_x) {
