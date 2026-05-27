@@ -155,6 +155,9 @@ namespace gsr {
         if(!theme->ps4_triangle_texture.load_from_file((resources_path + "images/ps4_triangle.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
 
+        if(!theme->trimmer_texture.load_from_file((resources_path + "images/trimmer.png").c_str()))
+            goto error;
+
         return true;
 
         error:

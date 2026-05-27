@@ -417,3 +417,7 @@ Stream URL:=URL трансляции:
 Stream key:=Ключ трансляции:
 Streaming info=Информация о трансляции
 Streaming indicator=Индикатор трансляции
+
+# Trimmer Page UI elements
+Video Trimmer=Обрезка видео
+Export=Экспорт

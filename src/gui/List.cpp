@@ -49,7 +49,6 @@ namespace gsr {
         offset = {0.0f, 0.0f};
         Widget *selected_widget = selected_child_widget;
 
-        // TODO: Handle start/end alignment
         const mgl::vec2f size = get_size();
         const mgl::vec2f parent_inner_size = parent_widget ? parent_widget->get_inner_size() : mgl::vec2f(0.0f, 0.0f);
 
@@ -72,8 +71,12 @@ namespace gsr {
                     // Also take this widget alignment into consideration in get_size.
                     if(widget->get_horizontal_alignment() == Widget::Alignment::CENTER && parent_inner_size.x > 0.001f)
                         offset.x = floor(parent_inner_size.x * 0.5f - widget_size.x * 0.5f);
+                    else if(widget->get_horizontal_alignment() == Widget::Alignment::END && parent_inner_size.x > 0.001f)
+                        offset.x = floor(parent_inner_size.x - widget_size.x);
                     else if(content_alignment == Alignment::CENTER)
                         offset.x = floor(size.x * 0.5f - widget_size.x * 0.5f);
+                    else if(content_alignment == Alignment::END)
+                        offset.x = floor(size.x - widget_size.x);
                     else
                         offset.x = 0.0f;
 
@@ -97,6 +100,8 @@ namespace gsr {
                     const auto widget_size = widget->get_size();
                     if(content_alignment == Alignment::CENTER)
                         offset.y = floor(size.y * 0.5f - widget_size.y * 0.5f);
+                    else if(content_alignment == Alignment::END)
+                        offset.y = floor(size.y - widget_size.y);
                     else
                         offset.y = 0.0f;
 
