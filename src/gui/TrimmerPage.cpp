@@ -64,6 +64,32 @@ namespace gsr {
         return header;
     }
 
+    std::unique_ptr<CustomRendererWidget> TrimmerPage::create_page_label(mgl::vec2f size) {
+        auto label = std::make_unique<CustomRendererWidget>(size);
+        label->draw_handler = [this](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+            mgl::Rectangle background(size);
+            background.set_position(pos);
+            background.set_color(mgl::Color(0, 0, 0, 180));
+            window.draw(background);
+
+            const int text_margin = background.get_size().y * 0.085;
+
+            // mgl::Text top_text(TR("Video Trimmer"), get_theme().title_font_desc.c_str());
+            // top_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - top_text.get_bounds().size.x * 0.5f, text_margin)).floor());
+            // window.draw(top_text);
+
+            mgl::Sprite icon(&get_theme().trimmer_texture);
+            icon.set_width((int)(background.get_size().x * 0.8f));
+            icon.set_position((background.get_position() + background.get_size() * 0.5f - icon.get_size() * 0.5f).floor());
+            window.draw(icon);
+
+            mgl::Text bottom_text(TR("Video Trimmer"), get_theme().title_font_desc.c_str());
+            bottom_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - bottom_text.get_bounds().size.x * 0.5f, background.get_size().y - bottom_text.get_bounds().size.y - text_margin)).floor());
+            window.draw(bottom_text);
+        };
+        return label;
+    }
+
     std::unique_ptr<VideoPlayer> TrimmerPage::create_videoplayer(mgl::vec2f size) {
         auto player = std::make_unique<VideoPlayer>(gsr_info, size, video_metadata.filepath, VideoPlayer::PreviewSource::PROXY_FAST);
 
@@ -151,7 +177,14 @@ namespace gsr {
             (content_page_ptr->get_inner_size().x - vertical_page_list->get_size().x - horizontal_page_list_spacing * 2.0f) / 2.0f,
             content_page_ptr->get_inner_size().y
         );
-        horizontal_page_list->add_widget(std::make_unique<CustomRendererWidget>(horizontal_page_list_spacer_size));
+
+        auto vertical_side_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::END);
+        vertical_side_list->add_widget(std::make_unique<CustomRendererWidget>(mgl::vec2f(
+            horizontal_page_list_spacer_size.x,
+            (horizontal_page_list_spacer_size.y - content_list_height) / 2
+            )));
+        vertical_side_list->add_widget(create_page_label(mgl::vec2f(content_page_ptr->get_inner_size().x / 10, content_page_ptr->get_inner_size().x / 10)));
+        horizontal_page_list->add_widget(std::move(vertical_side_list));
         horizontal_page_list->add_widget(std::move(vertical_page_list));
 
         auto vertical_buttons_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::START);

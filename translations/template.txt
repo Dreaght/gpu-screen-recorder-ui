@@ -443,3 +443,7 @@ Stream key:=
 Bearer token (optional):=
 Streaming info=
 Streaming indicator=
+
+# Trimmer Page UI elements
+Video Trimmer=
+Export=

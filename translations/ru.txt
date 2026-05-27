@@ -429,3 +429,7 @@ Stream key:=Ключ трансляции:
 Bearer token (optional):=Bearer-токен (необязательно):
 Streaming info=Информация о трансляции
 Streaming indicator=Индикатор трансляции
+
+# Trimmer Page UI elements
+Video Trimmer=Обрезка видео
+Export=Экспорт
