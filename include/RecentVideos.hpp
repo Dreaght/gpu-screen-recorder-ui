@@ -7,6 +7,7 @@
 namespace gsr {
     struct VideoMetadata {
         std::string filepath;
+        std::string thumbnail_path;
         int64_t file_size = 0;
         int32_t width = 0;
         int32_t height = 0;
