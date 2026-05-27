@@ -13,6 +13,11 @@
 #include <utility>
 
 namespace gsr {
+    namespace {
+        static const float external_seekbar_proximity_padding_scale = 0.09f;
+        static const float external_seekbar_proximity_min_padding = 28.0f;
+    }
+
     FullscreenVideoPreviewPage::FullscreenVideoPreviewPage(PageStack *page_stack, VideoPlayer *video_player, int video_width, int video_height,
         std::function<void(bool)> on_active_changed,
         std::function<std::vector<TimelineWidget::TimelineChunk>()> get_chunks) :
@@ -232,6 +237,9 @@ namespace gsr {
             return;
 
         const SeekbarLayout layout = get_seekbar_layout();
+        if(video_player->is_smart_controls_hide_enabled() && !external_scrub_active && !is_mouse_near_seekbar(window, layout))
+            return;
+
         const auto playback_state = video_player->get_playback_state();
         const int64_t enabled_offset_ms = std::min<int64_t>(
             total_enabled_duration_ms,
@@ -271,5 +279,19 @@ namespace gsr {
             divider.set_color(mgl::Color(0, 0, 0, 180));
             window.draw(divider);
         }
+    }
+
+    bool FullscreenVideoPreviewPage::is_mouse_near_seekbar(mgl::Window &window, const SeekbarLayout &layout) const {
+        const mgl::vec2f page_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
+        const float proximity_padding = std::max(
+            external_seekbar_proximity_min_padding,
+            std::min(page_size.x, page_size.y) * external_seekbar_proximity_padding_scale
+        );
+        const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
+        const mgl::FloatRect expanded_hitbox(
+            layout.hitbox.position - mgl::vec2f(proximity_padding, proximity_padding),
+            layout.hitbox.size + mgl::vec2f(proximity_padding * 2.0f, proximity_padding * 2.0f)
+        );
+        return expanded_hitbox.contains(mouse_pos);
     }
 }
