@@ -45,6 +45,8 @@ namespace gsr {
         static const float center_button_size_scale = 0.065f * ui_scale;
         static const float center_button_min_size = 46.0f * ui_scale;
         static const float center_button_max_size = 88.0f * ui_scale;
+        static const float control_proximity_padding_scale = 0.045f * ui_scale;
+        static const float control_proximity_min_padding = 28.0f;
 
         static std::string build_proxy_video_path(const std::string &video_path) {
             struct stat st;
@@ -275,7 +277,7 @@ namespace gsr {
 
         draw_video_surface(window, draw_pos, item_size);
 
-        if(show_controls) {
+        if(show_controls && !is_smart_controls_hide_enabled()) {
             mgl::Rectangle overlay(item_size);
             overlay.set_position(draw_pos);
             overlay.set_color(mgl::Color(0, 0, 0, (int)overlay_darkness_alpha));
@@ -356,6 +358,14 @@ namespace gsr {
 
     bool VideoPlayer::is_seekbar_enabled() const {
         return seekbar_enabled;
+    }
+
+    void VideoPlayer::set_smart_controls_hide_enabled(bool enabled) {
+        smart_controls_hide_enabled = enabled;
+    }
+
+    bool VideoPlayer::is_smart_controls_hide_enabled() const {
+        return smart_controls_hide_enabled;
     }
 
     const std::string& VideoPlayer::get_proxy_video_path() const {
@@ -811,25 +821,35 @@ namespace gsr {
     }
 
     void VideoPlayer::draw_overlay_controls(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, bool controls_visible) {
-        if(!controls_visible)
+        if(!controls_visible && !is_smart_controls_hide_enabled())
             return;
 
+        const float proximity_padding = std::max(control_proximity_min_padding, std::min(item_size.x, item_size.y) * control_proximity_padding_scale);
+        const bool smart_hide_enabled = is_smart_controls_hide_enabled();
         const mgl::FloatRect play_pause_rect = get_play_pause_hitbox(draw_pos, item_size);
+        const bool show_play_pause = !smart_hide_enabled || is_mouse_near_hitbox(window, play_pause_rect, proximity_padding);
+        const bool show_seekbar = seekbar_enabled && (!smart_hide_enabled || is_scrubbing() || is_mouse_near_hitbox(window, get_seekbar_hitbox(draw_pos, item_size), proximity_padding));
+
+        if(!show_play_pause && !show_seekbar)
+            return;
+
         const bool play_pause_hovered = play_pause_rect.contains(window.get_mouse_position().to_vec2f());
 
-        mgl::Rectangle play_pause_bg(play_pause_rect.size);
-        play_pause_bg.set_position(play_pause_rect.position);
-        play_pause_bg.set_color(play_pause_hovered ? mgl::Color(0, 0, 0, 80) : mgl::Color(0, 0, 0, 50));
-        window.draw(play_pause_bg);
-        // draw_rectangle_outline(window, play_pause_rect.position, play_pause_rect.size, mgl::Color(0, 0, 0, 80), std::max(1.0f, get_theme().window_height * 0.0014f));
+        if(show_play_pause) {
+            mgl::Rectangle play_pause_bg(play_pause_rect.size);
+            play_pause_bg.set_position(play_pause_rect.position);
+            play_pause_bg.set_color(play_pause_hovered ? mgl::Color(0, 0, 0, 80) : mgl::Color(0, 0, 0, 50));
+            window.draw(play_pause_bg);
+            // draw_rectangle_outline(window, play_pause_rect.position, play_pause_rect.size, mgl::Color(0, 0, 0, 80), std::max(1.0f, get_theme().window_height * 0.0014f));
 
-        mgl::Sprite play_pause_icon(playback_state.paused ? &get_theme().play_texture : &get_theme().pause_texture);
-        play_pause_icon.set_height(play_pause_rect.size.y * 0.42f);
-        play_pause_icon.set_position((play_pause_rect.position + play_pause_rect.size * 0.5f - play_pause_icon.get_size() * 0.5f).floor());
-        play_pause_icon.set_color(mgl::Color(255, 255, 255, 255));
-        window.draw(play_pause_icon);
+            mgl::Sprite play_pause_icon(playback_state.paused ? &get_theme().play_texture : &get_theme().pause_texture);
+            play_pause_icon.set_height(play_pause_rect.size.y * 0.42f);
+            play_pause_icon.set_position((play_pause_rect.position + play_pause_rect.size * 0.5f - play_pause_icon.get_size() * 0.5f).floor());
+            play_pause_icon.set_color(mgl::Color(255, 255, 255, 255));
+            window.draw(play_pause_icon);
+        }
 
-        if(seekbar_enabled) {
+        if(show_seekbar) {
             const mgl::FloatRect seekbar_hitbox = get_seekbar_hitbox(draw_pos, item_size);
             const float seeker_height = std::max(2.0f, item_size.y * seeker_height_scale);
             const mgl::vec2f seeker_pos = mgl::vec2f(seekbar_hitbox.position.x, seekbar_hitbox.position.y + seekbar_hitbox.size.y * 0.5f - seeker_height * 0.5f).floor();
@@ -873,5 +893,14 @@ namespace gsr {
 
     bool VideoPlayer::controls_visible(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size) const {
         return mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
+    }
+
+    bool VideoPlayer::is_mouse_near_hitbox(mgl::Window &window, const mgl::FloatRect &hitbox, float proximity_padding) const {
+        const mgl::vec2f mouse_pos = window.get_mouse_position().to_vec2f();
+        const mgl::FloatRect expanded_hitbox(
+            hitbox.position - mgl::vec2f(proximity_padding, proximity_padding),
+            hitbox.size + mgl::vec2f(proximity_padding * 2.0f, proximity_padding * 2.0f)
+        );
+        return expanded_hitbox.contains(mouse_pos);
     }
 }

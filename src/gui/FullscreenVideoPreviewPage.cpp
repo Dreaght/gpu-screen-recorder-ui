@@ -31,9 +31,11 @@ namespace gsr {
         previous_position = video_player->get_position();
         previous_size = video_player->get_size();
         previous_seekbar_enabled = video_player->is_seekbar_enabled();
+        previous_smart_controls_hide_enabled = video_player->is_smart_controls_hide_enabled();
 
         on_active_changed(true);
         video_player->set_seekbar_enabled(false);
+        video_player->set_smart_controls_hide_enabled(true);
         layout_player();
         video_player->request_redraw();
     }
@@ -45,6 +47,7 @@ namespace gsr {
         end_external_scrub(false);
         video_player->cancel_scrub(false, true);
         video_player->set_seekbar_enabled(previous_seekbar_enabled);
+        video_player->set_smart_controls_hide_enabled(previous_smart_controls_hide_enabled);
         video_player->set_position(previous_position);
         video_player->set_size(previous_size);
         video_player->request_redraw();
@@ -87,11 +90,11 @@ namespace gsr {
         const mgl::vec2f page_size = get_size();
         const float seekbar_region_height = std::max(42.0f, page_size.y * 0.075f);
         const float vertical_gap = std::max(12.0f, page_size.y * 0.02f);
-        const float available_height = std::max(1.0f, page_size.y - seekbar_region_height - vertical_gap * 2.0f);
-        const float width_scale = page_size.x / (float)video_width;
-        const float height_scale = available_height / (float)video_height;
-        const float scale = std::min(width_scale, height_scale);
-        const mgl::vec2f player_size = mgl::vec2f(video_width * scale, video_height * scale).floor();
+        // const float available_height = std::max(1.0f, page_size.y - seekbar_region_height - vertical_gap * 2.0f);
+        // const float width_scale = page_size.x / (float)video_width;
+        // const float height_scale = available_height / (float)video_height;
+        // const float scale = std::min(width_scale, height_scale);
+        const mgl::vec2f player_size = mgl::vec2f(video_width, video_height).floor();
         const float top = std::max(0.0f, (page_size.y - (player_size.y + vertical_gap + seekbar_region_height)) * 0.5f);
         const mgl::vec2f player_position = mgl::vec2f((page_size.x - player_size.x) * 0.5f, top).floor();
         video_player->set_size(player_size);
