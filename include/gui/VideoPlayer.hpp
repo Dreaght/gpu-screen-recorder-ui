@@ -50,6 +50,8 @@ namespace gsr {
         PreviewSource get_preview_source() const;
         void set_seekbar_enabled(bool enabled);
         bool is_seekbar_enabled() const;
+        void set_smart_controls_hide_enabled(bool enabled);
+        bool is_smart_controls_hide_enabled() const;
         const std::string& get_proxy_video_path() const;
         void set_playback_state_callback(std::function<void(const PlaybackState&)> callback);
         void begin_external_scrub();
@@ -105,6 +107,7 @@ namespace gsr {
         mgl::FloatRect get_seekbar_hitbox(mgl::vec2f draw_pos, mgl::vec2f item_size) const;
         mgl::FloatRect get_play_pause_hitbox(mgl::vec2f draw_pos, mgl::vec2f item_size) const;
         bool controls_visible(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size) const;
+        bool is_mouse_near_hitbox(mgl::Window &window, const mgl::FloatRect &hitbox, float proximity_padding) const;
     private:
         const GsrInfo *gsr_info = nullptr;
         Libmpv libmpv;
@@ -118,6 +121,7 @@ namespace gsr {
         mgl::Sprite video_sprite;
         mgl::Text status_text;
         bool seekbar_enabled = true;
+        bool smart_controls_hide_enabled = false;
         PlaybackState playback_state;
         std::optional<ScrubSession> scrub_session;
         bool video_texture_has_content = false;

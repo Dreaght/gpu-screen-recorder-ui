@@ -49,6 +49,7 @@ namespace gsr {
         mgl::vec2f previous_position;
         mgl::vec2f previous_size;
         bool previous_seekbar_enabled = false;
+        bool previous_smart_controls_hide_enabled = false;
         std::function<void(bool)> on_active_changed;
         std::function<std::vector<TimelineWidget::TimelineChunk>()> get_chunks;
         bool external_scrub_active = false;
