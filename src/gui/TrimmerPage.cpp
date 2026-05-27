@@ -184,6 +184,13 @@ namespace gsr {
             return false;
         }
 
+        if(event.type == mgl::Event::KeyPressed && event.key.code == mgl::Keyboard::Key::Space) {
+            if (video_player_ptr) {
+                video_player_ptr->toggle_pause();
+            }
+            return false;
+        }
+
         Widget *selected_widget = selected_child_widget;
 
         if(selected_widget) {
