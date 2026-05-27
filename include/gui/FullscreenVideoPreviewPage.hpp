@@ -41,6 +41,7 @@ namespace gsr {
         void update_external_scrub(float mouse_x, const SeekbarLayout &layout, const std::vector<TimelineWidget::TimelineChunk> &chunks, int64_t total_enabled_duration_ms);
         void end_external_scrub(bool exact_seek);
         void draw_external_seekbar(mgl::Window &window);
+        bool is_mouse_near_seekbar(mgl::Window &window, const SeekbarLayout &layout) const;
 
         PageStack *page_stack = nullptr;
         VideoPlayer *video_player = nullptr;
