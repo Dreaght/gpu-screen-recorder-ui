@@ -80,6 +80,14 @@ namespace gsr {
         return from;
     }
 
+    mgl::vec2f cover_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to) {
+        if(std::abs(from.x) <= 0.0001f || std::abs(from.y) <= 0.0001f)
+            return {0.0f, 0.0f};
+
+        const float scale = std::max(to.x / from.x, to.y / from.y);
+        return {from.x * scale, from.y * scale};
+    }
+
     mgl::vec2f clamp_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to) {
         if(from.x > to.x || from.y > to.y)
             return scale_keep_aspect_ratio(from, to);

@@ -3,6 +3,7 @@
 #include "../include/Process.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <mutex>
 #include <sstream>
 #include <stdio.h>
@@ -12,6 +13,19 @@ namespace gsr {
     static constexpr size_t max_recent_videos = 16;
 
     static std::mutex recent_videos_mutex;
+
+    static std::string get_recent_video_thumbnail_path(const std::string &video_path) {
+        struct stat st;
+        std::string key = video_path;
+        if(stat(video_path.c_str(), &st) == 0)
+            key += ":" + std::to_string((int64_t)st.st_mtim.tv_sec) + ":" + std::to_string((int64_t)st.st_size);
+
+        const std::string cache_dir = get_cache_dir() + "/recent-video-thumbnails";
+        char cache_dir_buffer[4096];
+        snprintf(cache_dir_buffer, sizeof(cache_dir_buffer), "%s", cache_dir.c_str());
+        create_directory_recursive(cache_dir_buffer);
+        return cache_dir + "/" + std::to_string(std::hash<std::string>{}(key)) + ".jpg";
+    }
 
     static std::string get_recent_videos_filepath() {
         return get_state_dir() + "/recent_videos";
@@ -109,6 +123,33 @@ namespace gsr {
                     recent_video.duration_seconds = duration_seconds;
             }
         }
+
+        if(recent_video.width <= 0 || recent_video.height <= 0)
+            return;
+
+        recent_video.thumbnail_path = get_recent_video_thumbnail_path(recent_video.filepath);
+        if(std::filesystem::exists(recent_video.thumbnail_path))
+            return;
+
+        const double seek_seconds = std::clamp(recent_video.duration_seconds * 0.35, 0.0, std::max(0.0, recent_video.duration_seconds - 0.25));
+        char seek_seconds_str[64];
+        snprintf(seek_seconds_str, sizeof(seek_seconds_str), "%.3f", seek_seconds);
+
+        const char *thumbnail_args[] = {
+            "ffmpeg",
+            "-loglevel", "error",
+            "-y",
+            "-ss", seek_seconds_str,
+            "-i", recent_video.filepath.c_str(),
+            "-frames:v", "1",
+            "-vf", "scale=320:-2",
+            recent_video.thumbnail_path.c_str(),
+            nullptr
+        };
+
+        std::string ffmpeg_output;
+        if(exec_program_on_host_get_stdout(thumbnail_args, ffmpeg_output, false) != 0)
+            recent_video.thumbnail_path.clear();
     }
 
     bool add_recent_video(const std::string &filepath) {

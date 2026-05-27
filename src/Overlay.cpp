@@ -1563,11 +1563,9 @@ namespace gsr {
         main_buttons_list->set_position((mgl::vec2f(window_size.x * 0.5f, window_size.y * 0.25f) - main_buttons_list_size * 0.5f).floor());
         front_page_ptr->add_widget(std::move(main_buttons_list));
 
-        // Recent recorded items
         {
             const mgl::vec2f recently_recorded_entries_page_size = mgl::vec2f(window_size.x / 4.0f, window_size.y * 0.666f);
             auto recently_recorded_entries_scrollable_page = std::make_unique<ScrollablePage>(recently_recorded_entries_page_size, ScrollablePage::ScrollbarSide::LEFT);
-            // ScrollablePage * recently_recorded_entries_scrollable_page_ptr = recently_recorded_entries_scrollable_page.get();
 
             auto recently_recorded_entries_list = std::make_unique<List>(List::Orientation::VERTICAL);
 
@@ -1585,7 +1583,17 @@ namespace gsr {
                 button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
 
                 auto row = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
-                row->add_widget(std::make_unique<Image>(&get_theme().play_texture, mgl::vec2f(recently_recorded_item_height, recently_recorded_item_height), Image::ScaleBehavior::SCALE));
+                const mgl::vec2f preview_size(recently_recorded_item_height, recently_recorded_item_height);
+                if(!recent_video.thumbnail_path.empty()) {
+                    auto thumbnail_texture = std::make_shared<mgl::Texture>();
+                    if(thumbnail_texture->load_from_file(recent_video.thumbnail_path.c_str())) {
+                        row->add_widget(std::make_unique<Image>(std::move(thumbnail_texture), preview_size, Image::ScaleBehavior::COVER));
+                    } else {
+                        row->add_widget(std::make_unique<Image>(&get_theme().play_texture, preview_size, Image::ScaleBehavior::SCALE));
+                    }
+                } else {
+                    row->add_widget(std::make_unique<Image>(&get_theme().play_texture, preview_size, Image::ScaleBehavior::SCALE));
+                }
 
                 auto metadata = std::make_unique<List>(List::Orientation::VERTICAL);
                 const std::string filename_text = recent_video_filename(recent_video);
@@ -1616,7 +1624,6 @@ namespace gsr {
 
             front_page_ptr->add_widget(std::move(recently_recorded_entries_scrollable_page));
         }
-        // ===
 
         {
             const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
