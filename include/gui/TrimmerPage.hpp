@@ -48,6 +48,7 @@ namespace gsr {
         int find_next_enabled_chunk_index(int64_t position_ms) const;
         int find_last_enabled_chunk_index() const;
         void begin_timeline_scrub();
+        void end_timeline_scrub(bool exact_seek);
         void sync_timeline_scrub_position(float scroll_x);
         void save_state();
         void load_state();
