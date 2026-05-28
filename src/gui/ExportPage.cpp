@@ -843,10 +843,16 @@ namespace gsr {
 
     bool ExportPage::start_export() {
         std::vector<TimelineWidget::TimelineChunk> selected_chunks;
-        selected_chunks.reserve(source_info.chunks.size());
-        for(const auto &chunk : source_info.chunks) {
-            if(chunk.enabled && chunk.end_ms > chunk.start_ms)
-                selected_chunks.push_back(chunk);
+        if(source_info.chunks.empty()) {
+            const int64_t full_duration_ms = std::max<int64_t>(0, (int64_t)std::llround(source_info.metadata.duration_seconds * 1000.0));
+            if(full_duration_ms > 0)
+                selected_chunks.push_back({0, full_duration_ms, true});
+        } else {
+            selected_chunks.reserve(source_info.chunks.size());
+            for(const auto &chunk : source_info.chunks) {
+                if(chunk.enabled && chunk.end_ms > chunk.start_ms)
+                    selected_chunks.push_back(chunk);
+            }
         }
 
         if(selected_chunks.empty()) {
@@ -1035,8 +1041,7 @@ namespace gsr {
 
         if(is_video_reencode_active()) {
             const std::string selected_video_codec = std::string(video_codec_box_ptr->get_selected_id());
-            const std::string source_video_codec = map_video_codec_to_option_id(source_info.video_codec);
-            if(selected_video_codec.empty() || selected_video_codec == "auto" || selected_video_codec == source_video_codec) {
+            if(selected_video_codec.empty() || !container_supports_video_codec(container, selected_video_codec)) {
                 ExportRequest request;
                 request.container = container;
                 request.video_codec = "auto";
@@ -1049,16 +1054,15 @@ namespace gsr {
 
         if(is_audio_reencode_active()) {
             const std::string selected_audio_codec = std::string(audio_codec_box_ptr->get_selected_id());
-            const std::string source_audio_codec = map_audio_codec_to_option_id(source_info.audio_codec);
-            if(selected_audio_codec.empty() || selected_audio_codec == source_audio_codec) {
+            if(selected_audio_codec.empty() || !container_supports_audio_codec(container, selected_audio_codec)) {
                 const std::string default_audio_codec = get_default_audio_codec_for_container(container);
                 if(!default_audio_codec.empty())
                     audio_codec_box_ptr->set_selected_item(default_audio_codec);
             }
         }
 
-        video_reencode_options_ptr->set_visible(is_video_reencode_active());
-        audio_reencode_options_ptr->set_visible(is_audio_reencode_active());
+        video_reencode_options_ptr->set_visible(reencode_video_checkbox_ptr->is_checked());
+        audio_reencode_options_ptr->set_visible(reencode_audio_checkbox_ptr->is_checked());
     }
 
     int64_t ExportPage::get_selected_duration_ms() const {
