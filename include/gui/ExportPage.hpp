@@ -74,6 +74,9 @@ namespace gsr {
         void add_button(const std::string &text, const std::string &id, mgl::Color color);
         void load_source_video_info();
         void apply_source_defaults();
+        bool start_export();
+        bool is_video_reencode_active() const;
+        bool is_audio_reencode_active() const;
         void update_reencode_options_visibility();
         void update_source_summary();
         void update_estimated_file_size();
