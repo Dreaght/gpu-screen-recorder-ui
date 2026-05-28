@@ -9,14 +9,11 @@
 
 namespace gsr {
     struct GsrInfo;
+    class PageStack;
     class Label;
     class CustomRendererWidget;
     class ContainerButton;
     class ScrollablePage;
-}
-
-namespace gsr {
-    class PageStack;
 
     class TrimmerPage : public StaticPage {
     public:

@@ -39,6 +39,7 @@ src = [
     'src/gui/GsrPage.cpp',
     'src/gui/FullscreenVideoPreviewPage.cpp',
     'src/gui/TrimmerPage.cpp',
+    'src/gui/ExportPage.cpp',
     'src/gui/TimelineWidget.cpp',
     'src/gui/Subsection.cpp',
     'src/gui/Tooltip.cpp',

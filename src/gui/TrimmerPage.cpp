@@ -6,6 +6,7 @@
 #include "../../include/gui/CustomRendererWidget.hpp"
 #include "../../include/gui/ContainerButton.hpp"
 #include "../../include/gui/FullscreenVideoPreviewPage.hpp"
+#include "../../include/gui/ExportPage.hpp"
 #include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/gui/TimelineWidget.hpp"
 #include "../../include/gui/VideoPlayer.hpp"
@@ -166,7 +167,12 @@ namespace gsr {
 
         container_button->set_widget(std::move(back_button_content));
         container_button->on_click = [this]() {
-            fprintf(stderr, "Clicked export button\n");
+            if (!playback_state.paused) {
+                video_player_ptr->pause();
+            }
+            page_stack->push(std::make_unique<ExportPage>(
+                page_stack
+            ));
         };
 
         return container_button;
