@@ -11,7 +11,6 @@
 #include "../../include/gui/CheckBox.hpp"
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/GsrPage.hpp"
-#include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Translation.hpp"
 
@@ -546,19 +545,19 @@ namespace gsr {
         auto file_info_data_list = std::make_unique<List>(List::Orientation::VERTICAL);
         file_info_data_list->add_widget(create_save_directory(TR("Directory to save trimmed video:")));
         file_info_data_list->add_widget(create_container_section());
-        return std::make_unique<Subsection>(TR("File info"), std::move(file_info_data_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("File info"), std::move(file_info_data_list), mgl::vec2f(get_settings_content_width(), 0.0f));
     }
 
     std::unique_ptr<Label> ExportPage::create_source_summary_label() {
         auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "", get_color_theme().text_color);
-        label->set_wrap_width(get_inner_size().x);
+        label->set_wrap_width(get_settings_content_width());
         source_summary_label_ptr = label.get();
         return label;
     }
 
     std::unique_ptr<Label> ExportPage::create_estimated_file_size() {
         auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "", get_color_theme().text_color);
-        label->set_wrap_width(get_inner_size().x);
+        label->set_wrap_width(get_settings_content_width());
         estimated_file_size_ptr = label.get();
         return label;
     }
@@ -567,7 +566,7 @@ namespace gsr {
         auto source_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         source_info_list->add_widget(create_source_summary_label());
         source_info_list->add_widget(create_estimated_file_size());
-        return std::make_unique<Subsection>(TR("Source"), std::move(source_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Source"), std::move(source_info_list), mgl::vec2f(get_settings_content_width(), 0.0f));
     }
 
     std::unique_ptr<Widget> ExportPage::create_reencode_video_checkbox() {
@@ -671,21 +670,17 @@ namespace gsr {
         audio_reencode_options->add_widget(create_audio_bitrate());
         video_section_list->add_widget(std::move(audio_reencode_options));
 
-        return std::make_unique<Subsection>(TR("Compression"), std::move(video_section_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        return std::make_unique<Subsection>(TR("Compression"), std::move(video_section_list), mgl::vec2f(get_settings_content_width(), 0.0f));
     }
 
     std::unique_ptr<Widget> ExportPage::create_settings() {
-        auto scrollable_page = std::make_unique<ScrollablePage>(get_inner_size());
-        settings_scrollable_page_ptr = scrollable_page.get();
-
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        settings_list_ptr = settings_list.get();
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_file_info_section());
         settings_list->add_widget(create_source_info_section());
         settings_list->add_widget(create_video_section());
-        scrollable_page->add_widget(std::move(settings_list));
-
-        return scrollable_page;
+        return settings_list;
     }
 
     void ExportPage::add_widgets() {
@@ -1162,8 +1157,12 @@ namespace gsr {
         if(!visible)
             return {0.0f, 0.0f};
 
-        const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
-        return (window_size * mgl::vec2f(0.4f, 0.48f)).floor();
+        const float margin_top = std::floor(margin_top_scale * get_theme().window_height);
+        const float margin_bottom = std::floor(margin_bottom_scale * get_theme().window_height);
+        const float margin_left = std::floor(margin_left_scale * get_theme().window_height);
+        const float margin_right = std::floor(margin_right_scale * get_theme().window_height);
+        const mgl::vec2f settings_size = settings_list_ptr ? settings_list_ptr->get_size() : mgl::vec2f(get_settings_content_width(), 0.0f);
+        return (settings_size + mgl::vec2f(margin_left + margin_right, margin_top + margin_bottom + get_border_size())).floor();
     }
 
     mgl::vec2f ExportPage::get_inner_size() {
@@ -1201,6 +1200,13 @@ namespace gsr {
 
     float ExportPage::get_horizontal_spacing() const {
         return get_theme().window_width / 50;
+    }
+
+    float ExportPage::get_settings_content_width() const {
+        const float margin_left = std::floor(margin_left_scale * get_theme().window_height);
+        const float margin_right = std::floor(margin_right_scale * get_theme().window_height);
+        const float preferred_page_width = std::floor(get_theme().window_width * 0.4f);
+        return std::max(0.0f, preferred_page_width - margin_left - margin_right);
     }
 
     mgl::vec2f ExportPage::get_content_position() {
