@@ -130,6 +130,34 @@ namespace gsr {
             return std::max<int64_t>(1, (int64_t)std::llround(bitrate_bps / 1000.0));
         }
 
+        static double parse_ffprobe_fps(const std::string &fps_str) {
+            int numerator = 0;
+            int denominator = 0;
+            if(sscanf(fps_str.c_str(), "%d/%d", &numerator, &denominator) == 2 && denominator != 0)
+                return (double)numerator / (double)denominator;
+            return strtod(fps_str.c_str(), nullptr);
+        }
+
+        static bool parse_positive_double(std::string_view text, double &result) {
+            const std::string str(text);
+            char *end = nullptr;
+            result = strtod(str.c_str(), &end);
+            if(end == str.c_str() || (end && *end != '\0') || !std::isfinite(result) || result <= 0.0)
+                return false;
+            return true;
+        }
+
+        static std::string format_fps_value(double fps) {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "%.3f", fps);
+            std::string result = buffer;
+            while(result.size() > 1 && result.back() == '0')
+                result.pop_back();
+            if(!result.empty() && result.back() == '.')
+                result.pop_back();
+            return result;
+        }
+
         static bool parse_ffprobe_key_value(const std::string &output, const char *key, std::string &value) {
             std::istringstream iss(output);
             std::string line;
@@ -356,6 +384,14 @@ namespace gsr {
             if(source_info.total_bitrate_kbps > 0)
                 return std::max<int64_t>(1, source_info.total_bitrate_kbps - get_estimated_audio_bitrate_guess_kbps(source_info));
             return source_info.video_bitrate_kbps;
+        }
+
+        static bool should_override_fps(const ExportPage::SourceVideoInfo &source_info, double target_fps, bool framerate_modified) {
+            if(!framerate_modified || target_fps <= 0.0)
+                return false;
+            if(source_info.fps <= 0.0)
+                return true;
+            return std::abs(target_fps - source_info.fps) > 0.01;
         }
     }
 
@@ -624,6 +660,19 @@ namespace gsr {
         return audio_codec_list;
     }
 
+    std::unique_ptr<Entry> ExportPage::create_framerate_entry() {
+        auto entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "60", (int)(2.0f * mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 3));
+        framerate_entry_ptr = entry.get();
+        return entry;
+    }
+
+    std::unique_ptr<Widget> ExportPage::create_framerate() {
+        auto framerate_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        framerate_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Frame rate:"), get_color_theme().text_color));
+        framerate_list->add_widget(create_framerate_entry());
+        return framerate_list;
+    }
+
     std::unique_ptr<Entry> ExportPage::create_video_bitrate_entry() {
         auto entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "8000", (int)(2.0f * mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 6));
         entry->set_number_mode(true, 1, 500000);
@@ -659,6 +708,7 @@ namespace gsr {
         auto video_reencode_options = std::make_unique<List>(List::Orientation::VERTICAL);
         video_reencode_options_ptr = video_reencode_options.get();
         video_reencode_options->add_widget(create_video_codec());
+        video_reencode_options->add_widget(create_framerate());
         video_reencode_options->add_widget(create_video_bitrate());
         video_section_list->add_widget(std::move(video_reencode_options));
 
@@ -697,6 +747,10 @@ namespace gsr {
         video_bitrate_entry_ptr->on_changed = [this](std::string_view) {
             update_estimated_file_size();
         };
+        framerate_entry_ptr->on_changed = [this](std::string_view) {
+            framerate_modified = framerate_entry_ptr->get_text() != source_framerate_text;
+            update_estimated_file_size();
+        };
         audio_bitrate_entry_ptr->on_changed = [this](std::string_view) {
             update_estimated_file_size();
         };
@@ -727,7 +781,7 @@ namespace gsr {
                 "ffprobe",
                 "-v", "error",
                 "-select_streams", "v:0",
-                "-show_entries", "stream=codec_name,bit_rate,width,height",
+                "-show_entries", "stream=codec_name,bit_rate,width,height,avg_frame_rate,r_frame_rate",
                 "-of", "default=noprint_wrappers=1:nokey=0",
                 source_info.metadata.filepath.c_str(),
                 nullptr
@@ -742,6 +796,10 @@ namespace gsr {
                     source_info.video_bitrate_kbps = bitrate_kbps_from_bps(strtod(value.c_str(), nullptr));
                     source_info.has_video_bitrate = source_info.video_bitrate_kbps > 0;
                 }
+                if(parse_ffprobe_key_value(output, "avg_frame_rate", value))
+                    source_info.fps = parse_ffprobe_fps(value);
+                if(source_info.fps <= 0.0 && parse_ffprobe_key_value(output, "r_frame_rate", value))
+                    source_info.fps = parse_ffprobe_fps(value);
                 if(source_info.metadata.width <= 0 && parse_ffprobe_key_value(output, "width", value))
                     source_info.metadata.width = atoi(value.c_str());
                 if(source_info.metadata.height <= 0 && parse_ffprobe_key_value(output, "height", value))
@@ -816,6 +874,10 @@ namespace gsr {
         container_box_ptr->set_selected_item(source_info.container);
         video_codec_box_ptr->set_selected_item(map_video_codec_to_option_id(source_info.video_codec));
         audio_codec_box_ptr->set_selected_item(map_audio_codec_to_option_id(source_info.audio_codec));
+        source_framerate_known = source_info.fps > 0.0;
+        source_framerate_text = format_fps_value(source_framerate_known ? source_info.fps : 60.0);
+        framerate_entry_ptr->set_text(source_framerate_text);
+        framerate_modified = !source_framerate_known;
         video_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info))));
         audio_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, get_estimated_audio_bitrate_guess_kbps(source_info))));
         reencode_video_checkbox_ptr->set_checked(false);
@@ -887,6 +949,12 @@ namespace gsr {
         std::string audio_codec = request.audio_codec.empty() ? get_default_audio_codec_for_container(request.container) : request.audio_codec;
 
         if(request.reencode_video) {
+            double target_fps = 0.0;
+            if(!parse_positive_double(framerate_entry_ptr->get_text(), target_fps)) {
+                show_export_notification(TR("Frame rate must be a positive number"), false);
+                return false;
+            }
+
             if(video_codec.empty()) {
                 show_export_notification(TR("No compatible video codec is available for the selected export settings"), false);
                 return false;
@@ -961,8 +1029,14 @@ namespace gsr {
         };
 
         if(request.reencode_video) {
+            double target_fps = 0.0;
+            parse_positive_double(framerate_entry_ptr->get_text(), target_fps);
             args_str.push_back("-c:v");
             args_str.push_back(map_ffmpeg_video_encoder(video_codec));
+            if(should_override_fps(source_info, target_fps, framerate_modified)) {
+                args_str.push_back("-r");
+                args_str.push_back(format_fps_value(target_fps));
+            }
             args_str.push_back("-b:v");
             args_str.push_back(request.video_bitrate + "k");
         } else {
