@@ -15,7 +15,7 @@ namespace gsr {
     class Entry;
     class CheckBox;
     class Label;
-    class ScrollablePage;
+    class List;
 
     class ExportPage : public StaticPage {
     public:
@@ -83,6 +83,7 @@ namespace gsr {
         int64_t get_selected_duration_ms() const;
         float get_border_size() const;
         float get_horizontal_spacing() const;
+        float get_settings_content_width() const;
         mgl::vec2f get_content_position();
     private:
         struct ButtonItem {
@@ -102,7 +103,7 @@ namespace gsr {
         std::vector<ButtonItem> buttons;
         SourceVideoInfo source_info;
 
-        ScrollablePage *settings_scrollable_page_ptr = nullptr;
+        List *settings_list_ptr = nullptr;
         Button *save_directory_button_ptr = nullptr;
         ComboBox *container_box_ptr = nullptr;
         ComboBox *video_codec_box_ptr = nullptr;
