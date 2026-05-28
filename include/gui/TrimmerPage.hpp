@@ -35,6 +35,7 @@ namespace gsr {
         std::unique_ptr<VideoPlayer> create_videoplayer(mgl::vec2f size);
         std::unique_ptr<ScrollablePage> create_timeline(mgl::vec2f size);
         std::unique_ptr<ContainerButton> create_back_button(mgl::vec2f size);
+        std::unique_ptr<ContainerButton> create_export_button(mgl::vec2f size);
         void add_widgets();
 
         void draw_children(mgl::Window &window, mgl::vec2f position);

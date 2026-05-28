@@ -153,8 +153,28 @@ namespace gsr {
         return container_button;
     }
 
+    std::unique_ptr<ContainerButton> TrimmerPage::create_export_button(mgl::vec2f size) {
+        auto container_button = std::make_unique<ContainerButton>(size, get_color_theme().tint_color);
+
+        auto back_button_content = std::make_unique<CustomRendererWidget>(size);
+        back_button_content->draw_handler = [](mgl::Window &window, mgl::vec2f pos, mgl::vec2f size) {
+            mgl::Text video_path_text(TR("Export"), get_theme().title_font_desc.c_str());
+            video_path_text.set_position(pos + size / 2 - video_path_text.get_bounds().size / 2);
+            video_path_text.set_color(get_color_theme().text_color);
+            window.draw(video_path_text);
+        };
+
+        container_button->set_widget(std::move(back_button_content));
+        container_button->on_click = [this]() {
+            fprintf(stderr, "Clicked export button\n");
+        };
+
+        return container_button;
+    }
+
     void TrimmerPage::add_widgets() {
         auto vertical_page_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
+        vertical_page_list->set_spacing(0);
 
         auto content_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::CENTER);
         content_list->add_widget(create_header(mgl::vec2f(content_page_ptr->get_inner_size().x * 0.666f, content_page_ptr->get_inner_size().y * 0.033f)));
@@ -179,6 +199,7 @@ namespace gsr {
         );
 
         auto vertical_side_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::END);
+        vertical_side_list->set_spacing(0);
         vertical_side_list->add_widget(std::make_unique<CustomRendererWidget>(mgl::vec2f(
             horizontal_page_list_spacer_size.x,
             (horizontal_page_list_spacer_size.y - content_list_height) / 2
@@ -188,13 +209,16 @@ namespace gsr {
         horizontal_page_list->add_widget(std::move(vertical_page_list));
 
         auto vertical_buttons_list = std::make_unique<List>(List::Orientation::VERTICAL, List::Alignment::START);
+        vertical_buttons_list->set_spacing(horizontal_page_list_spacing_scale);
+        const float vertical_buttons_list_spacing = (int)(horizontal_page_list_spacing_scale * content_page_ptr->get_inner_size().y);
 
         auto button_size = mgl::vec2f(get_theme().window_width / 10, get_theme().window_height / 15).floor();
         vertical_buttons_list->add_widget(std::make_unique<CustomRendererWidget>(mgl::vec2f(
             horizontal_page_list_spacer_size.x,
-            (horizontal_page_list_spacer_size.y - content_list_height) / 2
+            ((horizontal_page_list_spacer_size.y - content_list_height) / 2) - vertical_buttons_list_spacing
             )));
         vertical_buttons_list->add_widget(create_back_button(button_size));
+        vertical_buttons_list->add_widget(create_export_button(mgl::vec2f(button_size.x, button_size.y / 2)));
 
         horizontal_page_list->add_widget(std::move(vertical_buttons_list));
         content_page_ptr->add_widget(std::move(horizontal_page_list));
