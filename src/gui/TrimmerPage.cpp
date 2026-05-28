@@ -171,7 +171,10 @@ namespace gsr {
                 video_player_ptr->pause();
             }
             page_stack->push(std::make_unique<ExportPage>(
-                page_stack
+                gsr_info,
+                page_stack,
+                video_metadata,
+                get_effective_chunks()
             ));
         };
 
