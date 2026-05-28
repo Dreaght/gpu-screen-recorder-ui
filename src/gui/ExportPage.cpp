@@ -22,8 +22,11 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 #include <sys/stat.h>
+#include <time.h>
+#include <unordered_set>
 
 namespace gsr {
     namespace {
@@ -140,6 +143,221 @@ namespace gsr {
             }
             return false;
         }
+
+        static std::string get_date_str() {
+            char str[128];
+            time_t now = time(NULL);
+            struct tm *t = localtime(&now);
+            strftime(str, sizeof(str) - 1, "%Y-%m-%d_%H-%M-%S", t);
+            return str;
+        }
+
+        static std::string container_to_file_extension(const std::string &container) {
+            if(container == "matroska")
+                return "mkv";
+            return container;
+        }
+
+        static std::string color_to_hex_str(mgl::Color color) {
+            char color_str[8];
+            snprintf(color_str, sizeof(color_str), "%02x%02x%02x", color.r, color.g, color.b);
+            return color_str;
+        }
+
+        static std::string escape_ffconcat_path(const std::string &path) {
+            std::string escaped;
+            escaped.reserve(path.size() * 2);
+            for(char c : path) {
+                if(c == '\\' || c == ' ' || c == '\'' || c == '#')
+                    escaped += '\\';
+                escaped += c;
+            }
+            return escaped;
+        }
+
+        static std::string format_seconds(double seconds) {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "%.3f", std::max(0.0, seconds));
+            return buffer;
+        }
+
+        static std::string shell_quote(const std::string &str) {
+            std::string result = "'";
+            for(char c : str) {
+                if(c == '\'')
+                    result += "'\\''";
+                else
+                    result += c;
+            }
+            result += "'";
+            return result;
+        }
+
+        static void show_export_notification(const std::string &text, bool success) {
+            const std::string timeout_seconds = success ? "3.000000" : "5.000000";
+            const std::string icon_color_str = success ? "ffffff" : "ff0000";
+            const std::string bg_color_str = success ? color_to_hex_str(get_color_theme().tint_color) : "ff0000";
+            const char *notification_args[] = {
+                "gsr-notify",
+                "--text", text.c_str(),
+                "--timeout", timeout_seconds.c_str(),
+                "--icon-color", icon_color_str.c_str(),
+                "--bg-color", bg_color_str.c_str(),
+                "--icon", success ? "record" : GSR_UI_RESOURCES_PATH "/images/gsr-ui.png",
+                nullptr
+            };
+            exec_program_on_host_daemonized(notification_args, false);
+        }
+
+        struct ExportRequest {
+            std::string input_path;
+            std::string output_path;
+            std::string container;
+            std::string video_codec;
+            std::string audio_codec;
+            std::string video_bitrate;
+            std::string audio_bitrate;
+            std::vector<TimelineWidget::TimelineChunk> chunks;
+            bool reencode_video = false;
+            bool reencode_audio = false;
+            bool has_audio_stream = false;
+        };
+
+        static bool host_supports_video_codec(const std::string &codec);
+        static bool host_supports_audio_codec(const std::string &codec);
+
+        static std::string choose_default_video_codec(const ExportRequest &request, const ExportPage::SourceVideoInfo &source_info) {
+            if(request.video_codec == "auto") {
+                if(!request.reencode_video && !source_info.video_codec.empty() && source_info.video_codec != "h264_software")
+                    return source_info.video_codec;
+
+                if(request.container == "webm") {
+                    if(host_supports_video_codec("vp9"))
+                        return "vp9";
+                    if(host_supports_video_codec("av1"))
+                        return "av1";
+                    if(host_supports_video_codec("vp8"))
+                        return "vp8";
+                    return "";
+                }
+
+                if(host_supports_video_codec("h264"))
+                    return "h264";
+                if(request.container != "mov" && host_supports_video_codec("av1"))
+                    return "av1";
+                if(host_supports_video_codec("hevc"))
+                    return "hevc";
+                if(host_supports_video_codec("vp9"))
+                    return "vp9";
+                if(host_supports_video_codec("vp8"))
+                    return "vp8";
+                return "";
+            }
+            if(request.video_codec == "h264_software")
+                return "h264";
+            return request.video_codec;
+        }
+
+        static std::string map_ffmpeg_video_encoder(const std::string &codec) {
+            if(codec == "h264")
+                return "libx264";
+            if(codec == "hevc")
+                return "libx265";
+            if(codec == "av1")
+                return "libaom-av1";
+            if(codec == "vp8")
+                return "libvpx";
+            if(codec == "vp9")
+                return "libvpx-vp9";
+            return "libx264";
+        }
+
+        static std::string map_ffmpeg_audio_encoder(const std::string &codec) {
+            if(codec == "opus")
+                return "libopus";
+            return "aac";
+        }
+
+        static const std::unordered_set<std::string>& get_host_ffmpeg_encoders() {
+            static const std::unordered_set<std::string> encoders = [] {
+                std::unordered_set<std::string> result;
+                const char *args[] = { "ffmpeg", "-hide_banner", "-encoders", nullptr };
+                std::string output;
+                if(exec_program_on_host_get_stdout(args, output, false) != 0)
+                    return result;
+
+                std::istringstream iss(output);
+                std::string line;
+                while(std::getline(iss, line)) {
+                    if(line.size() < 8)
+                        continue;
+                    if(line[0] != ' ')
+                        continue;
+
+                    std::istringstream line_stream(line.substr(8));
+                    std::string encoder_name;
+                    if(line_stream >> encoder_name)
+                        result.insert(encoder_name);
+                }
+                return result;
+            }();
+            return encoders;
+        }
+
+        static bool host_supports_ffmpeg_encoder(const std::string &encoder_name) {
+            const auto &encoders = get_host_ffmpeg_encoders();
+            return encoders.find(encoder_name) != encoders.end();
+        }
+
+        static bool host_supports_video_codec(const std::string &codec) {
+            return host_supports_ffmpeg_encoder(map_ffmpeg_video_encoder(codec));
+        }
+
+        static bool host_supports_audio_codec(const std::string &codec) {
+            return host_supports_ffmpeg_encoder(map_ffmpeg_audio_encoder(codec));
+        }
+
+        static bool container_supports_video_codec(const std::string &container, const std::string &codec) {
+            if(container == "webm")
+                return codec == "vp8" || codec == "vp9" || codec == "av1";
+            if(container == "mp4")
+                return codec == "h264" || codec == "hevc" || codec == "av1";
+            if(container == "mov")
+                return codec == "h264" || codec == "hevc";
+            return true;
+        }
+
+        static bool container_supports_audio_codec(const std::string &container, const std::string &codec) {
+            if(container == "webm")
+                return codec == "opus";
+            if(container == "mp4" || container == "mov")
+                return codec == "aac";
+            return true;
+        }
+
+        static std::string get_default_audio_codec_for_container(const std::string &container) {
+            if(container == "webm")
+                return host_supports_audio_codec("opus") ? "opus" : "";
+            return host_supports_audio_codec("aac") ? "aac" : "";
+        }
+
+        static int64_t get_estimated_audio_bitrate_guess_kbps(const ExportPage::SourceVideoInfo &source_info) {
+            if(source_info.has_audio_bitrate)
+                return source_info.audio_bitrate_kbps;
+            if(source_info.audio_codec.empty())
+                return 0;
+            if(source_info.total_bitrate_kbps > 0)
+                return std::min<int64_t>(128, std::max<int64_t>(32, source_info.total_bitrate_kbps / 8));
+            return 128;
+        }
+
+        static int64_t get_estimated_video_bitrate_guess_kbps(const ExportPage::SourceVideoInfo &source_info) {
+            if(source_info.has_video_bitrate)
+                return source_info.video_bitrate_kbps;
+            if(source_info.total_bitrate_kbps > 0)
+                return std::max<int64_t>(1, source_info.total_bitrate_kbps - get_estimated_audio_bitrate_guess_kbps(source_info));
+            return source_info.video_bitrate_kbps;
+        }
     }
 
     ExportPage::ExportPage(const GsrInfo *gsr_info, PageStack *page_stack, VideoMetadata video_metadata, std::vector<TimelineWidget::TimelineChunk> chunks) :
@@ -158,11 +376,11 @@ namespace gsr {
 
         add_button(TR("Export"), "export", get_color_theme().tint_color);
         add_button(TR("Cancel"), "cancel", get_color_theme().page_bg_color);
-        on_click = [page_stack](const std::string &id) {
+        on_click = [this, page_stack](const std::string &id) {
             if(id == "cancel")
                 page_stack->pop();
             if(id == "export")
-                fprintf(stderr, "Export pressed!\n");
+                start_export();
         };
 
         add_widgets();
@@ -367,17 +585,17 @@ namespace gsr {
     std::unique_ptr<ComboBox> ExportPage::create_video_codec_box() {
         auto video_codec_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         video_codec_box->add_item(TR("Auto (Recommended)"), "auto");
-        if(gsr_info && gsr_info->supported_video_codecs.h264)
+        if(host_supports_video_codec("h264"))
             video_codec_box->add_item(TR("H264"), "h264");
-        if(gsr_info && gsr_info->supported_video_codecs.hevc)
+        if(host_supports_video_codec("hevc"))
             video_codec_box->add_item(TR("HEVC"), "hevc");
-        if(gsr_info && gsr_info->supported_video_codecs.av1)
+        if(host_supports_video_codec("av1"))
             video_codec_box->add_item(TR("AV1"), "av1");
-        if(gsr_info && gsr_info->supported_video_codecs.vp9)
+        if(host_supports_video_codec("vp9"))
             video_codec_box->add_item(TR("VP9"), "vp9");
-        if(gsr_info && gsr_info->supported_video_codecs.vp8)
+        if(host_supports_video_codec("vp8"))
             video_codec_box->add_item(TR("VP8"), "vp8");
-        if(gsr_info && gsr_info->supported_video_codecs.h264_software)
+        if(host_supports_video_codec("h264"))
             video_codec_box->add_item(TR("H264 Software Encoder (Slow, not recommended)"), "h264_software");
         video_codec_box_ptr = video_codec_box.get();
         return video_codec_box;
@@ -392,8 +610,10 @@ namespace gsr {
 
     std::unique_ptr<ComboBox> ExportPage::create_audio_codec_box() {
         auto audio_codec_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
-        audio_codec_box->add_item(TR("AAC"), "aac");
-        audio_codec_box->add_item(TR("Opus"), "opus");
+        if(host_supports_audio_codec("aac"))
+            audio_codec_box->add_item(TR("AAC"), "aac");
+        if(host_supports_audio_codec("opus"))
+            audio_codec_box->add_item(TR("Opus"), "opus");
         audio_codec_box_ptr = audio_codec_box.get();
         return audio_codec_box;
     }
@@ -494,6 +714,7 @@ namespace gsr {
             return true;
         };
         container_box_ptr->on_selection_changed = [this](std::string_view, std::string_view) {
+            update_reencode_options_visibility();
             update_estimated_file_size();
             return true;
         };
@@ -600,27 +821,257 @@ namespace gsr {
         container_box_ptr->set_selected_item(source_info.container);
         video_codec_box_ptr->set_selected_item(map_video_codec_to_option_id(source_info.video_codec));
         audio_codec_box_ptr->set_selected_item(map_audio_codec_to_option_id(source_info.audio_codec));
-        video_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, source_info.video_bitrate_kbps)));
-        audio_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, source_info.audio_bitrate_kbps > 0 ? source_info.audio_bitrate_kbps : 128)));
+        video_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info))));
+        audio_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, get_estimated_audio_bitrate_guess_kbps(source_info))));
         reencode_video_checkbox_ptr->set_checked(false);
         reencode_audio_checkbox_ptr->set_checked(false);
     }
 
+    bool ExportPage::is_video_reencode_active() const {
+        if(reencode_video_checkbox_ptr->is_checked())
+            return true;
+        return !container_supports_video_codec(std::string(container_box_ptr->get_selected_id()), source_info.video_codec);
+    }
+
+    bool ExportPage::is_audio_reencode_active() const {
+        if(source_info.audio_codec.empty())
+            return false;
+        if(reencode_audio_checkbox_ptr->is_checked())
+            return true;
+        return !container_supports_audio_codec(std::string(container_box_ptr->get_selected_id()), source_info.audio_codec);
+    }
+
+    bool ExportPage::start_export() {
+        std::vector<TimelineWidget::TimelineChunk> selected_chunks;
+        selected_chunks.reserve(source_info.chunks.size());
+        for(const auto &chunk : source_info.chunks) {
+            if(chunk.enabled && chunk.end_ms > chunk.start_ms)
+                selected_chunks.push_back(chunk);
+        }
+
+        if(selected_chunks.empty()) {
+            show_export_notification(TR("No video segment selected to export"), false);
+            return false;
+        }
+
+        std::string output_directory(save_directory_button_ptr->get_text());
+        if(output_directory.empty())
+            output_directory = get_parent_directory(source_info.metadata.filepath);
+
+        std::string output_directory_copy = output_directory;
+        if(create_directory_recursive(output_directory_copy.data()) != 0) {
+            show_export_notification(TR("Failed to create export directory"), false);
+            return false;
+        }
+
+        const std::string output_extension = container_to_file_extension(std::string(container_box_ptr->get_selected_id()));
+        std::string output_path = output_directory + "/Trimmed_" + get_date_str() + "." + output_extension;
+        for(int suffix = 1; std::filesystem::exists(output_path); ++suffix)
+            output_path = output_directory + "/Trimmed_" + get_date_str() + "_" + std::to_string(suffix) + "." + output_extension;
+
+        ExportRequest request;
+        request.input_path = source_info.metadata.filepath;
+        request.output_path = output_path;
+        request.container = std::string(container_box_ptr->get_selected_id());
+        request.video_codec = std::string(video_codec_box_ptr->get_selected_id());
+        request.audio_codec = std::string(audio_codec_box_ptr->get_selected_id());
+        request.video_bitrate = std::string(video_bitrate_entry_ptr->get_text());
+        request.audio_bitrate = std::string(audio_bitrate_entry_ptr->get_text());
+        request.chunks = std::move(selected_chunks);
+        request.reencode_video = is_video_reencode_active();
+        request.reencode_audio = is_audio_reencode_active();
+        request.has_audio_stream = !source_info.audio_codec.empty();
+
+        std::string video_codec = choose_default_video_codec(request, source_info);
+        std::string audio_codec = request.audio_codec.empty() ? get_default_audio_codec_for_container(request.container) : request.audio_codec;
+
+        if(request.reencode_video) {
+            if(video_codec.empty()) {
+                show_export_notification(TR("No compatible video codec is available for the selected export settings"), false);
+                return false;
+            }
+            if(!container_supports_video_codec(request.container, video_codec)) {
+                show_export_notification(TR("The selected video codec is not compatible with the selected container"), false);
+                return false;
+            }
+            if(!host_supports_video_codec(video_codec)) {
+                show_export_notification(TR("The selected video codec is not available in host ffmpeg"), false);
+                return false;
+            }
+        } else if(!container_supports_video_codec(request.container, source_info.video_codec)) {
+            show_export_notification(TR("Enable video re-encoding or select a compatible container for the source video codec"), false);
+            return false;
+        }
+
+        if(request.has_audio_stream) {
+            if(request.reencode_audio) {
+                if(audio_codec.empty()) {
+                    show_export_notification(TR("No compatible audio codec is available for the selected export settings"), false);
+                    return false;
+                }
+                if(!container_supports_audio_codec(request.container, audio_codec)) {
+                    show_export_notification(TR("The selected audio codec is not compatible with the selected container"), false);
+                    return false;
+                }
+                if(!host_supports_audio_codec(audio_codec)) {
+                    show_export_notification(TR("The selected audio codec is not available in host ffmpeg"), false);
+                    return false;
+                }
+            } else if(!container_supports_audio_codec(request.container, source_info.audio_codec)) {
+                show_export_notification(TR("Enable audio re-encoding or select a compatible container for the source audio codec"), false);
+                return false;
+            }
+        }
+
+        const SourceVideoInfo source_info_copy = source_info;
+        const std::string export_dir = get_state_dir() + "/trimmer-export";
+        std::string export_dir_buffer = export_dir;
+        create_directory_recursive(export_dir_buffer.data());
+
+        const std::string export_id = std::to_string(std::hash<std::string>{}(request.output_path + request.input_path + std::to_string(time(NULL))));
+        const std::string concat_path = export_dir + "/" + export_id + ".ffconcat";
+        const std::string script_path = export_dir + "/" + export_id + ".sh";
+
+        std::string concat_data = "ffconcat version 1.0\n";
+        for(const auto &chunk : request.chunks) {
+            concat_data += "file ";
+            concat_data += escape_ffconcat_path(request.input_path);
+            concat_data += "\n";
+            concat_data += "inpoint ";
+            concat_data += format_seconds((double)chunk.start_ms / 1000.0);
+            concat_data += "\n";
+            concat_data += "outpoint ";
+            concat_data += format_seconds((double)chunk.end_ms / 1000.0);
+            concat_data += "\n";
+        }
+
+        if(!file_overwrite(concat_path.c_str(), concat_data)) {
+            show_export_notification(TR("Failed to prepare trimmed video export"), false);
+            return false;
+        }
+
+        std::vector<std::string> args_str = {
+            "ffmpeg", "-loglevel", "error", "-y",
+            "-safe", "0",
+            "-f", "concat",
+            "-i", concat_path,
+            "-map", "0:v:0",
+            "-map", "0:a:0?"
+        };
+
+        if(request.reencode_video) {
+            args_str.push_back("-c:v");
+            args_str.push_back(map_ffmpeg_video_encoder(video_codec));
+            args_str.push_back("-b:v");
+            args_str.push_back(request.video_bitrate + "k");
+        } else {
+            args_str.push_back("-c:v");
+            args_str.push_back("copy");
+        }
+
+        if(request.has_audio_stream) {
+                if(request.reencode_audio) {
+                    args_str.push_back("-c:a");
+                    args_str.push_back(map_ffmpeg_audio_encoder(audio_codec));
+                args_str.push_back("-b:a");
+                args_str.push_back(request.audio_bitrate + "k");
+            } else {
+                args_str.push_back("-c:a");
+                args_str.push_back("copy");
+            }
+        }
+
+        if(request.container == "mp4" || request.container == "mov") {
+            args_str.push_back("-movflags");
+            args_str.push_back("+faststart");
+        }
+
+        args_str.push_back(request.output_path);
+
+        std::string ffmpeg_command;
+        for(size_t i = 0; i < args_str.size(); ++i) {
+            if(i > 0)
+                ffmpeg_command += ' ';
+            ffmpeg_command += shell_quote(args_str[i]);
+        }
+
+        const std::string success_text = std::string(TR("Trimmed video exported:\n")) + request.output_path;
+        const std::string failure_text = TR("Failed to export trimmed video");
+        const std::string success_bg = color_to_hex_str(get_color_theme().tint_color);
+        const std::string script =
+            std::string("#!/bin/sh\n") +
+            ffmpeg_command + "\n" +
+            "status=$?\n" +
+            "rm -f -- " + shell_quote(concat_path) + "\n" +
+            "if [ \"$status\" -eq 0 ]; then\n" +
+            "  gsr-notify --text " + shell_quote(success_text) + " --timeout 3.000000 --icon-color 'ffffff' --bg-color " + shell_quote(success_bg) + " --icon record\n" +
+            "else\n" +
+            "  rm -f -- " + shell_quote(request.output_path) + "\n" +
+            "  gsr-notify --text " + shell_quote(failure_text) + " --timeout 5.000000 --icon-color 'ff0000' --bg-color 'ff0000' --icon " + shell_quote(std::string(GSR_UI_RESOURCES_PATH) + "/images/gsr-ui.png") + "\n" +
+            "fi\n" +
+            "rm -f -- \"$0\"\n";
+
+        if(!file_overwrite(script_path.c_str(), script)) {
+            std::filesystem::remove(concat_path);
+            show_export_notification(TR("Failed to prepare trimmed video export"), false);
+            return false;
+        }
+
+        chmod(script_path.c_str(), 0700);
+        const char *args[] = { "sh", script_path.c_str(), nullptr };
+        if(!exec_program_on_host_daemonized(args, false)) {
+            std::filesystem::remove(script_path);
+            std::filesystem::remove(concat_path);
+            show_export_notification(TR("Failed to start trimmed video export"), false);
+            return false;
+        }
+
+        page_stack->pop();
+        return true;
+    }
+
     void ExportPage::update_reencode_options_visibility() {
-        video_reencode_options_ptr->set_visible(reencode_video_checkbox_ptr->is_checked());
-        audio_reencode_options_ptr->set_visible(reencode_audio_checkbox_ptr->is_checked());
+        const std::string container = std::string(container_box_ptr->get_selected_id());
+
+        if(is_video_reencode_active()) {
+            const std::string selected_video_codec = std::string(video_codec_box_ptr->get_selected_id());
+            const std::string source_video_codec = map_video_codec_to_option_id(source_info.video_codec);
+            if(selected_video_codec.empty() || selected_video_codec == "auto" || selected_video_codec == source_video_codec) {
+                ExportRequest request;
+                request.container = container;
+                request.video_codec = "auto";
+                request.reencode_video = true;
+                const std::string default_video_codec = choose_default_video_codec(request, source_info);
+                if(!default_video_codec.empty() && container_supports_video_codec(container, default_video_codec))
+                    video_codec_box_ptr->set_selected_item(default_video_codec);
+            }
+        }
+
+        if(is_audio_reencode_active()) {
+            const std::string selected_audio_codec = std::string(audio_codec_box_ptr->get_selected_id());
+            const std::string source_audio_codec = map_audio_codec_to_option_id(source_info.audio_codec);
+            if(selected_audio_codec.empty() || selected_audio_codec == source_audio_codec) {
+                const std::string default_audio_codec = get_default_audio_codec_for_container(container);
+                if(!default_audio_codec.empty())
+                    audio_codec_box_ptr->set_selected_item(default_audio_codec);
+            }
+        }
+
+        video_reencode_options_ptr->set_visible(is_video_reencode_active());
+        audio_reencode_options_ptr->set_visible(is_audio_reencode_active());
     }
 
     int64_t ExportPage::get_selected_duration_ms() const {
+        if(source_info.chunks.empty())
+            return std::max<int64_t>(0, (int64_t)std::llround(source_info.metadata.duration_seconds * 1000.0));
+
         int64_t duration_ms = 0;
         for(const auto &chunk : source_info.chunks) {
             if(chunk.enabled && chunk.end_ms > chunk.start_ms)
                 duration_ms += chunk.end_ms - chunk.start_ms;
         }
 
-        if(duration_ms > 0)
-            return duration_ms;
-        return std::max<int64_t>(0, (int64_t)std::llround(source_info.metadata.duration_seconds * 1000.0));
+        return duration_ms;
     }
 
     void ExportPage::update_source_summary() {
@@ -657,51 +1108,48 @@ namespace gsr {
             return;
         }
 
-        const bool reencode_video = reencode_video_checkbox_ptr->is_checked();
-        const bool reencode_audio = reencode_audio_checkbox_ptr->is_checked();
+        const bool reencode_video = is_video_reencode_active();
+        const bool reencode_audio = is_audio_reencode_active();
 
         int64_t estimated_size_bytes = 0;
         if(!reencode_video && !reencode_audio && source_info.metadata.file_size > 0 && source_info.metadata.duration_seconds > 0.0) {
             estimated_size_bytes = (int64_t)std::llround((double)source_info.metadata.file_size * ((double)selected_duration_ms / (source_info.metadata.duration_seconds * 1000.0)));
         } else {
-            int64_t total_bitrate_kbps = source_info.total_bitrate_kbps;
-            if(total_bitrate_kbps <= 0) {
-                total_bitrate_kbps = 0;
-                if(source_info.has_video_bitrate)
-                    total_bitrate_kbps += source_info.video_bitrate_kbps;
-                if(source_info.has_audio_bitrate)
-                    total_bitrate_kbps += source_info.audio_bitrate_kbps;
-            }
+            int64_t video_bitrate_kbps = get_estimated_video_bitrate_guess_kbps(source_info);
+            int64_t audio_bitrate_kbps = get_estimated_audio_bitrate_guess_kbps(source_info);
 
             if(reencode_video) {
-                const int64_t target_video_bitrate_kbps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text());
-                if(total_bitrate_kbps > 0 && source_info.has_video_bitrate)
-                    total_bitrate_kbps = std::max<int64_t>(1, total_bitrate_kbps - source_info.video_bitrate_kbps + target_video_bitrate_kbps);
-                else if(total_bitrate_kbps <= 0)
-                    total_bitrate_kbps += target_video_bitrate_kbps;
+                video_bitrate_kbps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text());
             }
 
             if(reencode_audio) {
-                const int64_t target_audio_bitrate_kbps = sv_to_int<int64_t>(audio_bitrate_entry_ptr->get_text());
-                if(total_bitrate_kbps > 0 && source_info.has_audio_bitrate)
-                    total_bitrate_kbps = std::max<int64_t>(1, total_bitrate_kbps - source_info.audio_bitrate_kbps + target_audio_bitrate_kbps);
-                else if(total_bitrate_kbps <= 0)
-                    total_bitrate_kbps += target_audio_bitrate_kbps;
+                audio_bitrate_kbps = sv_to_int<int64_t>(audio_bitrate_entry_ptr->get_text());
             }
 
+            int64_t total_bitrate_kbps = video_bitrate_kbps + audio_bitrate_kbps;
+            if(total_bitrate_kbps <= 0)
+                total_bitrate_kbps = source_info.total_bitrate_kbps;
             total_bitrate_kbps = std::max<int64_t>(1, total_bitrate_kbps);
             estimated_size_bytes = (int64_t)std::llround(((double)selected_duration_ms / 1000.0) * ((double)total_bitrate_kbps * 1000.0 / 8.0));
         }
 
         char buffer[512];
+        const bool forced_video_reencode = !reencode_video_checkbox_ptr->is_checked() && reencode_video;
+        const bool forced_audio_reencode = !reencode_audio_checkbox_ptr->is_checked() && reencode_audio;
         if(!reencode_video && !reencode_audio) {
             snprintf(buffer, sizeof(buffer),
                 TR("Estimated trimmed file size without re-encoding: %s.\nThis is based on the selected chunks relative to the original file size."),
                 format_file_size(estimated_size_bytes).c_str());
         } else {
-            snprintf(buffer, sizeof(buffer),
-                TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration and target bitrates."),
-                format_file_size(estimated_size_bytes).c_str());
+            if(forced_video_reencode || forced_audio_reencode) {
+                snprintf(buffer, sizeof(buffer),
+                    TR("Estimated output file size: %s.\nThe selected container requires compatible codec re-encoding for this export."),
+                    format_file_size(estimated_size_bytes).c_str());
+            } else {
+                snprintf(buffer, sizeof(buffer),
+                    TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration and target bitrates."),
+                    format_file_size(estimated_size_bytes).c_str());
+            }
         }
         estimated_file_size_ptr->set_text(buffer);
     }
