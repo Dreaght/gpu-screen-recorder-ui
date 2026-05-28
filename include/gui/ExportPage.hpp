@@ -28,6 +28,7 @@ namespace gsr {
             int64_t total_bitrate_kbps = 0;
             int64_t video_bitrate_kbps = 0;
             int64_t audio_bitrate_kbps = 0;
+            double fps = 0.0;
             bool has_video_bitrate = false;
             bool has_audio_bitrate = false;
         };
@@ -62,8 +63,10 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_video_codec_box();
         std::unique_ptr<Widget> create_audio_codec();
         std::unique_ptr<ComboBox> create_audio_codec_box();
+        std::unique_ptr<Widget> create_framerate();
         std::unique_ptr<Widget> create_video_bitrate();
         std::unique_ptr<Widget> create_audio_bitrate();
+        std::unique_ptr<Entry> create_framerate_entry();
         std::unique_ptr<Entry> create_video_bitrate_entry();
         std::unique_ptr<Entry> create_audio_bitrate_entry();
 
@@ -108,8 +111,12 @@ namespace gsr {
         ComboBox *container_box_ptr = nullptr;
         ComboBox *video_codec_box_ptr = nullptr;
         ComboBox *audio_codec_box_ptr = nullptr;
+        Entry *framerate_entry_ptr = nullptr;
         Entry *video_bitrate_entry_ptr = nullptr;
         Entry *audio_bitrate_entry_ptr = nullptr;
+        std::string source_framerate_text;
+        bool source_framerate_known = false;
+        bool framerate_modified = false;
         CheckBox *reencode_video_checkbox_ptr = nullptr;
         CheckBox *reencode_audio_checkbox_ptr = nullptr;
         Widget *video_reencode_options_ptr = nullptr;
