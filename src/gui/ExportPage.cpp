@@ -598,6 +598,15 @@ namespace gsr {
         return label;
     }
 
+    std::unique_ptr<RadioButton> ExportPage::create_view_radio_button() {
+        auto view_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
+        view_radio_button->add_item(TR("Simple view"), "simple");
+        view_radio_button->add_item(TR("Advanced view"), "advanced");
+        view_radio_button->set_horizontal_alignment(Widget::Alignment::CENTER);
+        view_radio_button_ptr = view_radio_button.get();
+        return view_radio_button;
+    }
+
     std::unique_ptr<Widget> ExportPage::create_source_info_section() {
         auto source_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
         source_info_list->add_widget(create_source_summary_label());
@@ -705,32 +714,43 @@ namespace gsr {
         auto video_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_section_list->add_widget(create_reencode_video_checkbox());
 
+        video_section_list->add_widget(create_reencode_audio_checkbox());
+
+        auto advanced_compression_options = std::make_unique<List>(List::Orientation::VERTICAL);
+        advanced_compression_options_ptr = advanced_compression_options.get();
+
         auto video_reencode_options = std::make_unique<List>(List::Orientation::VERTICAL);
         video_reencode_options_ptr = video_reencode_options.get();
         video_reencode_options->add_widget(create_video_codec());
         video_reencode_options->add_widget(create_framerate());
         video_reencode_options->add_widget(create_video_bitrate());
-        video_section_list->add_widget(std::move(video_reencode_options));
-
-        video_section_list->add_widget(create_reencode_audio_checkbox());
+        advanced_compression_options->add_widget(std::move(video_reencode_options));
 
         auto audio_reencode_options = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_reencode_options_ptr = audio_reencode_options.get();
         audio_reencode_options->add_widget(create_audio_codec());
         audio_reencode_options->add_widget(create_audio_bitrate());
-        video_section_list->add_widget(std::move(audio_reencode_options));
+        advanced_compression_options->add_widget(std::move(audio_reencode_options));
+
+        video_section_list->add_widget(std::move(advanced_compression_options));
 
         return std::make_unique<Subsection>(TR("Compression"), std::move(video_section_list), mgl::vec2f(get_settings_content_width(), 0.0f));
     }
 
     std::unique_ptr<Widget> ExportPage::create_settings() {
+        auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        page_list->set_spacing(0.018f);
+        page_list->add_widget(create_view_radio_button());
+
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        settings_list_ptr = settings_list.get();
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_file_info_section());
         settings_list->add_widget(create_source_info_section());
         settings_list->add_widget(create_video_section());
-        return settings_list;
+
+        settings_list_ptr = page_list.get();
+        page_list->add_widget(std::move(settings_list));
+        return page_list;
     }
 
     void ExportPage::add_widgets() {
@@ -767,6 +787,11 @@ namespace gsr {
             update_estimated_file_size();
             return true;
         };
+        view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
+            view_changed(id == "advanced");
+            return true;
+        };
+        view_radio_button_ptr->set_selected_item("simple");
     }
 
     void ExportPage::load_source_video_info() {
@@ -896,6 +921,11 @@ namespace gsr {
         if(reencode_audio_checkbox_ptr->is_checked())
             return true;
         return !container_supports_audio_codec(std::string(container_box_ptr->get_selected_id()), source_info.audio_codec);
+    }
+
+    void ExportPage::view_changed(bool advanced_view) {
+        if(advanced_compression_options_ptr)
+            advanced_compression_options_ptr->set_visible(advanced_view);
     }
 
     bool ExportPage::start_export() {
@@ -1132,6 +1162,8 @@ namespace gsr {
 
         video_reencode_options_ptr->set_visible(reencode_video_checkbox_ptr->is_checked());
         audio_reencode_options_ptr->set_visible(reencode_audio_checkbox_ptr->is_checked());
+        if(advanced_compression_options_ptr)
+            advanced_compression_options_ptr->set_visible(view_radio_button_ptr && view_radio_button_ptr->get_selected_id() == "advanced");
     }
 
     int64_t ExportPage::get_selected_duration_ms() const {
