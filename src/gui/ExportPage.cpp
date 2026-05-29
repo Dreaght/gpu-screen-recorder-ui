@@ -574,6 +574,7 @@ namespace gsr {
         auto container_list = std::make_unique<List>(List::Orientation::VERTICAL);
         container_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Container:"), get_color_theme().text_color));
         container_list->add_widget(create_container_box());
+        container_section_ptr = container_list.get();
         return container_list;
     }
 
@@ -649,6 +650,7 @@ namespace gsr {
         auto video_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_codec_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video codec:"), get_color_theme().text_color));
         video_codec_list->add_widget(create_video_codec_box());
+        video_codec_ptr = video_codec_list.get();
         return video_codec_list;
     }
 
@@ -666,6 +668,7 @@ namespace gsr {
         auto audio_codec_list = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_codec_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Audio codec:"), get_color_theme().text_color));
         audio_codec_list->add_widget(create_audio_codec_box());
+        audio_codec_ptr = audio_codec_list.get();
         return audio_codec_list;
     }
 
@@ -679,6 +682,7 @@ namespace gsr {
         auto framerate_list = std::make_unique<List>(List::Orientation::VERTICAL);
         framerate_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Frame rate:"), get_color_theme().text_color));
         framerate_list->add_widget(create_framerate_entry());
+        framerate_ptr = framerate_list.get();
         return framerate_list;
     }
 
@@ -700,6 +704,7 @@ namespace gsr {
         auto video_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_bitrate_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Target video bitrate (Kbps):"), get_color_theme().text_color));
         video_bitrate_list->add_widget(create_video_bitrate_entry());
+        video_bitrate_ptr = video_bitrate_list.get();
         return video_bitrate_list;
     }
 
@@ -707,6 +712,7 @@ namespace gsr {
         auto audio_bitrate_list = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_bitrate_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Target audio bitrate (Kbps):"), get_color_theme().text_color));
         audio_bitrate_list->add_widget(create_audio_bitrate_entry());
+        audio_bitrate_ptr = audio_bitrate_list.get();
         return audio_bitrate_list;
     }
 
@@ -714,25 +720,20 @@ namespace gsr {
         auto video_section_list = std::make_unique<List>(List::Orientation::VERTICAL);
         video_section_list->add_widget(create_reencode_video_checkbox());
 
-        video_section_list->add_widget(create_reencode_audio_checkbox());
-
-        auto advanced_compression_options = std::make_unique<List>(List::Orientation::VERTICAL);
-        advanced_compression_options_ptr = advanced_compression_options.get();
-
         auto video_reencode_options = std::make_unique<List>(List::Orientation::VERTICAL);
         video_reencode_options_ptr = video_reencode_options.get();
         video_reencode_options->add_widget(create_video_codec());
         video_reencode_options->add_widget(create_framerate());
         video_reencode_options->add_widget(create_video_bitrate());
-        advanced_compression_options->add_widget(std::move(video_reencode_options));
+        video_section_list->add_widget(std::move(video_reencode_options));
+
+        video_section_list->add_widget(create_reencode_audio_checkbox());
 
         auto audio_reencode_options = std::make_unique<List>(List::Orientation::VERTICAL);
         audio_reencode_options_ptr = audio_reencode_options.get();
         audio_reencode_options->add_widget(create_audio_codec());
         audio_reencode_options->add_widget(create_audio_bitrate());
-        advanced_compression_options->add_widget(std::move(audio_reencode_options));
-
-        video_section_list->add_widget(std::move(advanced_compression_options));
+        video_section_list->add_widget(std::move(audio_reencode_options));
 
         return std::make_unique<Subsection>(TR("Compression"), std::move(video_section_list), mgl::vec2f(get_settings_content_width(), 0.0f));
     }
@@ -787,11 +788,12 @@ namespace gsr {
             update_estimated_file_size();
             return true;
         };
+        view_radio_button_ptr->set_selected_item("simple");
         view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             view_changed(id == "advanced");
             return true;
         };
-        view_radio_button_ptr->set_selected_item("simple");
+        view_changed(false);
     }
 
     void ExportPage::load_source_video_info() {
@@ -924,8 +926,22 @@ namespace gsr {
     }
 
     void ExportPage::view_changed(bool advanced_view) {
-        if(advanced_compression_options_ptr)
-            advanced_compression_options_ptr->set_visible(advanced_view);
+        this->advanced_view = advanced_view;
+
+        if(container_section_ptr)
+            container_section_ptr->set_visible(advanced_view);
+        if(video_codec_ptr)
+            video_codec_ptr->set_visible(advanced_view);
+        if(audio_codec_ptr)
+            audio_codec_ptr->set_visible(advanced_view);
+        if(framerate_ptr)
+            framerate_ptr->set_visible(advanced_view);
+        if(video_bitrate_ptr)
+            video_bitrate_ptr->set_visible(advanced_view);
+        if(audio_bitrate_ptr)
+            audio_bitrate_ptr->set_visible(advanced_view);
+
+        update_reencode_options_visibility();
     }
 
     bool ExportPage::start_export() {
@@ -1160,10 +1176,8 @@ namespace gsr {
             }
         }
 
-        video_reencode_options_ptr->set_visible(reencode_video_checkbox_ptr->is_checked());
-        audio_reencode_options_ptr->set_visible(reencode_audio_checkbox_ptr->is_checked());
-        if(advanced_compression_options_ptr)
-            advanced_compression_options_ptr->set_visible(view_radio_button_ptr && view_radio_button_ptr->get_selected_id() == "advanced");
+        video_reencode_options_ptr->set_visible(advanced_view && reencode_video_checkbox_ptr->is_checked());
+        audio_reencode_options_ptr->set_visible(advanced_view && reencode_audio_checkbox_ptr->is_checked());
     }
 
     int64_t ExportPage::get_selected_duration_ms() const {
