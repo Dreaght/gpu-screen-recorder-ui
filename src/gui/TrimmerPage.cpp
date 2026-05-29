@@ -367,22 +367,39 @@ namespace gsr {
 
         draw_children(window, content_page_position);
 
-        // TODO: It may flicker. The issue is not in the widget properties.
         if(timeline_scroll_ptr && timeline_ptr && playback_state.file_loaded) {
-            auto timeline_scroll_ptr_size = timeline_scroll_ptr->get_size();
-            auto timeline_ptr_inner_size = timeline_ptr->get_inner_size();
-            auto timeline_scroll_ptr_pos = timeline_scroll_ptr->get_position();
+            const mgl::vec2f timeline_scroll_pos = timeline_scroll_ptr->get_position();
+            const mgl::vec2f timeline_scroll_size = timeline_scroll_ptr->get_size();
+            const mgl::vec2f content_offset = timeline_ptr->get_content_offset();
+            const mgl::vec2f content_size = timeline_ptr->get_inner_size();
 
-            mgl::Rectangle timeline_pointer(mgl::vec2f(timeline_scroll_ptr_size.x * 0.003f, timeline_ptr_inner_size.y + 1));
+            const float playhead_x = timeline_scroll_pos.x + timeline_scroll_size.x * 0.5f;
+            const float playhead_y = timeline_scroll_pos.y + content_offset.y;
+            const float needle_width = std::max(2.0f, std::round(timeline_scroll_size.y * 0.018f));
+            const float cap_width = std::max(needle_width * 4.0f, 8.0f);
+            const float cap_height = std::max(4.0f, std::round(timeline_scroll_size.y * 0.05f));
 
-            auto timeline_pointer_size = timeline_pointer.get_size();
+            mgl::Rectangle needle({needle_width, content_size.y + 2.0f});
+            needle.set_position({playhead_x - needle_width * 0.5f, playhead_y - 1.0f});
+            needle.set_color(get_color_theme().tint_color);
+            window.draw(needle);
 
-            timeline_pointer.set_position(timeline_scroll_ptr_pos + mgl::vec2f(
-                timeline_scroll_ptr_size.x / 2 - timeline_pointer_size.x / 2, 0));
+            mgl::Rectangle top_cap({cap_width, cap_height});
+            top_cap.set_position({playhead_x - cap_width * 0.5f, playhead_y - 1.0f});
+            top_cap.set_color(get_color_theme().tint_color);
+            window.draw(top_cap);
 
-            timeline_pointer.set_color(get_color_theme().tint_color);
-            window.draw(timeline_pointer);
+            mgl::Rectangle bottom_cap({cap_width, std::max(2.0f, cap_height - 1.0f)});
+            bottom_cap.set_position({playhead_x - cap_width * 0.5f, playhead_y + content_size.y - bottom_cap.get_size().y + 1.0f});
+            bottom_cap.set_color(get_color_theme().tint_color);
+            window.draw(bottom_cap);
+
+            mgl::Rectangle highlight({1.0f, content_size.y + 2.0f});
+            highlight.set_position({playhead_x - needle_width * 0.5f - 1.0f, playhead_y - 1.0f});
+            highlight.set_color(mgl::Color(255, 255, 255, 70));
+            window.draw(highlight);
         }
+
     }
 
     void TrimmerPage::draw_children(mgl::Window &window, mgl::vec2f position) {

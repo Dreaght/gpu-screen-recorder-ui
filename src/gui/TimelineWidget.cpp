@@ -20,6 +20,9 @@ namespace gsr {
         static const float max_zoom = 24.0f;
         static const float base_pixels_per_second = 80.0f;
         static const float zoom_speed = 1.18f;
+        static const float footer_height_ratio = 0.24f;
+        static const float frame_thickness_ratio = 0.045f;
+        static const float well_inset_ratio = 0.018f;
         static const int min_thumbnail_count = 18;
         static const int max_thumbnail_count = 180;
         static const int max_thumbnail_loads_per_frame = 2;
@@ -61,6 +64,16 @@ namespace gsr {
         static int get_target_thumbnail_count(int64_t duration_ms) {
             const double duration_seconds = std::max(1.0, duration_ms / 1000.0);
             return std::clamp((int)std::round(duration_seconds * 1.5), min_thumbnail_count, max_thumbnail_count);
+        }
+
+        static void draw_filled_rect(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color) {
+            if(size.x <= 0.0f || size.y <= 0.0f)
+                return;
+
+            mgl::Rectangle rect(size.floor());
+            rect.set_position(pos.floor());
+            rect.set_color(color);
+            window.draw(rect);
         }
     }
 
@@ -181,8 +194,8 @@ namespace gsr {
         if(!visible)
             return {0.0f, 0.0f};
 
-        // TODO: Replace the magic number!
-        return size - (size * 0.16);
+        const LayoutRects layout = get_layout({0.0f, 0.0f}, size.floor());
+        return layout.content_size;
     }
 
     void TimelineWidget::set_size(mgl::vec2f size) {
@@ -230,6 +243,11 @@ namespace gsr {
 
     void TimelineWidget::set_paused(bool paused) {
         this->paused = paused;
+    }
+
+    mgl::vec2f TimelineWidget::get_content_offset() const {
+        const LayoutRects layout = get_layout({0.0f, 0.0f}, size.floor());
+        return layout.content_pos;
     }
 
     const std::vector<TimelineWidget::TimelineChunk>& TimelineWidget::get_chunks() const {
@@ -421,33 +439,62 @@ namespace gsr {
         }
     }
 
+    TimelineWidget::LayoutRects TimelineWidget::get_layout(mgl::vec2f draw_pos, mgl::vec2f item_size) const {
+        LayoutRects layout;
+        layout.outer_pos = draw_pos.floor();
+        layout.outer_size = item_size.floor();
+
+        const float frame = std::max(3.0f, std::round(item_size.y * frame_thickness_ratio));
+        const float footer_height = std::max(18.0f, std::round(item_size.y * footer_height_ratio));
+        const float gutter = std::max(2.0f, std::round(item_size.y * well_inset_ratio));
+
+        layout.footer_size = {
+            std::max(1.0f, item_size.x - frame * 2.0f),
+            std::max(1.0f, footer_height - frame)
+        };
+        layout.footer_pos = {
+            draw_pos.x + frame,
+            draw_pos.y + item_size.y - footer_height
+        };
+
+        layout.content_pos = {
+            draw_pos.x + frame + gutter,
+            draw_pos.y + frame + gutter
+        };
+        layout.content_size = {
+            std::max(1.0f, item_size.x - (frame + gutter) * 2.0f),
+            std::max(1.0f, item_size.y - footer_height - frame - gutter * 2.0f)
+        };
+        return layout;
+    }
+
     void TimelineWidget::draw_background(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f visible_pos, mgl::vec2f visible_size, mgl::vec2f item_size) const {
-        mgl::Rectangle background(visible_size);
-        background.set_position(visible_pos);
-        background.set_color(mgl::Color(14, 16, 20));
-        window.draw(background);
+        (void)visible_pos;
+        (void)visible_size;
 
-        const float footer_height = item_size.y * 0.16f;
-        const float inner_top = visible_pos.y;
-        const float inner_bottom = std::min(visible_pos.y + visible_size.y, draw_pos.y + item_size.y - footer_height);
-        if(inner_bottom <= inner_top)
-            return;
+        const LayoutRects layout = get_layout(draw_pos, item_size);
+        const float frame = layout.content_pos.x - layout.outer_pos.x;
+        const float footer_top = layout.footer_pos.y;
 
-        mgl::Rectangle inner_background({visible_size.x, inner_bottom - inner_top});
-        inner_background.set_position({visible_pos.x, inner_top});
-        inner_background.set_color(mgl::Color(24, 28, 34));
-        window.draw(inner_background);
+        draw_filled_rect(window, {layout.content_pos.x, layout.outer_pos.y}, {layout.content_size.x, frame}, get_color_theme().tint_color);
+        draw_filled_rect(window, {layout.content_pos.x, footer_top}, {layout.content_size.x, 1.0f}, get_color_theme().tint_color);
+
+        const mgl::vec2f well_outer_pos = layout.content_pos - mgl::vec2f(1.0f, 1.0f);
+        const mgl::vec2f well_outer_size = layout.content_size + mgl::vec2f(2.0f, 2.0f);
+        draw_filled_rect(window, well_outer_pos, well_outer_size, mgl::Color(10, 12, 15));
+        draw_filled_rect(window, layout.content_pos, layout.content_size, mgl::Color(28, 32, 38));
     }
 
     void TimelineWidget::draw_ticks(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) {
         if(duration_ms <= 0)
             return;
 
+        const LayoutRects layout = get_layout(draw_pos, item_size);
+
         const double tick_step_ms = get_tick_step_ms(std::max(1.0f, visible_right - visible_left));
         const int64_t start_ms = clamp_position_ms((int64_t)std::floor((visible_left - draw_pos.x) / std::max(0.0001f, get_pixels_per_ms())));
         const int64_t end_ms = clamp_position_ms((int64_t)std::ceil((visible_right - draw_pos.x) / std::max(0.0001f, get_pixels_per_ms())));
         const int64_t first_tick_ms = (int64_t)(std::floor(start_ms / tick_step_ms) * tick_step_ms);
-        const float bottom_band_height = item_size.y * 0.16f;
 
         for(int64_t tick_ms = first_tick_ms; tick_ms <= end_ms + (int64_t)tick_step_ms; tick_ms += (int64_t)tick_step_ms) {
             if(tick_ms < 0 || tick_ms > duration_ms)
@@ -458,29 +505,33 @@ namespace gsr {
                 continue;
 
             const bool major = ((tick_ms / (int64_t)tick_step_ms) % 2) == 0;
-            mgl::Rectangle tick({std::max(1.0f, (visible_right - visible_left) * 0.0012f), major ? item_size.y * 0.18f : item_size.y * 0.11f});
-            tick.set_position(mgl::vec2f(tick_x, draw_pos.y + item_size.y - bottom_band_height - tick.get_size().y).floor());
+            mgl::Rectangle tick({std::max(1.0f, (visible_right - visible_left) * 0.0012f), major ? layout.footer_size.y * 0.55f : layout.footer_size.y * 0.32f});
+            tick.set_position(mgl::vec2f(tick_x, layout.footer_pos.y + 2.0f).floor());
             tick.set_color(major ? mgl::Color(215, 215, 215, 200) : mgl::Color(145, 145, 145, 150));
             window.draw(tick);
 
             if(major) {
-                mgl::Text tick_label(format_timecode(tick_ms), get_theme().body_font_desc.c_str());
-                tick_label.set_color(mgl::Color(220, 220, 220));
-                tick_label.set_position((mgl::vec2f(tick_x + (visible_right - visible_left) * 0.008f, draw_pos.y + item_size.y - bottom_band_height + item_size.y * 0.01f)).floor());
+                mgl::Text tick_label(format_timecode(tick_ms), get_theme().title_font_desc.c_str());
+                tick_label.set_color(mgl::Color(208, 214, 220));
+                tick_label.set_position((mgl::vec2f(tick_x + (visible_right - visible_left) * 0.008f, layout.footer_pos.y + layout.footer_size.y * 0.34f)).floor());
                 window.draw(tick_label);
             }
         }
     }
 
     void TimelineWidget::draw_thumbnails(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) {
-        const float thumbnail_height = item_size.y * 0.84f;
+        const LayoutRects layout = get_layout(draw_pos, item_size);
+        const float thumbnail_height = layout.content_size.y;
+        const mgl::Scissor prev_scissor = window.get_scissor();
+        window.set_scissor(scissor_get_sub_area(prev_scissor, { layout.content_pos.to_vec2i(), layout.content_size.to_vec2i() }));
         int thumbnail_loads_this_frame = 0;
 
         if(thumbnails.empty()) {
-            mgl::Rectangle placeholder({std::max(1.0f, visible_right - visible_left), thumbnail_height});
-            placeholder.set_position({visible_left, draw_pos.y});
+            mgl::Rectangle placeholder({layout.content_size.x, thumbnail_height});
+            placeholder.set_position(layout.content_pos.floor());
             placeholder.set_color(mgl::Color(35, 39, 46));
             window.draw(placeholder);
+            window.set_scissor(prev_scissor);
             return;
         }
 
@@ -502,23 +553,19 @@ namespace gsr {
 
             if(thumbnail.texture_loaded) {
                 mgl::Sprite sprite(&thumbnail.texture);
-                sprite.set_position(mgl::vec2f(clamped_start_x, draw_pos.y).floor());
+                sprite.set_position(mgl::vec2f(clamped_start_x, layout.content_pos.y).floor());
                 sprite.set_size({width, thumbnail_height});
                 window.draw(sprite);
             } else {
                 mgl::Rectangle placeholder({width, thumbnail_height});
-                placeholder.set_position(mgl::vec2f(clamped_start_x, draw_pos.y).floor());
+                placeholder.set_position(mgl::vec2f(clamped_start_x, layout.content_pos.y).floor());
                 placeholder.set_color(mgl::Color(52, 56, 64));
                 window.draw(placeholder);
             }
 
-            if(end_x >= visible_left && end_x <= visible_right) {
-                mgl::Rectangle separator({std::max(1.0f, (visible_right - visible_left) * 0.0015f), thumbnail_height});
-                separator.set_position(mgl::vec2f(clamped_end_x - separator.get_size().x, draw_pos.y).floor());
-                separator.set_color(mgl::Color(0, 0, 0, 110));
-                window.draw(separator);
-            }
         }
+
+        window.set_scissor(prev_scissor);
     }
 
     void TimelineWidget::draw_status(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size) {
@@ -531,17 +578,20 @@ namespace gsr {
         if(chunks.empty() || duration_ms <= 0)
             return;
 
-        const float thumbnail_height = item_size.y * 0.84f;
+        const LayoutRects layout = get_layout(draw_pos, item_size);
+        const float thumbnail_height = layout.content_size.y;
+        const float marker_width = std::max(4.0f, std::round(item_size.y * 0.05f));
+        const float cap_width = std::max(marker_width * 2.4f, 10.0f);
+        const float cap_height = std::max(4.0f, std::round(item_size.y * 0.06f));
 
         for(size_t i = 0; i < chunks.size() - 1; ++i) {
             const float cut_x = draw_pos.x + chunks[i].end_ms * get_pixels_per_ms();
             if(cut_x < visible_left || cut_x > visible_right)
                 continue;
 
-            mgl::Rectangle cut_tick({std::max(1.0f, (visible_right - visible_left) * 0.01f), thumbnail_height});
-            cut_tick.set_position(mgl::vec2f(cut_x - cut_tick.get_size().x * 0.5f, draw_pos.y).floor());
-            cut_tick.set_color(mgl::Color(255, 80, 80, 200));
-            window.draw(cut_tick);
+            draw_filled_rect(window, {cut_x - marker_width * 0.5f, layout.content_pos.y}, {marker_width, thumbnail_height}, mgl::Color(255, 255, 255, 235));
+            draw_filled_rect(window, {cut_x - cap_width * 0.5f, layout.content_pos.y}, {cap_width, cap_height}, mgl::Color(255, 0, 0, 240));
+            draw_filled_rect(window, {cut_x - cap_width * 0.5f, layout.content_pos.y + thumbnail_height - cap_height}, {cap_width, cap_height}, mgl::Color(255, 0, 0, 220));
         }
     }
 
@@ -549,8 +599,11 @@ namespace gsr {
         if(chunks.empty() || duration_ms <= 0)
             return;
 
-        const float thumbnail_height = item_size.y * 0.84f;
+        const LayoutRects layout = get_layout(draw_pos, item_size);
+        const float thumbnail_height = layout.content_size.y;
         const float pixels_per_ms = get_pixels_per_ms();
+        const mgl::Scissor prev_scissor = window.get_scissor();
+        window.set_scissor(scissor_get_sub_area(prev_scissor, { layout.content_pos.to_vec2i(), layout.content_size.to_vec2i() }));
 
         for(const TimelineChunk &chunk : chunks) {
             if(chunk.enabled)
@@ -566,11 +619,11 @@ namespace gsr {
             const float clamped_end = std::min(visible_right, end_x);
             const float width = std::max(1.0f, clamped_end - clamped_start);
 
-            mgl::Rectangle overlay({width, thumbnail_height});
-            overlay.set_position(mgl::vec2f(clamped_start, draw_pos.y).floor());
-            overlay.set_color(mgl::Color(0, 0, 0, 140));
-            window.draw(overlay);
+            draw_filled_rect(window, {clamped_start, layout.content_pos.y}, {width, thumbnail_height}, mgl::Color(12, 14, 18, 120));
+            draw_filled_rect(window, {clamped_start, layout.content_pos.y}, {width, 1.0f}, mgl::Color(220, 226, 234, 50));
         }
+
+        window.set_scissor(prev_scissor);
     }
 
     int64_t TimelineWidget::clamp_position_ms(int64_t position) const {

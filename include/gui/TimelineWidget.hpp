@@ -38,6 +38,7 @@ namespace gsr {
         void set_position_ms(int64_t position_ms);
         int64_t get_position_ms() const;
         void set_paused(bool paused);
+        mgl::vec2f get_content_offset() const;
         float get_timeline_width() const;
         float get_pixels_per_ms() const;
         float position_ms_to_scroll(int64_t position_ms) const;
@@ -66,6 +67,15 @@ namespace gsr {
         void queue_thumbnail_generation();
         void process_thumbnail_generation_result();
         void thumbnail_worker_loop();
+        struct LayoutRects {
+            mgl::vec2f outer_pos;
+            mgl::vec2f outer_size;
+            mgl::vec2f content_pos;
+            mgl::vec2f content_size;
+            mgl::vec2f footer_pos;
+            mgl::vec2f footer_size;
+        };
+        LayoutRects get_layout(mgl::vec2f draw_pos, mgl::vec2f item_size) const;
         void draw_background(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f visible_pos, mgl::vec2f visible_size, mgl::vec2f item_size) const;
         void draw_ticks(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right);
         void draw_thumbnails(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right);
