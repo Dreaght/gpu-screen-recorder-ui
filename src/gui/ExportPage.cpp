@@ -249,6 +249,25 @@ namespace gsr {
             bool reencode_video = false;
             bool reencode_audio = false;
             bool has_audio_stream = false;
+            int video_width = 0;
+            int video_height = 0;
+        };
+
+        struct ResolutionPreset {
+            const char *label;
+            const char *id;
+            int width;
+            int height;
+        };
+
+        static const ResolutionPreset resolution_presets[] = {
+            { "Source (Recommended)", "source", 0, 0 },
+            { "3840x2160 (4K)", "3840x2160", 3840, 2160 },
+            { "2560x1440", "2560x1440", 2560, 1440 },
+            { "1920x1080", "1920x1080", 1920, 1080 },
+            { "1280x720", "1280x720", 1280, 720 },
+            { "854x480", "854x480", 854, 480 },
+            { "640x360", "640x360", 640, 360 }
         };
 
         static bool host_supports_video_codec(const std::string &codec);
@@ -393,6 +412,91 @@ namespace gsr {
             if(source_info.fps <= 0.0)
                 return true;
             return std::abs(target_fps - source_info.fps) > 0.01;
+        }
+
+        static int64_t scale_bitrate_for_resolution(int64_t bitrate_kbps, int source_width, int source_height, int target_width, int target_height) {
+            if(bitrate_kbps <= 0 || source_width <= 0 || source_height <= 0 || target_width <= 0 || target_height <= 0)
+                return bitrate_kbps;
+
+            const double source_pixels = (double)source_width * (double)source_height;
+            const double target_pixels = (double)target_width * (double)target_height;
+            if(source_pixels <= 0.0 || target_pixels <= 0.0)
+                return bitrate_kbps;
+
+            return std::max<int64_t>(1, (int64_t)std::llround((double)bitrate_kbps * (target_pixels / source_pixels)));
+        }
+
+        static const ResolutionPreset* find_resolution_preset(std::string_view id) {
+            for(const ResolutionPreset &preset : resolution_presets) {
+                if(id == preset.id)
+                    return &preset;
+            }
+            return nullptr;
+        }
+
+        static mgl::vec2i get_scaled_video_size(mgl::vec2i source_size, const ResolutionPreset *preset) {
+            if(!preset || preset->width <= 0 || preset->height <= 0 || source_size.x <= 0 || source_size.y <= 0)
+                return source_size;
+
+            const double scale = std::min((double)preset->width / (double)source_size.x, (double)preset->height / (double)source_size.y);
+            if(scale >= 1.0)
+                return source_size;
+
+            int scaled_width = std::max(2, (int)std::llround((double)source_size.x * scale));
+            int scaled_height = std::max(2, (int)std::llround((double)source_size.y * scale));
+            if((scaled_width & 1) != 0)
+                --scaled_width;
+            if((scaled_height & 1) != 0)
+                --scaled_height;
+            scaled_width = std::max(2, scaled_width);
+            scaled_height = std::max(2, scaled_height);
+            return { scaled_width, scaled_height };
+        }
+
+        static int get_quality_preset_multiplier_percent(std::string_view quality) {
+            if(quality == "medium")
+                return 55;
+            if(quality == "high")
+                return 75;
+            if(quality == "very_high")
+                return 100;
+            if(quality == "ultra")
+                return 140;
+            return 100;
+        }
+
+        static int get_quality_preset_crf(std::string_view codec, std::string_view quality) {
+            if(codec == "hevc") {
+                if(quality == "medium") return 31;
+                if(quality == "high") return 28;
+                if(quality == "very_high") return 25;
+                if(quality == "ultra") return 21;
+                return 25;
+            }
+            if(codec == "av1") {
+                if(quality == "medium") return 40;
+                if(quality == "high") return 35;
+                if(quality == "very_high") return 31;
+                if(quality == "ultra") return 27;
+                return 31;
+            }
+            if(codec == "vp8" || codec == "vp9") {
+                if(quality == "medium") return 37;
+                if(quality == "high") return 33;
+                if(quality == "very_high") return 29;
+                if(quality == "ultra") return 26;
+                return 29;
+            }
+
+            if(quality == "medium") return 29;
+            if(quality == "high") return 25;
+            if(quality == "very_high") return 22;
+            if(quality == "ultra") return 18;
+            return 22;
+        }
+
+        static bool quality_preset_uses_zero_bitrate(std::string_view codec) {
+            return codec == "av1" || codec == "vp8" || codec == "vp9";
         }
     }
 
@@ -688,6 +792,42 @@ namespace gsr {
         return framerate_list;
     }
 
+    std::unique_ptr<ComboBox> ExportPage::create_video_quality_box() {
+        auto box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
+        box->add_item(TR("Constant bitrate (Recommended)"), "custom");
+        box->add_item(TR("Medium"), "medium");
+        box->add_item(TR("High"), "high");
+        box->add_item(TR("Very high"), "very_high");
+        box->add_item(TR("Ultra"), "ultra");
+        video_quality_box_ptr = box.get();
+        return box;
+    }
+
+    std::unique_ptr<Widget> ExportPage::create_video_quality() {
+        auto video_quality_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_quality_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video quality:"), get_color_theme().text_color));
+        video_quality_list->add_widget(create_video_quality_box());
+        video_quality_ptr = video_quality_list.get();
+        return video_quality_list;
+    }
+
+    std::unique_ptr<ComboBox> ExportPage::create_video_resolution_box() {
+        auto box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
+        for(const ResolutionPreset &preset : resolution_presets)
+            box->add_item(TR(preset.label), preset.id);
+        video_resolution_box_ptr = box.get();
+        return box;
+    }
+
+    std::unique_ptr<Widget> ExportPage::create_video_resolution() {
+        auto video_resolution_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        video_resolution_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Video resolution limit:"), get_color_theme().text_color));
+        video_resolution_list->add_widget(create_video_resolution_box());
+
+        video_resolution_ptr = video_resolution_list.get();
+        return video_resolution_list;
+    }
+
     std::unique_ptr<Entry> ExportPage::create_video_bitrate_entry() {
         auto entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "8000", (int)(2.0f * mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 6));
         entry->set_number_mode(true, 1, 500000);
@@ -724,6 +864,8 @@ namespace gsr {
 
         auto video_reencode_options = std::make_unique<List>(List::Orientation::VERTICAL);
         video_reencode_options_ptr = video_reencode_options.get();
+        video_reencode_options->add_widget(create_video_quality());
+        video_reencode_options->add_widget(create_video_resolution());
         video_reencode_options->add_widget(create_video_codec());
         video_reencode_options->add_widget(create_framerate());
         video_reencode_options->add_widget(create_video_bitrate());
@@ -778,7 +920,22 @@ namespace gsr {
             update_reencode_options_visibility();
             update_estimated_file_size();
         };
+        video_quality_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
+            const bool custom_selected = id == "custom";
+            if(custom_selected)
+                apply_video_quality_preset(false);
+            update_reencode_options_visibility();
+            update_estimated_file_size();
+        };
+        video_resolution_box_ptr->on_selection_changed = [this](std::string_view, std::string_view) {
+            apply_selected_resolution_preset(false);
+            update_estimated_file_size();
+        };
         video_bitrate_entry_ptr->on_changed = [this](std::string_view) {
+            if(!changing_video_bitrate_programmatically) {
+                video_bitrate_manually_modified = true;
+                last_manual_video_bitrate_text = std::string(video_bitrate_entry_ptr->get_text());
+            }
             update_estimated_file_size();
         };
         framerate_entry_ptr->on_changed = [this](std::string_view) {
@@ -918,7 +1075,13 @@ namespace gsr {
         source_framerate_text = format_fps_value(source_framerate_known ? source_info.fps : 60.0);
         framerate_entry_ptr->set_text(source_framerate_text);
         framerate_modified = !source_framerate_known;
+        video_quality_box_ptr->set_selected_item("custom", false, false);
+        video_resolution_box_ptr->set_selected_item("source", false, false);
+        video_bitrate_manually_modified = false;
+        changing_video_bitrate_programmatically = true;
         video_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info))));
+        changing_video_bitrate_programmatically = false;
+        last_manual_video_bitrate_text.clear();
         audio_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, get_estimated_audio_bitrate_guess_kbps(source_info))));
         reencode_video_checkbox_ptr->set_checked(false);
         reencode_audio_checkbox_ptr->set_checked(false);
@@ -949,8 +1112,10 @@ namespace gsr {
             audio_codec_ptr->set_visible(advanced_view);
         if(framerate_ptr)
             framerate_ptr->set_visible(advanced_view);
+        if(video_quality_ptr)
+            video_quality_ptr->set_visible(true);
         if(video_bitrate_ptr)
-            video_bitrate_ptr->set_visible(advanced_view);
+            video_bitrate_ptr->set_visible(use_constant_video_bitrate());
         if(audio_bitrate_ptr)
             audio_bitrate_ptr->set_visible(advanced_view);
 
@@ -1018,6 +1183,11 @@ namespace gsr {
         request.reencode_video = is_video_reencode_active();
         request.reencode_audio = is_audio_reencode_active();
         request.has_audio_stream = !source_info.audio_codec.empty();
+
+        const ResolutionPreset *resolution_preset = find_resolution_preset(video_resolution_box_ptr->get_selected_id());
+        const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, resolution_preset);
+        request.video_width = scaled_video_size.x;
+        request.video_height = scaled_video_size.y;
 
         std::string video_codec = choose_default_video_codec(request, source_info);
         std::string audio_codec = request.audio_codec.empty() ? get_default_audio_codec_for_container(request.container) : request.audio_codec;
@@ -1111,17 +1281,33 @@ namespace gsr {
                 args_str.push_back("-r");
                 args_str.push_back(format_fps_value(target_fps));
             }
-            args_str.push_back("-b:v");
-            args_str.push_back(request.video_bitrate + "k");
+            if(request.video_width > 0 && request.video_height > 0 &&
+                (request.video_width != source_info.metadata.width || request.video_height != source_info.metadata.height)) {
+                args_str.push_back("-vf");
+                args_str.push_back("scale=w=" + std::to_string(request.video_width) + ":h=" + std::to_string(request.video_height) + ":force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos");
+            }
+            if(use_constant_video_bitrate()) {
+                args_str.push_back("-b:v");
+                args_str.push_back(std::to_string(get_target_video_bitrate_kbps()) + "k");
+            } else {
+                const std::string selected_quality = std::string(video_quality_box_ptr->get_selected_id());
+                const int crf = get_quality_preset_crf(video_codec, selected_quality);
+                args_str.push_back("-crf");
+                args_str.push_back(std::to_string(crf));
+                if(quality_preset_uses_zero_bitrate(video_codec)) {
+                    args_str.push_back("-b:v");
+                    args_str.push_back("0");
+                }
+            }
         } else {
             args_str.push_back("-c:v");
             args_str.push_back("copy");
         }
 
         if(request.has_audio_stream) {
-                if(request.reencode_audio) {
-                    args_str.push_back("-c:a");
-                    args_str.push_back(map_ffmpeg_audio_encoder(audio_codec));
+            if(request.reencode_audio) {
+                args_str.push_back("-c:a");
+                args_str.push_back(map_ffmpeg_audio_encoder(audio_codec));
                 args_str.push_back("-b:a");
                 args_str.push_back(request.audio_bitrate + "k");
             } else {
@@ -1204,9 +1390,62 @@ namespace gsr {
             }
         }
 
-        video_reencode_options_ptr->set_visible(advanced_view && reencode_video_checkbox_ptr->is_checked());
+        if(video_resolution_ptr)
+            video_resolution_ptr->set_visible(is_video_reencode_active());
+        if(video_bitrate_ptr)
+            video_bitrate_ptr->set_visible(is_video_reencode_active() && use_constant_video_bitrate());
+        video_reencode_options_ptr->set_visible(is_video_reencode_active());
         audio_reencode_options_ptr->set_visible(advanced_view && reencode_audio_checkbox_ptr->is_checked());
         update_settings_scrollable_size();
+    }
+
+    void ExportPage::apply_video_quality_preset(bool force_bitrate_update) {
+        if(!use_constant_video_bitrate())
+            return;
+
+        if(video_bitrate_manually_modified && !last_manual_video_bitrate_text.empty()) {
+            changing_video_bitrate_programmatically = true;
+            video_bitrate_entry_ptr->set_text(last_manual_video_bitrate_text);
+            changing_video_bitrate_programmatically = false;
+            return;
+        }
+
+        if(use_constant_video_bitrate())
+            apply_selected_resolution_preset(force_bitrate_update);
+    }
+
+    void ExportPage::apply_selected_resolution_preset(bool force_bitrate_update) {
+        const ResolutionPreset *preset = find_resolution_preset(video_resolution_box_ptr->get_selected_id());
+        if(!preset)
+            return;
+
+        if(!use_constant_video_bitrate())
+            return;
+
+        if(!force_bitrate_update && video_bitrate_manually_modified)
+            return;
+
+        const int64_t source_bitrate_kbps = std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info));
+        const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, preset);
+        const int64_t target_bitrate_kbps = scale_bitrate_for_resolution(
+            source_bitrate_kbps,
+            source_info.metadata.width,
+            source_info.metadata.height,
+            scaled_video_size.x,
+            scaled_video_size.y);
+
+        changing_video_bitrate_programmatically = true;
+        video_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, target_bitrate_kbps)));
+        changing_video_bitrate_programmatically = false;
+        video_bitrate_manually_modified = false;
+    }
+
+    bool ExportPage::use_constant_video_bitrate() const {
+        return std::string(video_quality_box_ptr->get_selected_id()) == "custom";
+    }
+
+    int64_t ExportPage::get_target_video_bitrate_kbps() const {
+        return std::max<int64_t>(1, sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text()));
     }
 
     int64_t ExportPage::get_selected_duration_ms() const {
@@ -1268,7 +1507,20 @@ namespace gsr {
             int64_t audio_bitrate_kbps = get_estimated_audio_bitrate_guess_kbps(source_info);
 
             if(reencode_video) {
-                video_bitrate_kbps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text());
+                if(use_constant_video_bitrate()) {
+                    video_bitrate_kbps = get_target_video_bitrate_kbps();
+                } else {
+                    const ResolutionPreset *preset = find_resolution_preset(video_resolution_box_ptr->get_selected_id());
+                    const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, preset);
+                    video_bitrate_kbps = scale_bitrate_for_resolution(
+                        std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info)),
+                        source_info.metadata.width,
+                        source_info.metadata.height,
+                        scaled_video_size.x,
+                        scaled_video_size.y);
+                    video_bitrate_kbps = std::max<int64_t>(1,
+                        (video_bitrate_kbps * get_quality_preset_multiplier_percent(video_quality_box_ptr->get_selected_id())) / 100);
+                }
             }
 
             if(reencode_audio) {
@@ -1295,9 +1547,15 @@ namespace gsr {
                     TR("Estimated output file size: %s.\nThe selected container requires compatible codec re-encoding for this export."),
                     format_file_size(estimated_size_bytes).c_str());
             } else {
-                snprintf(buffer, sizeof(buffer),
-                    TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration and target bitrates."),
-                    format_file_size(estimated_size_bytes).c_str());
+                if(use_constant_video_bitrate()) {
+                    snprintf(buffer, sizeof(buffer),
+                        TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration and target bitrates."),
+                        format_file_size(estimated_size_bytes).c_str());
+                } else {
+                    snprintf(buffer, sizeof(buffer),
+                        TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration, resolution and quality preset."),
+                        format_file_size(estimated_size_bytes).c_str());
+                }
             }
         }
         estimated_file_size_ptr->set_text(buffer);
