@@ -104,6 +104,7 @@ namespace gsr {
 
         const GsrInfo *gsr_info = nullptr;
         PageStack *page_stack = nullptr;
+        bool advanced_view = false;
         mgl::Text top_text;
         mgl::Text bottom_text;
         std::vector<ButtonItem> buttons;
@@ -123,7 +124,12 @@ namespace gsr {
         bool framerate_modified = false;
         CheckBox *reencode_video_checkbox_ptr = nullptr;
         CheckBox *reencode_audio_checkbox_ptr = nullptr;
-        Widget *advanced_compression_options_ptr = nullptr;
+        Widget *container_section_ptr = nullptr;
+        Widget *video_codec_ptr = nullptr;
+        Widget *audio_codec_ptr = nullptr;
+        Widget *framerate_ptr = nullptr;
+        Widget *video_bitrate_ptr = nullptr;
+        Widget *audio_bitrate_ptr = nullptr;
         Widget *video_reencode_options_ptr = nullptr;
         Widget *audio_reencode_options_ptr = nullptr;
         Label *source_summary_label_ptr = nullptr;
