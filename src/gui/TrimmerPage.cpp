@@ -393,11 +393,6 @@ namespace gsr {
             bottom_cap.set_position({playhead_x - cap_width * 0.5f, playhead_y + content_size.y - bottom_cap.get_size().y + 1.0f});
             bottom_cap.set_color(get_color_theme().tint_color);
             window.draw(bottom_cap);
-
-            mgl::Rectangle highlight({1.0f, content_size.y + 2.0f});
-            highlight.set_position({playhead_x - needle_width * 0.5f - 1.0f, playhead_y - 1.0f});
-            highlight.set_color(mgl::Color(255, 255, 255, 70));
-            window.draw(highlight);
         }
 
     }
