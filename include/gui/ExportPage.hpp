@@ -17,6 +17,7 @@ namespace gsr {
     class CheckBox;
     class Label;
     class List;
+    class ScrollablePage;
 
     class ExportPage : public StaticPage {
     public:
@@ -84,11 +85,13 @@ namespace gsr {
         bool is_audio_reencode_active() const;
         void view_changed(bool advanced_view);
         void update_reencode_options_visibility();
+        void update_settings_scrollable_size();
         void update_source_summary();
         void update_estimated_file_size();
         int64_t get_selected_duration_ms() const;
         float get_border_size() const;
         float get_horizontal_spacing() const;
+        float get_settings_page_width() const;
         float get_settings_content_width() const;
         mgl::vec2f get_content_position();
     private:
@@ -110,6 +113,8 @@ namespace gsr {
         std::vector<ButtonItem> buttons;
         SourceVideoInfo source_info;
 
+        List *page_list_ptr = nullptr;
+        ScrollablePage *settings_scrollable_page_ptr = nullptr;
         List *settings_list_ptr = nullptr;
         Button *save_directory_button_ptr = nullptr;
         RadioButton *view_radio_button_ptr = nullptr;

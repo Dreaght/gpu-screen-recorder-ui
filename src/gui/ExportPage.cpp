@@ -11,6 +11,7 @@
 #include "../../include/gui/CheckBox.hpp"
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/GsrPage.hpp"
+#include "../../include/gui/ScrollablePage.hpp"
 #include "../../include/GsrInfo.hpp"
 #include "../../include/Translation.hpp"
 
@@ -423,6 +424,7 @@ namespace gsr {
         update_reencode_options_visibility();
         update_source_summary();
         update_estimated_file_size();
+        update_settings_scrollable_size();
     }
 
     bool ExportPage::on_event(mgl::Event &event, mgl::Window &window, mgl::vec2f) {
@@ -742,15 +744,26 @@ namespace gsr {
         auto page_list = std::make_unique<List>(List::Orientation::VERTICAL);
         page_list->set_spacing(0.018f);
         page_list->add_widget(create_view_radio_button());
+        page_list_ptr = page_list.get();
+
+        const float page_spacing = std::floor(0.018f * get_theme().window_height);
+        const float margin_top = std::floor(margin_top_scale * get_theme().window_height);
+        const float margin_bottom = std::floor(margin_bottom_scale * get_theme().window_height);
+        const float max_inner_page_height = std::max(0.0f, std::floor(get_theme().window_height * 0.7f) - margin_top - margin_bottom - get_border_size());
+        const float max_scrollable_height = std::max(0.0f, max_inner_page_height - page_list->get_size().y - page_spacing);
+        auto scrollable_page = std::make_unique<ScrollablePage>(mgl::vec2f(get_settings_page_width(), max_scrollable_height));
+        settings_scrollable_page_ptr = scrollable_page.get();
+        page_list->add_widget(std::move(scrollable_page));
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
         settings_list->add_widget(create_file_info_section());
         settings_list->add_widget(create_source_info_section());
         settings_list->add_widget(create_video_section());
+        settings_list_ptr = settings_list.get();
+        settings_scrollable_page_ptr->add_widget(std::move(settings_list));
+        update_settings_scrollable_size();
 
-        settings_list_ptr = page_list.get();
-        page_list->add_widget(std::move(settings_list));
         return page_list;
     }
 
@@ -942,6 +955,21 @@ namespace gsr {
             audio_bitrate_ptr->set_visible(advanced_view);
 
         update_reencode_options_visibility();
+    }
+
+    void ExportPage::update_settings_scrollable_size() {
+        if(!page_list_ptr || !settings_scrollable_page_ptr || !settings_list_ptr)
+            return;
+
+        const float margin_top = std::floor(margin_top_scale * get_theme().window_height);
+        const float margin_bottom = std::floor(margin_bottom_scale * get_theme().window_height);
+        const float page_spacing = std::floor(0.018f * get_theme().window_height);
+        const float max_inner_page_height = std::max(0.0f, std::floor(get_theme().window_height * 0.7f) - margin_top - margin_bottom - get_border_size());
+        const float fixed_page_height = view_radio_button_ptr ? (view_radio_button_ptr->get_size().y + page_spacing) : 0.0f;
+        const float max_scrollable_height = std::max(0.0f, max_inner_page_height - fixed_page_height);
+        const float visible_settings_height = settings_list_ptr->get_size().y;
+        const float scrollable_height = std::min(visible_settings_height, max_scrollable_height);
+        settings_scrollable_page_ptr->set_size(mgl::vec2f(get_settings_page_width(), scrollable_height).floor());
     }
 
     bool ExportPage::start_export() {
@@ -1178,6 +1206,7 @@ namespace gsr {
 
         video_reencode_options_ptr->set_visible(advanced_view && reencode_video_checkbox_ptr->is_checked());
         audio_reencode_options_ptr->set_visible(advanced_view && reencode_audio_checkbox_ptr->is_checked());
+        update_settings_scrollable_size();
     }
 
     int64_t ExportPage::get_selected_duration_ms() const {
@@ -1218,6 +1247,7 @@ namespace gsr {
             humanize_audio_codec(source_info.audio_codec).c_str(),
             audio_bitrate_suffix.c_str());
         source_summary_label_ptr->set_text(buffer);
+        update_settings_scrollable_size();
     }
 
     void ExportPage::update_estimated_file_size() {
@@ -1271,6 +1301,7 @@ namespace gsr {
             }
         }
         estimated_file_size_ptr->set_text(buffer);
+        update_settings_scrollable_size();
     }
 
     mgl::vec2f ExportPage::get_size() {
@@ -1281,8 +1312,9 @@ namespace gsr {
         const float margin_bottom = std::floor(margin_bottom_scale * get_theme().window_height);
         const float margin_left = std::floor(margin_left_scale * get_theme().window_height);
         const float margin_right = std::floor(margin_right_scale * get_theme().window_height);
-        const mgl::vec2f settings_size = settings_list_ptr ? settings_list_ptr->get_size() : mgl::vec2f(get_settings_content_width(), 0.0f);
-        return (settings_size + mgl::vec2f(margin_left + margin_right, margin_top + margin_bottom + get_border_size())).floor();
+        const mgl::vec2f settings_size = page_list_ptr ? page_list_ptr->get_size() : mgl::vec2f(get_settings_content_width(), 0.0f);
+        const mgl::vec2f page_size = settings_size + mgl::vec2f(margin_left + margin_right, margin_top + margin_bottom + get_border_size());
+        return mgl::vec2f(page_size.x, std::min(page_size.y, std::floor(get_theme().window_height * 0.7f))).floor();
     }
 
     mgl::vec2f ExportPage::get_inner_size() {
@@ -1322,11 +1354,18 @@ namespace gsr {
         return get_theme().window_width / 50;
     }
 
-    float ExportPage::get_settings_content_width() const {
+    float ExportPage::get_settings_page_width() const {
         const float margin_left = std::floor(margin_left_scale * get_theme().window_height);
         const float margin_right = std::floor(margin_right_scale * get_theme().window_height);
         const float preferred_page_width = std::floor(get_theme().window_width * 0.4f);
         return std::max(0.0f, preferred_page_width - margin_left - margin_right);
+    }
+
+    float ExportPage::get_settings_content_width() const {
+        if(settings_scrollable_page_ptr)
+            return settings_scrollable_page_ptr->get_inner_size().x;
+
+        return get_settings_page_width();
     }
 
     mgl::vec2f ExportPage::get_content_position() {
