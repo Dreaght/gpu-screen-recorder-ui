@@ -2,6 +2,7 @@
 
 #include "StaticPage.hpp"
 #include "Button.hpp"
+#include "RadioButton.hpp"
 #include "../RecentVideos.hpp"
 #include "TimelineWidget.hpp"
 
@@ -55,6 +56,7 @@ namespace gsr {
         std::unique_ptr<Widget> create_source_info_section();
         std::unique_ptr<Label> create_source_summary_label();
         std::unique_ptr<Label> create_estimated_file_size();
+        std::unique_ptr<RadioButton> create_view_radio_button();
 
         std::unique_ptr<Widget> create_video_section();
         std::unique_ptr<Widget> create_reencode_video_checkbox();
@@ -80,6 +82,7 @@ namespace gsr {
         bool start_export();
         bool is_video_reencode_active() const;
         bool is_audio_reencode_active() const;
+        void view_changed(bool advanced_view);
         void update_reencode_options_visibility();
         void update_source_summary();
         void update_estimated_file_size();
@@ -108,6 +111,7 @@ namespace gsr {
 
         List *settings_list_ptr = nullptr;
         Button *save_directory_button_ptr = nullptr;
+        RadioButton *view_radio_button_ptr = nullptr;
         ComboBox *container_box_ptr = nullptr;
         ComboBox *video_codec_box_ptr = nullptr;
         ComboBox *audio_codec_box_ptr = nullptr;
@@ -119,6 +123,7 @@ namespace gsr {
         bool framerate_modified = false;
         CheckBox *reencode_video_checkbox_ptr = nullptr;
         CheckBox *reencode_audio_checkbox_ptr = nullptr;
+        Widget *advanced_compression_options_ptr = nullptr;
         Widget *video_reencode_options_ptr = nullptr;
         Widget *audio_reencode_options_ptr = nullptr;
         Label *source_summary_label_ptr = nullptr;
