@@ -477,14 +477,18 @@ namespace gsr {
 
         static int get_quality_preset_multiplier_percent(std::string_view quality) {
             if(quality == "medium")
-                return 55;
-            if(quality == "high")
-                return 75;
-            if(quality == "very_high")
                 return 100;
-            if(quality == "ultra")
+            if(quality == "high")
                 return 140;
+            if(quality == "very_high")
+                return 200;
+            if(quality == "ultra")
+                return 280;
             return 100;
+        }
+
+        static bool parse_target_fps_for_estimation(std::string_view fps_text, double &target_fps) {
+            return parse_positive_double(fps_text, target_fps);
         }
 
         static int get_quality_preset_crf(std::string_view codec, std::string_view quality) {
@@ -1479,8 +1483,9 @@ namespace gsr {
             scaled_video_size.x,
             scaled_video_size.y);
 
-        double target_fps = source_info.fps > 0.0 ? source_info.fps : 60.0;
-        parse_positive_double(framerate_entry_ptr->get_text(), target_fps);
+        double target_fps = 0.0;
+        if(!parse_target_fps_for_estimation(framerate_entry_ptr->get_text(), target_fps))
+            return;
         target_bitrate_kbps = scale_bitrate_for_fps(target_bitrate_kbps, source_info.fps, target_fps);
 
         changing_video_bitrate_programmatically = true;
@@ -1554,6 +1559,12 @@ namespace gsr {
 
         const bool reencode_video = is_video_reencode_active();
         const bool reencode_audio = is_audio_reencode_active();
+        double target_fps = 0.0;
+        if(reencode_video && !parse_target_fps_for_estimation(framerate_entry_ptr->get_text(), target_fps)) {
+            estimated_file_size_ptr->set_text(TR("Estimated output file size unavailable.\nFrame rate must be a positive number."));
+            update_settings_scrollable_size();
+            return;
+        }
 
         int64_t estimated_size_bytes = 0;
         if(!reencode_video && !reencode_audio && source_info.metadata.file_size > 0 && source_info.metadata.duration_seconds > 0.0) {
@@ -1571,9 +1582,6 @@ namespace gsr {
                     request.container = std::string(container_box_ptr->get_selected_id());
                     request.video_codec = std::string(video_codec_box_ptr->get_selected_id());
                     request.reencode_video = true;
-
-                    double target_fps = source_info.fps > 0.0 ? source_info.fps : 60.0;
-                    parse_positive_double(framerate_entry_ptr->get_text(), target_fps);
 
                     video_bitrate_kbps = estimate_quality_preset_video_bitrate_kbps(
                         source_info,
