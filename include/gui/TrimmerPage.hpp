@@ -41,8 +41,10 @@ namespace gsr {
         bool open_fullscreen_preview();
         void set_fullscreen_preview_active(bool active);
         void handle_playback_state_changed(const VideoPlayer::PlaybackState &state);
+        bool restart_fullscreen_preview_playback_if_needed();
         void skip_disabled_chunks_if_needed();
         std::vector<TimelineWidget::TimelineChunk> get_effective_chunks() const;
+        int find_first_enabled_chunk_index() const;
         int find_enabled_chunk_index_for_position(int64_t position_ms) const;
         int find_next_enabled_chunk_index(int64_t position_ms) const;
         int find_last_enabled_chunk_index() const;
@@ -70,5 +72,7 @@ namespace gsr {
         bool state_loaded = false;
         bool fullscreen_preview_active = false;
         bool skipping_disabled_chunk = false;
+        bool restarting_fullscreen_preview_playback = false;
+        bool fullscreen_preview_restart_pending = false;
     };
 }

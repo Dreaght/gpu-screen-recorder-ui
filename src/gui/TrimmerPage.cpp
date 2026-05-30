@@ -574,13 +574,57 @@ namespace gsr {
 
     void TrimmerPage::set_fullscreen_preview_active(bool active) {
         fullscreen_preview_active = active;
+        if(video_player_ptr) {
+            if(fullscreen_preview_active) {
+                video_player_ptr->set_before_play_callback([this]() {
+                    return restart_fullscreen_preview_playback_if_needed();
+                });
+            } else {
+                video_player_ptr->set_before_play_callback(nullptr);
+            }
+        }
+
+        if(!fullscreen_preview_active)
+            fullscreen_preview_restart_pending = false;
+
         if(fullscreen_preview_active)
             skip_disabled_chunks_if_needed();
     }
 
     void TrimmerPage::handle_playback_state_changed(const VideoPlayer::PlaybackState &state) {
         playback_state = state;
+
+        if(restarting_fullscreen_preview_playback)
+            return;
+
         skip_disabled_chunks_if_needed();
+    }
+
+    bool TrimmerPage::restart_fullscreen_preview_playback_if_needed() {
+        if(!fullscreen_preview_active || !video_player_ptr || timeline_scrub_active || video_player_ptr->is_external_scrubbing_active())
+            return false;
+
+        if(!fullscreen_preview_restart_pending || !playback_state.paused || !playback_state.file_loaded || playback_state.duration_ms <= 0)
+            return false;
+
+        const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
+        if(chunks.empty())
+            return false;
+
+        const int first_enabled_chunk_index = find_first_enabled_chunk_index();
+        if(first_enabled_chunk_index < 0)
+            return false;
+
+        const auto &first_enabled_chunk = chunks[first_enabled_chunk_index];
+        restarting_fullscreen_preview_playback = true;
+        const bool seek_succeeded = video_player_ptr->seek_to_ms(first_enabled_chunk.start_ms, true);
+        const bool resume_succeeded = seek_succeeded && video_player_ptr->resume_from_current_position();
+        restarting_fullscreen_preview_playback = false;
+
+        if(resume_succeeded)
+            fullscreen_preview_restart_pending = false;
+
+        return resume_succeeded;
     }
 
     void TrimmerPage::skip_disabled_chunks_if_needed() {
@@ -590,24 +634,41 @@ namespace gsr {
         if(!playback_state.file_loaded || timeline_scrub_active || playback_state.duration_ms <= 0)
             return;
 
+        if(video_player_ptr->is_external_scrubbing_active()) {
+            fullscreen_preview_restart_pending = false;
+            return;
+        }
+
         const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
         if(chunks.empty())
             return;
 
+        const int last_enabled_chunk_index = find_last_enabled_chunk_index();
         const int enabled_chunk_index = find_enabled_chunk_index_for_position(playback_state.position_ms);
-        if(enabled_chunk_index >= 0)
+        if(enabled_chunk_index >= 0) {
+            const bool is_paused_on_last_enabled_frame = playback_state.paused
+                && last_enabled_chunk_index >= 0
+                && enabled_chunk_index == last_enabled_chunk_index
+                && playback_state.position_ms >= std::max<int64_t>(chunks[last_enabled_chunk_index].start_ms, chunks[last_enabled_chunk_index].end_ms - 1);
+
+            if(!is_paused_on_last_enabled_frame)
+                fullscreen_preview_restart_pending = false;
+            else if(playback_state.eof_reached)
+                fullscreen_preview_restart_pending = true;
+
             return;
+        }
 
         const int next_enabled_chunk_index = find_next_enabled_chunk_index(playback_state.position_ms);
         skipping_disabled_chunk = true;
 
         if(next_enabled_chunk_index >= 0) {
+            fullscreen_preview_restart_pending = false;
             const auto &chunk = chunks[next_enabled_chunk_index];
             video_player_ptr->seek_to_ms(chunk.start_ms, true);
             if(!playback_state.paused)
                 video_player_ptr->play();
         } else {
-            const int last_enabled_chunk_index = find_last_enabled_chunk_index();
             video_player_ptr->pause();
 
             if(last_enabled_chunk_index >= 0) {
@@ -615,6 +676,8 @@ namespace gsr {
                 const int64_t final_position_ms = std::max<int64_t>(chunk.start_ms, chunk.end_ms - 1);
                 video_player_ptr->seek_to_ms(final_position_ms, true);
             }
+
+            fullscreen_preview_restart_pending = true;
         }
 
         skipping_disabled_chunk = false;
@@ -632,6 +695,18 @@ namespace gsr {
             return chunks;
 
         return { TimelineWidget::TimelineChunk{0, playback_state.duration_ms, true} };
+    }
+
+    int TrimmerPage::find_first_enabled_chunk_index() const {
+        const std::vector<TimelineWidget::TimelineChunk> chunks = get_effective_chunks();
+        if(chunks.empty())
+            return -1;
+
+        for(size_t i = 0; i < chunks.size(); ++i) {
+            if(chunks[i].enabled)
+                return (int)i;
+        }
+        return -1;
     }
 
     int TrimmerPage::find_enabled_chunk_index_for_position(int64_t position_ms) const {
