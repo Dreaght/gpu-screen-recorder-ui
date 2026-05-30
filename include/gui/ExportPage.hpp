@@ -97,6 +97,7 @@ namespace gsr {
         bool use_constant_video_bitrate() const;
         int64_t get_target_video_bitrate_kbps() const;
         int64_t get_selected_duration_ms() const;
+        int64_t get_source_trimmed_size_bytes(int64_t selected_duration_ms) const;
         float get_border_size() const;
         float get_horizontal_spacing() const;
         float get_settings_page_width() const;
