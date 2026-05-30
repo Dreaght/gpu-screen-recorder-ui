@@ -426,6 +426,28 @@ namespace gsr {
             return std::max<int64_t>(1, (int64_t)std::llround((double)bitrate_kbps * (target_pixels / source_pixels)));
         }
 
+        static int64_t scale_bitrate_for_fps(int64_t bitrate_kbps, double source_fps, double target_fps) {
+            if(bitrate_kbps <= 0 || source_fps <= 0.0 || target_fps <= 0.0)
+                return bitrate_kbps;
+
+            const double fps_scale = std::min(1.0, target_fps / source_fps);
+            return std::max<int64_t>(1, (int64_t)std::llround((double)bitrate_kbps * fps_scale));
+        }
+
+        static double get_codec_efficiency_factor(std::string_view codec) {
+            if(codec == "av1")
+                return 0.62;
+            if(codec == "hevc")
+                return 0.74;
+            if(codec == "vp9")
+                return 0.82;
+            if(codec == "h264")
+                return 1.0;
+            if(codec == "vp8")
+                return 1.08;
+            return 1.0;
+        }
+
         static const ResolutionPreset* find_resolution_preset(std::string_view id) {
             for(const ResolutionPreset &preset : resolution_presets) {
                 if(id == preset.id)
@@ -497,6 +519,28 @@ namespace gsr {
 
         static bool quality_preset_uses_zero_bitrate(std::string_view codec) {
             return codec == "av1" || codec == "vp8" || codec == "vp9";
+        }
+
+        static int64_t estimate_quality_preset_video_bitrate_kbps(const ExportPage::SourceVideoInfo &source_info, const ResolutionPreset *preset,
+            const std::string &target_codec, std::string_view quality, double target_fps)
+        {
+            int64_t bitrate_kbps = std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info));
+            const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, preset);
+            bitrate_kbps = scale_bitrate_for_resolution(
+                bitrate_kbps,
+                source_info.metadata.width,
+                source_info.metadata.height,
+                scaled_video_size.x,
+                scaled_video_size.y);
+            bitrate_kbps = scale_bitrate_for_fps(bitrate_kbps, source_info.fps, target_fps);
+
+            const double source_efficiency = get_codec_efficiency_factor(source_info.video_codec);
+            const double target_efficiency = get_codec_efficiency_factor(target_codec);
+            if(source_efficiency > 0.0 && target_efficiency > 0.0)
+                bitrate_kbps = std::max<int64_t>(1, (int64_t)std::llround((double)bitrate_kbps * (target_efficiency / source_efficiency)));
+
+            bitrate_kbps = std::max<int64_t>(1, (bitrate_kbps * get_quality_preset_multiplier_percent(quality)) / 100);
+            return bitrate_kbps;
         }
     }
 
@@ -940,6 +984,7 @@ namespace gsr {
         };
         framerate_entry_ptr->on_changed = [this](std::string_view) {
             framerate_modified = framerate_entry_ptr->get_text() != source_framerate_text;
+            apply_video_quality_preset(false);
             update_estimated_file_size();
         };
         audio_bitrate_entry_ptr->on_changed = [this](std::string_view) {
@@ -1427,12 +1472,16 @@ namespace gsr {
 
         const int64_t source_bitrate_kbps = std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info));
         const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, preset);
-        const int64_t target_bitrate_kbps = scale_bitrate_for_resolution(
+        int64_t target_bitrate_kbps = scale_bitrate_for_resolution(
             source_bitrate_kbps,
             source_info.metadata.width,
             source_info.metadata.height,
             scaled_video_size.x,
             scaled_video_size.y);
+
+        double target_fps = source_info.fps > 0.0 ? source_info.fps : 60.0;
+        parse_positive_double(framerate_entry_ptr->get_text(), target_fps);
+        target_bitrate_kbps = scale_bitrate_for_fps(target_bitrate_kbps, source_info.fps, target_fps);
 
         changing_video_bitrate_programmatically = true;
         video_bitrate_entry_ptr->set_text(std::to_string(std::max<int64_t>(1, target_bitrate_kbps)));
@@ -1459,6 +1508,13 @@ namespace gsr {
         }
 
         return duration_ms;
+    }
+
+    int64_t ExportPage::get_source_trimmed_size_bytes(int64_t selected_duration_ms) const {
+        if(selected_duration_ms <= 0 || source_info.metadata.file_size <= 0 || source_info.metadata.duration_seconds <= 0.0)
+            return 0;
+
+        return (int64_t)std::llround((double)source_info.metadata.file_size * ((double)selected_duration_ms / (source_info.metadata.duration_seconds * 1000.0)));
     }
 
     void ExportPage::update_source_summary() {
@@ -1501,37 +1557,50 @@ namespace gsr {
 
         int64_t estimated_size_bytes = 0;
         if(!reencode_video && !reencode_audio && source_info.metadata.file_size > 0 && source_info.metadata.duration_seconds > 0.0) {
-            estimated_size_bytes = (int64_t)std::llround((double)source_info.metadata.file_size * ((double)selected_duration_ms / (source_info.metadata.duration_seconds * 1000.0)));
+            estimated_size_bytes = get_source_trimmed_size_bytes(selected_duration_ms);
         } else {
-            int64_t video_bitrate_kbps = get_estimated_video_bitrate_guess_kbps(source_info);
-            int64_t audio_bitrate_kbps = get_estimated_audio_bitrate_guess_kbps(source_info);
+            int64_t video_bitrate_kbps = 0;
+            int64_t audio_bitrate_kbps = 0;
 
             if(reencode_video) {
                 if(use_constant_video_bitrate()) {
                     video_bitrate_kbps = get_target_video_bitrate_kbps();
                 } else {
                     const ResolutionPreset *preset = find_resolution_preset(video_resolution_box_ptr->get_selected_id());
-                    const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, preset);
-                    video_bitrate_kbps = scale_bitrate_for_resolution(
-                        std::max<int64_t>(1, get_estimated_video_bitrate_guess_kbps(source_info)),
-                        source_info.metadata.width,
-                        source_info.metadata.height,
-                        scaled_video_size.x,
-                        scaled_video_size.y);
-                    video_bitrate_kbps = std::max<int64_t>(1,
-                        (video_bitrate_kbps * get_quality_preset_multiplier_percent(video_quality_box_ptr->get_selected_id())) / 100);
+                    ExportRequest request;
+                    request.container = std::string(container_box_ptr->get_selected_id());
+                    request.video_codec = std::string(video_codec_box_ptr->get_selected_id());
+                    request.reencode_video = true;
+
+                    double target_fps = source_info.fps > 0.0 ? source_info.fps : 60.0;
+                    parse_positive_double(framerate_entry_ptr->get_text(), target_fps);
+
+                    video_bitrate_kbps = estimate_quality_preset_video_bitrate_kbps(
+                        source_info,
+                        preset,
+                        choose_default_video_codec(request, source_info),
+                        video_quality_box_ptr->get_selected_id(),
+                        target_fps);
                 }
+            } else {
+                video_bitrate_kbps = std::max<int64_t>(0, get_estimated_video_bitrate_guess_kbps(source_info));
             }
 
             if(reencode_audio) {
-                audio_bitrate_kbps = sv_to_int<int64_t>(audio_bitrate_entry_ptr->get_text());
+                audio_bitrate_kbps = std::max<int64_t>(0, sv_to_int<int64_t>(audio_bitrate_entry_ptr->get_text()));
+            } else {
+                audio_bitrate_kbps = std::max<int64_t>(0, get_estimated_audio_bitrate_guess_kbps(source_info));
             }
 
             int64_t total_bitrate_kbps = video_bitrate_kbps + audio_bitrate_kbps;
             if(total_bitrate_kbps <= 0)
                 total_bitrate_kbps = source_info.total_bitrate_kbps;
-            total_bitrate_kbps = std::max<int64_t>(1, total_bitrate_kbps);
-            estimated_size_bytes = (int64_t)std::llround(((double)selected_duration_ms / 1000.0) * ((double)total_bitrate_kbps * 1000.0 / 8.0));
+            if(total_bitrate_kbps > 0) {
+                estimated_size_bytes = (int64_t)std::llround(((double)selected_duration_ms / 1000.0) * ((double)total_bitrate_kbps * 1000.0 / 8.0));
+                estimated_size_bytes = (int64_t)std::llround((double)estimated_size_bytes * 1.024);
+            } else {
+                estimated_size_bytes = get_source_trimmed_size_bytes(selected_duration_ms);
+            }
         }
 
         char buffer[512];
