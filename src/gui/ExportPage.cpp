@@ -67,7 +67,7 @@ namespace gsr {
             }
 
             char buffer[64];
-            snprintf(buffer, sizeof(buffer), "%.2f%s", size, units[unit_index]);
+            snprintf(buffer, sizeof(buffer), "%.2f %s", size, units[unit_index]);
             return buffer;
         }
 
@@ -345,11 +345,16 @@ namespace gsr {
         return std::make_unique<Subsection>(TR("File info"), std::move(file_info_data_list), mgl::vec2f(get_settings_content_width(), 0.0f));
     }
 
-    std::unique_ptr<Label> ExportPage::create_source_summary_label() {
-        auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "", get_color_theme().text_color);
-        label->set_wrap_width(get_settings_content_width());
-        source_summary_label_ptr = label.get();
-        return label;
+    std::unique_ptr<Widget> ExportPage::create_source_info_row(const char *label, Label **value_label_ptr) {
+        auto row = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
+        auto static_label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), label, get_color_theme().text_color);
+        auto value_label = std::make_unique<Label>(get_theme().title_font_desc.c_str(), "", get_color_theme().tint_color);
+        *value_label_ptr = value_label.get();
+
+        row->add_widget(std::move(static_label));
+        row->add_widget(std::move(value_label));
+        return row;
     }
 
     std::unique_ptr<Label> ExportPage::create_estimated_file_size() {
@@ -378,7 +383,24 @@ namespace gsr {
 
     std::unique_ptr<Widget> ExportPage::create_source_info_section() {
         auto source_info_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        source_info_list->add_widget(create_source_summary_label());
+
+        auto resolution_row = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        resolution_row->add_widget(create_source_info_row(TR("Resolution:"), &source_resolution_label_ptr));
+        resolution_row->add_widget(create_source_info_row(TR("Total bitrate:"), &source_total_bitrate_label_ptr));
+        source_info_list->add_widget(std::move(resolution_row));
+
+        auto duration_row = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        duration_row->add_widget(create_source_info_row(TR("Duration:"), &source_duration_label_ptr));
+        duration_row->add_widget(create_source_info_row(TR("Selected trim:"), &selected_trim_duration_label_ptr));
+        source_info_list->add_widget(std::move(duration_row));
+
+        source_info_list->add_widget(create_source_info_row(TR("File size:"), &source_file_size_label_ptr));
+
+        auto codecs_row = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        codecs_row->add_widget(create_source_info_row(TR("Video codec:"), &source_video_codec_label_ptr));
+        codecs_row->add_widget(create_source_info_row(TR("Audio codec:"), &source_audio_codec_label_ptr));
+        source_info_list->add_widget(std::move(codecs_row));
+
         source_info_list->add_widget(create_estimated_file_size());
         source_info_list->add_widget(create_reencode_warning_label());
         return std::make_unique<Subsection>(TR("Source"), std::move(source_info_list), mgl::vec2f(get_settings_content_width(), 0.0f));
@@ -947,30 +969,26 @@ namespace gsr {
     }
 
     void ExportPage::update_source_summary() {
-        const std::string total_bitrate_suffix = source_info.total_bitrate_kbps > 0
-            ? std::string(", ") + std::to_string(source_info.total_bitrate_kbps) + "Kbps total"
-            : std::string();
+        const std::string total_bitrate = source_info.total_bitrate_kbps > 0
+            ? std::to_string(source_info.total_bitrate_kbps) + " Kbps"
+            : TR("Unknown");
         const std::string video_bitrate_suffix = source_info.has_video_bitrate
-            ? std::string(" (") + std::to_string(source_info.video_bitrate_kbps) + "Kbps)"
+            ? std::string(" (") + std::to_string(source_info.video_bitrate_kbps) + " Kbps)"
             : std::string();
         const std::string audio_bitrate_suffix = source_info.has_audio_bitrate
-            ? std::string(" (") + std::to_string(source_info.audio_bitrate_kbps) + "Kbps)"
+            ? std::string(" (") + std::to_string(source_info.audio_bitrate_kbps) + " Kbps)"
             : std::string();
 
-        char buffer[1024];
-        snprintf(buffer, sizeof(buffer),
-            TR("Source video: %dx%d, %s, %s%s.\nSelected trim duration: %s.\nSource codecs: video %s%s, audio %s%s."),
-            source_info.metadata.width,
-            source_info.metadata.height,
-            format_duration((int64_t)std::llround(source_info.metadata.duration_seconds * 1000.0)).c_str(),
-            format_file_size(source_info.metadata.file_size).c_str(),
-            total_bitrate_suffix.c_str(),
-            format_duration(get_selected_duration_ms()).c_str(),
-            humanize_video_codec(source_info.video_codec).c_str(),
-            video_bitrate_suffix.c_str(),
-            humanize_audio_codec(source_info.audio_codec).c_str(),
-            audio_bitrate_suffix.c_str());
-        source_summary_label_ptr->set_text(buffer);
+        char resolution_text[64];
+        snprintf(resolution_text, sizeof(resolution_text), "%dx%d", source_info.metadata.width, source_info.metadata.height);
+
+        source_resolution_label_ptr->set_text(resolution_text);
+        source_duration_label_ptr->set_text(format_duration((int64_t)std::llround(source_info.metadata.duration_seconds * 1000.0)));
+        source_file_size_label_ptr->set_text(format_file_size(source_info.metadata.file_size));
+        source_total_bitrate_label_ptr->set_text(total_bitrate);
+        selected_trim_duration_label_ptr->set_text(format_duration(get_selected_duration_ms()));
+        source_video_codec_label_ptr->set_text(humanize_video_codec(source_info.video_codec) + video_bitrate_suffix);
+        source_audio_codec_label_ptr->set_text(humanize_audio_codec(source_info.audio_codec) + audio_bitrate_suffix);
         update_settings_scrollable_size();
     }
 

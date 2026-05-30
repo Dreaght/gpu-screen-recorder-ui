@@ -44,7 +44,7 @@ namespace gsr {
         std::unique_ptr<Widget> create_container_section();
 
         std::unique_ptr<Widget> create_source_info_section();
-        std::unique_ptr<Label> create_source_summary_label();
+        std::unique_ptr<Widget> create_source_info_row(const char *label, Label **value_label_ptr);
         std::unique_ptr<Label> create_estimated_file_size();
         std::unique_ptr<Label> create_reencode_warning_label();
         std::unique_ptr<RadioButton> create_view_radio_button();
@@ -145,7 +145,13 @@ namespace gsr {
         Widget *audio_bitrate_ptr = nullptr;
         Widget *video_reencode_options_ptr = nullptr;
         Widget *audio_reencode_options_ptr = nullptr;
-        Label *source_summary_label_ptr = nullptr;
+        Label *source_resolution_label_ptr = nullptr;
+        Label *source_duration_label_ptr = nullptr;
+        Label *source_file_size_label_ptr = nullptr;
+        Label *source_total_bitrate_label_ptr = nullptr;
+        Label *selected_trim_duration_label_ptr = nullptr;
+        Label *source_video_codec_label_ptr = nullptr;
+        Label *source_audio_codec_label_ptr = nullptr;
         Label *estimated_file_size_ptr = nullptr;
         Label *reencode_warning_label_ptr = nullptr;
 
