@@ -26,6 +26,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <time.h>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace gsr {
@@ -364,6 +365,46 @@ namespace gsr {
             return host_supports_ffmpeg_encoder(map_ffmpeg_audio_encoder(codec));
         }
 
+        static bool host_supports_audio_codec_in_container(const std::string &container, const std::string &codec) {
+            if(!host_supports_audio_codec(codec))
+                return false;
+
+            static std::unordered_map<std::string, bool> compatibility_cache;
+            const std::string cache_key = container + ":" + codec;
+            auto it = compatibility_cache.find(cache_key);
+            if(it != compatibility_cache.end())
+                return it->second;
+
+            const std::string output_path = (std::filesystem::temp_directory_path() /
+                ("gpu-screen-recorder-audio-codec-probe-" + container + "-" + codec + "." + container_to_file_extension(container))).string();
+            const std::string ffmpeg_audio_encoder = map_ffmpeg_audio_encoder(codec);
+            const char *args[] = {
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=r=48000:cl=stereo",
+                "-t",
+                "0.1",
+                "-c:a",
+                ffmpeg_audio_encoder.c_str(),
+                "-vn",
+                "-y",
+                output_path.c_str(),
+                nullptr
+            };
+
+            std::string output;
+            const bool supported = exec_program_on_host_get_stdout(args, output, false) == 0;
+            compatibility_cache[cache_key] = supported;
+            std::error_code remove_error;
+            std::filesystem::remove(output_path, remove_error);
+            return supported;
+        }
+
         static bool container_supports_video_codec(const std::string &container, const std::string &codec) {
             if(container == "webm")
                 return codec == "vp8" || codec == "vp9" || codec == "av1";
@@ -382,10 +423,21 @@ namespace gsr {
             return true;
         }
 
+        static bool container_supports_audio_reencode_codec(const std::string &container, const std::string &codec) {
+            if(container == "webm")
+                return codec == "opus";
+            return host_supports_audio_codec_in_container(container, codec);
+        }
+
         static std::string get_default_audio_codec_for_container(const std::string &container) {
             if(container == "webm")
                 return host_supports_audio_codec("opus") ? "opus" : "";
-            return host_supports_audio_codec("aac") ? "aac" : "";
+
+            if(container_supports_audio_reencode_codec(container, "opus"))
+                return "opus";
+            if(container_supports_audio_reencode_codec(container, "aac"))
+                return "aac";
+            return "";
         }
 
         static int64_t get_estimated_audio_bitrate_guess_kbps(const ExportPage::SourceVideoInfo &source_info) {
@@ -1271,7 +1323,7 @@ namespace gsr {
                     show_export_notification(TR("No compatible audio codec is available for the selected export settings"), false);
                     return false;
                 }
-                if(!container_supports_audio_codec(request.container, audio_codec)) {
+                if(!container_supports_audio_reencode_codec(request.container, audio_codec)) {
                     show_export_notification(TR("The selected audio codec is not compatible with the selected container"), false);
                     return false;
                 }
@@ -1432,7 +1484,7 @@ namespace gsr {
 
         if(is_audio_reencode_active()) {
             const std::string selected_audio_codec = std::string(audio_codec_box_ptr->get_selected_id());
-            if(selected_audio_codec.empty() || !container_supports_audio_codec(container, selected_audio_codec)) {
+            if(selected_audio_codec.empty() || !container_supports_audio_reencode_codec(container, selected_audio_codec)) {
                 const std::string default_audio_codec = get_default_audio_codec_for_container(container);
                 if(!default_audio_codec.empty())
                     audio_codec_box_ptr->set_selected_item(default_audio_codec);
