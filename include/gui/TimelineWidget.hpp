@@ -102,7 +102,7 @@ namespace gsr {
         mgl::vec2f zoom_interaction_size = {0.0f, 0.0f};
         mgl::Text status_text;
         std::vector<TimelineChunk> chunks;
-        int64_t cut_point_proximity_ms = 1000;
+        int64_t cut_point_proximity_ms = 500;
         std::vector<Thumbnail> thumbnails;
         std::thread thumbnail_worker_thread;
         std::mutex thumbnail_mutex;
