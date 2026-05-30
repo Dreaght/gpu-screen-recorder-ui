@@ -54,6 +54,7 @@ namespace gsr {
         bool is_smart_controls_hide_enabled() const;
         const std::string& get_proxy_video_path() const;
         void set_playback_state_callback(std::function<void(const PlaybackState&)> callback);
+        void set_before_play_callback(std::function<bool()> callback);
         void begin_external_scrub();
         void update_external_scrub(int64_t position_ms);
         void end_external_scrub(bool resume_playback, bool exact_seek = false);
@@ -63,8 +64,10 @@ namespace gsr {
         bool is_backend_available() const;
         bool is_file_loaded() const;
         bool is_paused() const;
+        bool is_external_scrubbing_active() const;
 
         bool play();
+        bool resume_from_current_position();
         bool pause();
         bool toggle_pause();
         bool seek_to_ms(int64_t position_ms, bool exact = false);
@@ -139,6 +142,7 @@ namespace gsr {
         uint64_t ready_proxy_generation = 0;
         uint64_t video_generation = 0;
         std::function<void(const PlaybackState&)> playback_state_callback;
+        std::function<bool()> before_play_callback;
         PlaybackState last_notified_playback_state;
         bool has_notified_playback_state = false;
         unsigned int video_texture_id = 0;

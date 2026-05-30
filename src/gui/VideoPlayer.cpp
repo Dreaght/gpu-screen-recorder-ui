@@ -378,6 +378,10 @@ namespace gsr {
         notify_playback_state_changed();
     }
 
+    void VideoPlayer::set_before_play_callback(std::function<bool()> callback) {
+        before_play_callback = std::move(callback);
+    }
+
     void VideoPlayer::begin_external_scrub() {
         begin_scrub(ScrubOwner::External);
     }
@@ -422,11 +426,25 @@ namespace gsr {
         return playback_state.paused;
     }
 
+    bool VideoPlayer::is_external_scrubbing_active() const {
+        return is_external_scrubbing();
+    }
+
     bool VideoPlayer::play() {
+        if(before_play_callback && before_play_callback())
+            return true;
+
         const bool should_restart_from_beginning = playback_state.eof_reached && !is_scrubbing();
         if(should_restart_from_beginning)
             libmpv.seek_to_ms(0, false);
 
+        return libmpv.play();
+    }
+
+    bool VideoPlayer::resume_from_current_position() {
+        playback_state.eof_reached = false;
+        playback_state.paused = false;
+        notify_playback_state_changed();
         return libmpv.play();
     }
 

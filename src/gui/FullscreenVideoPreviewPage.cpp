@@ -69,6 +69,9 @@ namespace gsr {
         }
 
         if(event.type == mgl::Event::KeyPressed && event.key.code == mgl::Keyboard::Key::Space) {
+            if(external_scrub_active)
+                return false;
+
             video_player->toggle_pause();
             return false;
         }
