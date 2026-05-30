@@ -55,6 +55,7 @@ src = [
     'src/DesktopEnvironment/DesktopEnvironmentKde.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentGnome.cpp',
     'src/Utils.cpp',
+    'src/TrimmerExport.cpp',
     'src/RecentVideos.cpp',
     'src/WindowUtils.cpp',
     'src/WaylandHostBridge.cpp',
