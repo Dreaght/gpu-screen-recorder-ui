@@ -3,6 +3,7 @@
 #include "StaticPage.hpp"
 #include "Button.hpp"
 #include "RadioButton.hpp"
+#include "../TrimmerExport.hpp"
 #include "../RecentVideos.hpp"
 #include "TimelineWidget.hpp"
 
@@ -21,19 +22,7 @@ namespace gsr {
 
     class ExportPage : public StaticPage {
     public:
-        struct SourceVideoInfo {
-            VideoMetadata metadata;
-            std::vector<TimelineWidget::TimelineChunk> chunks;
-            std::string container = "mp4";
-            std::string video_codec;
-            std::string audio_codec;
-            int64_t total_bitrate_kbps = 0;
-            int64_t video_bitrate_kbps = 0;
-            int64_t audio_bitrate_kbps = 0;
-            double fps = 0.0;
-            bool has_video_bitrate = false;
-            bool has_audio_bitrate = false;
-        };
+        using SourceVideoInfo = TrimmerExportSourceInfo;
 
         ExportPage(const GsrInfo *gsr_info, PageStack *page_stack, VideoMetadata video_metadata, std::vector<TimelineWidget::TimelineChunk> chunks);
         ExportPage(const ExportPage&) = delete;
@@ -57,6 +46,7 @@ namespace gsr {
         std::unique_ptr<Widget> create_source_info_section();
         std::unique_ptr<Label> create_source_summary_label();
         std::unique_ptr<Label> create_estimated_file_size();
+        std::unique_ptr<Label> create_reencode_warning_label();
         std::unique_ptr<RadioButton> create_view_radio_button();
 
         std::unique_ptr<Widget> create_video_section();
@@ -92,6 +82,7 @@ namespace gsr {
         void update_settings_scrollable_size();
         void update_source_summary();
         void update_estimated_file_size();
+        void update_reencode_warning();
         void apply_video_quality_preset(bool force_bitrate_update);
         void apply_selected_resolution_preset(bool force_bitrate_update);
         bool use_constant_video_bitrate() const;
@@ -155,6 +146,7 @@ namespace gsr {
         Widget *audio_reencode_options_ptr = nullptr;
         Label *source_summary_label_ptr = nullptr;
         Label *estimated_file_size_ptr = nullptr;
+        Label *reencode_warning_label_ptr = nullptr;
 
         std::function<void(const std::string &id)> on_click;
     };
