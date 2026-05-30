@@ -73,6 +73,7 @@ namespace gsr {
         void set_margins(float top, float bottom, float left, float right);
         void add_button(const std::string &text, const std::string &id, mgl::Color color);
         void load_source_video_info();
+        void fill_request_gpu_context(TrimmerExportRequest &request) const;
         void apply_source_defaults();
         bool start_export();
         bool is_video_reencode_active() const;

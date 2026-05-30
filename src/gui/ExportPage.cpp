@@ -398,18 +398,25 @@ namespace gsr {
 
     std::unique_ptr<ComboBox> ExportPage::create_video_codec_box() {
         auto video_codec_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
+        TrimmerExportRequest request;
+        fill_request_gpu_context(request);
+        const bool has_h264_hardware = host_supports_hardware_video_codec("h264", request);
+        const bool has_h264_software = host_supports_video_codec("h264_software", request);
         video_codec_box->add_item(TR("Auto (Recommended)"), "auto");
-        if(host_supports_video_codec("h264"))
+        if(has_h264_hardware) {
             video_codec_box->add_item(TR("H264"), "h264");
-        if(host_supports_video_codec("hevc"))
+        } else if(has_h264_software) {
+            video_codec_box->add_item(TR("H264 (Software)"), "h264");
+        }
+        if(host_supports_video_codec("hevc", request))
             video_codec_box->add_item(TR("HEVC"), "hevc");
-        if(host_supports_video_codec("av1"))
+        if(host_supports_video_codec("av1", request))
             video_codec_box->add_item(TR("AV1"), "av1");
-        if(host_supports_video_codec("vp9"))
+        if(host_supports_video_codec("vp9", request))
             video_codec_box->add_item(TR("VP9"), "vp9");
-        if(host_supports_video_codec("vp8"))
+        if(host_supports_video_codec("vp8", request))
             video_codec_box->add_item(TR("VP8"), "vp8");
-        if(host_supports_video_codec("h264"))
+        if(has_h264_hardware && has_h264_software)
             video_codec_box->add_item(TR("H264 Software Encoder (Slow, not recommended)"), "h264_software");
         video_codec_box_ptr = video_codec_box.get();
         return video_codec_box;
@@ -638,6 +645,12 @@ namespace gsr {
         source_info = load_trimmer_export_source_info(source_info.metadata, source_info.chunks);
     }
 
+    void ExportPage::fill_request_gpu_context(TrimmerExportRequest &request) const {
+        request.gpu_vendor = gsr_info->gpu_info.vendor;
+        request.gpu_card_path = gsr_info->gpu_info.card_path;
+        request.supported_video_codecs = gsr_info->supported_video_codecs;
+    }
+
     void ExportPage::apply_source_defaults() {
         save_directory_button_ptr->set_text(get_parent_directory(source_info.metadata.filepath));
         container_box_ptr->set_selected_item(source_info.container);
@@ -755,6 +768,7 @@ namespace gsr {
         request.reencode_video = is_video_reencode_active();
         request.reencode_audio = is_audio_reencode_active();
         request.has_audio_stream = !source_info.audio_codec.empty();
+        fill_request_gpu_context(request);
 
         const ResolutionPreset *resolution_preset = find_resolution_preset(video_resolution_box_ptr->get_selected_id());
         const mgl::vec2i scaled_video_size = get_scaled_video_size({ source_info.metadata.width, source_info.metadata.height }, resolution_preset);
@@ -797,6 +811,7 @@ namespace gsr {
                 request.container = container;
                 request.video_codec = "auto";
                 request.reencode_video = true;
+                fill_request_gpu_context(request);
                 const std::string default_video_codec = choose_default_video_codec(request, source_info);
                 if(!default_video_codec.empty() && container_supports_video_codec(container, default_video_codec))
                     video_codec_box_ptr->set_selected_item(default_video_codec);
@@ -991,6 +1006,7 @@ namespace gsr {
                     request.container = std::string(container_box_ptr->get_selected_id());
                     request.video_codec = std::string(video_codec_box_ptr->get_selected_id());
                     request.reencode_video = true;
+                    fill_request_gpu_context(request);
 
                     video_bitrate_kbps = estimate_quality_preset_video_bitrate_kbps(
                         source_info,
