@@ -8,7 +8,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
+#include <optional>
 #include <sstream>
 #include <sys/stat.h>
 #include <time.h>
@@ -109,25 +111,29 @@ namespace gsr {
             return result;
         }
 
-        static std::string map_ffmpeg_video_encoder(const std::string &codec) {
-            if(codec == "h264")
-                return "libx264";
-            if(codec == "hevc")
-                return "libx265";
-            if(codec == "av1")
-                return "libaom-av1";
-            if(codec == "vp8")
-                return "libvpx";
-            if(codec == "vp9")
-                return "libvpx-vp9";
-            return "libx264";
-        }
-
         static std::string map_ffmpeg_audio_encoder(const std::string &codec) {
             if(codec == "opus")
                 return "libopus";
             return "aac";
         }
+
+        enum class VideoEncoderBackend {
+            SOFTWARE,
+            NVENC,
+            VAAPI,
+            VULKAN
+        };
+
+        struct VideoEncoderCandidate {
+            const char *ffmpeg_encoder;
+            VideoEncoderBackend backend;
+        };
+
+        struct ResolvedVideoEncoder {
+            std::string ffmpeg_encoder;
+            VideoEncoderBackend backend = VideoEncoderBackend::SOFTWARE;
+            bool hardware = false;
+        };
 
         static const std::unordered_set<std::string>& get_host_ffmpeg_encoders() {
             static const std::unordered_set<std::string> encoders = [] {
@@ -158,6 +164,314 @@ namespace gsr {
         static bool host_supports_ffmpeg_encoder(const std::string &encoder_name) {
             const auto &encoders = get_host_ffmpeg_encoders();
             return encoders.find(encoder_name) != encoders.end();
+        }
+
+        static std::string get_vulkan_drm_render_node_path(const TrimmerExportRequest &request) {
+            if(request.gpu_card_path.empty())
+                return "";
+
+            std::error_code error;
+            const std::filesystem::path card_path = std::filesystem::weakly_canonical(request.gpu_card_path, error);
+            if(error || card_path.empty())
+                return "";
+
+            const std::string card_name = card_path.filename().string();
+            if(card_name.empty())
+                return "";
+
+            const std::filesystem::path drm_device_path = std::filesystem::path("/sys/class/drm") / card_name / "device/drm";
+            for(const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(drm_device_path, error)) {
+                if(error)
+                    break;
+
+                const std::string name = entry.path().filename().string();
+                if(starts_with(name, "renderD"))
+                    return "/dev/dri/" + name;
+            }
+
+            return "";
+        }
+
+        static bool request_supports_vulkan_video_codec(const TrimmerExportRequest &request, const std::string &codec) {
+            if(get_vulkan_drm_render_node_path(request).empty())
+                return false;
+            if(codec == "h264")
+                return request.supported_video_codecs.h264_vulkan;
+            if(codec == "hevc")
+                return request.supported_video_codecs.hevc_vulkan;
+            if(codec == "av1")
+                return request.supported_video_codecs.av1_vulkan;
+            return false;
+        }
+
+        static bool request_supports_standard_video_codec(const TrimmerExportRequest &request, const std::string &codec) {
+            if(codec == "h264")
+                return request.supported_video_codecs.h264;
+            if(codec == "hevc")
+                return request.supported_video_codecs.hevc;
+            if(codec == "av1")
+                return request.supported_video_codecs.av1;
+            if(codec == "vp8")
+                return request.supported_video_codecs.vp8;
+            if(codec == "vp9")
+                return request.supported_video_codecs.vp9;
+            return false;
+        }
+
+        static bool request_has_video_codec_capabilities(const TrimmerExportRequest &request) {
+            const SupportedVideoCodecs &codecs = request.supported_video_codecs;
+            return codecs.h264
+                || codecs.h264_software
+                || codecs.hevc
+                || codecs.hevc_hdr
+                || codecs.hevc_10bit
+                || codecs.av1
+                || codecs.av1_hdr
+                || codecs.av1_10bit
+                || codecs.vp8
+                || codecs.vp9
+                || codecs.h264_vulkan
+                || codecs.hevc_vulkan
+                || codecs.hevc_hdr_vulkan
+                || codecs.hevc_10bit_vulkan
+                || codecs.av1_vulkan
+                || codecs.av1_hdr_vulkan
+                || codecs.av1_10bit_vulkan;
+        }
+
+        static std::string_view map_encoder_to_codec_id(const VideoEncoderCandidate &candidate) {
+            if(strcmp(candidate.ffmpeg_encoder, "h264_nvenc") == 0 || strcmp(candidate.ffmpeg_encoder, "h264_vaapi") == 0 || strcmp(candidate.ffmpeg_encoder, "h264_vulkan") == 0)
+                return "h264";
+            if(strcmp(candidate.ffmpeg_encoder, "hevc_nvenc") == 0 || strcmp(candidate.ffmpeg_encoder, "hevc_vaapi") == 0 || strcmp(candidate.ffmpeg_encoder, "hevc_vulkan") == 0)
+                return "hevc";
+            if(strcmp(candidate.ffmpeg_encoder, "av1_nvenc") == 0 || strcmp(candidate.ffmpeg_encoder, "av1_vaapi") == 0 || strcmp(candidate.ffmpeg_encoder, "av1_vulkan") == 0)
+                return "av1";
+            if(strcmp(candidate.ffmpeg_encoder, "vp9_vaapi") == 0)
+                return "vp9";
+            if(strcmp(candidate.ffmpeg_encoder, "vp8_vaapi") == 0)
+                return "vp8";
+            return "";
+        }
+
+        static std::vector<VideoEncoderCandidate> get_video_encoder_candidates(const std::string &codec, const TrimmerExportRequest &request) {
+            std::vector<VideoEncoderCandidate> candidates;
+            const GpuVendor gpu_vendor = request.gpu_vendor;
+
+            const auto add_vendor_preferred = [&](const char *encoder, VideoEncoderBackend backend) {
+                candidates.push_back({ encoder, backend });
+            };
+            const auto add_if_missing = [&](const char *encoder, VideoEncoderBackend backend) {
+                const auto it = std::find_if(candidates.begin(), candidates.end(), [&](const VideoEncoderCandidate &candidate) {
+                    return strcmp(candidate.ffmpeg_encoder, encoder) == 0;
+                });
+                if(it == candidates.end())
+                    candidates.push_back({ encoder, backend });
+            };
+
+            if(codec == "h264") {
+                if(gpu_vendor == GpuVendor::NVIDIA)
+                    add_vendor_preferred("h264_nvenc", VideoEncoderBackend::NVENC);
+                if(gpu_vendor == GpuVendor::AMD || gpu_vendor == GpuVendor::INTEL)
+                    add_vendor_preferred("h264_vaapi", VideoEncoderBackend::VAAPI);
+                if(request_supports_vulkan_video_codec(request, codec))
+                    add_if_missing("h264_vulkan", VideoEncoderBackend::VULKAN);
+                add_if_missing("libx264", VideoEncoderBackend::SOFTWARE);
+                return candidates;
+            }
+
+            if(codec == "hevc") {
+                if(gpu_vendor == GpuVendor::NVIDIA)
+                    add_vendor_preferred("hevc_nvenc", VideoEncoderBackend::NVENC);
+                if(gpu_vendor == GpuVendor::AMD || gpu_vendor == GpuVendor::INTEL)
+                    add_vendor_preferred("hevc_vaapi", VideoEncoderBackend::VAAPI);
+                if(request_supports_vulkan_video_codec(request, codec))
+                    add_if_missing("hevc_vulkan", VideoEncoderBackend::VULKAN);
+                add_if_missing("libx265", VideoEncoderBackend::SOFTWARE);
+                return candidates;
+            }
+
+            if(codec == "av1") {
+                if(gpu_vendor == GpuVendor::NVIDIA)
+                    add_vendor_preferred("av1_nvenc", VideoEncoderBackend::NVENC);
+                if(gpu_vendor == GpuVendor::AMD || gpu_vendor == GpuVendor::INTEL)
+                    add_vendor_preferred("av1_vaapi", VideoEncoderBackend::VAAPI);
+                if(request_supports_vulkan_video_codec(request, codec))
+                    add_if_missing("av1_vulkan", VideoEncoderBackend::VULKAN);
+                add_if_missing("libsvtav1", VideoEncoderBackend::SOFTWARE);
+                add_if_missing("libaom-av1", VideoEncoderBackend::SOFTWARE);
+                return candidates;
+            }
+
+            if(codec == "vp9") {
+                if(gpu_vendor == GpuVendor::AMD || gpu_vendor == GpuVendor::INTEL)
+                    add_vendor_preferred("vp9_vaapi", VideoEncoderBackend::VAAPI);
+                add_if_missing("libvpx-vp9", VideoEncoderBackend::SOFTWARE);
+                return candidates;
+            }
+
+            if(codec == "vp8") {
+                if(gpu_vendor == GpuVendor::AMD || gpu_vendor == GpuVendor::INTEL)
+                    add_vendor_preferred("vp8_vaapi", VideoEncoderBackend::VAAPI);
+                add_if_missing("libvpx", VideoEncoderBackend::SOFTWARE);
+                return candidates;
+            }
+
+            if(codec == "h264_software")
+                candidates.push_back({ "libx264", VideoEncoderBackend::SOFTWARE });
+
+            return candidates;
+        }
+
+        static bool candidate_is_usable(const VideoEncoderCandidate &candidate, const TrimmerExportRequest &request, bool require_runtime_context) {
+            if(!host_supports_ffmpeg_encoder(candidate.ffmpeg_encoder))
+                return false;
+            if(request_has_video_codec_capabilities(request)) {
+                const std::string_view codec = map_encoder_to_codec_id(candidate);
+                if(candidate.backend == VideoEncoderBackend::VULKAN && !request_supports_vulkan_video_codec(request, std::string(codec)))
+                    return false;
+                if((candidate.backend == VideoEncoderBackend::NVENC || candidate.backend == VideoEncoderBackend::VAAPI)
+                    && !codec.empty() && !request_supports_standard_video_codec(request, std::string(codec)))
+                    return false;
+            }
+            if(require_runtime_context && candidate.backend == VideoEncoderBackend::VAAPI && request.gpu_card_path.empty())
+                return false;
+            return true;
+        }
+
+        static std::optional<ResolvedVideoEncoder> resolve_video_encoder(const std::string &codec, const TrimmerExportRequest &request,
+            bool allow_software, bool require_runtime_context)
+        {
+            const std::vector<VideoEncoderCandidate> candidates = get_video_encoder_candidates(codec, request);
+            for(const VideoEncoderCandidate &candidate : candidates) {
+                const bool hardware = candidate.backend != VideoEncoderBackend::SOFTWARE;
+                if(!allow_software && !hardware)
+                    continue;
+                if(!candidate_is_usable(candidate, request, require_runtime_context))
+                    continue;
+
+                return ResolvedVideoEncoder {
+                    candidate.ffmpeg_encoder,
+                    candidate.backend,
+                    hardware
+                };
+            }
+
+            return std::nullopt;
+        }
+
+        static bool host_supports_video_codec_impl(const std::string &codec, const TrimmerExportRequest &request,
+            bool allow_software, bool require_runtime_context)
+        {
+            return resolve_video_encoder(codec, request, allow_software, require_runtime_context).has_value();
+        }
+
+        static void append_hardware_video_filter(std::vector<std::string> &args_str, const ResolvedVideoEncoder &encoder,
+            const TrimmerExportRequest &request, const TrimmerExportSourceInfo &source_info)
+        {
+            std::vector<std::string> filters;
+            if(request.video_width > 0 && request.video_height > 0 &&
+                (request.video_width != source_info.metadata.width || request.video_height != source_info.metadata.height)) {
+                filters.push_back("scale=w=" + std::to_string(request.video_width) + ":h=" + std::to_string(request.video_height) + ":force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos");
+            }
+
+            if(encoder.backend == VideoEncoderBackend::VAAPI || encoder.backend == VideoEncoderBackend::VULKAN) {
+                filters.push_back("format=nv12");
+                filters.push_back("hwupload");
+            }
+
+            if(filters.empty())
+                return;
+
+            std::string filter;
+            for(size_t i = 0; i < filters.size(); ++i) {
+                if(i > 0)
+                    filter += ',';
+                filter += filters[i];
+            }
+
+            args_str.push_back("-vf");
+            args_str.push_back(filter);
+        }
+
+        static int64_t estimate_target_video_bitrate_for_encoder(const TrimmerExportSourceInfo &source_info, const TrimmerExportRequest &request,
+            bool use_constant_video_bitrate, std::string_view selected_quality, double target_fps, const std::string &video_codec)
+        {
+            if(use_constant_video_bitrate)
+                return std::max<int64_t>(1, (int64_t)strtoll(request.video_bitrate.c_str(), nullptr, 10));
+
+            ResolutionPreset preset {
+                "custom",
+                "custom",
+                request.video_width,
+                request.video_height
+            };
+            const ResolutionPreset *preset_ptr = (request.video_width > 0 && request.video_height > 0) ? &preset : nullptr;
+            return std::max<int64_t>(1, estimate_quality_preset_video_bitrate_kbps(source_info, preset_ptr, video_codec, selected_quality, target_fps));
+        }
+
+        static void append_video_rate_control_args(std::vector<std::string> &args_str, const ResolvedVideoEncoder &encoder,
+            const TrimmerExportSourceInfo &source_info, const TrimmerExportRequest &request, bool use_constant_video_bitrate,
+            std::string_view selected_quality, double target_fps, const std::string &video_codec)
+        {
+            if(!encoder.hardware) {
+                if(use_constant_video_bitrate) {
+                    args_str.push_back("-b:v");
+                    args_str.push_back(request.video_bitrate + "k");
+                } else {
+                    const int crf = get_quality_preset_crf(video_codec, selected_quality);
+                    args_str.push_back("-crf");
+                    args_str.push_back(std::to_string(crf));
+                    if(quality_preset_uses_zero_bitrate(video_codec)) {
+                        args_str.push_back("-b:v");
+                        args_str.push_back("0");
+                    }
+                }
+                return;
+            }
+
+            const int64_t target_bitrate_kbps = estimate_target_video_bitrate_for_encoder(
+                source_info,
+                request,
+                use_constant_video_bitrate,
+                selected_quality,
+                target_fps,
+                video_codec);
+
+            switch(encoder.backend) {
+                case VideoEncoderBackend::NVENC: {
+                    args_str.push_back("-rc");
+                    args_str.push_back(use_constant_video_bitrate ? "cbr" : "vbr");
+                    if(use_constant_video_bitrate) {
+                        args_str.push_back("-b:v");
+                        args_str.push_back(std::to_string(target_bitrate_kbps) + "k");
+                        args_str.push_back("-maxrate");
+                        args_str.push_back(std::to_string(target_bitrate_kbps) + "k");
+                        args_str.push_back("-minrate");
+                        args_str.push_back(std::to_string(target_bitrate_kbps) + "k");
+                        args_str.push_back("-bufsize");
+                        args_str.push_back(std::to_string(target_bitrate_kbps * 2) + "k");
+                    } else {
+                        const int cq = std::clamp(get_quality_preset_crf(video_codec, selected_quality), 18, 40);
+                        args_str.push_back("-cq");
+                        args_str.push_back(std::to_string(cq));
+                        args_str.push_back("-b:v");
+                        args_str.push_back(std::to_string(target_bitrate_kbps) + "k");
+                        args_str.push_back("-maxrate");
+                        args_str.push_back(std::to_string(target_bitrate_kbps) + "k");
+                        args_str.push_back("-bufsize");
+                        args_str.push_back(std::to_string(target_bitrate_kbps * 2) + "k");
+                    }
+                    break;
+                }
+                case VideoEncoderBackend::VAAPI:
+                case VideoEncoderBackend::VULKAN: {
+                    args_str.push_back("-b:v");
+                    args_str.push_back(std::to_string(target_bitrate_kbps) + "k");
+                    break;
+                }
+                case VideoEncoderBackend::SOFTWARE:
+                    break;
+            }
         }
 
         static int64_t scale_bitrate_for_resolution_impl(int64_t bitrate_kbps, int source_width, int source_height, int target_width, int target_height) {
@@ -355,24 +669,42 @@ namespace gsr {
                 return source_info.video_codec;
 
             if(request.container == "webm") {
-                if(host_supports_video_codec("vp9"))
-                    return "vp9";
-                if(host_supports_video_codec("av1"))
+                const bool require_runtime_context = request_has_video_codec_capabilities(request);
+                if(host_supports_video_codec_impl("av1", request, false, require_runtime_context))
                     return "av1";
-                if(host_supports_video_codec("vp8"))
+                if(host_supports_video_codec_impl("vp9", request, false, require_runtime_context))
+                    return "vp9";
+                if(host_supports_video_codec_impl("vp8", request, false, require_runtime_context))
                     return "vp8";
+                if(host_supports_video_codec_impl("vp9", request, true, require_runtime_context))
+                    return "vp9";
+                if(host_supports_video_codec_impl("vp8", request, true, require_runtime_context))
+                    return "vp8";
+                if(host_supports_video_codec_impl("av1", request, true, require_runtime_context))
+                    return "av1";
                 return "";
             }
 
-            if(host_supports_video_codec("h264"))
+            const bool require_runtime_context = request_has_video_codec_capabilities(request);
+            if(host_supports_video_codec_impl("h264", request, false, require_runtime_context))
                 return "h264";
-            if(request.container != "mov" && host_supports_video_codec("av1"))
-                return "av1";
-            if(host_supports_video_codec("hevc"))
+            if(host_supports_video_codec_impl("hevc", request, false, require_runtime_context))
                 return "hevc";
-            if(host_supports_video_codec("vp9"))
+            if(request.container != "mov" && host_supports_video_codec_impl("av1", request, false, require_runtime_context))
+                return "av1";
+            if(host_supports_video_codec_impl("vp9", request, false, require_runtime_context))
                 return "vp9";
-            if(host_supports_video_codec("vp8"))
+            if(host_supports_video_codec_impl("vp8", request, false, require_runtime_context))
+                return "vp8";
+            if(host_supports_video_codec_impl("h264", request, true, require_runtime_context))
+                return "h264";
+            if(host_supports_video_codec_impl("hevc", request, true, require_runtime_context))
+                return "hevc";
+            if(request.container != "mov" && host_supports_video_codec_impl("av1", request, true, require_runtime_context))
+                return "av1";
+            if(host_supports_video_codec_impl("vp9", request, true, require_runtime_context))
+                return "vp9";
+            if(host_supports_video_codec_impl("vp8", request, true, require_runtime_context))
                 return "vp8";
             return "";
         }
@@ -382,7 +714,16 @@ namespace gsr {
     }
 
     bool host_supports_video_codec(const std::string &codec) {
-        return host_supports_ffmpeg_encoder(map_ffmpeg_video_encoder(codec));
+        TrimmerExportRequest request;
+        return host_supports_video_codec_impl(codec, request, true, false);
+    }
+
+    bool host_supports_video_codec(const std::string &codec, const TrimmerExportRequest &request) {
+        return host_supports_video_codec_impl(codec, request, true, request_has_video_codec_capabilities(request));
+    }
+
+    bool host_supports_hardware_video_codec(const std::string &codec, const TrimmerExportRequest &request) {
+        return host_supports_video_codec_impl(codec, request, false, request_has_video_codec_capabilities(request));
     }
 
     bool host_supports_audio_codec(const std::string &codec) {
@@ -595,6 +936,7 @@ namespace gsr {
     {
         std::string video_codec = choose_default_video_codec(request, source_info);
         std::string audio_codec = request.audio_codec.empty() ? get_default_audio_codec_for_container(request.container) : request.audio_codec;
+        std::optional<ResolvedVideoEncoder> resolved_video_encoder;
 
         if(request.reencode_video) {
             double target_fps = 0.0;
@@ -611,7 +953,13 @@ namespace gsr {
                 error_text = TR("The selected video codec is not compatible with the selected container");
                 return false;
             }
-            if(!host_supports_video_codec(video_codec)) {
+            const bool allow_software = true;
+            resolved_video_encoder = resolve_video_encoder(
+                request.video_codec == "h264_software" ? "h264_software" : video_codec,
+                request,
+                allow_software,
+                true);
+            if(!resolved_video_encoder.has_value()) {
                 error_text = TR("The selected video codec is not available in host ffmpeg");
                 return false;
             }
@@ -647,7 +995,6 @@ namespace gsr {
         const std::string export_id = std::to_string(std::hash<std::string>{}(request.output_path + request.input_path + std::to_string(time(NULL))));
         const std::string concat_path = export_dir + "/" + export_id + ".ffconcat";
         const std::string script_path = export_dir + "/" + export_id + ".sh";
-
         std::string concat_data = "ffconcat version 1.0\n";
         for(const auto &chunk : request.chunks) {
             concat_data += "file ";
@@ -668,39 +1015,43 @@ namespace gsr {
 
         std::vector<std::string> args_str = {
             "ffmpeg", "-loglevel", "error", "-y",
+        };
+
+        if(request.reencode_video) {
+            if(resolved_video_encoder->backend == VideoEncoderBackend::VAAPI) {
+                args_str.push_back("-vaapi_device");
+                args_str.push_back(request.gpu_card_path);
+            } else if(resolved_video_encoder->backend == VideoEncoderBackend::VULKAN) {
+                const std::string render_node_path = get_vulkan_drm_render_node_path(request);
+                args_str.push_back("-init_hw_device");
+                args_str.push_back("drm=dr:" + render_node_path);
+                args_str.push_back("-init_hw_device");
+                args_str.push_back("vulkan=vkdev@dr");
+                args_str.push_back("-filter_hw_device");
+                args_str.push_back("vkdev");
+            }
+        }
+
+        args_str.insert(args_str.end(), {
             "-safe", "0",
             "-f", "concat",
             "-i", concat_path,
             "-map", "0:v:0",
             "-map", "0:a:0?"
-        };
+        });
 
         if(request.reencode_video) {
             double target_fps = 0.0;
             parse_positive_double(framerate_text, target_fps);
             args_str.push_back("-c:v");
-            args_str.push_back(map_ffmpeg_video_encoder(video_codec));
+            args_str.push_back(resolved_video_encoder->ffmpeg_encoder);
+
             if(should_override_fps(source_info, target_fps, framerate_modified)) {
                 args_str.push_back("-r");
                 args_str.push_back(format_fps_value(target_fps));
             }
-            if(request.video_width > 0 && request.video_height > 0 &&
-                (request.video_width != source_info.metadata.width || request.video_height != source_info.metadata.height)) {
-                args_str.push_back("-vf");
-                args_str.push_back("scale=w=" + std::to_string(request.video_width) + ":h=" + std::to_string(request.video_height) + ":force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos");
-            }
-            if(use_constant_video_bitrate) {
-                args_str.push_back("-b:v");
-                args_str.push_back(request.video_bitrate + "k");
-            } else {
-                const int crf = get_quality_preset_crf(video_codec, selected_quality);
-                args_str.push_back("-crf");
-                args_str.push_back(std::to_string(crf));
-                if(quality_preset_uses_zero_bitrate(video_codec)) {
-                    args_str.push_back("-b:v");
-                    args_str.push_back("0");
-                }
-            }
+            append_hardware_video_filter(args_str, *resolved_video_encoder, request, source_info);
+            append_video_rate_control_args(args_str, *resolved_video_encoder, source_info, request, use_constant_video_bitrate, selected_quality, target_fps, video_codec);
         } else {
             args_str.push_back("-c:v");
             args_str.push_back("copy");
@@ -744,6 +1095,11 @@ namespace gsr {
             std::string("#!/bin/sh\n") +
             ffmpeg_command + "\n" +
             "status=$?\n" +
+            "if [ \"$status\" -ne 0 ]; then\n" +
+            "  printf '%s\\n' 'Error: trimmed export failed' >&2\n" +
+            "  printf '%s\\n' " + shell_quote(ffmpeg_command) + " >&2\n" +
+            "  printf 'exit status: %s\\n' \"$status\" >&2\n" +
+            "fi\n" +
             "rm -f -- " + shell_quote(concat_path) + "\n" +
             "if [ \"$status\" -eq 0 ]; then\n" +
             "  gsr-notify --text " + shell_quote(success_text) + " --timeout 3.000000 --icon-color 'ffffff' --bg-color " + shell_quote(success_bg) + " --icon record\n" +

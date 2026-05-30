@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GsrInfo.hpp"
 #include "RecentVideos.hpp"
 #include "gui/TimelineWidget.hpp"
 
@@ -40,6 +41,9 @@ namespace gsr {
         bool has_audio_stream = false;
         int video_width = 0;
         int video_height = 0;
+        GpuVendor gpu_vendor = GpuVendor::UNKNOWN;
+        std::string gpu_card_path;
+        SupportedVideoCodecs supported_video_codecs;
     };
 
     struct ResolutionPreset {
@@ -64,6 +68,8 @@ namespace gsr {
     std::string get_default_audio_codec_for_container(const std::string &container);
 
     bool host_supports_video_codec(const std::string &codec);
+    bool host_supports_video_codec(const std::string &codec, const TrimmerExportRequest &request);
+    bool host_supports_hardware_video_codec(const std::string &codec, const TrimmerExportRequest &request);
     bool host_supports_audio_codec(const std::string &codec);
     bool container_supports_video_codec(const std::string &container, const std::string &codec);
     bool container_supports_audio_codec(const std::string &container, const std::string &codec);
