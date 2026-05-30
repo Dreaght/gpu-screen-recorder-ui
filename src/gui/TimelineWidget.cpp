@@ -17,9 +17,12 @@
 namespace gsr {
     namespace {
         static const float min_zoom = 0.35f;
+        static const float default_zoom = 1.0f;
         static const float max_zoom = 24.0f;
         static const float base_pixels_per_second = 80.0f;
         static const float zoom_speed = 1.18f;
+        static const int64_t min_cut_point_proximity_ms = 50;
+        static const int64_t max_cut_point_proximity_ms = 1000;
         static const float footer_height_ratio = 0.24f;
         static const float frame_thickness_ratio = 0.045f;
         static const float well_inset_ratio = 0.018f;
@@ -304,7 +307,7 @@ namespace gsr {
             return false;
 
         int best_idx = -1;
-        int64_t best_dist = cut_point_proximity_ms;
+        int64_t best_dist = get_cut_point_hit_proximity_ms();
 
         for(size_t i = 0; i < chunks.size() - 1; ++i) {
             const int64_t dist = std::abs(chunks[i].end_ms - ms);
@@ -628,6 +631,36 @@ namespace gsr {
 
     int64_t TimelineWidget::clamp_position_ms(int64_t position) const {
         return std::clamp<int64_t>(position, 0, std::max<int64_t>(0, duration_ms));
+    }
+
+    int64_t TimelineWidget::get_cut_point_proximity_ms() const {
+        const int64_t default_proximity_ms = std::max<int64_t>(1, cut_point_proximity_ms);
+        const int64_t min_zoom_proximity_ms = std::max<int64_t>(default_proximity_ms, max_cut_point_proximity_ms);
+        const int64_t max_zoom_proximity_ms = std::min<int64_t>(default_proximity_ms, min_cut_point_proximity_ms);
+        const double clamped_zoom = std::clamp((double)zoom, (double)min_zoom, (double)max_zoom);
+
+        auto interpolate_log_zoom = [](double zoom_value, double zoom_start, double zoom_end, double value_start, double value_end) {
+            if(zoom_end <= zoom_start)
+                return value_end;
+
+            const double zoom_ratio = std::log(zoom_value / zoom_start) / std::log(zoom_end / zoom_start);
+            return value_start + (value_end - value_start) * zoom_ratio;
+        };
+
+        double proximity_ms = default_proximity_ms;
+        if(clamped_zoom <= default_zoom) {
+            proximity_ms = interpolate_log_zoom(clamped_zoom, min_zoom, default_zoom, min_zoom_proximity_ms, default_proximity_ms);
+        } else {
+            proximity_ms = interpolate_log_zoom(clamped_zoom, default_zoom, max_zoom, default_proximity_ms, max_zoom_proximity_ms);
+        }
+
+        return std::max<int64_t>(1, (int64_t)std::llround(proximity_ms));
+    }
+
+    int64_t TimelineWidget::get_cut_point_hit_proximity_ms() const {
+        const double zoom_clamped = std::max((double)min_zoom, (double)zoom);
+        const double pixel_capped_proximity_ms = (double)std::max<int64_t>(1, cut_point_proximity_ms) / zoom_clamped;
+        return std::max<int64_t>(1, std::min<int64_t>(get_cut_point_proximity_ms(), (int64_t)std::llround(pixel_capped_proximity_ms)));
     }
 
     float TimelineWidget::get_timeline_width() const {

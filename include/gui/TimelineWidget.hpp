@@ -83,6 +83,8 @@ namespace gsr {
         void draw_cut_points(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) const;
         void draw_chunk_overlay(mgl::Window &window, mgl::vec2f draw_pos, mgl::vec2f item_size, float visible_left, float visible_right) const;
         int64_t clamp_position_ms(int64_t position) const;
+        int64_t get_cut_point_proximity_ms() const;
+        int64_t get_cut_point_hit_proximity_ms() const;
         float get_pixels_per_second() const;
         float get_visible_duration_ms(float visible_width) const;
         double get_tick_step_ms(float visible_width) const;
