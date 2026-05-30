@@ -20,7 +20,6 @@
 #include "../include/gui/PageStack.hpp"
 #include "../include/gui/ScrollablePage.hpp"
 #include "../include/gui/ContainerButton.hpp"
-#include "../include/gui/Label.hpp"
 #include "../include/gui/Image.hpp"
 #include "../include/WindowUtils.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
@@ -1596,15 +1595,31 @@ namespace gsr {
                 }
 
                 auto metadata = std::make_unique<List>(List::Orientation::VERTICAL);
+                auto create_text_widget = [](const char *font_desc, const std::string &value, mgl::Color color, bool use_current_tint, int wrap_width) {
+                    auto text = std::make_shared<mgl::Text>(value.c_str(), font_desc);
+                    text->set_color(color);
+                    text->set_wrap_width(wrap_width);
+
+                    auto widget = std::make_unique<CustomRendererWidget>(text->get_bounds().size);
+                    widget->draw_handler = [text, color, use_current_tint](mgl::Window &window, mgl::vec2f pos, mgl::vec2f) {
+                        text->set_position(pos.floor());
+                        text->set_color(use_current_tint ? get_color_theme().tint_color : color);
+                        window.draw(*text);
+                    };
+                    return widget;
+                };
+
+                auto text_wrap_width = recently_recorded_item_width - recently_recorded_item_height;
+
                 const std::string filename_text = recent_video_filename(recent_video);
-                metadata->add_widget(std::make_unique<Label>(get_theme().title_font_desc.c_str(), filename_text.c_str(), mgl::Color(255, 255, 255, 255)));
+                metadata->add_widget(create_text_widget(get_theme().title_font_desc.c_str(), filename_text, get_color_theme().tint_color, true, text_wrap_width));
 
                 const std::string metadata_text = recent_video_metadata_to_string(recent_video);
                 if(!metadata_text.empty())
-                    metadata->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), metadata_text.c_str(), mgl::Color(255, 255, 255, 255)));
+                    metadata->add_widget(create_text_widget(get_theme().body_font_desc.c_str(), metadata_text, mgl::Color(255, 255, 255, 255), false, text_wrap_width));
 
                 const std::string directory_text = recent_video_directory(recent_video);
-                metadata->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), directory_text.c_str(), mgl::Color(255, 255, 255, 255)));
+                metadata->add_widget(create_text_widget(get_theme().body_font_desc.c_str(), directory_text, mgl::Color(150, 150, 150), false, text_wrap_width));
                 row->add_widget(std::move(metadata));
 
                 button->set_widget(std::move(row));
