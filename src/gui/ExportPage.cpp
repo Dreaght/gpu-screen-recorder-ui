@@ -1612,27 +1612,37 @@ namespace gsr {
         }
 
         char buffer[512];
+        const bool user_enabled_video_reencode = reencode_video_checkbox_ptr->is_checked();
+        const bool user_enabled_audio_reencode = reencode_audio_checkbox_ptr->is_checked();
         const bool forced_video_reencode = !reencode_video_checkbox_ptr->is_checked() && reencode_video;
         const bool forced_audio_reencode = !reencode_audio_checkbox_ptr->is_checked() && reencode_audio;
+        const bool only_forced_reencode = (forced_video_reencode || forced_audio_reencode)
+            && !user_enabled_video_reencode && !user_enabled_audio_reencode;
+        const bool quality_preset_video_estimate = reencode_video && !use_constant_video_bitrate();
+        const bool bitrate_based_estimate = (reencode_video && use_constant_video_bitrate()) || reencode_audio;
         if(!reencode_video && !reencode_audio) {
             snprintf(buffer, sizeof(buffer),
                 TR("Estimated trimmed file size without re-encoding: %s.\nThis is based on the selected chunks relative to the original file size."),
                 format_file_size(estimated_size_bytes).c_str());
         } else {
-            if(forced_video_reencode || forced_audio_reencode) {
-                snprintf(buffer, sizeof(buffer),
-                    TR("Estimated output file size: %s.\nThe selected container requires compatible codec re-encoding for this export."),
-                    format_file_size(estimated_size_bytes).c_str());
-            } else {
-                if(use_constant_video_bitrate()) {
+            if(quality_preset_video_estimate) {
+                if(only_forced_reencode) {
                     snprintf(buffer, sizeof(buffer),
-                        TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration and target bitrates."),
+                        TR("Estimated output file size: %s.\nThe selected container requires compatible codec re-encoding for this export. This is approximate and based on the selected trim duration, resolution and quality preset. The estimate may be off by about 25%%."),
                         format_file_size(estimated_size_bytes).c_str());
                 } else {
                     snprintf(buffer, sizeof(buffer),
-                        TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration, resolution and quality preset."),
+                        TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration, resolution and quality preset. The estimate may be off by about 25%%."),
                         format_file_size(estimated_size_bytes).c_str());
                 }
+            } else if(bitrate_based_estimate) {
+                snprintf(buffer, sizeof(buffer),
+                    TR("Estimated output file size: %s.\nThis is approximate and based on the selected trim duration and target bitrates."),
+                    format_file_size(estimated_size_bytes).c_str());
+            } else {
+                snprintf(buffer, sizeof(buffer),
+                    TR("Estimated output file size: %s."),
+                    format_file_size(estimated_size_bytes).c_str());
             }
         }
         estimated_file_size_ptr->set_text(buffer);
