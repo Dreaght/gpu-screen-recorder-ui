@@ -15,5 +15,6 @@ namespace gsr {
     };
 
     bool add_recent_video(const std::string &filepath);
+    bool purge_recent_video_cache(const std::vector<std::string> &extra_thumbnail_paths_to_keep = {});
     std::optional<std::vector<VideoMetadata>> get_recent_videos();
 }

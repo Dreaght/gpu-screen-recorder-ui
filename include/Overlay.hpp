@@ -132,7 +132,7 @@ namespace gsr {
         void recreate_global_hotkeys(std::string_view hotkey_option);
         void update_led_indicator_after_settings_change();
         void recreate_frontpage_ui_components();
-        void load_recent_videos_async();
+        void load_recent_videos_async(bool purge_cache = false);
         void open_settings_page(int scroll_y = 0);
         void xi_setup();
         void handle_xi_events();

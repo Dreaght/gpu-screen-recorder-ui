@@ -1404,7 +1404,7 @@ namespace gsr {
         }
     }
 
-    void Overlay::load_recent_videos_async() {
+    void Overlay::load_recent_videos_async(bool purge_cache) {
         if(recent_videos_loading)
             return;
 
@@ -1412,8 +1412,21 @@ namespace gsr {
             recent_videos_thread.join();
 
         recent_videos_loading = true;
-        recent_videos_thread = std::thread([this]() {
+        recent_videos_thread = std::thread([this, purge_cache]() {
             std::optional<std::vector<VideoMetadata>> loaded_recent_videos = get_recent_videos();
+            if(purge_cache) {
+                std::vector<std::string> thumbnail_paths_to_keep;
+                if(loaded_recent_videos) {
+                    thumbnail_paths_to_keep.reserve(loaded_recent_videos->size());
+                    for(const VideoMetadata &recent_video : loaded_recent_videos.value()) {
+                        if(!recent_video.thumbnail_path.empty())
+                            thumbnail_paths_to_keep.push_back(recent_video.thumbnail_path);
+                    }
+                }
+
+                if(!purge_recent_video_cache(thumbnail_paths_to_keep))
+                    fprintf(stderr, "Warning: Failed to purge recent video thumbnail cache\n");
+            }
 
             {
                 std::lock_guard<std::mutex> lock(recent_videos_mutex);
@@ -2454,7 +2467,7 @@ namespace gsr {
         if(!add_recent_video(filepath))
             show_notification(TR("Failed to save recent video history"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
         else
-            load_recent_videos_async();
+            load_recent_videos_async(true);
 
         if(led_indicator && config.replay_config.record_options.use_led_indicator)
             led_indicator->blink();
@@ -2754,7 +2767,7 @@ namespace gsr {
             if(!add_recent_video(video_filepath))
                 show_notification(TR("Failed to save recent video history"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
             else
-                load_recent_videos_async();
+                load_recent_videos_async(true);
 
             if(led_indicator) {
                 if(recording_status == RecordingStatus::REPLAY && !current_recording_config.replay_config.record_options.use_led_indicator)
