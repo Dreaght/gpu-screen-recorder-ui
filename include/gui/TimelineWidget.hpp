@@ -7,9 +7,11 @@
 #include <mglpp/graphics/Texture.hpp>
 #include <condition_variable>
 #include <cstdint>
+#include <map>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 namespace gsr {
@@ -19,6 +21,11 @@ namespace gsr {
             int64_t start_ms = 0;
             int64_t end_ms = 0;
             bool enabled = true;
+        };
+
+        struct ThumbnailCacheLockState {
+            int fd = -1;
+            std::string cache_dir;
         };
 
         explicit TimelineWidget(mgl::vec2f size);
@@ -61,12 +68,17 @@ namespace gsr {
 
         struct ThumbnailJobResult {
             uint64_t generation = 0;
+            std::string cache_dir;
             std::vector<Thumbnail> thumbnails;
         };
 
         void queue_thumbnail_generation();
         void process_thumbnail_generation_result();
         void thumbnail_worker_loop();
+        void refresh_thumbnail_cache_locks();
+        void refresh_displayed_thumbnail_cache_dirs();
+        bool has_thumbnail_cache_lock(const std::string &cache_dir) const;
+        static void purge_timeline_thumbnail_cache();
         struct LayoutRects {
             mgl::vec2f outer_pos;
             mgl::vec2f outer_size;
@@ -114,8 +126,12 @@ namespace gsr {
         uint64_t pending_thumbnail_generation = 0;
         uint64_t ready_thumbnail_generation = 0;
         std::string pending_thumbnail_source_path;
+        std::string pending_thumbnail_cache_dir;
+        std::string generating_thumbnail_cache_dir;
         int64_t pending_thumbnail_duration_ms = 0;
         bool thumbnail_result_ready = false;
         ThumbnailJobResult ready_thumbnail_result;
+        std::map<std::string, ThumbnailCacheLockState> thumbnail_cache_locks;
+        std::unordered_set<std::string> displayed_thumbnail_cache_dirs;
     };
 }
