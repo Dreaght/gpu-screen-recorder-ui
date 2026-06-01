@@ -8,14 +8,22 @@
 #include <mglpp/window/Event.hpp>
 #include <mglpp/window/Window.hpp>
 
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/file.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <sstream>
 #include <sys/stat.h>
+#include <thread>
+#include <unordered_set>
+#include <unistd.h>
 
 namespace gsr {
     namespace {
+        static constexpr size_t max_cached_timeline_thumbnail_dirs = 16;
         static const float min_zoom = 0.35f;
         static const float default_zoom = 1.0f;
         static const float max_zoom = 24.0f;
@@ -51,22 +59,166 @@ namespace gsr {
             return buffer;
         }
 
-        static std::string get_timeline_cache_dir(const std::string &video_path, int64_t duration_ms) {
+        static std::string build_timeline_cache_dir_path(const std::string &video_path, int64_t duration_ms) {
             struct stat st;
             std::string key = video_path + ":" + std::to_string(duration_ms);
             if(stat(video_path.c_str(), &st) == 0)
                 key += ":" + std::to_string((int64_t)st.st_mtim.tv_sec) + ":" + std::to_string((int64_t)st.st_size);
 
-            const std::string cache_dir = get_cache_dir() + "/timeline-thumbnails/" + std::to_string(std::hash<std::string>{}(key));
+            return get_cache_dir() + "/timeline-thumbnails/" + std::to_string(std::hash<std::string>{}(key));
+        }
+
+        static void ensure_timeline_cache_dir_exists(const std::string &cache_dir) {
             char cache_dir_buffer[4096];
             snprintf(cache_dir_buffer, sizeof(cache_dir_buffer), "%s", cache_dir.c_str());
             create_directory_recursive(cache_dir_buffer);
-            return cache_dir;
+        }
+
+        static std::string get_timeline_thumbnail_cache_root_dir() {
+            return get_cache_dir() + "/timeline-thumbnails";
+        }
+
+        static std::string get_timeline_thumbnail_lock_dir() {
+            return get_cache_dir() + "/timeline-thumbnail-locks";
+        }
+
+        static bool ensure_timeline_thumbnail_lock_dir_exists() {
+            std::string lock_dir = get_timeline_thumbnail_lock_dir();
+            char lock_dir_buffer[4096];
+            snprintf(lock_dir_buffer, sizeof(lock_dir_buffer), "%s", lock_dir.c_str());
+            return create_directory_recursive(lock_dir_buffer) == 0;
+        }
+
+        static std::string build_timeline_thumbnail_lock_path(const std::string &cache_dir) {
+            const std::string lock_dir = get_timeline_thumbnail_lock_dir();
+            char lock_dir_buffer[4096];
+            snprintf(lock_dir_buffer, sizeof(lock_dir_buffer), "%s", lock_dir.c_str());
+            create_directory_recursive(lock_dir_buffer);
+            return lock_dir + "/" + std::to_string(std::hash<std::string>{}(cache_dir)) + ".lock";
+        }
+
+        enum class TimelineThumbnailLockAttemptResult {
+            ACQUIRED,
+            WOULD_BLOCK,
+            FAILED,
+        };
+
+        static TimelineThumbnailLockAttemptResult try_set_timeline_thumbnail_cache_lock_mode(TimelineWidget::ThumbnailCacheLockState &lock_state, int lock_operation, bool non_blocking = false) {
+            if(lock_state.fd < 0)
+                return TimelineThumbnailLockAttemptResult::FAILED;
+
+            const int flock_operation = non_blocking ? (lock_operation | LOCK_NB) : lock_operation;
+            if(flock(lock_state.fd, flock_operation) != 0) {
+                const int flock_errno = errno;
+                if(flock_errno == EWOULDBLOCK || flock_errno == EAGAIN)
+                    return TimelineThumbnailLockAttemptResult::WOULD_BLOCK;
+
+                return TimelineThumbnailLockAttemptResult::FAILED;
+            }
+
+            return TimelineThumbnailLockAttemptResult::ACQUIRED;
+        }
+
+        static void release_timeline_thumbnail_cache_lock(TimelineWidget::ThumbnailCacheLockState &lock_state) {
+            if(lock_state.fd >= 0) {
+                flock(lock_state.fd, LOCK_UN);
+                close(lock_state.fd);
+                lock_state.fd = -1;
+            }
+            lock_state.cache_dir.clear();
+        }
+
+        static TimelineThumbnailLockAttemptResult try_lock_timeline_thumbnail_cache_dir_shared(const std::string &cache_dir, TimelineWidget::ThumbnailCacheLockState &lock_state, bool non_blocking = false) {
+            if(!ensure_timeline_thumbnail_lock_dir_exists())
+                return TimelineThumbnailLockAttemptResult::FAILED;
+
+            const std::string lock_path = build_timeline_thumbnail_lock_path(cache_dir);
+            const int fd = open(lock_path.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+            if(fd < 0)
+                return TimelineThumbnailLockAttemptResult::FAILED;
+
+            lock_state.fd = fd;
+            lock_state.cache_dir = cache_dir;
+            const TimelineThumbnailLockAttemptResult lock_result = try_set_timeline_thumbnail_cache_lock_mode(lock_state, LOCK_SH, non_blocking);
+            if(lock_result != TimelineThumbnailLockAttemptResult::ACQUIRED) {
+                release_timeline_thumbnail_cache_lock(lock_state);
+                return lock_result;
+            }
+
+            return TimelineThumbnailLockAttemptResult::ACQUIRED;
+        }
+
+        static TimelineThumbnailLockAttemptResult try_lock_timeline_thumbnail_cache_dir_exclusive(const std::string &cache_dir, TimelineWidget::ThumbnailCacheLockState &lock_state, bool non_blocking = false) {
+            if(lock_state.fd >= 0 && lock_state.cache_dir == cache_dir)
+                return try_set_timeline_thumbnail_cache_lock_mode(lock_state, LOCK_EX, non_blocking);
+
+            TimelineWidget::ThumbnailCacheLockState replacement_lock_state;
+            const TimelineThumbnailLockAttemptResult lock_result = try_lock_timeline_thumbnail_cache_dir_shared(cache_dir, replacement_lock_state, non_blocking);
+            if(lock_result != TimelineThumbnailLockAttemptResult::ACQUIRED)
+                return lock_result;
+
+            const TimelineThumbnailLockAttemptResult upgrade_result = try_set_timeline_thumbnail_cache_lock_mode(replacement_lock_state, LOCK_EX, non_blocking);
+            if(upgrade_result != TimelineThumbnailLockAttemptResult::ACQUIRED) {
+                release_timeline_thumbnail_cache_lock(replacement_lock_state);
+                return upgrade_result;
+            }
+
+            release_timeline_thumbnail_cache_lock(lock_state);
+            lock_state = std::move(replacement_lock_state);
+            return TimelineThumbnailLockAttemptResult::ACQUIRED;
+        }
+
+        static TimelineThumbnailLockAttemptResult downgrade_timeline_thumbnail_cache_dir_to_shared(TimelineWidget::ThumbnailCacheLockState &lock_state) {
+            return try_set_timeline_thumbnail_cache_lock_mode(lock_state, LOCK_SH, false);
+        }
+
+        static bool remove_timeline_thumbnail_cache_dir_if_unlocked(const std::string &cache_dir) {
+            if(!ensure_timeline_thumbnail_lock_dir_exists())
+                return false;
+
+            const std::string lock_path = build_timeline_thumbnail_lock_path(cache_dir);
+            const int fd = open(lock_path.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+            if(fd < 0)
+                return false;
+
+            if(flock(fd, LOCK_EX | LOCK_NB) != 0) {
+                close(fd);
+                return false;
+            }
+
+            std::error_code remove_ec;
+            const std::uintmax_t removed_entries = std::filesystem::remove_all(cache_dir, remove_ec);
+            if(remove_ec) {
+                fprintf(stderr, "Warning: Failed to remove timeline thumbnail cache directory: %s\n", cache_dir.c_str());
+                flock(fd, LOCK_UN);
+                close(fd);
+                return false;
+            }
+
+            flock(fd, LOCK_UN);
+            close(fd);
+            return removed_entries > 0 || !std::filesystem::exists(cache_dir);
         }
 
         static int get_target_thumbnail_count(int64_t duration_ms) {
             const double duration_seconds = std::max(1.0, duration_ms / 1000.0);
             return std::clamp((int)std::round(duration_seconds * 1.5), min_thumbnail_count, max_thumbnail_count);
+        }
+
+        static bool are_timeline_thumbnail_paths_complete(const std::vector<std::string> &thumbnail_paths) {
+            for(const std::string &thumbnail_path : thumbnail_paths) {
+                if(!std::filesystem::exists(thumbnail_path))
+                    return false;
+            }
+
+            return true;
+        }
+
+        static void clear_regular_files_from_directory(const std::string &directory) {
+            for(const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(directory)) {
+                if(entry.is_regular_file())
+                    std::filesystem::remove(entry.path());
+            }
         }
 
         static void draw_filled_rect(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color) {
@@ -95,6 +247,8 @@ namespace gsr {
         thumbnail_cv.notify_one();
         if(thumbnail_worker_thread.joinable())
             thumbnail_worker_thread.join();
+        for(auto &lock_entry : thumbnail_cache_locks)
+            release_timeline_thumbnail_cache_lock(lock_entry.second);
     }
 
     bool TimelineWidget::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
@@ -211,6 +365,10 @@ namespace gsr {
 
         source_video_path = std::move(path);
         thumbnails.clear();
+        {
+            std::lock_guard<std::mutex> lock(thumbnail_mutex);
+            displayed_thumbnail_cache_dirs.clear();
+        }
         queue_thumbnail_generation();
     }
 
@@ -222,6 +380,10 @@ namespace gsr {
         this->duration_ms = duration_ms;
         position_ms = clamp_position_ms(position_ms);
         thumbnails.clear();
+        {
+            std::lock_guard<std::mutex> lock(thumbnail_mutex);
+            displayed_thumbnail_cache_dirs.clear();
+        }
         queue_thumbnail_generation();
     }
 
@@ -333,7 +495,14 @@ namespace gsr {
         pending_thumbnail_request = !source_video_path.empty() && duration_ms > 0;
         pending_thumbnail_source_path = source_video_path;
         pending_thumbnail_duration_ms = duration_ms;
+        pending_thumbnail_cache_dir = pending_thumbnail_request ? build_timeline_cache_dir_path(source_video_path, duration_ms) : std::string();
         thumbnail_result_ready = false;
+        if(!pending_thumbnail_request) {
+            pending_thumbnail_cache_dir.clear();
+            ready_thumbnail_result.cache_dir.clear();
+        }
+
+        refresh_thumbnail_cache_locks();
         thumbnail_cv.notify_one();
     }
 
@@ -343,12 +512,125 @@ namespace gsr {
             return;
 
         thumbnails = std::move(ready_thumbnail_result.thumbnails);
+        refresh_displayed_thumbnail_cache_dirs();
         thumbnail_result_ready = false;
+        refresh_thumbnail_cache_locks();
+    }
+
+    void TimelineWidget::refresh_displayed_thumbnail_cache_dirs() {
+        displayed_thumbnail_cache_dirs.clear();
+        for(const Thumbnail &thumbnail : thumbnails) {
+            if(!thumbnail.path.empty())
+                displayed_thumbnail_cache_dirs.insert(std::filesystem::path(thumbnail.path).parent_path().string());
+        }
+    }
+
+    void TimelineWidget::refresh_thumbnail_cache_locks() {
+        std::unordered_set<std::string> desired_cache_dirs;
+
+        if(!pending_thumbnail_cache_dir.empty())
+            desired_cache_dirs.insert(pending_thumbnail_cache_dir);
+
+        if(!generating_thumbnail_cache_dir.empty())
+            desired_cache_dirs.insert(generating_thumbnail_cache_dir);
+
+        desired_cache_dirs.insert(displayed_thumbnail_cache_dirs.begin(), displayed_thumbnail_cache_dirs.end());
+
+        if(thumbnail_result_ready && !ready_thumbnail_result.cache_dir.empty())
+            desired_cache_dirs.insert(ready_thumbnail_result.cache_dir);
+
+        for(auto it = thumbnail_cache_locks.begin(); it != thumbnail_cache_locks.end();) {
+            if(desired_cache_dirs.find(it->first) != desired_cache_dirs.end()) {
+                ++it;
+                continue;
+            }
+
+            release_timeline_thumbnail_cache_lock(it->second);
+            it = thumbnail_cache_locks.erase(it);
+        }
+
+        for(const std::string &cache_dir : desired_cache_dirs) {
+            if(thumbnail_cache_locks.find(cache_dir) != thumbnail_cache_locks.end())
+                continue;
+
+            ThumbnailCacheLockState lock_state;
+            if(try_lock_timeline_thumbnail_cache_dir_shared(cache_dir, lock_state, true) == TimelineThumbnailLockAttemptResult::ACQUIRED)
+                thumbnail_cache_locks[cache_dir] = std::move(lock_state);
+        }
+    }
+
+    bool TimelineWidget::has_thumbnail_cache_lock(const std::string &cache_dir) const {
+        auto it = thumbnail_cache_locks.find(cache_dir);
+        return it != thumbnail_cache_locks.end() && it->second.fd >= 0;
+    }
+
+    void TimelineWidget::purge_timeline_thumbnail_cache() {
+        const std::string cache_root_dir = get_timeline_thumbnail_cache_root_dir();
+
+        std::error_code exists_ec;
+        const bool cache_root_exists = std::filesystem::exists(cache_root_dir, exists_ec);
+        if(exists_ec) {
+            fprintf(stderr, "Warning: Failed to access timeline thumbnail cache directory: %s\n", cache_root_dir.c_str());
+            return;
+        }
+
+        if(!cache_root_exists)
+            return;
+
+        struct CacheDirEntry {
+            std::filesystem::path path;
+            std::filesystem::file_time_type last_write_time;
+        };
+
+        std::vector<CacheDirEntry> entries;
+        std::error_code iter_ec;
+        std::filesystem::directory_iterator cache_iter(cache_root_dir, iter_ec);
+        if(iter_ec) {
+            fprintf(stderr, "Warning: Failed to iterate timeline thumbnail cache directory: %s\n", cache_root_dir.c_str());
+            return;
+        }
+
+        for(const std::filesystem::directory_entry &entry : cache_iter) {
+            std::error_code status_ec;
+            if(!entry.is_directory(status_ec)) {
+                if(status_ec)
+                    fprintf(stderr, "Warning: Failed to inspect timeline thumbnail cache entry: %s\n", entry.path().string().c_str());
+                continue;
+            }
+
+            std::error_code time_ec;
+            const std::filesystem::file_time_type last_write_time = entry.last_write_time(time_ec);
+            if(time_ec) {
+                fprintf(stderr, "Warning: Failed to read timeline thumbnail cache timestamp: %s\n", entry.path().string().c_str());
+                continue;
+            }
+
+            entries.push_back({ entry.path(), last_write_time });
+        }
+
+        if(entries.size() <= max_cached_timeline_thumbnail_dirs)
+            return;
+
+        std::sort(entries.begin(), entries.end(), [](const CacheDirEntry &lhs, const CacheDirEntry &rhs) {
+            return lhs.last_write_time > rhs.last_write_time;
+        });
+
+        size_t kept_entries = 0;
+        for(const CacheDirEntry &entry : entries) {
+            if(kept_entries < max_cached_timeline_thumbnail_dirs) {
+                ++kept_entries;
+                continue;
+            }
+
+            if(!remove_timeline_thumbnail_cache_dir_if_unlocked(entry.path.string()))
+                ++kept_entries;
+        }
     }
 
     void TimelineWidget::thumbnail_worker_loop() {
         for(;;) {
             std::string source_path;
+            std::string cache_dir;
             int64_t generation_duration_ms = 0;
             uint64_t generation = 0;
             {
@@ -358,18 +640,82 @@ namespace gsr {
                     break;
 
                 source_path = pending_thumbnail_source_path;
+                cache_dir = pending_thumbnail_cache_dir;
                 generation_duration_ms = pending_thumbnail_duration_ms;
                 generation = pending_thumbnail_generation;
                 pending_thumbnail_request = false;
+                generating_thumbnail_cache_dir = cache_dir;
+                refresh_thumbnail_cache_locks();
             }
 
-            if(source_path.empty() || generation_duration_ms <= 0)
+            if(source_path.empty() || cache_dir.empty() || generation_duration_ms <= 0) {
+                std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                if(generating_thumbnail_cache_dir == cache_dir) {
+                    generating_thumbnail_cache_dir.clear();
+                    refresh_thumbnail_cache_locks();
+                }
                 continue;
+            }
+
+            {
+                bool has_cache_lock = false;
+                {
+                    std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                    has_cache_lock = has_thumbnail_cache_lock(cache_dir);
+                }
+
+                if(!has_cache_lock) {
+                    for(;;) {
+                        ThumbnailCacheLockState lock_state;
+                        const TimelineThumbnailLockAttemptResult lock_result = try_lock_timeline_thumbnail_cache_dir_shared(cache_dir, lock_state, true);
+                        if(lock_result == TimelineThumbnailLockAttemptResult::ACQUIRED) {
+                            std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                            if(generating_thumbnail_cache_dir == cache_dir) {
+                                auto it = thumbnail_cache_locks.find(cache_dir);
+                                if(it == thumbnail_cache_locks.end() || it->second.fd < 0)
+                                    thumbnail_cache_locks[cache_dir] = std::move(lock_state);
+                                else
+                                    release_timeline_thumbnail_cache_lock(lock_state);
+
+                                has_cache_lock = has_thumbnail_cache_lock(cache_dir);
+                            } else {
+                                release_timeline_thumbnail_cache_lock(lock_state);
+                            }
+                            break;
+                        }
+
+                        if(lock_result == TimelineThumbnailLockAttemptResult::FAILED)
+                            break;
+
+                        bool should_abort = false;
+                        {
+                            std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                            const bool generation_stale = generation != pending_thumbnail_generation;
+                            should_abort = stop_thumbnail_worker || generation_stale || generating_thumbnail_cache_dir != cache_dir;
+                        }
+
+                        if(should_abort)
+                            break;
+
+                        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                    }
+                }
+
+                if(!has_cache_lock) {
+                    std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                    if(generating_thumbnail_cache_dir == cache_dir) {
+                        generating_thumbnail_cache_dir.clear();
+                        refresh_thumbnail_cache_locks();
+                    }
+                    continue;
+                }
+            }
 
             ThumbnailJobResult result;
             result.generation = generation;
 
-            const std::string cache_dir = get_timeline_cache_dir(source_path, generation_duration_ms);
+            ensure_timeline_cache_dir_exists(cache_dir);
+            result.cache_dir = cache_dir;
             const int thumbnail_count = get_target_thumbnail_count(generation_duration_ms);
             std::vector<std::string> thumbnail_paths;
             thumbnail_paths.reserve(thumbnail_count);
@@ -380,44 +726,105 @@ namespace gsr {
                 thumbnail_paths.emplace_back(cache_dir + "/" + filename);
             }
 
-            bool cache_ready = true;
-            for(const std::string &thumbnail_path : thumbnail_paths) {
-                if(!std::filesystem::exists(thumbnail_path)) {
-                    cache_ready = false;
-                    break;
-                }
-            }
+            bool cache_ready = are_timeline_thumbnail_paths_complete(thumbnail_paths);
 
             if(!cache_ready) {
-                for(const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(cache_dir)) {
-                    if(entry.is_regular_file())
-                        std::filesystem::remove(entry.path());
+                ThumbnailCacheLockState *cache_lock_state = nullptr;
+                {
+                    std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                    auto it = thumbnail_cache_locks.find(cache_dir);
+                    if(it != thumbnail_cache_locks.end() && it->second.fd >= 0)
+                        cache_lock_state = &it->second;
                 }
 
-                const double duration_seconds = std::max(0.001, generation_duration_ms / 1000.0);
-                const std::string fps_value = std::to_string((double)thumbnail_count / duration_seconds);
-                const std::string vf_arg = "fps=" + fps_value + ",scale=240:-2";
-                const std::string output_pattern = cache_dir + "/thumb-%05d.jpg";
-                const char *args[] = {
-                    "ffmpeg",
-                    "-loglevel", "error",
-                    "-y",
-                    "-i", source_path.c_str(),
-                    "-vf", vf_arg.c_str(),
-                    "-q:v", "4",
-                    output_pattern.c_str(),
-                    nullptr
-                };
-                std::string ffmpeg_output;
-                if(exec_program_on_host_get_stdout(args, ffmpeg_output, false) != 0)
-                    thumbnail_paths.clear();
+                bool exclusive_lock_acquired = false;
+                while(cache_lock_state) {
+                    const TimelineThumbnailLockAttemptResult lock_result = try_lock_timeline_thumbnail_cache_dir_exclusive(cache_dir, *cache_lock_state, true);
+                    if(lock_result == TimelineThumbnailLockAttemptResult::ACQUIRED) {
+                        exclusive_lock_acquired = true;
+                        break;
+                    }
+
+                    if(lock_result == TimelineThumbnailLockAttemptResult::FAILED)
+                        break;
+
+                    if(are_timeline_thumbnail_paths_complete(thumbnail_paths)) {
+                        cache_ready = true;
+                        break;
+                    }
+
+                    bool should_abort = false;
+                    {
+                        std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                        const bool generation_stale = generation != pending_thumbnail_generation;
+                        should_abort = stop_thumbnail_worker || generation_stale || generating_thumbnail_cache_dir != cache_dir;
+                    }
+
+                    if(should_abort)
+                        break;
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                }
+
+                if(!cache_lock_state || (!exclusive_lock_acquired && !cache_ready)) {
+                    std::lock_guard<std::mutex> lock(thumbnail_mutex);
+                    if(generating_thumbnail_cache_dir == cache_dir) {
+                        generating_thumbnail_cache_dir.clear();
+                        refresh_thumbnail_cache_locks();
+                    }
+                    continue;
+                }
+
+                cache_ready = are_timeline_thumbnail_paths_complete(thumbnail_paths);
+                if(cache_ready) {
+                    downgrade_timeline_thumbnail_cache_dir_to_shared(*cache_lock_state);
+                } else {
+                    clear_regular_files_from_directory(cache_dir);
+
+                    const double duration_seconds = std::max(0.001, generation_duration_ms / 1000.0);
+                    const std::string fps_value = std::to_string((double)thumbnail_count / duration_seconds);
+                    const std::string vf_arg = "fps=" + fps_value + ",scale=240:-2";
+                    const std::string output_pattern = cache_dir + "/thumb-%05d.jpg";
+                    const char *args[] = {
+                        "ffmpeg",
+                        "-loglevel", "error",
+                        "-y",
+                        "-i", source_path.c_str(),
+                        "-vf", vf_arg.c_str(),
+                        "-q:v", "4",
+                        output_pattern.c_str(),
+                        nullptr
+                    };
+                    std::string ffmpeg_output;
+                    if(exec_program_on_host_get_stdout(args, ffmpeg_output, false) != 0)
+                        thumbnail_paths.clear();
+
+                    cache_ready = are_timeline_thumbnail_paths_complete(thumbnail_paths);
+                    if(cache_ready) {
+                        downgrade_timeline_thumbnail_cache_dir_to_shared(*cache_lock_state);
+                    } else {
+                        clear_regular_files_from_directory(cache_dir);
+                        thumbnail_paths.clear();
+                        result.cache_dir.clear();
+                    }
+                }
             }
 
             const size_t generated_thumbnail_count = std::count_if(thumbnail_paths.begin(), thumbnail_paths.end(), [](const std::string &thumbnail_path) {
                 return std::filesystem::exists(thumbnail_path);
             });
-            if(generated_thumbnail_count == 0)
+            if(generated_thumbnail_count != thumbnail_paths.size()) {
                 thumbnail_paths.clear();
+                result.cache_dir.clear();
+            } else if(generated_thumbnail_count == 0) {
+                thumbnail_paths.clear();
+                result.cache_dir.clear();
+            } else {
+                std::error_code touch_ec;
+                std::filesystem::last_write_time(cache_dir, std::filesystem::file_time_type::clock::now(), touch_ec);
+            }
+
+            purge_timeline_thumbnail_cache();
 
             for(size_t i = 0; i < thumbnail_paths.size(); ++i) {
                 if(!std::filesystem::exists(thumbnail_paths[i]))
@@ -433,12 +840,17 @@ namespace gsr {
             }
 
             std::lock_guard<std::mutex> lock(thumbnail_mutex);
-            if(generation != pending_thumbnail_generation)
+            generating_thumbnail_cache_dir.clear();
+
+            if(generation != pending_thumbnail_generation) {
+                refresh_thumbnail_cache_locks();
                 continue;
+            }
 
             ready_thumbnail_generation = generation;
             ready_thumbnail_result = std::move(result);
             thumbnail_result_ready = true;
+            refresh_thumbnail_cache_locks();
         }
     }
 
