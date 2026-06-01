@@ -1,8 +1,11 @@
 #include "../include/Utils.hpp"
 #include "../include/Process.hpp"
+#include <algorithm>
+#include <filesystem>
 #include <stdlib.h>
 #include <stdio.h>
 #include <optional>
+#include <vector>
 #include <unistd.h>
 #include <fcntl.h>
 #include <pwd.h>
@@ -305,6 +308,105 @@ namespace gsr {
             success = true;
 
         fclose(file);
+        return success;
+    }
+
+    bool purge_regular_files_from_cache_dir(const std::string &cache_dir, size_t max_files, const std::unordered_set<std::string> &paths_to_keep, const char *cache_label, const std::function<bool(const std::string&)> &should_keep_path, const std::function<bool(const std::string&)> &remove_path, const std::function<void(const std::string&)> &on_remove_path) {
+        std::error_code exists_ec;
+        const bool cache_dir_exists = std::filesystem::exists(cache_dir, exists_ec);
+        if(exists_ec) {
+            fprintf(stderr, "Warning: Failed to access %s cache directory: %s\n", cache_label, cache_dir.c_str());
+            return false;
+        }
+
+        if(!cache_dir_exists)
+            return true;
+
+        struct CacheEntry {
+            std::filesystem::path path;
+            std::filesystem::file_time_type last_write_time;
+            bool keep = false;
+        };
+
+        bool success = true;
+        std::vector<CacheEntry> entries;
+        std::error_code ec;
+        std::filesystem::directory_iterator cache_iter(cache_dir, ec);
+        if(ec) {
+            fprintf(stderr, "Warning: Failed to iterate %s cache directory: %s\n", cache_label, cache_dir.c_str());
+            return false;
+        }
+
+        size_t keep_count = 0;
+        for(const std::filesystem::directory_entry &entry : cache_iter) {
+            std::error_code status_ec;
+            if(!entry.is_regular_file(status_ec)) {
+                if(status_ec) {
+                    fprintf(stderr, "Warning: Failed to inspect %s cache entry: %s\n", cache_label, entry.path().string().c_str());
+                    success = false;
+                }
+                continue;
+            }
+
+            std::error_code time_ec;
+            const std::filesystem::file_time_type last_write_time = entry.last_write_time(time_ec);
+            if(time_ec) {
+                fprintf(stderr, "Warning: Failed to read %s cache file timestamp: %s\n", cache_label, entry.path().string().c_str());
+                success = false;
+                continue;
+            }
+
+            const bool keep = paths_to_keep.find(entry.path().string()) != paths_to_keep.end();
+            keep_count += keep;
+            entries.push_back({ entry.path(), last_write_time, keep });
+        }
+
+        if(entries.size() <= max_files || keep_count >= entries.size())
+            return success;
+
+        std::sort(entries.begin(), entries.end(), [](const CacheEntry &lhs, const CacheEntry &rhs) {
+            return lhs.last_write_time > rhs.last_write_time;
+        });
+
+        size_t kept_entries = keep_count;
+        for(const CacheEntry &entry : entries) {
+            if(entry.keep)
+                continue;
+
+            if(kept_entries < max_files) {
+                ++kept_entries;
+                continue;
+            }
+
+            if(should_keep_path && should_keep_path(entry.path.string())) {
+                ++kept_entries;
+                continue;
+            }
+
+            bool removed = false;
+            if(remove_path) {
+                removed = remove_path(entry.path.string());
+            } else {
+                std::error_code remove_ec;
+                if(!std::filesystem::remove(entry.path, remove_ec)) {
+                    if(!remove_ec)
+                        continue;
+
+                    fprintf(stderr, "Warning: Failed to remove %s cache file: %s\n", cache_label, entry.path.string().c_str());
+                    success = false;
+                    continue;
+                }
+
+                removed = true;
+            }
+
+            if(!removed)
+                continue;
+
+            if(on_remove_path)
+                on_remove_path(entry.path.string());
+        }
+
         return success;
     }
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
-#include <string_view>
 #include <map>
 #include <string>
+#include <string_view>
+#include <unordered_set>
 
 namespace gsr {
     struct KeyValue {
@@ -34,6 +36,7 @@ namespace gsr {
     int create_directory_recursive(char *path);
     bool file_get_content(const char *filepath, std::string &file_content);
     bool file_overwrite(const char *filepath, const std::string &data);
+    bool purge_regular_files_from_cache_dir(const std::string &cache_dir, size_t max_files, const std::unordered_set<std::string> &paths_to_keep, const char *cache_label, const std::function<bool(const std::string&)> &should_keep_path = {}, const std::function<bool(const std::string&)> &remove_path = {}, const std::function<void(const std::string&)> &on_remove_path = {});
 
     // Returns the path to the parent directory (ignoring trailing /)
     // of "." if there is no parent directory and the directory path is relative

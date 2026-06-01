@@ -17,10 +17,18 @@ extern "C" {
 }
 
 #include <dlfcn.h>
+#include <errno.h>
 #include <GL/gl.h>
+#include <fcntl.h>
+#include <sys/file.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <algorithm>
+#include <filesystem>
+#include <mutex>
+#include <unordered_map>
+#include <utility>
 
 namespace gsr {
     namespace {
@@ -47,6 +55,26 @@ namespace gsr {
         static const float center_button_max_size = 88.0f * ui_scale;
         static const float control_proximity_padding_scale = 0.045f * ui_scale;
         static const float control_proximity_min_padding = 28.0f;
+        static constexpr size_t max_cached_proxy_videos = 16;
+
+        static std::string get_proxy_video_cache_dir() {
+            return get_cache_dir() + "/video-proxies";
+        }
+
+        static std::string get_proxy_video_lock_dir() {
+            return get_cache_dir() + "/video-proxy-locks";
+        }
+
+        static std::string get_proxy_video_lock_guard_path() {
+            return get_proxy_video_lock_dir() + "/.guard.lock";
+        }
+
+        static bool ensure_proxy_video_lock_dir_exists() {
+            std::string proxy_lock_dir = get_proxy_video_lock_dir();
+            char proxy_lock_dir_buffer[4096];
+            snprintf(proxy_lock_dir_buffer, sizeof(proxy_lock_dir_buffer), "%s", proxy_lock_dir.c_str());
+            return create_directory_recursive(proxy_lock_dir_buffer) == 0;
+        }
 
         static std::string build_proxy_video_path(const std::string &video_path) {
             struct stat st;
@@ -54,11 +82,352 @@ namespace gsr {
             if(stat(video_path.c_str(), &st) == 0)
                 key += ":" + std::to_string((int64_t)st.st_mtim.tv_sec) + ":" + std::to_string((int64_t)st.st_size);
 
-            std::string proxy_dir = get_cache_dir() + "/video-proxies";
+            std::string proxy_dir = get_proxy_video_cache_dir();
             char proxy_dir_buffer[4096];
             snprintf(proxy_dir_buffer, sizeof(proxy_dir_buffer), "%s", proxy_dir.c_str());
             create_directory_recursive(proxy_dir_buffer);
             return proxy_dir + "/" + std::to_string(std::hash<std::string>{}(key)) + ".mkv";
+        }
+
+        static std::string build_proxy_video_lock_path(const std::string &proxy_video_path) {
+            const std::string proxy_lock_dir = get_proxy_video_lock_dir();
+            char proxy_lock_dir_buffer[4096];
+            snprintf(proxy_lock_dir_buffer, sizeof(proxy_lock_dir_buffer), "%s", proxy_lock_dir.c_str());
+            create_directory_recursive(proxy_lock_dir_buffer);
+            return proxy_lock_dir + "/" + std::to_string(std::hash<std::string>{}(proxy_video_path)) + ".lock";
+        }
+
+        struct ProxyPathLockState {
+            int fd = -1;
+            std::string proxy_path;
+        };
+
+        struct ProxyLockGuardState {
+            int fd = -1;
+        };
+
+        enum class ProxyLockAttemptResult {
+            ACQUIRED,
+            WOULD_BLOCK,
+            FAILED,
+        };
+
+        using PlayerProxyLockMap = std::unordered_map<std::string, ProxyPathLockState>;
+
+        static std::mutex proxy_path_lock_mutex;
+        static std::unordered_map<const VideoPlayer*, PlayerProxyLockMap> proxy_path_locks;
+
+        static void install_video_player_proxy_lock(const VideoPlayer *player, ProxyPathLockState &replacement_lock_state);
+        static void update_video_player_proxy_locks(const VideoPlayer *player, const std::vector<std::string> &proxy_paths);
+
+        static ProxyLockAttemptResult try_lock_proxy_lock_guard(int operation, ProxyLockGuardState &guard_state, bool non_blocking = false) {
+            if(!ensure_proxy_video_lock_dir_exists())
+                return ProxyLockAttemptResult::FAILED;
+
+            const std::string guard_path = get_proxy_video_lock_guard_path();
+            const int fd = open(guard_path.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+            if(fd < 0)
+                return ProxyLockAttemptResult::FAILED;
+
+            const int flock_operation = non_blocking ? (operation | LOCK_NB) : operation;
+            if(flock(fd, flock_operation) != 0) {
+                const int flock_errno = errno;
+                close(fd);
+                if(flock_errno == EWOULDBLOCK || flock_errno == EAGAIN)
+                    return ProxyLockAttemptResult::WOULD_BLOCK;
+
+                return ProxyLockAttemptResult::FAILED;
+            }
+
+            guard_state.fd = fd;
+            return ProxyLockAttemptResult::ACQUIRED;
+        }
+
+        static void release_proxy_lock_guard(ProxyLockGuardState &guard_state) {
+            if(guard_state.fd >= 0) {
+                flock(guard_state.fd, LOCK_UN);
+                close(guard_state.fd);
+                guard_state.fd = -1;
+            }
+        }
+
+        static void release_proxy_path_lock(ProxyPathLockState &lock_state) {
+            if(lock_state.fd >= 0) {
+                flock(lock_state.fd, LOCK_UN);
+                close(lock_state.fd);
+                lock_state.fd = -1;
+            }
+            lock_state.proxy_path.clear();
+        }
+
+        static ProxyLockAttemptResult try_lock_proxy_path_shared(const std::string &proxy_path, ProxyPathLockState &lock_state, bool non_blocking = false) {
+            ProxyLockGuardState guard_state;
+            const ProxyLockAttemptResult guard_result = try_lock_proxy_lock_guard(LOCK_SH, guard_state, non_blocking);
+            if(guard_result != ProxyLockAttemptResult::ACQUIRED)
+                return guard_result;
+
+            const std::string lock_path = build_proxy_video_lock_path(proxy_path);
+            const int fd = open(lock_path.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+            if(fd < 0) {
+                release_proxy_lock_guard(guard_state);
+                return ProxyLockAttemptResult::FAILED;
+            }
+
+            const int flock_operation = non_blocking ? (LOCK_SH | LOCK_NB) : LOCK_SH;
+            if(flock(fd, flock_operation) != 0) {
+                const int flock_errno = errno;
+                close(fd);
+                release_proxy_lock_guard(guard_state);
+                if(flock_errno == EWOULDBLOCK || flock_errno == EAGAIN)
+                    return ProxyLockAttemptResult::WOULD_BLOCK;
+
+                return ProxyLockAttemptResult::FAILED;
+            }
+
+            release_proxy_lock_guard(guard_state);
+
+            lock_state.fd = fd;
+            lock_state.proxy_path = proxy_path;
+            return ProxyLockAttemptResult::ACQUIRED;
+        }
+
+        static ProxyLockAttemptResult try_lock_proxy_path_exclusive(const std::string &proxy_path, ProxyPathLockState &lock_state, bool non_blocking = false) {
+            ProxyLockGuardState guard_state;
+            const ProxyLockAttemptResult guard_result = try_lock_proxy_lock_guard(LOCK_SH, guard_state, non_blocking);
+            if(guard_result != ProxyLockAttemptResult::ACQUIRED)
+                return guard_result;
+
+            const std::string lock_path = build_proxy_video_lock_path(proxy_path);
+            const int fd = open(lock_path.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+            if(fd < 0) {
+                release_proxy_lock_guard(guard_state);
+                return ProxyLockAttemptResult::FAILED;
+            }
+
+            const int flock_operation = non_blocking ? (LOCK_EX | LOCK_NB) : LOCK_EX;
+            if(flock(fd, flock_operation) != 0) {
+                const int flock_errno = errno;
+                close(fd);
+                release_proxy_lock_guard(guard_state);
+                if(flock_errno == EWOULDBLOCK || flock_errno == EAGAIN)
+                    return ProxyLockAttemptResult::WOULD_BLOCK;
+
+                return ProxyLockAttemptResult::FAILED;
+            }
+
+            release_proxy_lock_guard(guard_state);
+
+            lock_state.fd = fd;
+            lock_state.proxy_path = proxy_path;
+            return ProxyLockAttemptResult::ACQUIRED;
+        }
+
+        static bool install_video_player_proxy_lock_with_shared_downgrade(const VideoPlayer *player, ProxyPathLockState &replacement_lock_state) {
+            ProxyLockGuardState guard_state;
+            if(try_lock_proxy_lock_guard(LOCK_EX, guard_state) != ProxyLockAttemptResult::ACQUIRED)
+                return false;
+
+            const bool downgraded = replacement_lock_state.fd >= 0 && flock(replacement_lock_state.fd, LOCK_SH) == 0;
+            if(downgraded)
+                install_video_player_proxy_lock(player, replacement_lock_state);
+
+            release_proxy_lock_guard(guard_state);
+            return downgraded;
+        }
+
+        static bool is_proxy_cache_path(const std::string &path) {
+            if(path.empty())
+                return false;
+
+            const std::string proxy_cache_dir_prefix = get_proxy_video_cache_dir() + "/";
+            return starts_with(path, proxy_cache_dir_prefix.c_str());
+        }
+
+        static bool is_proxy_path_locked(const std::string &proxy_path) {
+            ProxyLockGuardState guard_state;
+            if(try_lock_proxy_lock_guard(LOCK_SH, guard_state) != ProxyLockAttemptResult::ACQUIRED)
+                return false;
+
+            const std::string lock_path = build_proxy_video_lock_path(proxy_path);
+            const int fd = open(lock_path.c_str(), O_RDWR);
+            if(fd < 0) {
+                release_proxy_lock_guard(guard_state);
+                return false;
+            }
+
+            const bool is_locked = flock(fd, LOCK_EX | LOCK_NB) != 0;
+            if(!is_locked)
+                flock(fd, LOCK_UN);
+
+            close(fd);
+            release_proxy_lock_guard(guard_state);
+            return is_locked;
+        }
+
+        static bool remove_proxy_cache_file_if_unlocked(const std::string &proxy_path) {
+            ProxyLockGuardState guard_state;
+            if(try_lock_proxy_lock_guard(LOCK_EX, guard_state) != ProxyLockAttemptResult::ACQUIRED)
+                return false;
+
+            const std::string lock_path = build_proxy_video_lock_path(proxy_path);
+            const int fd = open(lock_path.c_str(), O_RDWR);
+            if(fd >= 0) {
+                if(flock(fd, LOCK_EX | LOCK_NB) != 0) {
+                    close(fd);
+                    release_proxy_lock_guard(guard_state);
+                    return false;
+                }
+            }
+
+            std::error_code remove_ec;
+            const bool removed = std::filesystem::remove(proxy_path, remove_ec);
+            const bool file_missing = !removed && !remove_ec;
+            if(remove_ec) {
+                fprintf(stderr, "Warning: Failed to remove video proxy cache file: %s\n", proxy_path.c_str());
+                if(fd >= 0) {
+                    flock(fd, LOCK_UN);
+                    close(fd);
+                }
+                release_proxy_lock_guard(guard_state);
+                return false;
+            }
+
+            if(fd >= 0) {
+                std::filesystem::remove(lock_path, remove_ec);
+                flock(fd, LOCK_UN);
+                close(fd);
+            }
+
+            release_proxy_lock_guard(guard_state);
+            return removed || file_missing;
+        }
+
+        static void install_video_player_proxy_lock(const VideoPlayer *player, ProxyPathLockState &replacement_lock_state) {
+            std::lock_guard<std::mutex> lock(proxy_path_lock_mutex);
+            PlayerProxyLockMap &existing_lock_states = proxy_path_locks[player];
+            if(replacement_lock_state.proxy_path.empty() || replacement_lock_state.fd < 0) {
+                if(existing_lock_states.empty())
+                    proxy_path_locks.erase(player);
+                return;
+            }
+
+            auto it = existing_lock_states.find(replacement_lock_state.proxy_path);
+            if(it != existing_lock_states.end())
+                release_proxy_path_lock(it->second);
+
+            existing_lock_states[replacement_lock_state.proxy_path] = std::move(replacement_lock_state);
+            replacement_lock_state = {};
+        }
+
+        static void update_video_player_proxy_locks(const VideoPlayer *player, const std::vector<std::string> &proxy_paths) {
+            std::vector<std::string> desired_paths;
+            desired_paths.reserve(proxy_paths.size());
+            for(const std::string &proxy_path : proxy_paths) {
+                if(proxy_path.empty())
+                    continue;
+
+                if(std::find(desired_paths.begin(), desired_paths.end(), proxy_path) == desired_paths.end())
+                    desired_paths.push_back(proxy_path);
+            }
+
+            std::vector<std::string> missing_paths;
+            {
+                std::lock_guard<std::mutex> lock(proxy_path_lock_mutex);
+                auto it = proxy_path_locks.find(player);
+                if(it == proxy_path_locks.end() && desired_paths.empty())
+                    return;
+
+                if(it != proxy_path_locks.end()) {
+                    for(const std::string &proxy_path : desired_paths) {
+                        auto lock_it = it->second.find(proxy_path);
+                        if(lock_it == it->second.end() || lock_it->second.fd < 0)
+                            missing_paths.push_back(proxy_path);
+                    }
+                } else {
+                    missing_paths = desired_paths;
+                }
+            }
+
+            std::vector<ProxyPathLockState> replacement_lock_states;
+            replacement_lock_states.reserve(missing_paths.size());
+            for(const std::string &proxy_path : missing_paths) {
+                ProxyPathLockState replacement_lock_state;
+                if(try_lock_proxy_path_shared(proxy_path, replacement_lock_state) == ProxyLockAttemptResult::ACQUIRED)
+                    replacement_lock_states.push_back(std::move(replacement_lock_state));
+            }
+
+            std::lock_guard<std::mutex> lock(proxy_path_lock_mutex);
+            PlayerProxyLockMap &existing_lock_states = proxy_path_locks[player];
+            for(auto it = existing_lock_states.begin(); it != existing_lock_states.end();) {
+                if(std::find(desired_paths.begin(), desired_paths.end(), it->first) == desired_paths.end()) {
+                    release_proxy_path_lock(it->second);
+                    it = existing_lock_states.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            for(ProxyPathLockState &replacement_lock_state : replacement_lock_states) {
+                if(replacement_lock_state.proxy_path.empty() || replacement_lock_state.fd < 0)
+                    continue;
+
+                auto it = existing_lock_states.find(replacement_lock_state.proxy_path);
+                if(it != existing_lock_states.end() && it->second.fd >= 0) {
+                    release_proxy_path_lock(replacement_lock_state);
+                    continue;
+                }
+
+                existing_lock_states[replacement_lock_state.proxy_path] = std::move(replacement_lock_state);
+            }
+
+            if(existing_lock_states.empty())
+                proxy_path_locks.erase(player);
+        }
+
+        static void release_video_player_proxy_lock(const VideoPlayer *player) {
+            std::lock_guard<std::mutex> lock(proxy_path_lock_mutex);
+            auto it = proxy_path_locks.find(player);
+            if(it == proxy_path_locks.end())
+                return;
+
+            for(auto &lock_entry : it->second)
+                release_proxy_path_lock(lock_entry.second);
+            proxy_path_locks.erase(it);
+        }
+
+        static void add_locked_proxy_paths_to_keep(std::unordered_set<std::string> &proxy_paths_to_keep) {
+            const std::string proxy_cache_dir = get_proxy_video_cache_dir();
+            std::error_code ec;
+            std::filesystem::directory_iterator proxy_iter(proxy_cache_dir, ec);
+            if(ec)
+                return;
+
+            for(const std::filesystem::directory_entry &entry : proxy_iter) {
+                std::error_code status_ec;
+                if(!entry.is_regular_file(status_ec) || status_ec)
+                    continue;
+
+                const std::string proxy_path = entry.path().string();
+                if(is_proxy_path_locked(proxy_path))
+                    proxy_paths_to_keep.insert(proxy_path);
+            }
+        }
+
+        static std::vector<std::string> get_active_proxy_paths(const std::string &loaded_video_path, const std::string &handoff_proxy_path, const std::string &pending_video_path, const std::string &proxy_video_path) {
+            std::vector<std::string> result;
+            if(is_proxy_cache_path(loaded_video_path))
+                result.push_back(loaded_video_path);
+
+            if(is_proxy_cache_path(handoff_proxy_path) && std::find(result.begin(), result.end(), handoff_proxy_path) == result.end())
+                result.push_back(handoff_proxy_path);
+
+            if(is_proxy_cache_path(pending_video_path) && std::find(result.begin(), result.end(), pending_video_path) == result.end())
+                result.push_back(pending_video_path);
+
+            if(is_proxy_cache_path(proxy_video_path) && std::find(result.begin(), result.end(), proxy_video_path) == result.end())
+                result.push_back(proxy_video_path);
+
+            return result;
         }
 
         static float clamp_float(float value, float min_value, float max_value) {
@@ -119,6 +488,7 @@ namespace gsr {
             render_update_pending.store(true);
         });
         proxy_worker_thread = std::thread([this]() { proxy_worker_loop(); });
+        refresh_proxy_lock();
         if(this->preview_source == PreviewSource::PROXY_FAST && !this->video_path.empty())
             queue_proxy_generation();
         refresh_playback_state();
@@ -135,6 +505,8 @@ namespace gsr {
         proxy_cv.notify_one();
         if(proxy_worker_thread.joinable())
             proxy_worker_thread.join();
+
+        release_video_player_proxy_lock(this);
 
         destroy_render_target();
     }
@@ -307,9 +679,11 @@ namespace gsr {
     void VideoPlayer::set_video_path(std::string video_path) {
         this->video_path = std::move(video_path);
         ++video_generation;
+        handoff_proxy_path = is_proxy_cache_path(loaded_video_path) ? loaded_video_path : std::string();
         loaded_video_path.clear();
         pending_video_path.clear();
         proxy_video_path.clear();
+        refresh_proxy_lock();
         playback_state = {};
         scrub_session.reset();
         {
@@ -323,10 +697,13 @@ namespace gsr {
             ready_proxy_generation = 0;
         }
 
-        if(this->video_path.empty())
+        if(this->video_path.empty()) {
             libmpv.clear_file();
-        else if(preview_source == PreviewSource::PROXY_FAST)
+            handoff_proxy_path.clear();
+            refresh_proxy_lock();
+        } else if(preview_source == PreviewSource::PROXY_FAST) {
             queue_proxy_generation();
+        }
 
         video_texture_has_content = false;
 
@@ -494,6 +871,12 @@ namespace gsr {
             proxy_video_path = ready_proxy_path;
         else if(!proxy_ready)
             proxy_video_path.clear();
+
+        refresh_proxy_lock();
+    }
+
+    void VideoPlayer::refresh_proxy_lock() {
+        update_video_player_proxy_locks(this, get_active_proxy_paths(loaded_video_path, handoff_proxy_path, pending_video_path, proxy_video_path));
     }
 
     void VideoPlayer::ensure_video_loaded() {
@@ -501,9 +884,13 @@ namespace gsr {
 
         if(!pending_video_path.empty() && playback_state.file_loaded) {
             loaded_video_path = pending_video_path;
+            handoff_proxy_path.clear();
             pending_video_path.clear();
+            refresh_proxy_lock();
         } else if(!pending_video_path.empty() && !libmpv.get_error().empty()) {
+            handoff_proxy_path.clear();
             pending_video_path.clear();
+            refresh_proxy_lock();
         }
 
         const std::string effective_video_path = preview_source == PreviewSource::PROXY_FAST ? proxy_video_path : video_path;
@@ -515,6 +902,8 @@ namespace gsr {
             pending_video_path = effective_video_path;
         else
             pending_video_path.clear();
+
+        refresh_proxy_lock();
     }
 
     void VideoPlayer::update_status_text() {
@@ -715,11 +1104,81 @@ namespace gsr {
             if(source_path.empty())
                 continue;
 
-            const std::string output_path = build_proxy_video_path(source_path);
-            struct stat st;
-            bool success = stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
+            const auto should_abort_proxy_lock_wait = [this, generation]() {
+                std::lock_guard<std::mutex> lock(proxy_mutex);
+                return stop_proxy_worker || (pending_proxy_request && pending_proxy_generation != generation);
+            };
 
-            if(!success) {
+            const std::string output_path = build_proxy_video_path(source_path);
+            ProxyPathLockState generation_lock_state;
+            bool skip_iteration = false;
+            bool lock_setup_failed = false;
+            for(;;) {
+                const ProxyLockAttemptResult lock_result = try_lock_proxy_path_shared(output_path, generation_lock_state, true);
+                if(lock_result == ProxyLockAttemptResult::ACQUIRED)
+                    break;
+
+                if(lock_result == ProxyLockAttemptResult::FAILED) {
+                    release_proxy_path_lock(generation_lock_state);
+                    lock_setup_failed = true;
+                    break;
+                }
+
+                if(should_abort_proxy_lock_wait()) {
+                    release_proxy_path_lock(generation_lock_state);
+                    skip_iteration = true;
+                    break;
+                }
+
+                usleep(20 * 1000);
+            }
+
+            if(skip_iteration)
+                continue;
+
+            struct stat st;
+            bool success = !lock_setup_failed && stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
+
+            if(!success && !lock_setup_failed) {
+                release_proxy_path_lock(generation_lock_state);
+                for(;;) {
+                    const ProxyLockAttemptResult lock_result = try_lock_proxy_path_exclusive(output_path, generation_lock_state, true);
+                    if(lock_result == ProxyLockAttemptResult::ACQUIRED)
+                        break;
+
+                    if(lock_result == ProxyLockAttemptResult::FAILED) {
+                        release_proxy_path_lock(generation_lock_state);
+                        lock_setup_failed = true;
+                        break;
+                    }
+
+                    if(should_abort_proxy_lock_wait()) {
+                        release_proxy_path_lock(generation_lock_state);
+                        skip_iteration = true;
+                        break;
+                    }
+
+                    ProxyPathLockState shared_lock_state;
+                    if(try_lock_proxy_path_shared(output_path, shared_lock_state, true) == ProxyLockAttemptResult::ACQUIRED) {
+                        const bool proxy_ready = stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
+                        if(proxy_ready) {
+                            generation_lock_state = std::move(shared_lock_state);
+                            break;
+                        }
+
+                        release_proxy_path_lock(shared_lock_state);
+                    }
+
+                    usleep(20 * 1000);
+                }
+
+                if(skip_iteration)
+                    continue;
+
+                success = !lock_setup_failed && stat(output_path.c_str(), &st) == 0 && st.st_size > 0;
+            }
+
+            if(!success && !lock_setup_failed) {
                 std::vector<std::string> args_str = {
                     "ffmpeg", "-loglevel", "error", "-y",
                     "-i", source_path,
@@ -742,14 +1201,43 @@ namespace gsr {
                 success = exec_program_on_host_get_stdout(args.data(), ffmpeg_output, false) == 0;
             }
 
+            if(success) {
+                std::unordered_set<std::string> proxy_paths_to_keep = { output_path };
+                add_locked_proxy_paths_to_keep(proxy_paths_to_keep);
+                purge_regular_files_from_cache_dir(
+                    get_proxy_video_cache_dir(),
+                    max_cached_proxy_videos,
+                    proxy_paths_to_keep,
+                    "video proxy",
+                    [](const std::string &proxy_path) {
+                        return is_proxy_path_locked(proxy_path);
+                    },
+                    [](const std::string &proxy_path) {
+                        return remove_proxy_cache_file_if_unlocked(proxy_path);
+                    },
+                    {}
+                );
+            }
+
             std::lock_guard<std::mutex> lock(proxy_mutex);
-            if(generation != video_generation)
+            if(generation != video_generation) {
+                release_proxy_path_lock(generation_lock_state);
                 continue;
+            }
 
             proxy_failed = !success;
             proxy_ready = success;
             ready_proxy_generation = generation;
             ready_proxy_path = success ? output_path : std::string();
+
+            if(success) {
+                if(!install_video_player_proxy_lock_with_shared_downgrade(this, generation_lock_state)) {
+                    release_proxy_path_lock(generation_lock_state);
+                    update_video_player_proxy_locks(this, { output_path });
+                }
+            }
+
+            release_proxy_path_lock(generation_lock_state);
         }
     }
 

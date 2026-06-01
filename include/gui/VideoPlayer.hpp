@@ -90,6 +90,7 @@ namespace gsr {
         void ensure_video_loaded();
         void queue_proxy_generation();
         void process_proxy_generation_result();
+        void refresh_proxy_lock();
         bool ensure_render_target(mgl::Window &window, mgl::vec2f item_size);
         void destroy_render_target();
         void proxy_worker_loop();
@@ -118,6 +119,7 @@ namespace gsr {
         PreviewSource preview_source;
         std::string video_path;
         std::string loaded_video_path;
+        std::string handoff_proxy_path;
         std::string pending_video_path;
         std::string proxy_video_path;
         mgl::Texture video_texture;
