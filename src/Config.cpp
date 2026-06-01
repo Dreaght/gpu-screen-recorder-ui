@@ -156,6 +156,10 @@ namespace gsr {
         screenshot_config.take_screenshot_window_hotkey = {mgl::Keyboard::Printscreen, HOTKEY_MOD_LSHIFT};
 
         main_config.show_hide_hotkey = {mgl::Keyboard::Z, HOTKEY_MOD_LALT};
+
+        // TODO: Change the hotkey code (default values) to check if the hotkey is already configured.
+        // If it's already configured then unset the hotkey (0 values).
+        // The user can either set the hotkeys or click the button to set the hotkeys to default to automatically set them.
     }
 
     static std::optional<KeyValue> parse_key_value(std::string_view line) {

@@ -125,10 +125,10 @@ If CursorTrackerWayland fails then fallback to getting focused monitor by window
     Maybe automatically switch to recording with the device that controls the monitor.
     In that case also add all monitors available to capture in the capture list and automatically choose the gpu that controls the monitor.
 
-Keyboard layout is incorrect on wayland when using kde plasma keyboard settings to setup multiple keyboards, for example when changing to french.
-    Text input is correct, but hotkey is incorrect.
-    Need to use "setxkbmap fr" as well.
-    This happens only when grabbing keyboard (gsr-global-hotkeys). Same thing is seen with xev.
+If a keyboard layout is set with setxkbmap (or in desktop environment) on both x11 and wayland (when xwayland is used) then the keyboard layout
+    will be reset for x11 applications when launching gsr ui because gsr-global-hotkeys create a virtual device, so it becomes a hotplug event.
+    The X server resets the keyboard layout when that happens. The user has to set keyboard layout in xorg settings to set the default keyboard layout.
+    This happens even when gsr ui is not used, if you replug the keyboard.
 
 Getting focused monitor on wayland doesn't work when vrr is enabled. This is because it uses software cursor instead (at least on kde plasma wayland).
     Right now it falls back to create window & getting window position trick if there is no cursor visible (or a software cursor) and one monitor has vrr enabled.
@@ -249,3 +249,5 @@ Webcam resolution list is too long for some people. Fix it by separating resolut
 Allow settings page to select input capture option/audio, to make sure it doesn't blindly select the default option when the sources aren't temporary available when opening the settings.
 
 Add simple video cutting in the ui.
+
+Add a button to listen to microphone device so that we can hear how loud it will be in the video, and also option to set microphone volume.

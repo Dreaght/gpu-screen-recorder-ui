@@ -75,7 +75,7 @@ I'm looking for somebody that can create sound effects for the notifications.
 
 # Known issues
 * The background of the UI is black when opening the UI while a Wayland application is focused on COSMIC. This is an issue with COSMIC.
-* The program is first installed and launched on GNOME the game name is just "Game" instead of the actual game name (window title). To fix this you have to logout and login once after the initial install, to load the gnome extension that is installed on the system.
+* When the program is first installed and launched on GNOME the game name (folder) is just "Game" instead of the actual game name (window title). To fix this you have to logout and login once after the initial install, to load the gnome extension that is installed on the system.
 
 # FAQ
 ## I use a non-qwerty keyboard layout and I have an issue with incorrect keys registered in the software

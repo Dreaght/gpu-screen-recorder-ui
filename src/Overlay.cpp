@@ -1232,7 +1232,7 @@ namespace gsr {
         }
 
         mgl::Window::CreateParams window_create_params;
-        window_create_params.size = window_size;
+        window_create_params.size = wayland_native_overlay ? mgl::vec2i(0, 0) : window_size;
         if(prevent_game_minimizing) {
             window_create_params.min_size = window_size;
             window_create_params.max_size = window_size;
@@ -1282,7 +1282,7 @@ namespace gsr {
 
         const auto original_window_size = window_size;
         window_pos = focused_monitor->position;
-        window_size = focused_monitor->size;
+        window_size = wayland_native_overlay ? window->get_size() : focused_monitor->size;
         if(!init_theme(resources_path)) {
             fprintf(stderr, "Error: failed to load theme\n");
             window.reset();
@@ -1290,11 +1290,12 @@ namespace gsr {
         }
         get_theme().set_window_size(window_size);
 
-        if(prevent_game_minimizing) {
+        if(prevent_game_minimizing && !wayland_native_overlay) {
             window->set_size(window_size);
             window->set_size_limits(window_size, window_size);
         }
-        window->set_position(focused_monitor->position + focused_monitor->size / 2 - original_window_size / 2);
+        if(!wayland_native_overlay)
+            window->set_position(focused_monitor->position + focused_monitor->size / 2 - original_window_size / 2);
 
         mgl_window *win = window->internal_window();
         win->cursor_position.x = cursor_position.x - window_pos.x;

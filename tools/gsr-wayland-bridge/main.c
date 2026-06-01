@@ -9,13 +9,9 @@
 
 #define GSR_UI_UNIX_SOCKET_DOMAIN_FD 3
 
-static int build_socket_path(char *out, size_t out_size) {
-    const char *display = getenv("WAYLAND_DISPLAY");
-    if(!display || !*display)
-        display = "wayland-0";
-
-    if(display[0] == '/') {
-        if((size_t)snprintf(out, out_size, "%s", display) >= out_size) {
+static int build_socket_path(const char *wayland_display, char *out, size_t out_size) {
+    if(wayland_display[0] == '/') {
+        if((size_t)snprintf(out, out_size, "%s", wayland_display) >= out_size) {
             fprintf(stderr, "gsr-wayland-bridge: WAYLAND_DISPLAY path too long\n");
             return -1;
         }
@@ -28,16 +24,20 @@ static int build_socket_path(char *out, size_t out_size) {
         return -1;
     }
 
-    if((size_t)snprintf(out, out_size, "%s/%s", runtime_dir, display) >= out_size) {
+    if((size_t)snprintf(out, out_size, "%s/%s", runtime_dir, wayland_display) >= out_size) {
         fprintf(stderr, "gsr-wayland-bridge: socket path too long\n");
         return -1;
     }
     return 0;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    const char *wayland_display = argc >= 2 ? argv[1] : NULL;
+    if(!wayland_display || !*wayland_display)
+        wayland_display = "wayland-0";
+
     char path[256];
-    if(build_socket_path(path, sizeof(path)) != 0)
+    if(build_socket_path(wayland_display, path, sizeof(path)) != 0)
         return 1;
 
     const int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
