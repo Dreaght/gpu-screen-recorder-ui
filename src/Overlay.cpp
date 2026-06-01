@@ -20,7 +20,10 @@
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
 #include "../include/CursorTracker/CursorTrackerX11.hpp"
-#include "../include/CursorTracker/CursorTrackerWayland.hpp"
+#include "../include/CursorTracker/CursorTrackerDrm.hpp"
+#include "../include/CursorTracker/CursorTrackerHyprland.hpp"
+#include "../include/CursorTracker/CursorTrackerNiri.hpp"
+#include "../include/CursorTracker/CursorTrackerSway.hpp"
 #include "../include/Clipboard/ClipboardX11.hpp"
 #include "../include/Clipboard/ClipboardWayland.hpp"
 #include "../include/RegionSelector/RegionSelectorX11.hpp"
@@ -573,12 +576,23 @@ namespace gsr {
             desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
             supports_window_title = true;
         } else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
+            const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+
             const std::string wm_name = x11_dpy ? get_window_manager_name(x11_dpy) : "";
             const bool is_kwin = wm_name == "KWin";
             const bool is_mutter = wm_name.find("GNOME") != std::string::npos;
+            const bool is_hyprland = xdg_current_desktop && strstr(xdg_current_desktop, "Hyprland");
+            const bool is_niri = xdg_current_desktop && strstr(xdg_current_desktop, "niri");
+            const bool is_sway = xdg_current_desktop && strstr(xdg_current_desktop, "sway");
 
-            if(!this->gsr_info.gpu_info.card_path.empty())
-                cursor_tracker = std::make_unique<CursorTrackerWayland>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
+            if(is_hyprland && CursorTrackerHyprland::is_supported())
+                cursor_tracker = std::make_unique<CursorTrackerHyprland>();
+            else if(is_niri && CursorTrackerNiri::is_supported())
+                cursor_tracker = std::make_unique<CursorTrackerNiri>();
+            else if(is_sway && CursorTrackerSway::is_supported())
+                cursor_tracker = std::make_unique<CursorTrackerSway>();
+            else if(!this->gsr_info.gpu_info.card_path.empty())
+                cursor_tracker = std::make_unique<CursorTrackerDrm>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
 
             if(is_kwin) {
                 desktop_environment = std::make_unique<DesktopEnvironmentKde>();
@@ -2244,16 +2258,6 @@ namespace gsr {
                 break;
         }
         show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type, capture_target);
-    }
-
-    static NotificationType recording_status_to_notification_type(RecordingStatus recording_status) {
-        switch(recording_status) {
-            case RecordingStatus::NONE:   return NotificationType::NONE;
-            case RecordingStatus::REPLAY: return NotificationType::REPLAY;
-            case RecordingStatus::RECORD: return NotificationType::RECORD;
-            case RecordingStatus::STREAM: return NotificationType::STREAM;
-        }
-        return NotificationType::NONE;
     }
 
     void Overlay::on_replay_saved(const char *replay_saved_filepath) {

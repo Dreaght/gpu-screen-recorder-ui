@@ -1,4 +1,4 @@
-#include "../../include/CursorTracker/CursorTrackerWayland.hpp"
+#include "../../include/CursorTracker/CursorTrackerDrm.hpp"
 #include "../../include/WindowUtils.hpp"
 #include <string.h>
 #include <unistd.h>
@@ -243,10 +243,10 @@ namespace gsr {
         drmModeFreeResources(resources);
     }
 
-    CursorTrackerWayland::CursorTrackerWayland(const char *card_path, struct wl_display *wayland_dpy) : wayland_dpy(wayland_dpy) {
+    CursorTrackerDrm::CursorTrackerDrm(const char *card_path, struct wl_display *wayland_dpy) : wayland_dpy(wayland_dpy) {
         drm_fd = open(card_path, O_RDONLY);
         if(drm_fd <= 0) {
-            fprintf(stderr, "Error: CursorTrackerWayland: failed to open %s\n", card_path);
+            fprintf(stderr, "Error: CursorTrackerDrm: failed to open %s\n", card_path);
             return;
         }
 
@@ -254,12 +254,12 @@ namespace gsr {
         drmSetClientCap(drm_fd, DRM_CLIENT_CAP_ATOMIC, 1);
     }
 
-    CursorTrackerWayland::~CursorTrackerWayland() {
+    CursorTrackerDrm::~CursorTrackerDrm() {
         if(drm_fd > 0)
             close(drm_fd);
     }
 
-    void CursorTrackerWayland::update() {
+    void CursorTrackerDrm::update() {
         if(drm_fd <= 0)
             return;
 
@@ -326,7 +326,7 @@ namespace gsr {
         drmModeFreePlaneResources(planes);
     }
 
-    std::optional<CursorInfo> CursorTrackerWayland::get_latest_cursor_info() {
+    std::optional<CursorInfo> CursorTrackerDrm::get_latest_cursor_info() {
         if(drm_fd <= 0 || latest_crtc_id == -1 || !wayland_dpy)
             return std::nullopt;
 

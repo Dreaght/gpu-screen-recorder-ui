@@ -5,12 +5,12 @@
 struct wl_display;
 
 namespace gsr {
-    class CursorTrackerWayland : public CursorTracker {
+    class CursorTrackerDrm : public CursorTracker {
     public:
-        CursorTrackerWayland(const char *card_path, struct wl_display *wayland_dpy);
-        CursorTrackerWayland(const CursorTrackerWayland&) = delete;
-        CursorTrackerWayland& operator=(const CursorTrackerWayland&) = delete;
-        ~CursorTrackerWayland();
+        CursorTrackerDrm(const char *card_path, struct wl_display *wayland_dpy);
+        CursorTrackerDrm(const CursorTrackerDrm&) = delete;
+        CursorTrackerDrm& operator=(const CursorTrackerDrm&) = delete;
+        ~CursorTrackerDrm();
 
         void update() override;
         std::optional<CursorInfo> get_latest_cursor_info() override;
