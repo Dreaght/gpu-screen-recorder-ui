@@ -180,6 +180,7 @@ install_data(
 
 install_subdir('images', install_dir : gsr_ui_resources_path)
 install_subdir('translations', install_dir : gsr_ui_resources_path)
+install_man('gsr-ui.1', 'gsr-ui-cli.1')
 
 if get_option('desktop-files') == true
     install_data(files('gpu-screen-recorder.desktop'), install_dir : join_paths(prefix, datadir, 'applications'))
