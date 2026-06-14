@@ -65,9 +65,12 @@ namespace gsr {
         std::unique_ptr<RadioButton> create_enable_keyboard_hotkeys_button();
         std::unique_ptr<RadioButton> create_enable_joystick_hotkeys_button();
         std::unique_ptr<List> create_show_hide_hotkey_options();
-        std::unique_ptr<List> create_replay_hotkey_options();
-        std::unique_ptr<List> create_replay_partial_save_hotkey_options();
-        std::unique_ptr<List> create_record_hotkey_options();
+        std::unique_ptr<List> create_replay_on_off_hotkey_options();
+        std::unique_ptr<List> create_replay_save_hotkey_options();
+        std::unique_ptr<List> create_replay_partial_save_1min_hotkey_options();
+        std::unique_ptr<List> create_replay_partial_save_10min_hotkey_options();
+        std::unique_ptr<List> create_record_start_stop_hotkey_options();
+        std::unique_ptr<List> create_record_pause_unpause_hotkey_options();
         std::unique_ptr<List> create_record_hotkey_window_region_options();
         std::unique_ptr<List> create_record_hotkey_window_options();
         std::unique_ptr<List> create_stream_hotkey_options();

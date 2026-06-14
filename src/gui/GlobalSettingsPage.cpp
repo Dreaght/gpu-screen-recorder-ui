@@ -233,7 +233,7 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<List> GlobalSettingsPage::create_replay_hotkey_options() {
+    std::unique_ptr<List> GlobalSettingsPage::create_replay_on_off_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
         list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Turn replay on/off:"), get_color_theme().text_color));
@@ -241,14 +241,20 @@ namespace gsr {
         turn_replay_on_off_button_ptr = turn_replay_on_off_button.get();
         list->add_widget(std::move(turn_replay_on_off_button));
 
+        turn_replay_on_off_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::REPLAY_START_STOP);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_replay_save_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
         list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Save replay:"), get_color_theme().text_color));
         auto save_replay_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_replay_button_ptr = save_replay_button.get();
         list->add_widget(std::move(save_replay_button));
-
-        turn_replay_on_off_button_ptr->on_click = [this] {
-            configure_hotkey_start(ConfigureHotkeyType::REPLAY_START_STOP);
-        };
 
         save_replay_button_ptr->on_click = [this] {
             configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE);
@@ -257,7 +263,7 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<List> GlobalSettingsPage::create_replay_partial_save_hotkey_options() {
+    std::unique_ptr<List> GlobalSettingsPage::create_replay_partial_save_1min_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
         list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Save 1 minute replay:"), get_color_theme().text_color));
@@ -265,14 +271,20 @@ namespace gsr {
         save_replay_1_min_button_ptr = save_replay_1_min_button.get();
         list->add_widget(std::move(save_replay_1_min_button));
 
+        save_replay_1_min_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE_1_MIN);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_replay_partial_save_10min_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
         list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Save 10 minute replay:"), get_color_theme().text_color));
         auto save_replay_10_min_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         save_replay_10_min_button_ptr = save_replay_10_min_button.get();
         list->add_widget(std::move(save_replay_10_min_button));
-
-        save_replay_1_min_button_ptr->on_click = [this] {
-            configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE_1_MIN);
-        };
 
         save_replay_10_min_button_ptr->on_click = [this] {
             configure_hotkey_start(ConfigureHotkeyType::REPLAY_SAVE_10_MIN);
@@ -281,7 +293,7 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<List> GlobalSettingsPage::create_record_hotkey_options() {
+    std::unique_ptr<List> GlobalSettingsPage::create_record_start_stop_hotkey_options() {
         auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
 
         list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Start/stop recording:"), get_color_theme().text_color));
@@ -289,14 +301,20 @@ namespace gsr {
         start_stop_recording_button_ptr = start_stop_recording_button.get();
         list->add_widget(std::move(start_stop_recording_button));
 
+        start_stop_recording_button_ptr->on_click = [this] {
+            configure_hotkey_start(ConfigureHotkeyType::RECORD_START_STOP);
+        };
+
+        return list;
+    }
+
+    std::unique_ptr<List> GlobalSettingsPage::create_record_pause_unpause_hotkey_options() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+
         list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Pause/unpause recording:"), get_color_theme().text_color));
         auto pause_unpause_recording_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), "", mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         pause_unpause_recording_button_ptr = pause_unpause_recording_button.get();
         list->add_widget(std::move(pause_unpause_recording_button));
-
-        start_stop_recording_button_ptr->on_click = [this] {
-            configure_hotkey_start(ConfigureHotkeyType::RECORD_START_STOP);
-        };
 
         pause_unpause_recording_button_ptr->on_click = [this] {
             configure_hotkey_start(ConfigureHotkeyType::RECORD_PAUSE_UNPAUSE);
@@ -450,9 +468,12 @@ namespace gsr {
         list_ptr->add_widget(create_enable_keyboard_hotkeys_button());
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
         list_ptr->add_widget(create_show_hide_hotkey_options());
-        list_ptr->add_widget(create_replay_hotkey_options());
-        list_ptr->add_widget(create_replay_partial_save_hotkey_options());
-        list_ptr->add_widget(create_record_hotkey_options());
+        list_ptr->add_widget(create_replay_on_off_hotkey_options());
+        list_ptr->add_widget(create_replay_save_hotkey_options());
+        list_ptr->add_widget(create_replay_partial_save_1min_hotkey_options());
+        list_ptr->add_widget(create_replay_partial_save_10min_hotkey_options());
+        list_ptr->add_widget(create_record_start_stop_hotkey_options());
+        list_ptr->add_widget(create_record_pause_unpause_hotkey_options());
         list_ptr->add_widget(create_record_hotkey_window_region_options());
         list_ptr->add_widget(create_record_hotkey_window_options());
         list_ptr->add_widget(create_stream_hotkey_options());
@@ -534,6 +555,7 @@ namespace gsr {
         combo_box->add_item("日本語", "ja");
         combo_box->add_item("Русский", "ru");
         combo_box->add_item("Українська", "uk");
+        combo_box->add_item("Türkçe", "tr");
         combo_box->add_item("简体中文", "zh-CN");
         combo_box->on_selection_changed = [this](std::string_view, std::string_view id) {
             Translation::instance().load_language(id);

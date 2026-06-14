@@ -46,8 +46,9 @@ There are also additional dependencies needed at runtime:
 
 ## Translation guide
 GPU Screen Recorder UI uses its own translation system for it. See the `translations/template.txt` file for the translation template.
+Each translation is in its own file based on the locale name, such as `translations/ja.txt` for the japanese translation.
 
-You can even translate the program without building it from source code by just creating a translation file in `/usr/share/gsr-ui/translations/` folder (if installed as a system package).
+You can translate the program without building it from source code by copying the translation file to `/usr/share/gsr-ui/translations/` folder (if installed as a system package) or to `/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gsr-ui/translations/` (if installed as a flatpak).
 
 ## Program behavior notes
 By default this program has to grab all keyboards and creates a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.\
