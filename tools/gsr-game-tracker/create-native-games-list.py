@@ -110,6 +110,10 @@ def main():
     all_games.append("supertux2")
     all_games.append("etr") # extreme tux racer
     all_games.append("TETR.IO")
+    # game streaming clients
+    all_games.append("parsecd")
+    all_games.append("moonlight")
+    all_games.append("moonlight-qt")
 
     blacklisted_games = ("lsfg-vk-ui ")
     all_games = filter(lambda game: game not in blacklisted_games, all_games)
