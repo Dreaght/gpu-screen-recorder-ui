@@ -1265,8 +1265,8 @@ namespace gsr {
 
     void SettingsPage::update_estimated_replay_file_size(std::string_view replay_storage_type) {
         const int64_t replay_time_seconds = sv_to_int<int64_t>(replay_time_entry_ptr->get_text());
-        const int64_t video_bitrate_bps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text()) * 1000LL / 8LL;
-        const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_bps) / 1000.0 / 1000.0 * 1.024;
+        const int64_t video_bitrate_kbps = sv_to_int<int64_t>(video_bitrate_entry_ptr->get_text());
+        const double video_filesize_mb = ((double)replay_time_seconds * (double)video_bitrate_kbps) / 8192.0;
 
         char buffer[256];
         snprintf(buffer, sizeof(buffer), TR("Estimated video max file size %s: %.2fMB.\nChange video bitrate or replay duration to change file size."), replay_storage_type == "ram" ? TR("in RAM") : TR("on disk"), video_filesize_mb);
