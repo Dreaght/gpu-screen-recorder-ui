@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=%s hosszúságú visszajátszás mentve erről: 
 Saved a %s replay of %s=%s hosszúságú visszajátszás mentve erről: %s
 Replay stopped because of an error=A visszajátszás hiba miatt leállt
 Replay settings have been modified. You may need to restart replay to apply the changes.=A visszajátszás beállításai módosultak. A változtatások alkalmazásához újra kell indítani a visszajátszást
+Failed to save replay, make sure the replay save directory is mounted and writable=Nem sikerült menteni a visszajátszást, győződj meg róla, hogy a visszajátszások mentési mappája csatolva van és írható
 
 # Notifications - Streaming
 Streaming has stopped=A közvetítés leállt

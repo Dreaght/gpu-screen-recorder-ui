@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=Сохранено %s повтора %s в "%s"
 Saved a %s replay of %s=Сохранено %s повтора %s
 Replay stopped because of an error=Повтор остановлен из-за ошибки
 Replay settings have been modified. You may need to restart replay to apply the changes.=Настройки повтора изменены. Возможно, потребуется перезапустить повтор для применения изменений.
+Failed to save replay, make sure the replay save directory is mounted and writable=Не удалось сохранить повтор, убедитесь, что каталог для сохранения повторов смонтирован и доступен для записи
 
 # Notifications - Streaming
 Streaming has stopped=Трансляция остановлена

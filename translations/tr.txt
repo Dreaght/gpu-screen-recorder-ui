@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=%s sürelik %s yeniden oynatması "%s" konumuna 
 Saved a %s replay of %s=%s sürelik %s yeniden oynatması kaydedildi
 Replay stopped because of an error=Bir hata nedeniyle yeniden oynatma durduruldu
 Replay settings have been modified. You may need to restart replay to apply the changes.=Yeniden oynatma ayarları değiştirildi. Değişikliklerin uygulanması için yeniden oynatmayı yeniden başlatın.
+Failed to save replay, make sure the replay save directory is mounted and writable=Yeniden oynatma kaydedilemedi, yeniden oynatmaların kaydedileceği dizinin bağlı ve yazılabilir olduğundan emin olun
 
 # Notifications - Streaming
 Streaming has stopped=Yayın durduruldu

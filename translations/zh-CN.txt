@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=已将%s的%s回放保存到"%s"
 Saved a %s replay of %s=已保存%s的%s回放
 Replay stopped because of an error=回放因错误而停止
 Replay settings have been modified. You may need to restart replay to apply the changes.=回放设置已更改。可能需要重新启动回放才能应用更改。
+Failed to save replay, make sure the replay save directory is mounted and writable=保存回放失败，请确保回放保存目录已挂载且可写
 
 # Notifications - Streaming
 Streaming has stopped=直播已停止

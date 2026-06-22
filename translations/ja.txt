@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=%s の %s を "%s" に保存しました
 Saved a %s replay of %s=%s の %s を保存しました
 Replay stopped because of an error=エラーのためリプレイを停止しました
 Replay settings have been modified. You may need to restart replay to apply the changes.=リプレイ設定が変更されました変更を反映するにはリプレイの再起動が必要な場合があります
+Failed to save replay, make sure the replay save directory is mounted and writable=リプレイの保存に失敗しました。リプレイの保存先がマウントされ、書き込み可能であることを確認してください
 
 # Notifications - Streaming
 Streaming has stopped=配信を停止しました

@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=Se guardó una repetición de %s de %s en "%s"
 Saved a %s replay of %s=Se guardó una repetición de %s de %s
 Replay stopped because of an error=Repetición detenida debido a un error
 Replay settings have been modified. You may need to restart replay to apply the changes.=Los ajustes de repetición han sido modificados. Un reinicio puede ser necesario para aplicar los cambios.
+Failed to save replay, make sure the replay save directory is mounted and writable=Fallo al guardar la repetición, asegúrate de que el directorio para guardar las repeticiones esté montado y tenga permisos de escritura
 
 # Notifications - Streaming
 Streaming has stopped=La transmisión se ha detenido

@@ -50,6 +50,7 @@ Saved a %s replay of %s to "%s"=
 Saved a %s replay of %s=
 Replay stopped because of an error=
 Replay settings have been modified. You may need to restart replay to apply the changes.=
+Failed to save replay, make sure the replay save directory is mounted and writable=
 
 # Notifications - Streaming
 Streaming has stopped=

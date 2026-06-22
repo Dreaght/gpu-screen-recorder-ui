@@ -45,6 +45,7 @@ Saved a %s replay of %s to "%s"=Replay %s de %s sauvegardé dans "%s"
 Saved a %s replay of %s=Replay %s de %s sauvegardé
 Replay stopped because of an error=Replay arrêté en raison d’une erreur
 Replay settings have been modified. You may need to restart replay to apply the changes.=Les paramètres de replays ont été modifiés. Vous devez peut-être redémarrer le replay pour appliquer les changements.
+Failed to save replay, make sure the replay save directory is mounted and writable=Échec de la sauvegarde du replay, assurez-vous que le répertoire de sauvegarde des replays est monté et accessible en écriture
 
 # Notifications - Streaming
 Streaming has stopped=Diffusion arrêtée

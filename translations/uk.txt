@@ -44,7 +44,8 @@ Saving replay, this might take some time=Збереження повтору, ц
 Saved a %s replay of %s to "%s"=Збережено %s повтору %s у "%s"
 Saved a %s replay of %s=Збережено %s повтору %s
 Replay stopped because of an error=Повтор зупинено через помилку
-Replay settings have been modified.\nYou may need to restart replay to apply the changes.=Налаштування повтору змінено.\nМожливо, знадобиться перезапустити повтор для застосування змін.
+Replay settings have been modified. You may need to restart replay to apply the changes.=Налаштування повтору змінено. Можливо, знадобиться перезапустити повтор для застосування змін.
+Failed to save replay, make sure the replay save directory is mounted and writable=Не вдалося зберегти повтор, переконайтеся, що каталог для збереження повторів змонтовано та доступний для запису
 
 # Notifications - Streaming
 Streaming has stopped=Трансляцію зупинено
