@@ -2299,7 +2299,7 @@ namespace gsr {
     }
 
     void Overlay::process_gsr_output() {
-        if(replay_save_show_notification && !replay_save_failed && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
+        if(replay_save_show_notification && replay_save_clock.get_elapsed_time_seconds() >= replay_saving_notification_timeout_seconds) {
             replay_save_show_notification = false;
             if(config.replay_config.record_options.show_notifications)
                 show_notification(TR("Saving replay, this might take some time"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
@@ -2325,7 +2325,7 @@ namespace gsr {
                     on_stop_recording(1, dummy);
                 } else if(recording_status == RecordingStatus::REPLAY && ends_with(line_view, "replay")) {
                     show_notification(TR("Failed to save replay, make sure the replay save directory is mounted and writable"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
-                    replay_save_failed = true;
+                    replay_save_show_notification = false;
                 }
                 return;
             }
@@ -2879,7 +2879,6 @@ namespace gsr {
 
         replay_save_duration_min = 0;
         replay_save_show_notification = true;
-        replay_save_failed = false;
         replay_save_clock.restart();
         replay_saved_duration_sec = replay_duration_clock.get_elapsed_time_seconds();
         if(replay_restart_on_save)
@@ -2897,7 +2896,6 @@ namespace gsr {
 
         replay_save_duration_min = 1;
         replay_save_show_notification = true;
-        replay_save_failed = false;
         replay_save_clock.restart();
         replay_saved_duration_sec = replay_duration_clock.get_elapsed_time_seconds();
         kill(gpu_screen_recorder_process, SIGRTMIN+3);
@@ -2912,7 +2910,6 @@ namespace gsr {
 
         replay_save_duration_min = 10;
         replay_save_show_notification = true;
-        replay_save_failed = false;
         replay_save_clock.restart();
         replay_saved_duration_sec = replay_duration_clock.get_elapsed_time_seconds();
         kill(gpu_screen_recorder_process, SIGRTMIN+5);
