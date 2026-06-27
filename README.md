@@ -9,6 +9,8 @@ If you are running an Arch Linux based distro then you can find gpu screen recor
 If you are running another distro then you can run `sudo ./install.sh`, but you need to manually install the dependencies, as described below.\
 You can also install gpu screen recorder from [flathub](https://flathub.org/apps/details/com.dec05eba.gpu_screen_recorder) which includes this UI.
 
+Note that the program (or more specifically `gsr-global-hotkeys`) has to be installed to a location that is mounted without `nosuid`.
+
 # Usage
 Start the program by running `gsr-ui` or clicking on `GPU Screen Recorder` on your desktop or in your application launcher.
 Press `Left Alt+Z` to show/hide the UI. Go into the settings (the icon on the right) to view all of the different hotkeys configured.

@@ -209,6 +209,9 @@ int main(int argc, char **argv) {
     set_display_server_environment_variables();
 
     const std::string gsr_icon_path = resources_path + "images/gpu_screen_recorder_logo.png";
+    std::string show_hide_hotkey_str = "Alt+Z";
+    if(config.has_value())
+        show_hide_hotkey_str = config.value().main_config.show_hide_hotkey.to_string(false, false);
 
     auto rpc = std::make_unique<gsr::Rpc>();
     const gsr::RpcOpenResult rpc_open_result = rpc->open("gsr-ui");
@@ -220,9 +223,10 @@ int main(int argc, char **argv) {
         if(rpc->write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
         } else {
-            fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with Alt+Z\n");
+            fprintf(stderr, "Error: failed to send command to running gsr-ui instance, user will have to open the UI manually with %s\n", show_hide_hotkey_str.c_str());
+            const std::string msg = TRF("Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.", show_hide_hotkey_str.c_str());
             const char *args[] = {
-                "gsr-notify", "--text", TR("Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI."), "--timeout", "5.0",
+                "gsr-notify", "--text", msg.c_str(), "--timeout", "5.0",
                 "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
             };
             gsr::exec_program_daemonized(args);
@@ -315,13 +319,15 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press alt+z to show/hide the overlay\n");
+    fprintf(stderr, "Info: gsr ui is now ready, waiting for inputs. Press %s to show/hide the overlay\n", show_hide_hotkey_str.c_str());
 
     auto overlay = std::make_unique<gsr::Overlay>(resources_path, std::move(gsr_info), std::move(capture_options), egl_funcs, wayland_dpy);
     if(launch_action == LaunchAction::LAUNCH_SHOW)
         overlay->show();
-    else if(launch_action == LaunchAction::LAUNCH_HIDE_ANNOUNCE)
-        overlay->show_notification(TR("Press Alt+Z to open the GPU Screen Recorder UI"), 5.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color, gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
+    else if(launch_action == LaunchAction::LAUNCH_HIDE_ANNOUNCE) {
+        const std::string msg = TRF("Press %s to open the GPU Screen Recorder UI", show_hide_hotkey_str.c_str());
+        overlay->show_notification(msg.c_str(), 5.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color, gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
+    }
 
     rpc_add_commands(rpc.get(), overlay.get());
 

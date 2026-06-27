@@ -1,6 +1,6 @@
 # GPU Screen Recorder UI - Spanish translation
 
-Press Alt+Z to open the GPU Screen Recorder UI=Presiona Alt+Z para abrir la interfaz de GPU Screen Recorder
+Press %s to open the GPU Screen Recorder UI=Presiona %s para abrir la interfaz de GPU Screen Recorder
 
 # General UI
 Record=Grabar
@@ -59,7 +59,7 @@ Saved a screenshot of %s=Captura de pantalla de %s guardada
 Failed to take a screenshot=Fallo al tomar la captura de pantalla
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=Ya hay otra instancia de GPU Screen Recorder UI en ejecución. Pulsa Alt-Z para abrir la interfaz.
+Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=Ya hay otra instancia de GPU Screen Recorder UI en ejecución. Pulsa %s para abrir la interfaz.
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder ya está en ejecución en otro proceso. Por favor, ciérralo antes de usar GPU Screen Recorder UI.
 Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Fallo al iniciar la repetición, el objetivo de captura "%s" es inválido. Por favor, cambia el objetivo de captura en los ajustes
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Fallo al iniciar la grabación, el objetivo de captura "%s" es inválido. Por favor, cambia el objetivo de captura en los ajustes

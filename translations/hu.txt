@@ -1,6 +1,6 @@
 # GPU Screen Recorder UI - Hungarian translation
 
-Press Alt+Z to open the GPU Screen Recorder UI=Nyomd meg az Alt+Z-t a GPU Screen Recorder UI megnyitásához
+Press %s to open the GPU Screen Recorder UI=Nyomd meg a(z) %s billentyűt a GPU Screen Recorder UI megnyitásához
 
 # General UI
 Record=Felvétel
@@ -59,7 +59,7 @@ Saved a screenshot of %s=Képernyőkép mentve (%s)
 Failed to take a screenshot=Nem sikerült a képernyőkép elkészítése
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=A GPU Screen Recorder UI már fut. Nyomd meg az Alt+Z-t a felület megnyitásához.
+Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=A GPU Screen Recorder UI már fut. Nyomd meg a(z) %s billentyűt a felület megnyitásához.
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=A GPU Screen Recorder már fut egy másik folyamatban. Zárd be, mielőtt használod a felületet.
 Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a visszajátszást, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a felvételt, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.

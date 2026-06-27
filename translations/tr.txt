@@ -1,6 +1,6 @@
 # GPU Screen Recorder UI - Turkish translation
 
-Press Alt+Z to open the GPU Screen Recorder UI=GPU Screen Recorder arayüzünü açmak için Alt+Z tuşlarına basın
+Press %s to open the GPU Screen Recorder UI=GPU Screen Recorder arayüzünü açmak için %s tuşlarına basın
 
 # General UI
 Record=Kaydet
@@ -59,7 +59,7 @@ Saved a screenshot of %s=%s ekran görüntüsü kaydedildi
 Failed to take a screenshot=Ekran görüntüsü alınamadı
 
 # Error messages
-Another instance of GPU Screen Recorder UI is already running. Press Alt+Z to open the UI.=GPU Screen Recorder arayüzünün başka bir kopyası zaten çalışıyor. Arayüzü açmak için Alt+Z tuşlarına basın.
+Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=GPU Screen Recorder arayüzünün başka bir kopyası zaten çalışıyor. Arayüzü açmak için %s tuşlarına basın.
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder başka bir işlemde zaten çalışıyor. Lütfen GPU Screen Recorder arayüzünü kullanmadan önce onu kapatın.
 Failed to start replay, capture target "%s" is invalid. Please change capture target in settings=Yeniden oynatma başlatılamadı, yakalama hedefi "%s" geçersiz. Lütfen ayarlardan yakalama hedefini değiştirin
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Kayıt başlatılamadı, yakalama hedefi "%s" geçersiz. Lütfen ayarlardan yakalama hedefini değiştirin
