@@ -140,7 +140,8 @@ namespace gsr {
             return true;
         }
 
-        return current_language != "en";
+        return false;
+        //return current_language != "en";
     }
 
     std::string Translation::get_complex_plural_number_key(const char* key, int number) {
