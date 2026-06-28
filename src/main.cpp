@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
     const std::string gsr_icon_path = resources_path + "images/gpu_screen_recorder_logo.png";
     std::string show_hide_hotkey_str = "Alt+Z";
     if(config.has_value())
-        show_hide_hotkey_str = config.value().main_config.show_hide_hotkey.to_string(false, false);
+        show_hide_hotkey_str = config.value().main_config.show_hide_hotkey.to_string(true, true);
 
     auto rpc = std::make_unique<gsr::Rpc>();
     const gsr::RpcOpenResult rpc_open_result = rpc->open("gsr-ui");
