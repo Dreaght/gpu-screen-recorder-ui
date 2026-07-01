@@ -292,10 +292,10 @@ namespace gsr {
             webcam_video_format_box_ptr->add_item(TR("Auto (recommended)"), "auto");
 
             if(!it->yuyv_setups.empty())
-                webcam_video_format_box_ptr->add_item(TR("YUYV"), "yuyv");
+                webcam_video_format_box_ptr->add_item(TR("YUYV (Fastest)"), "yuyv");
 
             if(!it->mjpeg_setups.empty())
-                webcam_video_format_box_ptr->add_item(TR("Motion-JPEG"), "mjpeg");
+                webcam_video_format_box_ptr->add_item(TR("Motion-JPEG (Slower)"), "mjpeg");
 
             const std::string prev_webcam_video_format = get_current_record_options().webcam_video_format;
             webcam_video_format_box_ptr->set_selected_item(webcam_video_format_box_ptr->get_selected_id());
@@ -338,9 +338,11 @@ namespace gsr {
     static std::vector<GsrCameraSetup> sort_camera_setup(const std::vector<GsrCameraSetup> &setups) {
         auto result = setups;
         std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) {
-            const uint64_t score_a = (uint64_t)a.resolution.x * (uint64_t)a.resolution.y * (uint64_t)a.fps;
-            const uint64_t score_b = (uint64_t)b.resolution.x * (uint64_t)b.resolution.y * (uint64_t)b.fps;
-            return score_a > score_b;
+            const uint64_t area_a = (uint64_t)a.resolution.x * (uint64_t)a.resolution.y;
+            const uint64_t area_b = (uint64_t)b.resolution.x * (uint64_t)b.resolution.y;
+            if(area_a != area_b)
+                return area_a > area_b;
+            return a.fps > b.fps;
         });
         return result;
     }
@@ -380,6 +382,9 @@ namespace gsr {
                 auto setups = it->yuyv_setups;
                 setups.insert(setups.end(), it->mjpeg_setups.begin(), it->mjpeg_setups.end());
                 setups = sort_camera_setup(setups);
+                setups.erase(std::unique(setups.begin(), setups.end(), [](const auto &a, const auto &b) {
+                    return a.resolution.x == b.resolution.x && a.resolution.y == b.resolution.y && a.fps == b.fps;
+                }), setups.end());
 
                 for(const auto &setup : setups) {
                     char setup_str[256];
