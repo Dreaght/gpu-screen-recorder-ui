@@ -66,8 +66,6 @@ Add option to select which gpu to record with, or list all monitors and automati
 
 Use global shortcuts desktop portal protocol on wayland when available.
 
-Support CJK.
-
 Move ui hover code from ::draw to ::on_event, to properly handle widget event stack.
 
 Save audio devices by name instead of id. This is more robust since audio id can change(?).
