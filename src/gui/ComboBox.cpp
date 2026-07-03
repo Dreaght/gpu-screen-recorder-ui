@@ -18,7 +18,6 @@ namespace gsr {
     static const int scroll_speed = 80;
     static const double scroll_update_speed = 10.0;
     static const float scrollbar_width_scale = 0.004f;
-    static const float scrollbar_spacing_scale = 0.004f;
 
     ComboBox::ComboBox(const char *font_desc) : font_desc(font_desc), dropdown_arrow(&get_theme().combobox_arrow_texture) {
         assert(font_desc);
@@ -212,7 +211,6 @@ namespace gsr {
         const bool has_scrollbar = max_scroll > 0.001f;
 
         const float scrollbar_width = has_scrollbar ? get_scrollbar_width() : 0.0f;
-        const float scrollbar_spacing = has_scrollbar ? std::max(2.0f, scrollbar_spacing_scale * get_theme().window_height) : 0.0f;
 
         float scrollbar_height_absolute = list_height;
         if(has_scrollbar && items_total_height > 0.001f)
@@ -256,9 +254,10 @@ namespace gsr {
             item.position = items_draw_pos;
 
             if(!cursor_inside && item.enabled && dropdown_list_rect.contains(mouse_pos)) {
-                cursor_inside = mgl::FloatRect(items_draw_pos, cur_item_size).contains(mouse_pos);
+                const mgl::vec2f hover_size(cur_item_size.x - scrollbar_width, cur_item_size.y);
+                cursor_inside = mgl::FloatRect(items_draw_pos, hover_size).contains(mouse_pos);
                 if(cursor_inside) {
-                    mgl::Rectangle item_background(items_draw_pos.floor(), mgl::vec2f(cur_item_size.x - scrollbar_width - scrollbar_spacing, cur_item_size.y).floor());
+                    mgl::Rectangle item_background(items_draw_pos.floor(), hover_size.floor());
                     item_background.set_color(get_color_theme().tint_color);
                     window.draw(item_background);
                 }
