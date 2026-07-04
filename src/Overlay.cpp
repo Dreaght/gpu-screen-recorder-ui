@@ -2714,11 +2714,13 @@ namespace gsr {
         result.reserve(audio_tracks.size());
 
         for(const AudioTrack &audio_track : audio_tracks) {
+            bool has_audio = false;
             std::string audio_track_merged;
             int num_app_audio = 0;
-            if(!audio_track.name.empty()){
-                audio_track_merged = "name:" + audio_track.name + "|";
-            }
+
+            if(!audio_track.name.empty())
+                audio_track_merged = "name:" + audio_track.name;
+
             for(const std::string &audio_input_name : audio_track.audio_inputs) {
                 std::string new_audio_input_name = audio_input_name;
                 const bool is_app_audio = starts_with(new_audio_input_name, "app:");
@@ -2731,10 +2733,11 @@ namespace gsr {
                 if(is_app_audio)
                     ++num_app_audio;
 
-                if(!audio_track_merged.empty() && !ends_with(audio_track_merged, "|"))
+                if(!audio_track_merged.empty())
                     audio_track_merged += "|";
 
                 audio_track_merged += new_audio_input_name;
+                has_audio = true;
             }
 
             if(num_app_audio == 0 && audio_track.application_audio_invert) {
@@ -2742,9 +2745,10 @@ namespace gsr {
                     audio_track_merged += "|";
 
                 audio_track_merged += "app-inverse:";
+                has_audio = true;
             }
 
-            if(!audio_track_merged.empty())
+            if(has_audio)
                 result.push_back(std::move(audio_track_merged));
         }
 
