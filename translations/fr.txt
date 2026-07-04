@@ -305,19 +305,19 @@ Change video resolution=Modifier la résolution vidéo
 
 # Webcam settings
 Webcam=Webcam
-Webcam source=Source webcam
+Webcam source:=Source webcam :
 None=Aucune
-Video format=Format vidéo
+Video format:=Format vidéo :
 Auto (recommended)=Automatique (recommandé)
 YUYV (Fastest)=YUYV (Le plus rapide)
 Motion-JPEG (Slower)=Motion-JPEG (Plus lent)
-Video setup=Configuration vidéo
+Video setup:=Configuration vidéo :
 * Right click in the bottom right corner to resize the webcam=* Clic droit en bas à droite pour redimensionner la webcam
 Flip camera horizontally=Inverser la caméra horizontalement
 
 # Audio settings
 Audio=Audio
-Audio codec=Codec audio
+Audio codec:=Codec audio :
 Opus (Recommended)=Opus (Recommandé)
 AAC=AAC
 

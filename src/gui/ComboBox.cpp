@@ -117,7 +117,7 @@ namespace gsr {
         }
 
         items.push_back({mgl::Text(text, font_desc.c_str()), id, {0.0f, 0.0f}});
-        items.back().text.set_wrap_width(items.back().text.get_font_size() * 40); // TODO: Make a proper solution
+        items.back().text.set_wrap_width(items.back().text.get_font_size() * 35); // TODO: Make a proper solution
         items.back().text.set_max_rows(2);
         dirty = true;
     }
