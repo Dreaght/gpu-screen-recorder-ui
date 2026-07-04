@@ -384,6 +384,7 @@ Recording indicator=Індикатор запису
 
 Simple=Простий
 Audio track #%d=Аудіодоріжка #%d
+Track title:=Назва доріжки:
 Output device=Вихідний пристрій
 Input device:   =Вхідний пристрій:   
 Estimated video file size per minute (excluding audio): %.2fMB=Приблизний розмір відео файлу за хвилину (без урахування аудіо): %.2fMB

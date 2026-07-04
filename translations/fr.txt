@@ -394,6 +394,7 @@ Recording indicator=Indicateur d’enregistrement
 
 Simple=Simple
 Audio track #%d=Piste audio #%d
+Track title:=Titre de la piste
 Output device=Périphérique de sortie
 Input device: =Périphérique d’entrée
 Estimated video file size per minute (excluding audio): %.2fMB=Taille estimée du fichier vidéo par minute (hors audio) : %.2f Mo

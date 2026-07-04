@@ -90,6 +90,11 @@ namespace gsr {
         return str.size() >= len && memcmp(str.data(), substr, len) == 0;
     }
 
+    bool starts_with(std::string_view str, std::string_view substr) {
+        size_t len = substr.size();
+        return str.size() >= len && memcmp(str.data(), substr.data(), len) == 0;
+    }
+
     bool ends_with(std::string_view str, const char *substr) {
         size_t len = strlen(substr);
         return str.size() >= len && memcmp(str.data() + str.size() - len, substr, len) == 0;

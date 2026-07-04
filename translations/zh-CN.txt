@@ -384,6 +384,7 @@ Recording indicator=录制指示器
 
 Simple=简单
 Audio track #%d=音轨 #%d
+Track title:=音轨标题：
 Output device=输出设备
 Input device:   =输入设备：
 Estimated video file size per minute (excluding audio): %.2fMB=预估每分钟视频文件大小（不含音频）：%.2fMB

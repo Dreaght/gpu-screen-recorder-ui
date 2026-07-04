@@ -12,6 +12,7 @@
 #include "../../include/Utils.hpp"
 #include "../../include/Translation.hpp"
 
+#include <cctype>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 
@@ -594,6 +595,9 @@ namespace gsr {
 
         CheckBox *invert_app_audio_checkbox = dynamic_cast<CheckBox*>(audio_track_items_list->get_child_widget_by_index(3));
         invert_app_audio_checkbox->set_visible(visible);
+
+        List *custom_audio_track_name_list_ptr = dynamic_cast<List*>(audio_track_items_list->get_child_widget_by_index(5));
+        custom_audio_track_name_list_ptr->set_visible(visible);
     }
 
     static void set_application_audio_options_visible(List *audio_track_section_list_ptr, bool visible, const GsrInfo &gsr_info) {
@@ -809,7 +813,8 @@ namespace gsr {
 
     std::unique_ptr<Subsection> SettingsPage::create_audio_track_section(Widget *parent_widget) {
         char audio_track_name[32];
-        snprintf(audio_track_name, sizeof(audio_track_name), TR("Audio track #%d"), 1 + (int)audio_track_section_list_ptr->get_num_children());
+        int child_index = 1 + (int)audio_track_section_list_ptr->get_num_children();
+        snprintf(audio_track_name, sizeof(audio_track_name), TR("Audio track #%d"), child_index);
 
         auto audio_input_section = create_audio_input_section();
         List *audio_input_section_ptr = audio_input_section.get();
@@ -824,9 +829,32 @@ namespace gsr {
         list_ptr->add_widget(std::move(audio_input_section));
         list_ptr->add_widget(create_application_audio_invert_checkbox());
         list_ptr->add_widget(create_application_audio_warning());
+        list_ptr->add_widget(create_audio_track_custom_name_input());
 
         set_application_audio_options_visible(subsection.get(), view_radio_button_ptr->get_selected_id() == "advanced", *gsr_info);
         return subsection;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_audio_track_custom_name_input() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Track title:"), get_color_theme().text_color));
+
+        auto track_name_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", (int)(2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20));
+        track_name_entry->on_changed = [entry = track_name_entry.get()](std::string_view text) {
+            std::string sanitized;
+            bool modified = false;
+            sanitized.reserve(text.size());
+            for(char c : text){
+                if(c == '|' || c == '\n')
+                    modified = true;
+                else
+                    sanitized.push_back(c);
+            }
+            if(modified)
+                entry->set_text(sanitized);
+        };
+        list->add_widget(std::move(track_name_entry));
+        return list;
     }
 
     std::unique_ptr<List> SettingsPage::create_audio_track_section_list() {
@@ -1705,8 +1733,9 @@ namespace gsr {
             List *audio_track_section_items_list_ptr = dynamic_cast<List*>(audio_track_section->get_inner_widget());
             List *audio_input_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(2));
             CheckBox *application_audio_invert_checkbox_ptr = dynamic_cast<CheckBox*>(audio_track_section_items_list_ptr->get_child_widget_by_index(3));
+            List *custom_audio_track_name_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(5));
             application_audio_invert_checkbox_ptr->set_checked(audio_track.application_audio_invert);
-
+            dynamic_cast<Entry*>(custom_audio_track_name_list_ptr->get_child_widget_by_index(1))->set_text(audio_track.name);
             audio_input_list_ptr->clear();
             for(const std::string &audio_input : audio_track.audio_inputs) {
                 if(starts_with(audio_input, "app:")) {
@@ -1873,8 +1902,9 @@ namespace gsr {
             List *audio_track_section_items_list_ptr = dynamic_cast<List*>(audio_subsection->get_inner_widget());
             List *audio_input_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(2));
             CheckBox *application_audio_invert_checkbox_ptr = dynamic_cast<CheckBox*>(audio_track_section_items_list_ptr->get_child_widget_by_index(3));
-
-            audio_tracks.push_back({std::vector<std::string>{}, application_audio_invert_checkbox_ptr->is_checked()});
+            List *custom_audio_track_name_list_ptr = dynamic_cast<List*>(audio_track_section_items_list_ptr->get_child_widget_by_index(5));
+            Entry *custom_audio_track_name_field = dynamic_cast<Entry*>(custom_audio_track_name_list_ptr->get_child_widget_by_index(1));
+            audio_tracks.push_back({std::string(custom_audio_track_name_field->get_text()), std::vector<std::string>{}, application_audio_invert_checkbox_ptr->is_checked()});
             audio_input_list_ptr->for_each_child_widget([&audio_tracks](std::unique_ptr<Widget> &child_widget){
                 List *audio_track_line = dynamic_cast<List*>(child_widget.get());
                 const AudioTrackType audio_track_type = (AudioTrackType)(uintptr_t)audio_track_line->userdata;

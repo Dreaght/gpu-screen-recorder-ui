@@ -400,6 +400,7 @@ Recording indicator=
 
 Simple=
 Audio track #%d=
+Track title:=
 Output device=
 Input device:   =
 Estimated video file size per minute (excluding audio): %.2fMB=

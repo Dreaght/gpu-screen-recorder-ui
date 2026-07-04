@@ -384,6 +384,7 @@ Recording indicator=Felvétel-jelző
 
 Simple=Egyszerű
 Audio track #%d=Hangsáv #%d
+Track title:=Sáv címe:
 Output device=Kimeneti eszköz
 Input device:   =Bemeneti eszköz:   
 Estimated video file size per minute (excluding audio): %.2fMB=Várható videófájl-méret percenként (hang nélkül): %.2fMB

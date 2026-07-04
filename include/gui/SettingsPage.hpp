@@ -92,6 +92,7 @@ namespace gsr {
         std::unique_ptr<Widget> create_application_audio_warning();
         std::unique_ptr<List> create_audio_track_title_and_remove(Subsection *audio_track_subsection, const char *title);
         std::unique_ptr<Subsection> create_audio_track_section(Widget *parent_widget);
+        std::unique_ptr<List> create_audio_track_custom_name_input();
         std::unique_ptr<List> create_audio_track_section_list();
         std::unique_ptr<Widget> create_audio_section();
         std::unique_ptr<List> create_video_quality_box();

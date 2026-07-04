@@ -395,6 +395,7 @@ Recording indicator=Indicador de gravação
 
 Simple=Simples
 Audio track #%d=Faixa de áudio #%d
+Track title:=Título da faixa:
 Output device=Dispositivo de saída
 Input device:   =Dispositivo de entrada:
 Estimated video file size per minute (excluding audio): %.2fMB=Estimação de tamanho do arquivo por minuto (excluindo áudio): %.2fMB

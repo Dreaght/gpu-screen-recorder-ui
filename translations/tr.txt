@@ -380,6 +380,7 @@ Recording indicator=Kayıt göstergesi
 
 Simple=Basit
 Audio track #%d=Ses kanalı #%d
+Track title:=Kanal başlığı:
 Output device=Çıkış cihazı
 Input device:   =Giriş cihazı:
 Estimated video file size per minute (excluding audio): %.2fMB=Dakika başına tahmini video dosyası boyutu (ses hariç): %.2fMB

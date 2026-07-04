@@ -30,6 +30,7 @@ namespace gsr {
     };
 
     struct AudioTrack {
+        std::string name;
         std::vector<std::string> audio_inputs; // ids
         bool application_audio_invert = false;
 
@@ -59,7 +60,7 @@ namespace gsr {
         bool low_power_mode = false;
         bool enable_vulkan_video_encoding = false;
 
-        std::string webcam_source = "";
+        std::string webcam_source;
         bool webcam_flip_horizontally = false;
         std::string webcam_video_format = "auto";
         int32_t webcam_camera_width = 0;

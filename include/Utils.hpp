@@ -15,6 +15,7 @@ namespace gsr {
 
     void string_split_char(std::string_view str, char delimiter, StringSplitCallback callback_func);
     bool starts_with(std::string_view str, const char *substr);
+    bool starts_with(std::string_view str, std::string_view substr);
     bool ends_with(std::string_view str, const char *substr);
     std::string strip(const std::string &str);
 

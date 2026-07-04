@@ -2716,7 +2716,9 @@ namespace gsr {
         for(const AudioTrack &audio_track : audio_tracks) {
             std::string audio_track_merged;
             int num_app_audio = 0;
-
+            if(!audio_track.name.empty()){
+                audio_track_merged = "name:" + audio_track.name + "|";
+            }
             for(const std::string &audio_input_name : audio_track.audio_inputs) {
                 std::string new_audio_input_name = audio_input_name;
                 const bool is_app_audio = starts_with(new_audio_input_name, "app:");
@@ -2729,7 +2731,7 @@ namespace gsr {
                 if(is_app_audio)
                     ++num_app_audio;
 
-                if(!audio_track_merged.empty())
+                if(!audio_track_merged.empty() && !ends_with(audio_track_merged, "|"))
                     audio_track_merged += "|";
 
                 audio_track_merged += new_audio_input_name;

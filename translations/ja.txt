@@ -396,6 +396,7 @@ Recording indicator=録画インジケータ
 
 Simple=シンプル
 Audio track #%d=音声トラック #%d
+Track title:=トラックのタイトル:
 Output device=出力デバイス
 Input device:   =入力デバイス:
 Estimated video file size per minute (excluding audio): %.2fMB=推定動画サイズ(音声除く 1分あたり): %.2fMB

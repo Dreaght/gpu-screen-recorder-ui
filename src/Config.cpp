@@ -116,16 +116,16 @@ namespace gsr {
         set_hotkeys_to_default();
 
         streaming_config.record_options.video_quality = "custom";
-        streaming_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
+        streaming_config.record_options.audio_tracks_list.push_back({"",std::vector<std::string>{"default_output"}, false});
         streaming_config.record_options.video_bitrate = 8000;
 
         record_config.save_directory = default_videos_save_directory;
-        record_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
+        record_config.record_options.audio_tracks_list.push_back({"",std::vector<std::string>{"default_output"}, false});
         record_config.record_options.video_bitrate = 40000;
 
         replay_config.record_options.video_quality = "custom";
         replay_config.save_directory = default_videos_save_directory;
-        replay_config.record_options.audio_tracks_list.push_back({std::vector<std::string>{"default_output"}, false});
+        replay_config.record_options.audio_tracks_list.push_back({"",std::vector<std::string>{"default_output"}, false});
         replay_config.record_options.video_bitrate = 40000;
 
         screenshot_config.save_directory = default_pictures_save_directory;
@@ -434,8 +434,12 @@ namespace gsr {
                 const std::string_view audio_input = key_value->value.substr(space_index + 1);
                 std::vector<AudioTrack> &audio_tracks = *std::get<std::vector<AudioTrack>*>(it->second);
 
-                if(audio_input == add_audio_track_tag) {
-                    audio_tracks.push_back({std::vector<std::string>{}, application_audio_invert});
+                if(starts_with(audio_input, add_audio_track_tag)) {
+                    std::string name;
+                    if(audio_input.size() > add_audio_track_tag.size()){
+                        name = audio_input.substr(add_audio_track_tag.size() + 1);
+                    }
+                    audio_tracks.push_back({name, std::vector<std::string>{}, application_audio_invert});
                 } else if(!audio_tracks.empty()) {
                     audio_tracks.back().application_audio_invert = application_audio_invert;
                     audio_tracks.back().audio_inputs.emplace_back(audio_input);
@@ -493,7 +497,10 @@ namespace gsr {
             } else if(std::holds_alternative<std::vector<AudioTrack>*>(it.second)) {
                 std::vector<AudioTrack> *audio_tracks = std::get<std::vector<AudioTrack>*>(it.second);
                 for(const AudioTrack &audio_track : *audio_tracks) {
-                    fprintf(file, "%.*s %s %.*s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data());
+                    if(audio_track.name.empty())
+                        fprintf(file, "%.*s %s %.*s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data());
+                    else
+                        fprintf(file, "%.*s %s %.*s %s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data(), audio_track.name.c_str());
                     for(const std::string &audio_input : audio_track.audio_inputs) {
                         fprintf(file, "%.*s %s %s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", audio_input.c_str());
                     }
