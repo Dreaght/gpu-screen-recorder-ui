@@ -435,14 +435,13 @@ namespace gsr {
                 std::vector<AudioTrack> &audio_tracks = *std::get<std::vector<AudioTrack>*>(it->second);
 
                 if(starts_with(audio_input, add_audio_track_tag)) {
-                    std::string name;
-                    if(audio_input.size() > add_audio_track_tag.size()){
-                        name = audio_input.substr(add_audio_track_tag.size() + 1);
-                    }
-                    audio_tracks.push_back({name, std::vector<std::string>{}, application_audio_invert});
+                    audio_tracks.push_back({"", std::vector<std::string>{}, application_audio_invert});
                 } else if(!audio_tracks.empty()) {
                     audio_tracks.back().application_audio_invert = application_audio_invert;
-                    audio_tracks.back().audio_inputs.emplace_back(audio_input);
+                    if(starts_with(audio_input, "name:"))
+                        audio_tracks.back().name = audio_input.substr(5);
+                    else
+                        audio_tracks.back().audio_inputs.emplace_back(audio_input);
                 }
             } else {
                 assert(false);
@@ -497,10 +496,10 @@ namespace gsr {
             } else if(std::holds_alternative<std::vector<AudioTrack>*>(it.second)) {
                 std::vector<AudioTrack> *audio_tracks = std::get<std::vector<AudioTrack>*>(it.second);
                 for(const AudioTrack &audio_track : *audio_tracks) {
-                    if(audio_track.name.empty())
-                        fprintf(file, "%.*s %s %.*s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data());
-                    else
-                        fprintf(file, "%.*s %s %.*s %s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data(), audio_track.name.c_str());
+                    fprintf(file, "%.*s %s %.*s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data());
+                    if(!audio_track.name.empty())
+                        fprintf(file, "%.*s %s name:%s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", audio_track.name.c_str());
+
                     for(const std::string &audio_input : audio_track.audio_inputs) {
                         fprintf(file, "%.*s %s %s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", audio_input.c_str());
                     }
