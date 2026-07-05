@@ -2206,6 +2206,7 @@ namespace gsr {
         if(focused_window_name.empty())
             focused_window_name = "Game";
 
+        focused_window_name = window_title_utf8_sanitize(focused_window_name.c_str(), focused_window_name.size());
         focused_window_name = strip(focused_window_name);
         string_replace_characters(focused_window_name.data(), "/\\", ' ');
 

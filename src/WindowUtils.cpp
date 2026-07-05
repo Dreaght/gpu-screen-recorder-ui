@@ -413,8 +413,11 @@ namespace gsr {
         return None;
     }
 
-    static std::string utf8_sanitize(const uint8_t *str, int size) {
-        const uint32_t zero_width_space_codepoint = 0x200b; // Some games such as the finals has zero-width space characters
+    std::string window_title_utf8_sanitize(const char *str, int size) {
+        // Some games such as the finals has zero-width space characters
+        const uint32_t zero_width_space_codepoint = 0x200b;
+        const uint32_t zero_width_no_break_space_codepoint = 0xfeff;
+
         std::string result;
         for(int i = 0; i < size;) {
             // Some games such as the finals has utf8-bom between each character, wtf?
@@ -425,7 +428,7 @@ namespace gsr {
 
             uint32_t codepoint = 0;
             size_t codepoint_length = 1;
-            if(mgl::utf8_decode(str + i, size - i, &codepoint, &codepoint_length) && codepoint != zero_width_space_codepoint)
+            if(mgl::utf8_decode((uint8_t*)str + i, size - i, &codepoint, &codepoint_length) && codepoint != zero_width_space_codepoint && codepoint != zero_width_no_break_space_codepoint)
                 result.append((const char*)str + i, codepoint_length);
             i += codepoint_length;
         }
@@ -446,7 +449,7 @@ namespace gsr {
         XGetWindowProperty(dpy, window, net_wm_name_atom, 0, 1024, False, utf8_string_atom, &type, &format, &num_items, &bytes_left, &data);
 
         if(type == utf8_string_atom && format == 8 && data) {
-            result = utf8_sanitize(data, num_items);
+            result = window_title_utf8_sanitize((const char*)data, num_items);
             goto done;
         }
 
@@ -461,7 +464,7 @@ namespace gsr {
         XGetWindowProperty(dpy, window, wm_name_atom, 0, 1024, False, 0, &type, &format, &num_items, &bytes_left, &data);
 
         if((type == XA_STRING || type == utf8_string_atom) && data) {
-            result = utf8_sanitize(data, num_items);
+            result = window_title_utf8_sanitize((const char*)data, num_items);
             goto done;
         }
 
