@@ -6,6 +6,15 @@
 
 
 namespace gsr {
+    static void string_replace_characters(char *str, const char *characters_to_replace, char new_character) {
+        for(; *str != '\0'; ++str) {
+            for(const char *p = characters_to_replace; *p != '\0'; ++p) {
+                if(*str == *p)
+                    *str = new_character;
+            }
+        }
+    }
+
     std::string Translation::get_system_language() {
         const char* env_vars[] = { "LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG" };
         for (const char* env_var : env_vars) {
@@ -18,6 +27,8 @@ namespace gsr {
             // Ignore non-language locales such as C/POSIX and fall back to the next variable
             if (lang_str == "C" || lang_str == "C.UTF-8" || lang_str == "POSIX")
                 continue;
+
+            string_replace_characters(lang_str.data(), "-", '_');
 
             size_t dot = lang_str.find('.');
             if (dot != std::string::npos) {
