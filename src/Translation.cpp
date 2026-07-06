@@ -19,11 +19,6 @@ namespace gsr {
             if (lang_str == "C" || lang_str == "C.UTF-8" || lang_str == "POSIX")
                 continue;
 
-            // we usually need only two symbols
-            size_t underscore = lang_str.find('_');
-            if (underscore != std::string::npos) {
-                return lang_str.substr(0, underscore);
-            }
             size_t dot = lang_str.find('.');
             if (dot != std::string::npos) {
                 return lang_str.substr(0, dot);
@@ -69,8 +64,16 @@ namespace gsr {
             lang = system_language;
 
         if (!is_language_supported(lang)) {
-            fprintf(stderr, "Warning: language '%.*s' is not supported\n", (int)lang.size(), lang.data());
-            return false;
+            // supports two symbols locale translation
+            size_t underscore = lang.find('_');
+            if (underscore != std::string::npos) {
+                lang = lang.substr(0, underscore);
+            }
+
+            if (!is_language_supported(lang)) {
+                fprintf(stderr, "Warning: language '%.*s' is not supported\n", (int)lang.size(), lang.data());
+                return false;
+            }
         }
 
         current_language = lang;
