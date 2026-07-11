@@ -2,7 +2,7 @@
 
 # GPU Screen Recorder UI
 A fullscreen overlay UI for [GPU Screen Recorder](https://git.dec05eba.com/gpu-screen-recorder/about/) in the style of ShadowPlay.\
-The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland, with some caveats because of Wayland limitations.
+The application is currently primarly designed for X11 but it can run on Wayland as well through XWayland on some platforms and native Wayland on others, with some caveats because of Wayland limitations.
 
 # Installation
 If you are running an Arch Linux based distro then you can find gpu screen recorder ui in the official repositories under the name gpu-screen-recorder-ui (`sudo pacman -S gpu-screen-recorder-ui`).\
