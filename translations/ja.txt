@@ -185,6 +185,7 @@ Fast=高速
 
 Language=言語
 System language=システムの言語
+Exclude personal metadata from the video (such as audio track title)=動画から個人的なメタデータを除外する（音声トラックのタイトルなど）
 
 Exit program=プログラムを終了
 Go back to the old UI=旧 UI に戻る
@@ -197,9 +198,7 @@ Appearance=外観
 Startup=起動
 Keyboard hotkeys=キーボードホットキー
 Controller hotkeys=コントローラホットキー
-Application options=アプリ設定
 Application info=アプリ情報
-Donate=寄付
 
 # Version info strings
 GSR version: %s=GSR バージョン: %s

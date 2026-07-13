@@ -173,6 +173,7 @@ Fast=Rápida
 
 Language=Idioma
 System language=Idioma del sistema
+Exclude personal metadata from the video (such as audio track title)=Excluir metadatos personales del vídeo (como el título de la pista de sonido)
 
 Exit program=Salir del programa
 Go back to the old UI=Volver a la interfaz antigua
@@ -185,9 +186,7 @@ Appearance=Apariencia
 Startup=Inicio
 Keyboard hotkeys=Teclas de acceso rápido
 Controller hotkeys=Teclas de acceso rápido para mando
-Application options=Opciones de la aplicación
 Application info=Información de la aplicación
-Donate=Donar
 
 # Version info strings
 GSR version: %s=GSR versión: %s

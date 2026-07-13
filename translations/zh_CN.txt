@@ -173,6 +173,7 @@ Fast=快速
 
 Language=语言
 System language=系统语言
+Exclude personal metadata from the video (such as audio track title)=从视频中排除个人元数据（例如音轨标题）
 
 Exit program=退出程序
 Go back to the old UI=回到旧版界面
@@ -185,9 +186,7 @@ Appearance=外观
 Startup=启动
 Keyboard hotkeys=键盘热键
 Controller hotkeys=手柄热键
-Application options=应用程序选项
 Application info=应用程序信息
-Donate=捐赠
 
 # Version info strings
 GSR version: %s=GSR版本：%s

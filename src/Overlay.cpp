@@ -2767,7 +2767,18 @@ namespace gsr {
         args.push_back(region_str);
     }
 
-    void Overlay::add_common_gpu_screen_recorder_args(std::vector<const char*> &args, const RecordOptions &record_options, const std::vector<std::string> &audio_tracks, const std::string &video_bitrate, const char *region, char *region_str, int region_str_size, const std::string &region_area_option, RecordForceType force_type) {
+    void Overlay::add_common_gpu_screen_recorder_args(
+        std::vector<const char*> &args,
+        const MainConfig &main_config,
+        const RecordOptions &record_options,
+        const std::vector<std::string> &audio_tracks,
+        const std::string &video_bitrate,
+        const char *region,
+        char *region_str,
+        int region_str_size,
+        const std::string &region_area_option,
+        RecordForceType force_type)
+    {
         if(record_options.video_quality == "custom") {
             args.push_back("-bm");
             args.push_back("cbr");
@@ -2795,6 +2806,11 @@ namespace gsr {
 
         if(record_options.low_power_mode) {
             args.push_back("-low-power");
+            args.push_back("yes");
+        }
+
+        if(main_config.exclude_metadata) {
+            args.push_back("-exclude-metadata");
             args.push_back("yes");
         }
 
@@ -3173,7 +3189,7 @@ namespace gsr {
         args.push_back(config.replay_config.replay_storage.c_str());
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.replay_config.record_options.record_area_option);
+        add_common_gpu_screen_recorder_args(args, config.main_config, config.replay_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.replay_config.record_options.record_area_option);
 
         args.push_back("-ro");
         args.push_back(config.record_config.save_directory.c_str());
@@ -3399,7 +3415,7 @@ namespace gsr {
         }
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), record_area_option, force_type);
+        add_common_gpu_screen_recorder_args(args, config.main_config, config.record_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), record_area_option, force_type);
 
         args.push_back(nullptr);
 
@@ -3597,7 +3613,7 @@ namespace gsr {
         };
 
         char region_str[128];
-        add_common_gpu_screen_recorder_args(args, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.streaming_config.record_options.record_area_option);
+        add_common_gpu_screen_recorder_args(args, config.main_config, config.streaming_config.record_options, audio_tracks, video_bitrate, size, region_str, sizeof(region_str), config.streaming_config.record_options.record_area_option);
 
         args.push_back("-ro");
         args.push_back(config.record_config.save_directory.c_str());

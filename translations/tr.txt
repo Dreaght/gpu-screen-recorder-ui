@@ -172,6 +172,7 @@ Fast=Hızlı
 
 Language=Dil
 System language=Sistem Dili
+Exclude personal metadata from the video (such as audio track title)=Kişisel meta verileri videodan hariç tut (ses kanalı başlığı gibi)
 
 Exit program=Programdan çık
 Go back to the old UI=Eski arayüze dön
@@ -184,9 +185,7 @@ Appearance=Görünüm
 Startup=Başlangıç
 Keyboard hotkeys=Klavye kısayolları
 Controller hotkeys=Kontrolcü kısayolları
-Application options=Uygulama ayarları
 Application info=Uygulama bilgileri
-Donate=Bağış yap
 
 # Version info strings
 GSR version: %s=GSR sürümü: %s

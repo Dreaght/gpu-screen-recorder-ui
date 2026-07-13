@@ -189,6 +189,7 @@ Fast=
 
 Language=
 System language=
+Exclude personal metadata from the video (such as audio track title)=
 
 Exit program=
 Go back to the old UI=
@@ -201,9 +202,7 @@ Appearance=
 Startup=
 Keyboard hotkeys=
 Controller hotkeys=
-Application options=
 Application info=
-Donate=
 
 # Version info strings
 GSR version: %s=

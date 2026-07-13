@@ -173,6 +173,7 @@ Fast=Gyors
 
 Language=Nyelv
 System language=Rendszer nyelve
+Exclude personal metadata from the video (such as audio track title)=Személyes metaadatok kizárása a videóból (például a hangsáv címe)
 
 Exit program=Kilépés
 Go back to the old UI=Visszatérés a régi felülethez
@@ -185,9 +186,7 @@ Appearance=Megjelenés
 Startup=Indítás
 Keyboard hotkeys=Gyorsbillentyűk
 Controller hotkeys=Kontrolleres gyorsbillentyűk
-Application options=Alkalmazás beállításai
 Application info=Alkalmazásinformációk
-Donate=Adományozás
 
 # Version info strings
 GSR version: %s=GSR verzió: %s

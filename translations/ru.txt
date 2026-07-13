@@ -176,6 +176,7 @@ Fast=Быстрая
 
 Language=Язык
 System language=Системный язык
+Exclude personal metadata from the video (such as audio track title)=Исключить личные метаданные из видео (например, название аудиодорожки)
 
 Exit program=Выйти из программы
 Go back to the old UI=Вернуться к старому интерфейсу
@@ -188,9 +189,7 @@ Appearance=Внешний вид
 Startup=Автозапуск
 Keyboard hotkeys=Горячие клавиши клавиатуры
 Controller hotkeys=Горячие клавиши геймпада
-Application options=Настройки приложения
 Application info=Информация о приложении
-Donate=Поддержать
 
 # Version info strings
 GSR version: %s=Версия GSR: %s

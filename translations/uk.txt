@@ -176,6 +176,7 @@ Fast=Швидка
 
 Language=Мова
 System language=Системна мова
+Exclude personal metadata from the video (such as audio track title)=Виключити особисті метадані з відео (наприклад, назву аудіодоріжки)
 
 Exit program=Вийти з програми
 Go back to the old UI=Повернутися до старого інтерфейсу
@@ -188,7 +189,6 @@ Appearance=Зовнішній вигляд
 Startup=Автозапуск
 Keyboard hotkeys=Гарячі клавіші клавіатури
 Controller hotkeys=Гарячі клавіші геймпада
-Application options=Налаштування програми
 Application info=Інформація про програму
 
 # Version info strings

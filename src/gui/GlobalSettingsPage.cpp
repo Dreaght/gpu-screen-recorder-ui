@@ -2,7 +2,6 @@
 
 #include "../../include/Overlay.hpp"
 #include "../../include/Theme.hpp"
-#include "../../include/Process.hpp"
 #include "../../include/Utils.hpp"
 #include "../../include/Translation.hpp"
 #include "../../include/gui/GsrPage.hpp"
@@ -14,6 +13,7 @@
 #include "../../include/gui/Image.hpp"
 #include "../../include/gui/RadioButton.hpp"
 #include "../../include/gui/ComboBox.hpp"
+#include "../../include/gui/CheckBox.hpp"
 #include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
 
@@ -573,7 +573,7 @@ namespace gsr {
     std::unique_ptr<Subsection> GlobalSettingsPage::create_application_options_subsection(ScrollablePage *parent_page) {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         List *list_ptr = list.get();
-        auto subsection = std::make_unique<Subsection>(TR("Application options"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+        auto subsection = std::make_unique<Subsection>(TR("General"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
 
         {
             auto horizontal_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
@@ -581,6 +581,11 @@ namespace gsr {
             horizontal_list->add_widget(create_notification_speed());
             horizontal_list->add_widget(create_language());
             list_ptr->add_widget(std::move(horizontal_list));
+        }
+        {
+            auto exclude_metadata_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Exclude personal metadata from the video (such as audio track title)"));
+            exclude_metadata_checkbox_ptr = exclude_metadata_checkbox.get();
+            list_ptr->add_widget(std::move(exclude_metadata_checkbox));
         }
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
 
@@ -662,6 +667,7 @@ namespace gsr {
 
         notification_speed_button_ptr->set_selected_item(config.main_config.notification_speed);
         language_combo_box_ptr->set_selected_item(config.main_config.language);
+        exclude_metadata_checkbox_ptr->set_checked(config.main_config.exclude_metadata);
 
         load_hotkeys();
     }
@@ -693,6 +699,7 @@ namespace gsr {
         config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.notification_speed = notification_speed_button_ptr->get_selected_id();
         config.main_config.language = language_combo_box_ptr->get_selected_id();
+        config.main_config.exclude_metadata = exclude_metadata_checkbox_ptr->is_checked();
         save_config(config);
     }
 

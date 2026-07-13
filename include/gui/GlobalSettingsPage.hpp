@@ -18,6 +18,7 @@ namespace gsr {
     class List;
     class ComboBox;
     class CustomRendererWidget;
+    class CheckBox;
 
     enum ConfigureHotkeyType {
         NONE,
@@ -121,6 +122,7 @@ namespace gsr {
         Button *show_hide_button_ptr = nullptr;
         RadioButton *notification_speed_button_ptr = nullptr;
         ComboBox *language_combo_box_ptr = nullptr;
+        CheckBox *exclude_metadata_checkbox_ptr = nullptr;
         ScrollablePage *scrollable_page_ptr = nullptr;
 
         ConfigHotkey configure_config_hotkey;
