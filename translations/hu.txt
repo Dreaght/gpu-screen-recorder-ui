@@ -252,7 +252,6 @@ Screen=Képernyő
 Image resolution limit:=Képfelbontás korlát:
 Change image resolution=Képfelbontás módosítása
 Restore portal session=Portál munkamenet visszaállítása
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=A HDR engedélyezve van a rendszereden. Javasolt, hogy a rögzítési célt "Asztali portál"-ra állítsd a képernyő megfelelő rögzítéséhez.
 
 Image quality:=Képminőség:
 Medium=Közepes

@@ -264,7 +264,6 @@ Screen=画面
 Image resolution limit:=画像解像度の上限:
 Change image resolution=画像解像度を変更
 Restore portal session=ポータルセッションを復元
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=HDR がシステムで有効になっています 画面を正しくキャプチャするためにキャプチャ対象を「デスクトップポータル」に変更することをお勧めします
 
 Image quality:=画質:
 Medium=中

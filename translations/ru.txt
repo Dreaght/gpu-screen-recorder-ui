@@ -255,7 +255,6 @@ Screen=Экран
 Image resolution limit:=Ограничение разрешения изображения:
 Change image resolution=Изменять разрешение изображения
 Restore portal session=Восстановить сессию портала
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=На вашей системе включён HDR. Рекомендуется изменить цель захвата на "Портал рабочего стола" для корректного захвата экрана.
 
 Image quality:=Качество изображения:
 Medium=Среднее

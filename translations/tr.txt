@@ -250,7 +250,6 @@ Screen=Ekran
 Image resolution limit:=Görüntü çözünürlük sınırı:
 Change image resolution=Görüntü çözünürlüğünü değiştir
 Restore portal session=Portal oturumunu geri yükle
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=Sisteminizde HDR etkinleştirilmiş. Ekranınızı düzgün bir şekilde yakalamak için yakalama hedefini "Masaüstü portalı" olarak değiştirmeniz önerilir.
 
 Image quality:=Görüntü kalitesi:
 Medium=Orta

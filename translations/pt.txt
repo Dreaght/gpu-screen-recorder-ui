@@ -263,7 +263,6 @@ Screen=Tela
 Image resolution limit:=Limite da resolução da imagem:
 Change image resolution=Mudar resolução da imagem
 Restore portal session=Restaurar sessão do portal
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=HDR está ativado no seu sistema. É recomendado que você mude o alvo da captura de tela para "Desktop portal" para apropriadamente capturar a sua tela.
 
 Image quality:=Qualidade da imagem:
 Medium=Médio

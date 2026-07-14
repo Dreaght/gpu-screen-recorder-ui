@@ -268,7 +268,6 @@ Screen=
 Image resolution limit:=
 Change image resolution=
 Restore portal session=
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=
 
 Image quality:=
 Medium=

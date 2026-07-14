@@ -231,21 +231,6 @@ namespace gsr {
         return checkbox;
     }
 
-    std::unique_ptr<Widget> SettingsPage::create_hdr_warning() {
-        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
-        hdr_warning_list_ptr = list.get();
-        list->set_spacing(0.005f);
-
-        const int font_character_size = 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str());
-        list->add_widget(std::make_unique<Image>(&get_theme().warning_texture, mgl::vec2f(font_character_size, font_character_size), Image::ScaleBehavior::SCALE));
-
-        auto hdr_warning_label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("HDR is enabled on your system. It's recommended that you change capture target to \"Desktop portal\" to properly capture your screen."), get_color_theme().text_color);
-        hdr_warning_label->set_wrap_width(hdr_warning_label->get_font_size() * 59);
-        list->add_widget(std::move(hdr_warning_label));
-
-        return list;
-    }
-
     std::unique_ptr<Widget> SettingsPage::create_capture_target_section() {
         auto ll = std::make_unique<List>(List::Orientation::VERTICAL);
 
@@ -257,7 +242,6 @@ namespace gsr {
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_video_resolution_section());
-        ll->add_widget(create_hdr_warning());
 
         return std::make_unique<Subsection>(TR("Capture"), std::move(ll), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
@@ -1127,7 +1111,6 @@ namespace gsr {
             video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
             change_video_resolution_checkbox_ptr->set_visible(!focused_selected);
             restore_portal_session_list_ptr->set_visible(portal_selected);
-            hdr_warning_list_ptr->set_visible(!portal_selected && gsr_info->system_info.display_server == DisplayServer::WAYLAND && has_connector_with_hdr_enabled());
             return true;
         };
 

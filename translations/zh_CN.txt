@@ -252,7 +252,6 @@ Screen=屏幕
 Image resolution limit:=图像分辨率限制：
 Change image resolution=更改图像分辨率
 Restore portal session=恢复门户会话
-HDR is enabled on your system. It's recommended that you change capture target to "Desktop portal" to properly capture your screen.=你的系统已启用 HDR。建议将捕获目标更改为"桌面门户"以正确捕获屏幕。
 
 Image quality:=图像质量：
 Medium=中

@@ -84,7 +84,6 @@ namespace gsr {
         CheckBox *show_notification_checkbox_ptr = nullptr;
         CheckBox *led_indicator_checkbox_ptr = nullptr;
         Entry *create_custom_script_screenshot_entry_ptr = nullptr;
-        List *hdr_warning_list_ptr = nullptr;
 
         PageStack *page_stack = nullptr;
 
