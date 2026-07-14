@@ -209,6 +209,18 @@ namespace gsr {
         return false;
     }*/
 
+    static void wait_until_window_viewable(Display *display, Window window, double timeout_seconds) {
+        mgl::Clock clock;
+        while(clock.get_elapsed_time_seconds() < timeout_seconds) {
+            XWindowAttributes window_attr;
+            window_attr.map_state = IsUnmapped;
+            XGetWindowAttributes(display, window, &window_attr);
+            if(window_attr.map_state == IsViewable)
+                return;
+            usleep(1000);
+        }
+    }
+
     static const Monitor* find_monitor_at_position(const std::vector<Monitor> &monitors, mgl::vec2i pos) {
         for(const Monitor &monitor : monitors) {
             if(mgl::IntRect(monitor.position, monitor.size).contains(pos))
@@ -1252,7 +1264,7 @@ namespace gsr {
             window_create_params.max_size = window_size;
         }
         window_create_params.position = focused_monitor->position + focused_monitor->size / 2 - window_size / 2;
-        window_create_params.hidden = prevent_game_minimizing;
+        window_create_params.hidden = true;
         window_create_params.override_redirect = prevent_game_minimizing;
         window_create_params.background_color = mgl::Color(0, 0, 0, 0);
         window_create_params.support_alpha = true;
@@ -1326,11 +1338,15 @@ namespace gsr {
         if(fake_cursor)
             xi_setup();
 
-        //window->set_fullscreen(true);
         if(!wayland_native_overlay && gsr_info.system_info.display_server == DisplayServer::X11)
             make_window_click_through((Display*)mgl_get_context()->connection, (Window)window->get_system_handle());
 
+        if(!is_wlroots)
+            window->set_fullscreen(true);
+
         window->set_visible(true);
+        if(!wayland_native_overlay && !prevent_game_minimizing)
+            wait_until_window_viewable((Display*)mgl_get_context()->connection, (Window)window->get_system_handle(), 0.5);
 
         if(!wayland_native_overlay) {
             // All ops below operate on the mgl window — use mgl's X11 connection.
@@ -1360,13 +1376,23 @@ namespace gsr {
         // Owlboy seems to use xi events and XGrabPointer doesn't prevent owlboy from receiving events.
         xi_grab_all_mouse_devices(xi_display);
 
-        if(!is_wlroots)
-            window->set_fullscreen(true);
-
-        // Wayland compositors have retarded fullscreen animations that we cant disable in a proper way
-        // without messing up window position. For now let wayland do that.
         show_overlay_timeout_seconds = 0.0;
         show_overlay_clock.restart();
+
+        // Dumb wayland glitch workaround when fullscreening window
+        if(!wayland_native_overlay && !prevent_game_minimizing) {
+            mgl::Clock resize_wait_clock;
+            while(resize_wait_clock.get_elapsed_time_seconds() < 0.5) {
+                const mgl::vec2i current_window_size = window->get_size();
+                if(current_window_size.x == window_size.x && current_window_size.y == window_size.y)
+                    break;
+                handle_events();
+                if(!visible || !window)
+                    return;
+                usleep(1000);
+            }
+        }
+
         draw();
     }
 
