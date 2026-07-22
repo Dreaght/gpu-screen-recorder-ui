@@ -133,6 +133,28 @@ static bool is_wine_server(const char *process_basename, size_t process_basename
     return memeql(process_basename, process_basename_len, "wineserver");
 }
 
+static bool is_windows_system_process(const char *cmdline, size_t cmdline_len) {
+    return !!memmem(cmdline, cmdline_len, "system32", 8);
+}
+
+// static bool is_proton_tool(const char *cmdline, size_t cmdline_len) {
+//     return !!memmem(cmdline, cmdline_len, "compatibilitytools.d", 20);
+// }
+
+static bool is_steam_tool(const char *process_name, size_t process_name_len) {
+    return !!memmem(process_name, process_name_len, "Steam/bin", 9);
+}
+
+static bool is_blacklisted_application(const char *cmdline, size_t cmdline_len) {
+    const char *names[] = { "/xalia.exe", "/d3ddriverquery", NULL };
+    for(size_t i = 0; names[i]; ++i) {
+        const char *name = names[i];
+        if(memmem(cmdline, cmdline_len, name, strlen(name)))
+            return true;
+    }
+    return false;
+}
+
 static bool has_game_arch_suffix(const char *process_basename, size_t process_basename_len) {
     static const char *suffixes[] = { ".x86_64", ".x64", ".x86" };
     for (int i = 0; i < 3; i++) {
@@ -168,7 +190,7 @@ static void check_process(pid_t pid) {
 
         has_wine_env = env_get(environ_buf, env_n, "WINELOADER") != NULL;
         has_wine_env = has_wine_env || (env_get(environ_buf, env_n, "WINELOADERNOEXEC") != NULL);
-        is_steam_app = env_get(environ_buf, env_n, "STEAM_BASE_FOLDER") != NULL;
+        is_steam_app = env_get(environ_buf, env_n, "STEAM_BASE_FOLDER") != NULL || env_get(environ_buf, env_n, "STEAM_COMPAT_APP_ID") != NULL;
     }
 
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
@@ -191,17 +213,21 @@ static void check_process(pid_t pid) {
             || is_process_name_native_game(process_basename, process_basename_len))
         && !is_wine_server(process_basename, process_basename_len)
         && !memeql(argv1, argv1_len, "--version")
-        && (!is_steam_app || steam_overlay_game_id != NULL))
+        && (!is_steam_app || steam_overlay_game_id != NULL)
+        && !is_windows_system_process(cmdline_buf, cmd_n)
+        //&& !is_proton_tool(cmdline_buf, cmd_n)
+        && !is_steam_tool(argv0, argv0_len)
+        && !is_blacklisted_application(cmdline_buf, cmd_n))
     {
-        //fprintf(stderr, "argv0: |%.*s|\n", (int)argv0_len, argv0);
-        //fprintf(stderr, "*******\n");
-        //fprintf(stderr, "env: ");
-        //write(STDOUT_FILENO, environ_buf, env_n);
-        //fprintf(stderr, "\ncmdline: ");
-        //write(STDOUT_FILENO, cmdline_buf, cmd_n);
-        //fprintf(stderr, "\n");
-        //fprintf(stderr, "*******\n");
-        //fprintf(stderr, "\n\n\n");
+        // fprintf(stderr, "argv0: |%.*s|\n", (int)argv0_len, argv0);
+        // fprintf(stderr, "*******\n");
+        // fprintf(stderr, "env: ");
+        // write(STDOUT_FILENO, environ_buf, env_n);
+        // fprintf(stderr, "\ncmdline: ");
+        // write(STDOUT_FILENO, cmdline_buf, cmd_n);
+        // fprintf(stderr, "\n");
+        // fprintf(stderr, "*******\n");
+        // fprintf(stderr, "\n\n\n");
         add_game(pid);
     }
 }
