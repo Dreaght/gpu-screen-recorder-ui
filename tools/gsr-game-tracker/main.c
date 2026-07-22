@@ -25,6 +25,35 @@ static char  environ_buf[ENVIRON_BUF_SIZE];
 static char  cmdline_buf[CMDLINE_BUF_SIZE];
 static char  recv_buf[RECV_BUF_SIZE];
 
+typedef struct {
+    const char *value; /* Null-terminated. Null if not defined in the process */
+    size_t value_len;
+} EnvVar;
+
+typedef struct {
+    EnvVar *value;
+    const char *name;
+    size_t name_len;
+} EnvVarNamed;
+
+typedef struct {
+    EnvVar steam_overlay_game_id;
+    EnvVar steam_app_id;
+    EnvVar steam_game_id;
+    EnvVar wineloader;
+    EnvVar wineloadernoexec;
+    EnvVar steam_base_folder;
+    EnvVar steam_compat_app_id;
+} EnvVars;
+
+static EnvVarNamed env_var_named_init(EnvVar *value, const char *name) {
+    return (EnvVarNamed) {
+        .value = value,
+        .name = name,
+        .name_len = strlen(name),
+    };
+}
+
 static int find_slot_by_pid(pid_t pid) {
     for (int i = 0; i < MAX_GAMES; i++) {
         if (games[i] == pid)
@@ -74,23 +103,38 @@ static ssize_t read_file(const char *path, char *buf, size_t size) {
     return n;
 }
 
-/* Return pointer to value inside null-separated environ block, or NULL. */
-static const char *env_get(const char *env, size_t size, const char *key) {
-    const size_t klen = strlen(key);
+static void read_environment_variables(const char *env, size_t env_size, EnvVars *env_vars) {
+    const EnvVarNamed env_var_refs[] = {
+        /* This is set for non-steam games added to steam library */
+        env_var_named_init(&env_vars->steam_overlay_game_id, "SteamOverlayGameId"),
+        /* This is set for regular steam apps */
+        env_var_named_init(&env_vars->steam_app_id, "SteamAppId"),
+        env_var_named_init(&env_vars->steam_game_id, "SteamGameId"),
+        env_var_named_init(&env_vars->wineloader, "WINELOADER"),
+        env_var_named_init(&env_vars->wineloadernoexec, "WINELOADERNOEXEC"),
+        env_var_named_init(&env_vars->steam_base_folder, "STEAM_BASE_FOLDER"),
+        env_var_named_init(&env_vars->steam_compat_app_id, "STEAM_COMPAT_APP_ID"),
+    };
+
     size_t index = 0;
-    while (index < size) {
+    while (index < env_size) {
         const char *env_start = env + index;
-        const char *env_end = memchr(env_start, '\0', size - index);
+        const char *env_end = memchr(env_start, '\0', env_size - index);
         if(!env_end)
             break;
 
         const size_t env_len = env_end - env_start;
-        if(env_len >= klen + 1 && memcmp(env_start, key, klen) == 0 && env_start[klen] == '=')
-            return env_start + klen + 1;
+        for(size_t i = 0; i < sizeof(env_var_refs) / sizeof(env_var_refs[0]); ++i) {
+            const EnvVarNamed *env_var_ref = &env_var_refs[i];
+            if(env_len >= env_var_ref->name_len + 1 && memcmp(env_start, env_var_ref->name, env_var_ref->name_len) == 0 && env_start[env_var_ref->name_len] == '=') {
+                env_var_ref->value->value = env_start + env_var_ref->name_len + 1;
+                env_var_ref->value->value_len = env_len - (env_var_ref->name_len + 1);
+                break;
+            }
+        }
 
         index += env_len + 1;
     }
-    return NULL;
 }
 
 static size_t get_argv_len(const char *cmdline, size_t size) {
@@ -171,26 +215,26 @@ static void check_process(pid_t pid) {
     char    path[64];
     ssize_t env_n, cmd_n;
     bool is_steam_app = false;
-    const char *steam_overlay_game_id = NULL;
     /* Proton launched for a non-steam game has this while it doesn't have SteamAppId nor is the process called wine */
     bool has_wine_env = false;
 
     snprintf(path, sizeof(path), "/proc/%d/environ", pid);
     env_n = read_file(path, environ_buf, sizeof(environ_buf));
+    EnvVars env_vars = {0};
 
     if (env_n > 0) {
-        steam_overlay_game_id = env_get(environ_buf, env_n, "SteamOverlayGameId"); /* This is set for non-steam games added to steam library */
-        const char *appid = env_get(environ_buf, env_n, "SteamAppId"); /* This is set for regular steam apps */
-        if (!appid) appid = env_get(environ_buf, env_n, "SteamGameId");
-        if (!appid) appid = steam_overlay_game_id;
+        read_environment_variables(environ_buf, env_n, &env_vars);
+        const char *appid = env_vars.steam_app_id.value;
+        if (!appid) appid = env_vars.steam_game_id.value;
+        if (!appid) appid = env_vars.steam_overlay_game_id.value;
         if (appid && appid[0] >= '1' && appid[0] <= '9') {
             add_game(pid);
             return;
         }
 
-        has_wine_env = env_get(environ_buf, env_n, "WINELOADER") != NULL;
-        has_wine_env = has_wine_env || (env_get(environ_buf, env_n, "WINELOADERNOEXEC") != NULL);
-        is_steam_app = env_get(environ_buf, env_n, "STEAM_BASE_FOLDER") != NULL || env_get(environ_buf, env_n, "STEAM_COMPAT_APP_ID") != NULL;
+        has_wine_env = env_vars.wineloader.value;
+        has_wine_env = has_wine_env || env_vars.wineloadernoexec.value;
+        is_steam_app = env_vars.steam_base_folder.value || env_vars.steam_compat_app_id.value != NULL;
     }
 
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
@@ -213,7 +257,7 @@ static void check_process(pid_t pid) {
             || is_process_name_native_game(process_basename, process_basename_len))
         && !is_wine_server(process_basename, process_basename_len)
         && !memeql(argv1, argv1_len, "--version")
-        && (!is_steam_app || steam_overlay_game_id != NULL)
+        && (!is_steam_app || env_vars.steam_overlay_game_id.value != NULL)
         && !is_windows_system_process(cmdline_buf, cmd_n)
         //&& !is_proton_tool(cmdline_buf, cmd_n)
         && !is_steam_tool(argv0, argv0_len)
