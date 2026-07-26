@@ -44,6 +44,7 @@ typedef struct {
     EnvVar wineloadernoexec;
     EnvVar steam_base_folder;
     EnvVar steam_compat_app_id;
+    EnvVar umu_invocation_id;
 } EnvVars;
 
 static EnvVarNamed env_var_named_init(EnvVar *value, const char *name) {
@@ -114,6 +115,7 @@ static void read_environment_variables(const char *env, size_t env_size, EnvVars
         env_var_named_init(&env_vars->wineloadernoexec, "WINELOADERNOEXEC"),
         env_var_named_init(&env_vars->steam_base_folder, "STEAM_BASE_FOLDER"),
         env_var_named_init(&env_vars->steam_compat_app_id, "STEAM_COMPAT_APP_ID"),
+        env_var_named_init(&env_vars->umu_invocation_id, "UMU_INVOCATION_ID"),
     };
 
     size_t index = 0;
@@ -254,10 +256,11 @@ static void check_process(pid_t pid) {
     if ((is_wine_binary(process_basename, process_basename_len)
             || has_game_arch_suffix(process_basename, process_basename_len)
             || has_wine_env
+            || env_vars.umu_invocation_id.value
             || is_process_name_native_game(process_basename, process_basename_len))
         && !is_wine_server(process_basename, process_basename_len)
         && !memeql(argv1, argv1_len, "--version")
-        && (!is_steam_app || env_vars.steam_overlay_game_id.value != NULL)
+        && (!is_steam_app || env_vars.steam_overlay_game_id.value != NULL || env_vars.umu_invocation_id.value)
         && !is_windows_system_process(cmdline_buf, cmd_n)
         //&& !is_proton_tool(cmdline_buf, cmd_n)
         && !is_steam_tool(argv0, argv0_len)
