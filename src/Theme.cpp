@@ -17,6 +17,7 @@ namespace gsr {
             case GpuVendor::INTEL:    return mgl::Color(8, 109, 183);
             case GpuVendor::NVIDIA:   return mgl::Color(118, 185, 0);
             case GpuVendor::BROADCOM: return mgl::Color(221, 0, 49);
+            case GpuVendor::APPLE:    return mgl::Color(221, 0, 49);
         }
         return mgl::Color(221, 0, 49);
     }
@@ -31,6 +32,8 @@ namespace gsr {
             vendor = GpuVendor::NVIDIA;
         else if(color_name == "broadcom")
             vendor = GpuVendor::BROADCOM;
+        else if(color_name == "apple")
+            vendor = GpuVendor::APPLE;
         return gpu_vendor_to_color(vendor);
     }
 

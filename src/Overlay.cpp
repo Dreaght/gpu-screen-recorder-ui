@@ -2595,6 +2595,9 @@ namespace gsr {
     }
 
     void Overlay::on_stop_recording(int exit_code, std::string &video_filepath) {
+        if(recording_status != RecordingStatus::RECORD && recording_status != RecordingStatus::REPLAY)
+            return;
+
         if(exit_code == 0) {
             if(config.record_config.save_video_in_game_folder) {
                 save_video_in_current_game_directory(video_filepath, NotificationType::RECORD);

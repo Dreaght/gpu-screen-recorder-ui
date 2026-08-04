@@ -5,9 +5,9 @@
 /* This file was auto-generated with create-native-games-list.py, do not edit manually! */
 
 static const char *process_names_len_2[] = { "et", NULL };
-static const char *process_names_len_3[] = { "0ad", "etl", "RMG", "etr", NULL };
+static const char *process_names_len_3[] = { "0ad", "KSA", "etl", "RMG", "etr", NULL };
 static const char *process_names_len_4[] = { "hwcl", "osu!", "rott", "xemu", "cemu", "suyu", "yuzu", "eden", "mame", NULL };
-static const char *process_names_len_5[] = { "sober", "zdoom", "cen64", "mesen", "higan", "86Box", "PCBox", "rpcs3", NULL };
+static const char *process_names_len_5[] = { "sober", "zdoom", "bsnes", "cen64", "mesen", "higan", "86Box", "PCBox", "rpcs3", NULL };
 static const char *process_names_len_6[] = { "luanti", "Mobbos", "glhwcl", "hexen2", "dhewm3", "Funkin", "quake2", "gzdoom", "taisei", "quake3", "ecwolf", "ut-bin", "fs-uae", "ruffle", "dosbox", NULL };
 static const char *process_names_len_7[] = { "Etterna", "etterna", "vkquake", "melonDS", "ryujinx", "sdlmame", "scummvm", "blastem", "redream", "shadps4", "TETR.IO", "parsecd", NULL };
 static const char *process_names_len_8[] = { "glhexen2", "openrct2", "freesynd", "rottexpr", "rs3linux", "tyr-qwcl", "ioquake3", "ironwail", "vkquake2", "cen64-qt", "mednafen", "PPSSPPQt", "pcsx2-qt", NULL };

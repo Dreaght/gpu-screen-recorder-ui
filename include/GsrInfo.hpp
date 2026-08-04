@@ -95,7 +95,8 @@ namespace gsr {
         AMD,
         INTEL,
         NVIDIA,
-        BROADCOM
+        BROADCOM,
+        APPLE
     };
 
     struct GpuInfo {

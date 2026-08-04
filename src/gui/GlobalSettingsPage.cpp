@@ -42,6 +42,7 @@ namespace gsr {
             case GpuVendor::INTEL:    return "intel";
             case GpuVendor::NVIDIA:   return "nvidia";
             case GpuVendor::BROADCOM: return "broadcom";
+            case GpuVendor::APPLE:    return "apple";
         }
         return "amd";
     }
@@ -53,6 +54,7 @@ namespace gsr {
             case GpuVendor::INTEL:    return "Intel";
             case GpuVendor::NVIDIA:   return "NVIDIA";
             case GpuVendor::BROADCOM: return "Broadcom";
+            case GpuVendor::APPLE:    return "Apple";
         }
         return "unknown";
     }
