@@ -14,6 +14,18 @@
 #include <linux/connector.h>
 #include <linux/cn_proc.h>
 
+static void *gsr_memmem(const void *hstk, size_t hlen, const void *ndl, size_t nlen)
+{
+    if (!nlen) return (void *)hstk;
+    if (hlen < nlen) return NULL;
+    const unsigned char *h = hstk;
+    const unsigned char *n = ndl;
+    for (size_t i = 0, last = hlen - nlen; i <= last; ++i)
+        if (h[i] == n[0] && memcmp(h + i, n, nlen) == 0)
+            return (void *)(h + i);
+    return NULL;
+}
+
 #define MAX_GAMES        32
 #define ENVIRON_BUF_SIZE (64 * 1024)
 #define CMDLINE_BUF_SIZE 4096
@@ -180,22 +192,22 @@ static bool is_wine_server(const char *process_basename, size_t process_basename
 }
 
 static bool is_windows_system_process(const char *cmdline, size_t cmdline_len) {
-    return !!memmem(cmdline, cmdline_len, "system32", 8);
+    return !!gsr_memmem(cmdline, cmdline_len, "system32", 8);
 }
 
 // static bool is_proton_tool(const char *cmdline, size_t cmdline_len) {
-//     return !!memmem(cmdline, cmdline_len, "compatibilitytools.d", 20);
+//     return !!gsr_memmem(cmdline, cmdline_len, "compatibilitytools.d", 20);
 // }
 
 static bool is_steam_tool(const char *process_name, size_t process_name_len) {
-    return !!memmem(process_name, process_name_len, "Steam/bin", 9);
+    return !!gsr_memmem(process_name, process_name_len, "Steam/bin", 9);
 }
 
 static bool is_blacklisted_application(const char *cmdline, size_t cmdline_len) {
     const char *names[] = { "/xalia.exe", "/d3ddriverquery", NULL };
     for(size_t i = 0; names[i]; ++i) {
         const char *name = names[i];
-        if(memmem(cmdline, cmdline_len, name, strlen(name)))
+        if(gsr_memmem(cmdline, cmdline_len, name, strlen(name)))
             return true;
     }
     return false;
