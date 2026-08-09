@@ -819,11 +819,7 @@ namespace gsr {
     }
 
     static bool device_is_mouse(const XIDeviceInfo *dev) {
-        for(int i = 0; i < dev->num_classes; ++i) {
-            if(dev->classes[i]->type == XIMasterPointer || dev->classes[i]->type == XISlavePointer)
-                return true;
-        }
-        return false;
+        return dev->use == XIMasterPointer || dev->use == XISlavePointer;
     }
 
     static void xi_grab_all_mouse_devices(Display *dpy, bool grab) {
