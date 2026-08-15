@@ -200,9 +200,6 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
         return;
     }
 
-    if(extra_data->is_non_keyboard_device)
-        return;
-
     if(event.type == EV_SYN && event.code == SYN_DROPPED) {
         /* TODO: Don't do this on every SYN_DROPPED to prevent spamming this, instead wait until the next event or wait for timeout */
         keyboard_event_fetch_update_key_states(self, extra_data, fd);
@@ -248,7 +245,7 @@ static void keyboard_event_process_input_event_data(keyboard_event *self, event_
 
     /* TODO: What if some key is being pressed down while this is done? will it remain pressed down? */
     if(!extra_data->is_non_keyboard_device && (event.type == EV_REL || event.type == EV_ABS || (event.type == EV_KEY && !keyboard_key))) {
-        fprintf(stderr, "Info: device /dev/input/event%d is likely a non-keyboard device as it received a non-keyboard event. This device will be ignored\n", extra_data->dev_input_id);
+        fprintf(stderr, "Info: device /dev/input/event%d is likely a non-keyboard device (or a keyboard with an embedded touchpad) as it received a non-keyboard event. This device will no longer be grabbed, but will still be handled\n", extra_data->dev_input_id);
         extra_data->is_non_keyboard_device = true;
         if(extra_data->grabbed) {
             extra_data->grabbed = false;
