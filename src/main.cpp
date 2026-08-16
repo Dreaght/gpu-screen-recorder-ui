@@ -118,6 +118,11 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
         fprintf(stderr, "rpc command executed: %s\n", name.c_str());
         overlay->take_screenshot_window();
     });
+
+    rpc->add_handler("reload-config", [overlay](const std::string &name) {
+        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+        overlay->reload_config();
+    });
 }
 
 

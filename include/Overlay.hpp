@@ -108,6 +108,7 @@ namespace gsr {
         void cancel_region_selection();
 
         const Config& get_config() const;
+        void reload_config();
 
         void unbind_all_keyboard_hotkeys();
         void rebind_all_keyboard_hotkeys();

@@ -2089,6 +2089,13 @@ namespace gsr {
         return config;
     }
 
+    void Overlay::reload_config() {
+        const SupportedCaptureOptions capture_options = get_supported_capture_options(gsr_info);
+        std::optional<Config> new_config = read_config(capture_options);
+        if(new_config)
+            config = std::move(new_config.value());
+    }
+
     void Overlay::unbind_all_keyboard_hotkeys() {
         if(global_hotkeys)
             global_hotkeys->unbind_all_keys();
