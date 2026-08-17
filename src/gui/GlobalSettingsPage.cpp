@@ -550,15 +550,16 @@ namespace gsr {
         auto combo_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         language_combo_box_ptr = combo_box.get();
         combo_box->add_item(TR("System language"), "");
+        combo_box->add_item("Deutsch", "de");
         combo_box->add_item("English", "en");
         combo_box->add_item("Español", "es");
         combo_box->add_item("Français", "fr");
         combo_box->add_item("Magyar", "hu");
-        combo_box->add_item("Português", "pt");
         combo_box->add_item("日本語", "ja");
+        combo_box->add_item("Português", "pt");
         combo_box->add_item("Русский", "ru");
-        combo_box->add_item("Українська", "uk");
         combo_box->add_item("Türkçe", "tr");
+        combo_box->add_item("Українська", "uk");
         combo_box->add_item("简体中文", "zh_CN");
         combo_box->on_selection_changed = [this](std::string_view, std::string_view id) {
             Translation::instance().load_language(id);
