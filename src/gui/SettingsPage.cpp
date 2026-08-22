@@ -1492,6 +1492,8 @@ namespace gsr {
         streaming_service_box->add_item(TR("YouTube"), "youtube");
         streaming_service_box->add_item(TR("Rumble"), "rumble");
         streaming_service_box->add_item(TR("Kick"), "kick");
+        if(gsr_info->supported_containers.whip) // Whip requires gpu screen recorder built with ffmpeg 8.0 or later
+            streaming_service_box->add_item(TR("WHIP"), "whip");
         streaming_service_box->add_item(TR("Custom"), "custom");
         streaming_service_box_ptr = streaming_service_box.get();
         return streaming_service_box;
@@ -1574,6 +1576,40 @@ namespace gsr {
         return kick_stream_list;
     }
 
+    std::unique_ptr<List> SettingsPage::create_stream_whip_url() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+        auto stream_url_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
+        whip_stream_url_entry_ptr = stream_url_entry.get();
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Stream URL:"), get_color_theme().text_color));
+        list->add_widget(std::move(stream_url_entry));
+        return list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_stream_whip_bearer_token() {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
+        auto bearer_token_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
+        bearer_token_entry->set_masked(true);
+        whip_stream_bearer_token_entry_ptr = bearer_token_entry.get();
+        const float mask_icon_size = whip_stream_bearer_token_entry_ptr->get_size().y * 1.0f;
+        list->add_widget(std::move(bearer_token_entry));
+        list->add_widget(create_mask_toggle_button(whip_stream_bearer_token_entry_ptr, mgl::vec2f(mask_icon_size, mask_icon_size)));
+        return list;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_stream_whip_section() {
+        auto whip_stream_list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        auto stream_url_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        stream_url_list->add_widget(create_stream_whip_url());
+
+        whip_stream_list->add_widget(std::move(stream_url_list));
+        whip_stream_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Bearer token (optional):"), get_color_theme().text_color));
+        whip_stream_list->add_widget(create_stream_whip_bearer_token());
+
+        whip_stream_list_ptr = whip_stream_list.get();
+        return whip_stream_list;
+    }
+
     std::unique_ptr<List> SettingsPage::create_stream_custom_url() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         auto stream_url_entry = std::make_unique<Entry>(get_theme().body_font_desc.c_str(), "", 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str()) * 20);
@@ -1631,6 +1667,7 @@ namespace gsr {
         streaming_info_list->add_widget(create_streaming_service_section());
         streaming_info_list->add_widget(create_stream_key_section());
         streaming_info_list->add_widget(create_stream_kick_section());
+        streaming_info_list->add_widget(create_stream_whip_section());
         streaming_info_list->add_widget(create_stream_custom_section());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Streaming info"), std::move(streaming_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1646,10 +1683,12 @@ namespace gsr {
             const bool youtube_option = id == "youtube";
             const bool rumble_option = id == "rumble";
             const bool kick_option = id == "kick";
+            const bool whip_option = id == "whip";
             const bool custom_option = id == "custom";
-            stream_key_list_ptr->set_visible(!custom_option && !kick_option);
+            stream_key_list_ptr->set_visible(!custom_option && !kick_option && !whip_option);
             custom_stream_list_ptr->set_visible(custom_option);
             kick_stream_list_ptr->set_visible(kick_option);
+            whip_stream_list_ptr->set_visible(whip_option);
             twitch_stream_key_entry_ptr->get_parent_widget()->set_visible(twitch_option);
             youtube_stream_key_entry_ptr->get_parent_widget()->set_visible(youtube_option);
             rumble_stream_key_entry_ptr->get_parent_widget()->set_visible(rumble_option);
@@ -1867,12 +1906,16 @@ namespace gsr {
 
     void SettingsPage::load_stream() {
         load_common(config.streaming_config.record_options);
+        if(config.streaming_config.streaming_service == "whip" && !gsr_info->supported_containers.whip)
+            config.streaming_config.streaming_service = "twitch";
         streaming_service_box_ptr->set_selected_item(config.streaming_config.streaming_service);
         youtube_stream_key_entry_ptr->set_text(config.streaming_config.youtube.stream_key);
         twitch_stream_key_entry_ptr->set_text(config.streaming_config.twitch.stream_key);
         rumble_stream_key_entry_ptr->set_text(config.streaming_config.rumble.stream_key);
         kick_stream_url_entry_ptr->set_text(config.streaming_config.kick.stream_url);
         kick_stream_key_entry_ptr->set_text(config.streaming_config.kick.stream_key);
+        whip_stream_url_entry_ptr->set_text(config.streaming_config.whip.url);
+        whip_stream_bearer_token_entry_ptr->set_text(config.streaming_config.whip.bearer_token);
         stream_url_entry_ptr->set_text(config.streaming_config.custom.url);
         stream_key_entry_ptr->set_text(config.streaming_config.custom.key);
         container_box_ptr->set_selected_item(config.streaming_config.custom.container);
@@ -2029,6 +2072,8 @@ namespace gsr {
         config.streaming_config.rumble.stream_key = rumble_stream_key_entry_ptr->get_text();
         config.streaming_config.kick.stream_url = kick_stream_url_entry_ptr->get_text();
         config.streaming_config.kick.stream_key = kick_stream_key_entry_ptr->get_text();
+        config.streaming_config.whip.url = whip_stream_url_entry_ptr->get_text();
+        config.streaming_config.whip.bearer_token = whip_stream_bearer_token_entry_ptr->get_text();
         config.streaming_config.custom.url = stream_url_entry_ptr->get_text();
         config.streaming_config.custom.key = stream_key_entry_ptr->get_text();
         config.streaming_config.custom.container = container_box_ptr->get_selected_id();

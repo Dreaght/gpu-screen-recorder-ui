@@ -147,6 +147,9 @@ namespace gsr {
         std::unique_ptr<List> create_stream_kick_url();
         std::unique_ptr<List> create_stream_kick_key();
         std::unique_ptr<List> create_stream_kick_section();
+        std::unique_ptr<List> create_stream_whip_url();
+        std::unique_ptr<List> create_stream_whip_bearer_token();
+        std::unique_ptr<List> create_stream_whip_section();
         std::unique_ptr<List> create_stream_custom_url();
         std::unique_ptr<List> create_stream_custom_key();
         std::unique_ptr<List> create_stream_custom_section();
@@ -208,6 +211,7 @@ namespace gsr {
         List *stream_key_list_ptr = nullptr;
         List *custom_stream_list_ptr = nullptr;
         List *kick_stream_list_ptr = nullptr;
+        List *whip_stream_list_ptr = nullptr;
         CheckBox *save_replay_in_game_folder_ptr = nullptr;
         CheckBox *restart_replay_on_save = nullptr;
         Label *estimated_file_size_ptr = nullptr;
@@ -218,6 +222,8 @@ namespace gsr {
         Entry *rumble_stream_key_entry_ptr = nullptr;
         Entry *kick_stream_url_entry_ptr = nullptr;
         Entry *kick_stream_key_entry_ptr = nullptr;
+        Entry *whip_stream_url_entry_ptr = nullptr;
+        Entry *whip_stream_bearer_token_entry_ptr = nullptr;
         Entry *stream_url_entry_ptr = nullptr;
         Entry *stream_key_entry_ptr = nullptr;
         Entry *replay_time_entry_ptr = nullptr;

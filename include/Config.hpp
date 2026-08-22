@@ -111,6 +111,11 @@ namespace gsr {
         std::string container = "flv";
     };
 
+    struct WhipStreamConfig {
+        std::string url;
+        std::string bearer_token;
+    };
+
     struct StreamingConfig {
         RecordOptions record_options;
         std::string streaming_service = "twitch";
@@ -118,6 +123,7 @@ namespace gsr {
         TwitchStreamConfig twitch;
         RumbleStreamConfig rumble;
         KickStreamConfig kick;
+        WhipStreamConfig whip;
         CustomStreamConfig custom;
         ConfigHotkey start_stop_hotkey;
     };

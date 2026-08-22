@@ -222,6 +222,8 @@ namespace gsr {
             {"streaming.rumble.key", &config.streaming_config.rumble.stream_key},
             {"streaming.kick.url", &config.streaming_config.kick.stream_url},
             {"streaming.kick.key", &config.streaming_config.kick.stream_key},
+            {"streaming.whip.url", &config.streaming_config.whip.url},
+            {"streaming.whip.bearer_token", &config.streaming_config.whip.bearer_token},
             {"streaming.custom.url", &config.streaming_config.custom.url},
             {"streaming.custom.key", &config.streaming_config.custom.key},
             {"streaming.custom.container", &config.streaming_config.custom.container},

@@ -32,6 +32,10 @@ namespace gsr {
         bool png = false;
     };
 
+    struct SupportedContainers {
+        bool whip = false;
+    };
+
     enum GsrCameraPixelFormat {
         YUYV,
         MJPEG
@@ -109,6 +113,7 @@ namespace gsr {
         GpuInfo gpu_info;
         SupportedVideoCodecs supported_video_codecs;
         SupportedImageFormats supported_image_formats;
+        SupportedContainers supported_containers;
     };
 
     enum class GsrInfoExitStatus {

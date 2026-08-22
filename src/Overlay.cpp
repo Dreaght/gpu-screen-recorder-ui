@@ -2989,6 +2989,10 @@ namespace gsr {
     }
 
     static const char* change_container_if_codec_not_supported(const char *video_codec, const char *container) {
+        // gpu-screen-recorder falls back to a whip (webrtc) compatible video codec automatically
+        if(strcmp(container, "whip") == 0)
+            return container;
+
         if(strcmp(video_codec, "vp8") == 0 || strcmp(video_codec, "vp9") == 0) {
             if(strcmp(container, "webm") != 0 && strcmp(container, "matroska") != 0) {
                 fprintf(stderr, "Warning: container '%s' is not compatible with video codec '%s', using webm container instead\n", container, video_codec);
@@ -3489,6 +3493,42 @@ namespace gsr {
         recording_duration_clock.restart();
     }
 
+    static bool host_is_numeric_ipv4(const std::string &host) {
+        if(host.empty())
+            return false;
+
+        for(char c : host) {
+            if((c < '0' || c > '9') && c != '.')
+                return false;
+        }
+        return true;
+    }
+
+    /* |url| is expected to not have a scheme (http:// or https://) prefix */
+    static bool url_is_local_address(const std::string &url) {
+        // The authority is everything before the first path/query/fragment separator
+        std::string authority = url;
+        const size_t path_index = authority.find_first_of("/?#");
+        if(path_index != std::string::npos)
+            authority = authority.substr(0, path_index);
+
+        // Reject userinfo: in "localhost:@example.com/x" the real host is example.com (everything before the '@' is userinfo).
+        // Whip endpoint urls never contain userinfo
+        if(authority.find('@') != std::string::npos)
+            return false;
+
+        if(strncmp(authority.c_str(), "[::1]", 5) == 0)
+            return authority.size() == 5 || authority[5] == ':';
+
+        std::string host = authority;
+        const size_t port_index = host.find(':');
+        if(port_index != std::string::npos)
+            host = host.substr(0, port_index);
+
+        // The numeric check makes sure a hostname such as 127.malicious.example doesn't pass as a loopback address
+        return host == "localhost" || (host_is_numeric_ipv4(host) && strncmp(host.c_str(), "127.", 4) == 0);
+    }
+
     static std::string streaming_get_url(const Config &config) {
         std::string url;
         fprintf(stderr, "streaming service: %s\n", config.streaming_config.streaming_service.c_str());
@@ -3507,6 +3547,14 @@ namespace gsr {
                 url += "/";
             url += "app/";
             url += config.streaming_config.kick.stream_key;
+        } else if(config.streaming_config.streaming_service == "whip") {
+            url = config.streaming_config.whip.url;
+            if(url.size() >= 7 && strncmp(url.c_str(), "http://", 7) == 0)
+            {}
+            else if(url.size() >= 8 && strncmp(url.c_str(), "https://", 8) == 0)
+            {}
+            else if(url_is_local_address(url))
+                url = "http://" + url;
         } else if(config.streaming_config.streaming_service == "custom") {
             url = config.streaming_config.custom.url;
             if(url.size() >= 7 && strncmp(url.c_str(), "rtmp://", 7) == 0)
@@ -3602,6 +3650,27 @@ namespace gsr {
             return;
         }
 
+        if(config.streaming_config.streaming_service == "whip") {
+            if(!gsr_info.supported_containers.whip) {
+                show_notification(TR("Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
+                return;
+            }
+
+            const std::string &whip_url = config.streaming_config.whip.url;
+            if(whip_url.empty()) {
+                show_notification(TR("Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
+                return;
+            }
+
+            const bool has_scheme = (whip_url.size() >= 7 && strncmp(whip_url.c_str(), "http://", 7) == 0) || (whip_url.size() >= 8 && strncmp(whip_url.c_str(), "https://", 8) == 0);
+            // Dont assume a scheme for remote hosts. Assuming https:// breaks plain http servers (like mediamtx on a lan machine)
+            // while assuming http:// would silently send the bearer token unencrypted
+            if(!has_scheme && !url_is_local_address(whip_url)) {
+                show_notification(TR("Failed to start streaming, the WHIP stream URL should start with http:// or https://"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
+                return;
+            }
+        }
+
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.streaming_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.streaming_config.record_options.video_bitrate);
@@ -3614,6 +3683,8 @@ namespace gsr {
         const char *container = "flv";
         if(config.streaming_config.streaming_service == "custom")
             container = config.streaming_config.custom.container.c_str();
+        else if(config.streaming_config.streaming_service == "whip")
+            container = "whip";
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
         choose_video_codec_and_container_with_fallback(gsr_info, config.streaming_config.record_options, &video_codec, &container, &encoder);
@@ -3622,7 +3693,14 @@ namespace gsr {
         if(config.streaming_config.streaming_service == "rumble" || config.streaming_config.streaming_service == "kick") {
             fprintf(stderr, "Info: forcing video codec to h264 as rumble/kick supports only h264\n");
             video_codec = "h264"; // TODO: Vulkan
+        } else if(config.streaming_config.streaming_service == "whip") {
+            fprintf(stderr, "Info: forcing video codec to h264 as whip (webrtc) in ffmpeg supports only h264\n");
+            video_codec = "h264"; // TODO: Vulkan
         }
+
+        const char *audio_codec = config.streaming_config.record_options.audio_codec.c_str();
+        if(config.streaming_config.streaming_service == "whip")
+            audio_codec = "opus"; // Whip (webrtc) only supports the opus audio codec
 
         char size[64];
         size[0] = '\0';
@@ -3637,7 +3715,7 @@ namespace gsr {
         std::vector<const char*> args = {
             "gpu-screen-recorder", "-w", capture_source_arg.c_str(),
             "-c", container,
-            "-ac", config.streaming_config.record_options.audio_codec.c_str(),
+            "-ac", audio_codec,
             "-cursor", config.streaming_config.record_options.record_cursor ? "yes" : "no",
             "-cr", config.streaming_config.record_options.color_range.c_str(),
             "-fm", framerate_mode.c_str(),
@@ -3658,7 +3736,18 @@ namespace gsr {
 
         current_recording_config = config;
 
+        // The bearer token is passed to gpu-screen-recorder in an environment variable instead of as a command line argument
+        // to make sure the token isn't visible to other processes in the process list.
+        // It's set before exec_program so the child inherits it and it's removed from this process again right after
+        const bool pass_whip_token = config.streaming_config.streaming_service == "whip" && !config.streaming_config.whip.bearer_token.empty();
+        if(pass_whip_token)
+            setenv("GSR_AUTH", config.streaming_config.whip.bearer_token.c_str(), 1);
+
         gpu_screen_recorder_process = exec_program(args.data(), &gpu_screen_recorder_process_output_fd);
+
+        if(pass_whip_token)
+            unsetenv("GSR_AUTH");
+
         if(gpu_screen_recorder_process == -1) {
             show_notification(TR("Failed to launch gpu-screen-recorder to start streaming"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::STREAM, nullptr, NotificationLevel::ERROR);
             return;

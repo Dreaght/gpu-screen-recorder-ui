@@ -70,6 +70,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=
@@ -426,8 +429,10 @@ Twitch=
 YouTube=
 Kick=
 Rumble=
+WHIP=
 Custom=
 Stream URL:=
 Stream key:=
+Bearer token (optional):=
 Streaming info=
 Streaming indicator=
