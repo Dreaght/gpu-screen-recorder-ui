@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Не удалось начать запись, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Не удалось начать трансляцию, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Не удалось сделать снимок экрана, цель захвата "%s" недействительна. Пожалуйста, измените цель захвата в настройках
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Не удалось начать трансляцию, для WHIP-трансляции требуется GPU Screen Recorder, собранный с FFmpeg 8.0 или новее
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Не удалось начать трансляцию, URL WHIP-трансляции пуст. Пожалуйста, укажите URL трансляции в настройках
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Не удалось начать трансляцию, URL WHIP-трансляции должен начинаться с http:// или https://
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=Невозможно начать запись при включённом повторе. Выключите повтор перед началом записи.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Невозможно начать трансляцию при включённом повторе. Выключите повтор перед началом трансляции.
@@ -412,8 +415,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Другое
 Stream URL:=URL трансляции:
 Stream key:=Ключ трансляции:
+Bearer token (optional):=Bearer-токен (необязательно):
 Streaming info=Информация о трансляции
 Streaming indicator=Индикатор трансляции

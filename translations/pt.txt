@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Falha ao iniciar a gravação, alvo de captura "%s" é inválido. Por favor, mude o alvo de captura nas configurações.
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Falha ao iniciar a transmissão, alvo de captura "%s" é inválido. Por favor, mude o alvo de captura nas configurações.
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Falha ao capturar a tela, alvo de captura "%s" é inválido. Por favor, mude o alvo de captura nas configurações.
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Falha ao iniciar a transmissão, a transmissão WHIP requer o GPU Screen Recorder compilado com FFmpeg 8.0 ou posterior.
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Falha ao iniciar a transmissão, a URL da transmissão WHIP está vazia. Por favor, defina uma URL de transmissão nas configurações.
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Falha ao iniciar a transmissão, a URL da transmissão WHIP deve começar com http:// ou https://.
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=Incapaz de iniciar a gravação enquanto replay está ligado. Desligue o replay antes de começar a gravar.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Incapaz de iniciar a transmissão enquanto replay está ligado. Desligue o replay antes de começar a transmitir.
@@ -421,8 +424,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Personalizado
 Stream URL:=URL da transmissão:
 Stream key:=Chave da transmissão:
+Bearer token (optional):=Token bearer (opcional):
 Streaming info=Informações da transmissão
 Streaming indicator=Indicador da transmissão

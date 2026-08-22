@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Konnte Aufnahme nicht starten, Aufnahmeziel „%s“ ist ungültig. Bitte das Aufnahmeziel in den Einstellungen ändern
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Konnte Stream nicht starten, Aufnahmeziel „%s“ ist ungültig. Bitte das Aufnahmeziel in den Einstellungen ändern
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Konnte Bildschirmfoto nicht aufnehmen, Aufnahmeziel „%s“ ist ungültig. Bitte das Aufnahmeziel in den Einstellungen ändern
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Konnte Stream nicht starten, WHIP-Streaming benötigt GPU Screen Recorder, das mit FFmpeg 8.0 oder neuer gebaut wurde
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Konnte Stream nicht starten, die WHIP-Stream-URL ist leer. Bitte eine Stream-URL in den Einstellungen festlegen
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Konnte Stream nicht starten, die WHIP-Stream-URL muss mit http:// oder https:// beginnen
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=Kann Aufnahme nicht starten, während Replay angeschaltet ist. Schalte Replay vor Start der Aufnahme aus.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Kann Stream nicht starten, während Replay angeschaltet ist. Schalte Replay vor Start des Streams aus.
@@ -421,8 +424,10 @@ Twitch=Twitch
 YouTube=Youtube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Benutzerdef.
 Stream URL:=Stream-URL:
 Stream key:=Stream-Schlüssel:
+Bearer token (optional):=Bearer-Token (optional):
 Streaming info=Streaming-Informationen
 Streaming indicator=Streaming-Anzeige

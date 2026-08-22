@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=无法开始录制，捕获目标 "%s" 无效。请在设置中更改捕获目标。
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=无法开始直播，捕获目标 "%s" 无效。请在设置中更改捕获目标。
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=无法截图，捕获目标 "%s" 无效。请在设置中更改捕获目标。
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=无法开始直播，WHIP 直播需要使用 FFmpeg 8.0 或更高版本编译的 GPU Screen Recorder。
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=无法开始直播，WHIP 直播 URL 为空。请在设置中填写直播 URL。
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=无法开始直播，WHIP 直播 URL 必须以 http:// 或 https:// 开头。
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=开启回放时无法开始录制。请先关闭回放再开始录制。
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=开启回放时无法开始直播。请先关闭回放再开始直播。
@@ -410,8 +413,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=自定义
 Stream URL:=直播URL：
 Stream key:=直播密钥：
+Bearer token (optional):=Bearer 令牌（可选）：
 Streaming info=直播信息
 Streaming indicator=直播指示器

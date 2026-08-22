@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=録画を開始できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=配信を開始できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=スクリーンショットを取得できません キャプチャ対象 "%s" が無効です 設定でキャプチャ対象を変更してください
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=配信を開始できません WHIP 配信には FFmpeg 8.0 以降でビルドされた GPU Screen Recorder が必要です
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=配信を開始できません WHIP 配信 URL が空です 設定で配信 URL を指定してください
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=配信を開始できません WHIP 配信 URL は http:// または https:// で始まる必要があります
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=リプレイがオンの間は録画を開始できません 録画前にリプレイをオフにしてください
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=リプレイがオンの間は配信を開始できません 配信前にリプレイをオフにしてください
@@ -422,8 +425,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=カスタム
 Stream URL:=配信 URL:
 Stream key:=ストリームキー:
+Bearer token (optional):=ベアラートークン (任意):
 Streaming info=配信情報
 Streaming indicator=配信インジケータ

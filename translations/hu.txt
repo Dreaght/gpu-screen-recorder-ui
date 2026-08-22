@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a felvételt, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült elindítani a közvetítést, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Nem sikerült a képernyőkép elkészítése, a rögzítési cél "%s" érvénytelen. Módosítsd a rögzítési célt a beállításokban.
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Nem sikerült elindítani a közvetítést, a WHIP közvetítéshez FFmpeg 8.0 vagy újabb verzióval fordított GPU Screen Recorder szükséges.
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Nem sikerült elindítani a közvetítést, a WHIP közvetítési URL üres. Állíts be egy közvetítési URL-t a beállításokban.
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Nem sikerült elindítani a közvetítést, a WHIP közvetítési URL-nek http:// vagy https:// előtaggal kell kezdődnie.
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=Nem lehet felvételt indítani, ha a visszajátszás be van kapcsolva. A felvétel előtt kapcsold ki a visszajátszást.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Nem lehet közvetítést indítani, ha a visszajátszás be van kapcsolva. A közvetítés előtt kapcsold ki a visszajátszást.
@@ -410,8 +413,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Egyéni
 Stream URL:=Közvetítési URL:
 Stream key:=Közvetítési kulcs:
+Bearer token (optional):=Bearer token (opcionális):
 Streaming info=Közvetítési információk
 Streaming indicator=Közvetítés-jelző

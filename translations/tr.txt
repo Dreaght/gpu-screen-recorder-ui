@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Kayıt başlatılamadı, yakalama hedefi "%s" geçersiz. Lütfen ayarlardan yakalama hedefini değiştirin
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Yayın başlatılamadı, yakalama hedefi "%s" geçersiz. Lütfen ayarlardan yakalama hedefini değiştirin
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Ekran görüntüsü alınamadı, yakalama hedefi "%s" geçersiz. Lütfen ayarlardan yakalama hedefini değiştirin
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Yayın başlatılamadı, WHIP yayını FFmpeg 8.0 veya sonrasıyla derlenmiş GPU Screen Recorder gerektirir
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Yayın başlatılamadı, WHIP yayın URL'si boş. Lütfen ayarlardan bir yayın URL'si belirleyin
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Yayın başlatılamadı, WHIP yayın URL'si http:// veya https:// ile başlamalıdır
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=Yeniden oynatma açıkken kayıt başlatılamıyor. Kayda başlamadan önce yeniden oynatmayı kapatın.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Yeniden oynatma açıkken yayın başlatılamıyor. Yayına başlamadan önce yeniden oynatmayı kapatın.
@@ -406,8 +409,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Özel
 Stream URL:=Yayın URL'si:
 Stream key:=Yayın anahtarı:
+Bearer token (optional):=Bearer token (isteğe bağlı):
 Streaming info=Yayın bilgisi
 Streaming indicator=Yayın göstergesi

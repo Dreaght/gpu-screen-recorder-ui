@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Échec du démarrage de l’enregistrement, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Échec du démarrage de la diffusion, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Échec de la capture d’écran, la cible "%s" est invalide. Veuillez modifier la cible dans les paramètres.
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Échec du démarrage de la diffusion, la diffusion WHIP nécessite GPU Screen Recorder compilé avec FFmpeg 8.0 ou ultérieur.
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Échec du démarrage de la diffusion, l'URL du flux WHIP est vide. Veuillez définir une URL de flux dans les paramètres.
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Échec du démarrage de la diffusion, l'URL du flux WHIP doit commencer par http:// ou https://.
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=Impossible de démarrer l’enregistrement lorsque le replay est activé. Désactivez le replay avant de commencer l’enregistrement.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=Impossible de démarrer la diffusion lorsque le replay est activé. Désactivez le replay avant de commencer la diffusion.
@@ -420,8 +423,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Personnalisé
 Stream URL:=URL du flux :
 Stream key:=Clé de diffusion :
+Bearer token (optional):=Jeton Bearer (optionnel) :
 Streaming info=Infos diffusion
 Streaming indicator=Indicateur de diffusion

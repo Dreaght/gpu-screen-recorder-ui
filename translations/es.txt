@@ -65,6 +65,9 @@ Failed to start replay, capture target "%s" is invalid. Please change capture ta
 Failed to start recording, capture target "%s" is invalid. Please change capture target in settings=Fallo al iniciar la grabación, el objetivo de captura "%s" es inválido. Por favor, cambia el objetivo de captura en los ajustes
 Failed to start streaming, capture target "%s" is invalid. Please change capture target in settings=Fallo al iniciar la transmisión, el objetivo de captura "%s" es inválido. Por favor, cambia el objetivo de captura en los ajustes
 Failed to take a screenshot, capture target "%s" is invalid. Please change capture target in settings=Fallo al tomar la captura de pantalla, el objetivo de captura "%s" es inválido. Por favor, cambia el objetivo de captura en los ajustes
+Failed to start streaming, WHIP streaming requires GPU Screen Recorder built with FFmpeg 8.0 or later=Fallo al iniciar la transmisión, la transmisión WHIP requiere GPU Screen Recorder compilado con FFmpeg 8.0 o posterior
+Failed to start streaming, the WHIP stream URL is empty. Please set a stream URL in settings=Fallo al iniciar la transmisión, la URL de la transmisión WHIP está vacía. Por favor, establece una URL de transmisión en los ajustes
+Failed to start streaming, the WHIP stream URL should start with http:// or https://=Fallo al iniciar la transmisión, la URL de la transmisión WHIP debe empezar por http:// o https://
 
 Unable to start recording when replay is turned on. Turn off replay before starting recording.=No se puede grabar cuando la repetición está activada. Apaga la repetición antes de empezar a grabar.
 Unable to start streaming when replay is turned on. Turn off replay before starting streaming.=No se puede transmitir cuando la repetición está activada. Apaga la repetición antes de empezar a transmitir.
@@ -410,8 +413,10 @@ Twitch=Twitch
 YouTube=YouTube
 Kick=Kick
 Rumble=Rumble
+WHIP=WHIP
 Custom=Personalizado
 Stream URL:=URL de la transmisión
 Stream key:=Clave de transmisión
+Bearer token (optional):=Token bearer (opcional):
 Streaming info=Información de transmisión
 Streaming indicator=Indicador de transmisión
