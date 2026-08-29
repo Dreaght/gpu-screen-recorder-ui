@@ -63,7 +63,7 @@ export default class GsrFocusedWindowExtension extends Extension {
     }
 
     _onFocusChanged() {
-        const window = this._display ? this._display.focus_window : null;
+        const window = this._resolveReportedWindow();
 
         if (window !== this._currentWindow) {
             this._unsubscribeWindow();
@@ -72,6 +72,7 @@ export default class GsrFocusedWindowExtension extends Extension {
                 this._windowSignals.push(window.connect('notify::title', () => this._emitUpdate()));
                 this._windowSignals.push(window.connect('notify::fullscreen', () => this._emitUpdate()));
                 this._windowSignals.push(window.connect('position-changed', () => this._emitUpdate()));
+                this._windowSignals.push(window.connect('unmanaged', () => this._onFocusChanged()));
             }
         }
         this._emitUpdate();
@@ -86,6 +87,22 @@ export default class GsrFocusedWindowExtension extends Extension {
         return false;
     }
 
+    _isReportableWindow(window) {
+        return !!window && !this._shouldIgnoreWindow(window) && window.window_type === Meta.WindowType.NORMAL;
+    }
+
+    _resolveReportedWindow() {
+        const focused = this._display ? this._display.focus_window : null;
+        if (!focused || !this._shouldIgnoreWindow(focused))
+            return this._isReportableWindow(focused) ? focused : null;
+
+        for (const window of this._display.get_tab_list(Meta.TabList.NORMAL, null)) {
+            if (this._isReportableWindow(window))
+                return window;
+        }
+        return null;
+    }
+
     _emitUpdate() {
         const window = this._currentWindow;
 
@@ -93,7 +110,7 @@ export default class GsrFocusedWindowExtension extends Extension {
         let fullscreen = false;
         let monitor = '';
 
-        if (window && !this._shouldIgnoreWindow(window) && window.window_type === Meta.WindowType.NORMAL) {
+        if (this._isReportableWindow(window)) {
             title = window.get_title() || '';
             fullscreen = window.is_fullscreen();
         }

@@ -95,7 +95,7 @@ namespace gsr {
 
         std::string focused_window_title = get_window_name_at_cursor_position(x11_dpy, "gsr-ui");
         if(focused_window_title.empty())
-            focused_window_title = get_focused_window_name(x11_dpy, WindowCaptureType::FOCUSED, false);
+            focused_window_title = get_focused_window_name(x11_dpy, WindowCaptureType::FOCUSED, false, "gsr-ui");
 
         return focused_window_title;
     }

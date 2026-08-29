@@ -474,21 +474,12 @@ namespace gsr {
         return result;
     }
 
-    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused) {
+    static std::string get_window_class_name(Display *dpy, Window window) {
         std::string result;
-        const Window focused_window = get_focused_window(dpy, window_capture_type, fallback_cursor_focused);
-        if(focused_window == None)
-            return result;
-
-        // Window title is not always ideal (for example for a browser), but for games its pretty much required
-        const std::optional<std::string> window_title = get_window_title(dpy, focused_window);
-        if(window_title) {
-            result = strip(window_title.value());
-            return result;
-        }
-
         XClassHint class_hint = {nullptr, nullptr};
-        XGetClassHint(dpy, focused_window, &class_hint);
+        if(!XGetClassHint(dpy, window, &class_hint))
+            return result;
+
         if(class_hint.res_class)
             result = strip(class_hint.res_class);
 
@@ -501,7 +492,32 @@ namespace gsr {
         return result;
     }
 
-    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, std::string_view ignore_window_title) {
+    static bool window_class_is_ignored(Display *dpy, Window window, std::string_view ignore_window_class) {
+        return !ignore_window_class.empty() && get_window_class_name(dpy, window) == ignore_window_class;
+    }
+
+    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused, std::string_view ignore_window_class) {
+        std::string result;
+        const Window focused_window = get_focused_window(dpy, window_capture_type, fallback_cursor_focused);
+        if(focused_window == None)
+            return result;
+
+        const std::string window_class_name = get_window_class_name(dpy, focused_window);
+        if(!ignore_window_class.empty() && window_class_name == ignore_window_class)
+            return result;
+
+        // Window title is not always ideal (for example for a browser), but for games its pretty much required
+        const std::optional<std::string> window_title = get_window_title(dpy, focused_window);
+        if(window_title) {
+            result = strip(window_title.value());
+            return result;
+        }
+
+        result = window_class_name;
+        return result;
+    }
+
+    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, std::string_view ignore_window_class) {
         std::string result;
 
         Window root;
@@ -512,7 +528,7 @@ namespace gsr {
             return result;
 
         for(int i = (int)num_children - 1; i >= 0; --i) {
-            if(get_window_title(dpy, children[i]) == ignore_window_title)
+            if(window_class_is_ignored(dpy, children[i], ignore_window_class))
                 continue;
 
             XWindowAttributes attr;
@@ -523,10 +539,10 @@ namespace gsr {
 
             if(position.x >= attr.x && position.x <= attr.x + attr.width && position.y >= attr.y && position.y <= attr.y + attr.height) {
                 const Window real_window = window_get_target_window_child(dpy, children[i]);
-                const std::optional<std::string> window_title = get_window_title(dpy, real_window);
-                if(!real_window || window_title == ignore_window_title)
+                if(!real_window || window_class_is_ignored(dpy, real_window, ignore_window_class))
                     continue;
 
+                const std::optional<std::string> window_title = get_window_title(dpy, real_window);
                 if(window_title)
                     result = strip(window_title.value());
 
@@ -538,10 +554,10 @@ namespace gsr {
         return result;
     }
 
-    std::string get_window_name_at_cursor_position(Display *dpy, std::string_view ignore_window_title) {
+    std::string get_window_name_at_cursor_position(Display *dpy, std::string_view ignore_window_class) {
         Window cursor_window;
         const mgl::vec2i cursor_position = get_cursor_position(dpy, &cursor_window);
-        return get_window_name_at_position(dpy, cursor_position, ignore_window_title);
+        return get_window_name_at_position(dpy, cursor_position, ignore_window_class);
     }
 
     void set_window_size_not_resizable(Display *dpy, Window window, int width, int height) {
