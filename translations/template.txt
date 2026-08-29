@@ -284,6 +284,7 @@ Directory to save screenshots:=
 Image format:=
 
 Save screenshot in a folder based on the games name=
+Name the screenshot file after the game%s=
 
 Save screenshot to clipboard=
 Save screenshot to clipboard (Not supported properly by Wayland)=
@@ -335,6 +336,7 @@ Application:     =
 Custom...=
 
 Save video in a folder based on the games name%s=
+Name the video file after the game%s=
  (X11 applications only)=
 
 Add audio track=

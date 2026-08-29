@@ -266,6 +266,7 @@ Directory to save screenshots:=Ekran görüntülerinin kaydedileceği dizin:
 Image format:=Görüntü biçimi:
 
 Save screenshot in a folder based on the games name=Ekran görüntüsünü oyunun adına göre bir klasöre kaydet
+Name the screenshot file after the game%s=Ekran görüntüsü dosyasını oyunun adına göre adlandır%s
 
 Save screenshot to clipboard=Ekran görüntüsünü panoya kaydet
 Save screenshot to clipboard (Not supported properly by Wayland)=Ekran görüntüsünü panoya kaydet (Wayland tarafından tam desteklenmez)
@@ -315,6 +316,7 @@ Application:     =Uygulama:
 Custom...=Özel...
 
 Save video in a folder based on the games name%s=Videoyu oyunun adına göre bir klasöre kaydet%s
+Name the video file after the game%s=Video dosyasını oyunun adına göre adlandır%s
  (X11 applications only)= (Yalnızca X11 uygulamaları)
 
 Add audio track=Ses kanalı ekle

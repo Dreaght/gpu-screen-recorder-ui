@@ -278,6 +278,7 @@ Directory to save screenshots:=Répertoire de sauvegarde des captures :
 Image format:=Format de l’image :
 
 Save screenshot in a folder based on the games name=Enregistrer la capture dans un dossier nommé selon le jeu
+Name the screenshot file after the game%s=Nommer le fichier de capture selon le jeu%s
 
 Save screenshot to clipboard=Copier la capture dans le presse-papiers
 Save screenshot to clipboard (Not supported properly by Wayland)=Copier la capture dans le presse-papiers (non pleinement supporté par Wayland)
@@ -329,6 +330,7 @@ Application: =Application :
 Custom...=Personnalisé...
 
 Save video in a folder based on the games name%s=Enregistrer la vidéo dans un dossier nommé selon le jeu %s
+Name the video file after the game%s=Nommer le fichier vidéo selon le jeu%s
 (X11 applications only)=(Applications X11 uniquement)
 
 Add audio track=Ajouter une piste audio

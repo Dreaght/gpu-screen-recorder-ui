@@ -249,5 +249,3 @@ Add simple video cutting in the ui.
 Add a button to listen to microphone device so that we can hear how loud it will be in the video, and also option to set microphone volume.
 
 mgl support dynamically select x11 or wayland when creating a window. That would make the ui work on COSMIC, but using wlr-layer-shell normally and X11 when a fullscreen x11 application has focused.
-
-Add the option to name a video/replay to the game name by replacing Video_ or Replay_ with the game name. Also limit game name to 200 characters for both file name and directory name, since it needs to append date and file extension.

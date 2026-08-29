@@ -223,9 +223,17 @@ namespace gsr {
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_in_game_folder() {
         char text[256];
-        snprintf(text, sizeof(text), "%s%s", TR("Save screenshot in a folder based on the games name"), supports_window_title ? "" : " (X11 applications only)");
+        snprintf(text, sizeof(text), "%s%s", TR("Save screenshot in a folder based on the games name"), supports_window_title ? "" : TR(" (X11 applications only)"));
         auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
         save_screenshot_in_game_folder_checkbox_ptr = checkbox.get();
+        return checkbox;
+    }
+
+    std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_name_screenshot_file_after_game() {
+        char text[256];
+        snprintf(text, sizeof(text), TR("Name the screenshot file after the game%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
+        name_screenshot_file_after_game_checkbox_ptr = checkbox.get();
         return checkbox;
     }
 
@@ -259,6 +267,7 @@ namespace gsr {
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_general_section() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
         list->add_widget(create_save_screenshot_in_game_folder());
+        list->add_widget(create_name_screenshot_file_after_game());
         list->add_widget(create_save_screenshot_to_clipboard());
         list->add_widget(create_save_screenshot_to_disk());
         return std::make_unique<Subsection>(TR("General"), std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
@@ -348,6 +357,7 @@ namespace gsr {
         restore_portal_session_checkbox_ptr->set_checked(config.screenshot_config.restore_portal_session);
         save_directory_button_ptr->set_text(config.screenshot_config.save_directory);
         save_screenshot_in_game_folder_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_in_game_folder);
+        name_screenshot_file_after_game_checkbox_ptr->set_checked(config.screenshot_config.name_screenshot_file_after_game);
         save_screenshot_to_clipboard_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_clipboard);
         save_screenshot_to_disk_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_disk);
         show_notification_checkbox_ptr->set_checked(config.screenshot_config.show_notifications);
@@ -383,6 +393,7 @@ namespace gsr {
         config.screenshot_config.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
         config.screenshot_config.save_screenshot_in_game_folder = save_screenshot_in_game_folder_checkbox_ptr->is_checked();
+        config.screenshot_config.name_screenshot_file_after_game = name_screenshot_file_after_game_checkbox_ptr->is_checked();
         config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
         config.screenshot_config.save_screenshot_to_disk = save_screenshot_to_disk_checkbox_ptr->is_checked();
         config.screenshot_config.show_notifications = show_notification_checkbox_ptr->is_checked();

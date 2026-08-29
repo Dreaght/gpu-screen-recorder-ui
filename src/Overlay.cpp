@@ -1899,6 +1899,39 @@ namespace gsr {
         }
     }
 
+    static const size_t max_game_name_size_bytes = 200;
+
+    static void truncate_string_bytes(std::string &str, size_t max_size_bytes) {
+        if(str.size() <= max_size_bytes)
+            return;
+
+        size_t byte_index = 0;
+        while(byte_index < str.size()) {
+            uint32_t codepoint = 0;
+            size_t codepoint_length = 0;
+            mgl::utf8_decode((const unsigned char*)str.c_str() + byte_index, str.size() - byte_index, &codepoint, &codepoint_length);
+            if(codepoint_length == 0)
+                codepoint_length = 1;
+
+            if(byte_index + codepoint_length > max_size_bytes)
+                break;
+
+            byte_index += codepoint_length;
+        }
+
+        str.erase(byte_index);
+    }
+
+    static const char* get_filename_game_name_suffix(const std::string &filename) {
+        static const char *prefixes[] = { "Video", "Replay", "Screenshot" };
+        for(const char *prefix : prefixes) {
+            const size_t prefix_size = strlen(prefix);
+            if(filename.size() > prefix_size && filename.compare(0, prefix_size, prefix) == 0 && filename[prefix_size] == '_')
+                return filename.c_str() + prefix_size;
+        }
+        return nullptr;
+    }
+
     static bool is_hex_num(char c) {
         return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
     }
@@ -2232,9 +2265,7 @@ namespace gsr {
         return Clipboard::FileType::PNG;
     }
 
-    void Overlay::save_video_in_current_game_directory(std::string &video_filepath, NotificationType notification_type) {
-        const std::string video_filename = filepath_get_filename(video_filepath.c_str());
-
+    std::string Overlay::get_current_game_name() {
         std::string focused_window_name = desktop_environment->get_focused_window_title();
         if(focused_window_name.empty())
             focused_window_name = "Game";
@@ -2242,6 +2273,27 @@ namespace gsr {
         focused_window_name = window_title_utf8_sanitize(focused_window_name.c_str(), focused_window_name.size());
         focused_window_name = strip(focused_window_name);
         string_replace_characters(focused_window_name.data(), "/\\", ' ');
+        truncate_string_bytes(focused_window_name, max_game_name_size_bytes);
+        focused_window_name = strip(focused_window_name);
+        if(focused_window_name.empty())
+            focused_window_name = "Game";
+        return focused_window_name;
+    }
+
+    void Overlay::rename_file_to_game_name(std::string &filepath, const std::string &game_name) {
+        const std::string filename = filepath_get_filename(filepath.c_str());
+        const char *filename_suffix = get_filename_game_name_suffix(filename);
+        if(!filename_suffix)
+            return;
+
+        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + filename_suffix;
+        if(rename(filepath.c_str(), new_filepath.c_str()) == 0)
+            filepath = std::move(new_filepath);
+    }
+
+    void Overlay::save_video_in_current_game_directory(std::string &video_filepath, const std::string &game_name, NotificationType notification_type) {
+        const std::string video_filename = filepath_get_filename(video_filepath.c_str());
+        std::string focused_window_name = game_name;
 
         std::string video_directory = filepath_get_directory(video_filepath.c_str()) + "/" + focused_window_name;
         create_directory_recursive(video_directory.data());
@@ -2297,9 +2349,16 @@ namespace gsr {
     void Overlay::on_replay_saved(const char *replay_saved_filepath) {
         replay_save_show_notification = false;
 
+        std::string filepath = replay_saved_filepath;
+        std::string game_name;
+        if(config.replay_config.name_video_file_after_game || config.replay_config.save_video_in_game_folder)
+            game_name = get_current_game_name();
+
+        if(config.replay_config.name_video_file_after_game)
+            rename_file_to_game_name(filepath, game_name);
+
         if(config.replay_config.save_video_in_game_folder) {
-            std::string filepath = replay_saved_filepath;
-            save_video_in_current_game_directory(filepath, NotificationType::REPLAY);
+            save_video_in_current_game_directory(filepath, game_name, NotificationType::REPLAY);
         } else if(config.replay_config.record_options.show_notifications) {
             const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
 
@@ -2504,8 +2563,18 @@ namespace gsr {
             exit_code = WEXITSTATUS(status);
 
         if(exit_code == 0) {
-            if(config.screenshot_config.save_screenshot_in_game_folder && config.screenshot_config.save_screenshot_to_disk) {
-                save_video_in_current_game_directory(screenshot_filepath, NotificationType::SCREENSHOT);
+            const bool name_screenshot_after_game = config.screenshot_config.name_screenshot_file_after_game && config.screenshot_config.save_screenshot_to_disk;
+            const bool save_screenshot_in_game_folder = config.screenshot_config.save_screenshot_in_game_folder && config.screenshot_config.save_screenshot_to_disk;
+
+            std::string game_name;
+            if(name_screenshot_after_game || save_screenshot_in_game_folder)
+                game_name = get_current_game_name();
+
+            if(name_screenshot_after_game)
+                rename_file_to_game_name(screenshot_filepath, game_name);
+
+            if(save_screenshot_in_game_folder) {
+                save_video_in_current_game_directory(screenshot_filepath, game_name, NotificationType::SCREENSHOT);
             } else if(config.screenshot_config.show_notifications) {
                 char msg[512];
                 snprintf(msg, sizeof(msg), TR("Saved a screenshot of %s"), capture_target_get_notification_name(x11_dpy, screenshot_capture_target.c_str(), true).c_str());
@@ -2606,8 +2675,15 @@ namespace gsr {
             return;
 
         if(exit_code == 0) {
+            std::string game_name;
+            if(config.record_config.name_video_file_after_game || config.record_config.save_video_in_game_folder)
+                game_name = get_current_game_name();
+
+            if(config.record_config.name_video_file_after_game)
+                rename_file_to_game_name(video_filepath, game_name);
+
             if(config.record_config.save_video_in_game_folder) {
-                save_video_in_current_game_directory(video_filepath, NotificationType::RECORD);
+                save_video_in_current_game_directory(video_filepath, game_name, NotificationType::RECORD);
             } else if(config.record_config.record_options.show_notifications) {
                 const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
 

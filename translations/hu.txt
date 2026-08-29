@@ -268,6 +268,7 @@ Directory to save screenshots:=Képernyőképek mentési mappája:
 Image format:=Képformátum:
 
 Save screenshot in a folder based on the games name=Képernyőkép mentése a játék neve szerinti mappába
+Name the screenshot file after the game%s=Képernyőkép-fájl elnevezése a játék neve szerint%s
 
 Save screenshot to clipboard=Képernyőkép mentése vágólapra
 Save screenshot to clipboard (Not supported properly by Wayland)=Képernyőkép mentése vágólapra (Wayland alatt nem teljesen támogatott)
@@ -319,6 +320,7 @@ Application:     =Alkalmazás:
 Custom...=Egyéni...
 
 Save video in a folder based on the games name%s=Videó mentése a játék neve szerinti mappába%s
+Name the video file after the game%s=Videofájl elnevezése a játék neve szerint%s
  (X11 applications only)= (csak X11 alkalmazásoknál)
 
 Add audio track=Hangsáv hozzáadása

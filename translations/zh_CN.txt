@@ -268,6 +268,7 @@ Directory to save screenshots:=截图保存目录：
 Image format:=图像格式：
 
 Save screenshot in a folder based on the games name=将截图保存在以游戏名称命名的文件夹中
+Name the screenshot file after the game%s=以游戏名称命名截图文件%s
 
 Save screenshot to clipboard=保存截图到剪贴板
 Save screenshot to clipboard (Not supported properly by Wayland)=保存截图到剪贴板（Wayland 不完全支持）
@@ -319,6 +320,7 @@ Application:     =应用程序：
 Custom...=自定义...
 
 Save video in a folder based on the games name%s=将视频保存在以游戏名称命名的文件夹中%s
+Name the video file after the game%s=以游戏名称命名视频文件%s
  (X11 applications only)=（仅限 X11 应用程序）
 
 Add audio track=添加音轨

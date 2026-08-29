@@ -131,6 +131,7 @@ namespace gsr {
     struct RecordConfig {
         RecordOptions record_options;
         bool save_video_in_game_folder = false;
+        bool name_video_file_after_game = false;
         std::string save_directory;
         std::string container = "mp4";
         ConfigHotkey start_stop_hotkey;
@@ -143,6 +144,7 @@ namespace gsr {
         RecordOptions record_options;
         std::string turn_on_replay_automatically_mode = "dont_turn_on_automatically";
         bool save_video_in_game_folder = false;
+        bool name_video_file_after_game = false;
         bool restart_replay_on_save = false;
         bool only_start_replay_if_power_supply_connected = false;
         std::string save_directory;
@@ -166,6 +168,7 @@ namespace gsr {
         bool restore_portal_session = true;
 
         bool save_screenshot_in_game_folder = false;
+        bool name_screenshot_file_after_game = false;
         bool save_screenshot_to_clipboard = false;
         bool save_screenshot_to_disk = true;
         bool show_notifications = true;

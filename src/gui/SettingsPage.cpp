@@ -1267,6 +1267,14 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_name_replay_file_after_game() {
+        char text[256];
+        snprintf(text, sizeof(text), TR("Name the video file after the game%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
+        name_replay_file_after_game_ptr = checkbox.get();
+        return checkbox;
+    }
+
     std::unique_ptr<CheckBox> SettingsPage::create_restart_replay_on_save() {
         auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Restart replay on save"));
         restart_replay_on_save = checkbox.get();
@@ -1412,6 +1420,7 @@ namespace gsr {
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_replay_storage());
         general_list->add_widget(create_save_replay_in_game_folder());
+        general_list->add_widget(create_name_replay_file_after_game());
         general_list->add_widget(create_restart_replay_on_save());
         general_list->add_widget(create_low_power_mode());
 
@@ -1443,6 +1452,14 @@ namespace gsr {
         return checkbox;
     }
 
+    std::unique_ptr<CheckBox> SettingsPage::create_name_recording_file_after_game() {
+        char text[256];
+        snprintf(text, sizeof(text), TR("Name the video file after the game%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
+        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
+        name_recording_file_after_game_ptr = checkbox.get();
+        return checkbox;
+    }
+
     std::unique_ptr<Label> SettingsPage::create_estimated_record_file_size() {
         auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), "Estimated video file size per minute (excluding audio): 345.60MB", get_color_theme().text_color);
         estimated_file_size_ptr = label.get();
@@ -1470,6 +1487,7 @@ namespace gsr {
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
         general_list->add_widget(create_save_recording_in_game_folder());
+        general_list->add_widget(create_name_recording_file_after_game());
         general_list->add_widget(create_low_power_mode());
 
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
@@ -1883,6 +1901,7 @@ namespace gsr {
         replay_storage_button_ptr->set_selected_item(config.replay_config.replay_storage);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
         save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
+        name_replay_file_after_game_ptr->set_checked(config.replay_config.name_video_file_after_game);
         replay_power_supply_checkbox_ptr->set_checked(config.replay_config.only_start_replay_if_power_supply_connected);
         if(restart_replay_on_save)
             restart_replay_on_save->set_checked(config.replay_config.restart_replay_on_save);
@@ -1900,6 +1919,7 @@ namespace gsr {
     void SettingsPage::load_record() {
         load_common(config.record_config.record_options);
         save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
+        name_recording_file_after_game_ptr->set_checked(config.record_config.name_video_file_after_game);
         save_directory_button_ptr->set_text(config.record_config.save_directory);
         container_box_ptr->set_selected_item(config.record_config.container);
     }
@@ -2043,6 +2063,7 @@ namespace gsr {
         save_common(config.replay_config.record_options);
         config.replay_config.turn_on_replay_automatically_mode = turn_on_replay_automatically_mode_ptr->get_selected_id();
         config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
+        config.replay_config.name_video_file_after_game = name_replay_file_after_game_ptr->is_checked();
         config.replay_config.only_start_replay_if_power_supply_connected = replay_power_supply_checkbox_ptr->is_checked();
         if(restart_replay_on_save)
             config.replay_config.restart_replay_on_save = restart_replay_on_save->is_checked();
@@ -2060,6 +2081,7 @@ namespace gsr {
     void SettingsPage::save_record() {
         save_common(config.record_config.record_options);
         config.record_config.save_video_in_game_folder = save_recording_in_game_folder_ptr->is_checked();
+        config.record_config.name_video_file_after_game = name_recording_file_after_game_ptr->is_checked();
         config.record_config.save_directory = save_directory_button_ptr->get_text();
         config.record_config.container = container_box_ptr->get_selected_id();
     }

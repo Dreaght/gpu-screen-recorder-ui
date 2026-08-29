@@ -271,6 +271,7 @@ Directory to save screenshots:=Каталог для збереження зні
 Image format:=Формат зображення:
 
 Save screenshot in a folder based on the games name=Зберегти скріншот у папці на основі назви гри
+Name the screenshot file after the game%s=Називати файл скріншота за назвою гри%s
 
 Save screenshot to clipboard=Зберігати знімок до буфера обміну
 Save screenshot to clipboard (Not supported properly by Wayland)=Зберігати знімок до буфера обміну (в Wayland підтримується некоректно)
@@ -320,6 +321,7 @@ Application:     =Програма:
 Custom...=Інше...
 
 Save video in a folder based on the games name%s=Збереження відео в папці на основі назви гри%s
+Name the video file after the game%s=Називати файл відео за назвою гри%s
  (X11 applications only)= (лише X11-програми)
 
 Add audio track=Додати аудіодоріжку

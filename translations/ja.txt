@@ -280,6 +280,7 @@ Directory to save screenshots:=スクリーンショットの保存先:
 Image format:=画像形式:
 
 Save screenshot in a folder based on the games name=ゲーム名ベースのフォルダにスクリーンショットを保存
+Name the screenshot file after the game%s=スクリーンショットのファイル名をゲーム名にする%s
 
 Save screenshot to clipboard=スクリーンショットをクリップボードに保存
 Save screenshot to clipboard (Not supported properly by Wayland)=スクリーンショットをクリップボードに保存(Wayland では完全には対応していません)
@@ -331,6 +332,7 @@ Application:     =アプリケーション:
 Custom...=カスタム...
 
 Save video in a folder based on the games name%s=ゲーム名ベースのフォルダに動画を保存%s
+Name the video file after the game%s=動画ファイル名をゲーム名にする%s
  (X11 applications only)= (X11 アプリのみ)
 
 Add audio track=音声トラックを追加
