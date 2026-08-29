@@ -52,11 +52,13 @@ typedef struct {
     EnvVar steam_overlay_game_id;
     EnvVar steam_app_id;
     EnvVar steam_game_id;
-    EnvVar wineloader;
-    EnvVar wineloadernoexec;
     EnvVar steam_base_folder;
     EnvVar steam_compat_app_id;
     EnvVar umu_invocation_id;
+    EnvVar umu_id;
+    EnvVar heroic_app_name;
+    EnvVar lutris_game_uuid;
+    EnvVar portwine_exe;
 } EnvVars;
 
 static EnvVarNamed env_var_named_init(EnvVar *value, const char *name) {
@@ -123,11 +125,14 @@ static void read_environment_variables(const char *env, size_t env_size, EnvVars
         /* This is set for regular steam apps */
         env_var_named_init(&env_vars->steam_app_id, "SteamAppId"),
         env_var_named_init(&env_vars->steam_game_id, "SteamGameId"),
-        env_var_named_init(&env_vars->wineloader, "WINELOADER"),
-        env_var_named_init(&env_vars->wineloadernoexec, "WINELOADERNOEXEC"),
         env_var_named_init(&env_vars->steam_base_folder, "STEAM_BASE_FOLDER"),
         env_var_named_init(&env_vars->steam_compat_app_id, "STEAM_COMPAT_APP_ID"),
+        /* These are set by game launchers that run windows games with wine/proton */
         env_var_named_init(&env_vars->umu_invocation_id, "UMU_INVOCATION_ID"),
+        env_var_named_init(&env_vars->umu_id, "UMU_ID"),
+        env_var_named_init(&env_vars->heroic_app_name, "HEROIC_APP_NAME"),
+        env_var_named_init(&env_vars->lutris_game_uuid, "LUTRIS_GAME_UUID"),
+        env_var_named_init(&env_vars->portwine_exe, "portwine_exe"),
     };
 
     size_t index = 0;
@@ -180,13 +185,6 @@ static const char* process_get_basename(const char *argv0, size_t argv0_len, siz
     return base;
 }
 
-static bool is_wine_binary(const char *process_basename, size_t process_basename_len) {
-    return memeql(process_basename, process_basename_len, "wine") ||
-           memeql(process_basename, process_basename_len, "wine64") ||
-           memeql(process_basename, process_basename_len, "wine-preloader") ||
-           memeql(process_basename, process_basename_len, "wine64-preloader");
-}
-
 static bool is_wine_server(const char *process_basename, size_t process_basename_len) {
     return memeql(process_basename, process_basename_len, "wineserver");
 }
@@ -213,6 +211,24 @@ static bool is_blacklisted_application(const char *cmdline, size_t cmdline_len) 
     return false;
 }
 
+/* PortProton exports portwine_exe with an empty value in its launcher gui,
+   so an environment variable is only a marker when it has a value */
+static bool env_var_is_set(const EnvVar *env_var) {
+    return env_var->value && env_var->value_len > 0;
+}
+
+/* Windows applications are only considered games when started by a game launcher,
+   to not start replay for regular windows applications running under wine */
+static bool is_launched_by_game_launcher(const EnvVars *env_vars) {
+    return env_var_is_set(&env_vars->steam_overlay_game_id)
+        || env_var_is_set(&env_vars->steam_compat_app_id)
+        || env_var_is_set(&env_vars->umu_invocation_id)
+        || env_var_is_set(&env_vars->umu_id)
+        || env_var_is_set(&env_vars->heroic_app_name)
+        || env_var_is_set(&env_vars->lutris_game_uuid)
+        || env_var_is_set(&env_vars->portwine_exe);
+}
+
 static bool has_game_arch_suffix(const char *process_basename, size_t process_basename_len) {
     static const char *suffixes[] = { ".x86_64", ".x64", ".x86" };
     for (int i = 0; i < 3; i++) {
@@ -229,8 +245,6 @@ static void check_process(pid_t pid) {
     char    path[64];
     ssize_t env_n, cmd_n;
     bool is_steam_app = false;
-    /* Proton launched for a non-steam game has this while it doesn't have SteamAppId nor is the process called wine */
-    bool has_wine_env = false;
 
     snprintf(path, sizeof(path), "/proc/%d/environ", pid);
     env_n = read_file(path, environ_buf, sizeof(environ_buf));
@@ -246,8 +260,6 @@ static void check_process(pid_t pid) {
             return;
         }
 
-        has_wine_env = env_vars.wineloader.value;
-        has_wine_env = has_wine_env || env_vars.wineloadernoexec.value;
         is_steam_app = env_vars.steam_base_folder.value || env_vars.steam_compat_app_id.value != NULL;
     }
 
@@ -265,10 +277,8 @@ static void check_process(pid_t pid) {
     size_t process_basename_len = 0;
     const char *process_basename = process_get_basename(argv0, argv0_len, &process_basename_len);
 
-    if ((is_wine_binary(process_basename, process_basename_len)
+    if ((is_launched_by_game_launcher(&env_vars)
             || has_game_arch_suffix(process_basename, process_basename_len)
-            || has_wine_env
-            || env_vars.umu_invocation_id.value
             || is_process_name_native_game(process_basename, process_basename_len))
         && !is_wine_server(process_basename, process_basename_len)
         && !memeql(argv1, argv1_len, "--version")
