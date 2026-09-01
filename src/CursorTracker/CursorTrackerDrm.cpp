@@ -1,5 +1,7 @@
 #include "../../include/CursorTracker/CursorTrackerDrm.hpp"
 #include "../../include/WindowUtils.hpp"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -10,6 +12,7 @@
 
 namespace gsr {
     static const int MAX_CONNECTORS = 32;
+    static const int MAX_DRI_CARDS = 16;
     static const uint32_t plane_property_all = 0x3F;
 
     typedef enum {
@@ -24,14 +27,50 @@ namespace gsr {
     typedef struct {
         uint64_t crtc_id;
         mgl::vec2i size;
-        bool vrr_enabled;
     } drm_connector;
 
     typedef struct {
         drm_connector connectors[MAX_CONNECTORS];
         int num_connectors;
-        bool has_any_crtc_with_vrr_enabled;
     } drm_connectors;
+
+    // Nouveau is not supported by gpu screen recorder. The other drm drivers dont do hardware accelerated
+    // rendering, mesa falls back to llvmpipe (software rendering) on them.
+    // Note: this list is kept in sync with gpu screen recorder
+    static const char *unsupported_drm_drivers[] = {
+        "nouveau",
+        "vkms",
+        "vgem",
+        "simpledrm",
+        "ofdrm",
+        "udl",
+        "evdi"
+    };
+
+    static bool drm_driver_is_unsupported(const char *driver_name) {
+        for(size_t i = 0; i < sizeof(unsupported_drm_drivers)/sizeof(*unsupported_drm_drivers); ++i) {
+            if(strcmp(driver_name, unsupported_drm_drivers[i]) == 0)
+                return true;
+        }
+        return false;
+    }
+
+    // A drm device that doesn't do hardware accelerated rendering (llvmpipe for example) has no render node
+    static bool drm_fd_is_hardware_accelerated_gpu(int drm_fd) {
+        drmVersion *ver = drmGetVersion(drm_fd);
+        if(!ver)
+            return false;
+
+        bool hardware_accelerated = false;
+        if(!drm_driver_is_unsupported(ver->name)) {
+            char *render_path = drmGetRenderDeviceNameFromFd(drm_fd);
+            hardware_accelerated = render_path != nullptr;
+            free(render_path);
+        }
+
+        drmFreeVersion(ver);
+        return hardware_accelerated;
+    }
 
     static bool rectangles_intersect(mgl::IntRect rect1, mgl::IntRect rect2) {
         return rect1.position.x < rect2.position.x + rect2.size.x && rect1.position.x + rect1.size.x > rect2.position.x &&
@@ -171,7 +210,6 @@ namespace gsr {
 
     static void get_drm_connectors(int drm_fd, drm_connectors *drm_connectors) {
         drm_connectors->num_connectors = 0;
-        drm_connectors->has_any_crtc_with_vrr_enabled = false;
 
         drmModeResPtr resources = drmModeGetResources(drm_fd);
         if(!resources)
@@ -196,7 +234,6 @@ namespace gsr {
 
             drm_connectors->connectors[drm_connectors->num_connectors].crtc_id = crtc_id;
             drm_connectors->connectors[drm_connectors->num_connectors].size = mgl::vec2i{(int)crtc->width, (int)crtc->height};
-            drm_connectors->connectors[drm_connectors->num_connectors].vrr_enabled = false;
             ++drm_connectors->num_connectors;
 
             next_connector:
@@ -210,7 +247,6 @@ namespace gsr {
         for(int i = 0; i < resources->count_crtcs; ++i) {
             drmModeCrtcPtr crtc = nullptr;
             drmModeObjectPropertiesPtr properties = nullptr;
-            uint64_t vrr_enabled = 0;
             drm_connector *connector = nullptr;
 
             crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
@@ -221,16 +257,9 @@ namespace gsr {
             if(!properties)
                 goto next_crtc;
 
-            get_drm_property_by_name(drm_fd, properties, "VRR_ENABLED", &vrr_enabled);
-
             connector = get_drm_connector_by_crtc_id(drm_connectors, crtc->crtc_id);
             if(!connector)
                 goto next_crtc;
-
-            if(vrr_enabled) {
-                connector->vrr_enabled = true;
-                drm_connectors->has_any_crtc_with_vrr_enabled = true;
-            }
 
             next_crtc:
             if(properties)
@@ -243,34 +272,51 @@ namespace gsr {
         drmModeFreeResources(resources);
     }
 
-    CursorTrackerDrm::CursorTrackerDrm(const char *card_path, struct wl_display *wayland_dpy) : wayland_dpy(wayland_dpy) {
-        drm_fd = open(card_path, O_RDONLY);
-        if(drm_fd <= 0) {
-            fprintf(stderr, "Error: CursorTrackerDrm: failed to open %s\n", card_path);
-            return;
+    // The monitor that the cursor is on can be connected to any gpu, so every gpu is used
+    CursorTrackerDrm::CursorTrackerDrm(struct wl_display *wayland_dpy) : wayland_dpy(wayland_dpy) {
+        for(int i = 0; i < MAX_DRI_CARDS; ++i) {
+            char card_path[128];
+            snprintf(card_path, sizeof(card_path), DRM_DEV_NAME, DRM_DIR_NAME, i);
+
+            const int drm_fd = open(card_path, O_RDONLY);
+            if(drm_fd <= 0)
+                continue;
+
+            if(!drm_fd_is_hardware_accelerated_gpu(drm_fd)) {
+                close(drm_fd);
+                continue;
+            }
+
+            drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+            drmSetClientCap(drm_fd, DRM_CLIENT_CAP_ATOMIC, 1);
+            drm_fds.push_back(drm_fd);
         }
 
-        drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
-        drmSetClientCap(drm_fd, DRM_CLIENT_CAP_ATOMIC, 1);
+        if(drm_fds.empty())
+            fprintf(stderr, "Error: CursorTrackerDrm: failed to find any hardware accelerated gpu in %s\n", DRM_DIR_NAME);
     }
 
     CursorTrackerDrm::~CursorTrackerDrm() {
-        if(drm_fd > 0)
+        for(const int drm_fd : drm_fds) {
             close(drm_fd);
+        }
     }
 
     void CursorTrackerDrm::update() {
-        if(drm_fd <= 0)
-            return;
+        for(const int drm_fd : drm_fds) {
+            if(update_gpu(drm_fd))
+                return;
+        }
+    }
 
+    bool CursorTrackerDrm::update_gpu(int drm_fd) {
         drm_connectors connectors;
         connectors.num_connectors = 0;
-        connectors.has_any_crtc_with_vrr_enabled = false;
         get_drm_connectors(drm_fd, &connectors);
 
         drmModePlaneResPtr planes = drmModeGetPlaneResources(drm_fd);
         if(!planes)
-            return;
+            return false;
 
         bool found_cursor = false;
         for(uint32_t i = 0; i < planes->count_planes; ++i) {
@@ -309,6 +355,7 @@ namespace gsr {
                 latest_cursor_position.x = crtc_x;
                 latest_cursor_position.y = crtc_y;
                 latest_crtc_id = crtc_id;
+                latest_drm_fd = drm_fd;
                 found_cursor = true;
                 drmModeFreePlane(plane);
                 break;
@@ -318,19 +365,15 @@ namespace gsr {
             drmModeFreePlane(plane);
         }
 
-        // On kde plasma wayland (and possibly other wayland compositors) it uses a software cursor only for the monitors with vrr enabled.
-        // In that case we cant know the cursor location and we instead want to fallback to getting focused monitor by using the hack of creating a window and getting the position.
-        if(!found_cursor && latest_crtc_id > 0 && connectors.has_any_crtc_with_vrr_enabled)
-            latest_crtc_id = -1;
-
         drmModeFreePlaneResources(planes);
+        return found_cursor;
     }
 
     std::optional<CursorInfo> CursorTrackerDrm::get_latest_cursor_info() {
-        if(drm_fd <= 0 || latest_crtc_id == -1 || !wayland_dpy)
+        if(latest_drm_fd <= 0 || latest_crtc_id == -1 || !wayland_dpy)
             return std::nullopt;
 
-        std::string monitor_name = get_monitor_name_from_crtc_id(drm_fd, latest_crtc_id);
+        std::string monitor_name = get_monitor_name_from_crtc_id(latest_drm_fd, latest_crtc_id);
         if(monitor_name.empty())
             return std::nullopt;
 

@@ -603,8 +603,8 @@ namespace gsr {
                 cursor_tracker = std::make_unique<CursorTrackerNiri>();
             else if(is_sway && CursorTrackerSway::is_supported())
                 cursor_tracker = std::make_unique<CursorTrackerSway>();
-            else if(!this->gsr_info.gpu_info.card_path.empty())
-                cursor_tracker = std::make_unique<CursorTrackerDrm>(this->gsr_info.gpu_info.card_path.c_str(), wayland_dpy);
+            else
+                cursor_tracker = std::make_unique<CursorTrackerDrm>(wayland_dpy);
 
             if(is_kwin) {
                 desktop_environment = std::make_unique<DesktopEnvironmentKde>();

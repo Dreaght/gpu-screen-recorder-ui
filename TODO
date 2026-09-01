@@ -249,3 +249,5 @@ Add simple video cutting in the ui.
 Add a button to listen to microphone device so that we can hear how loud it will be in the video, and also option to set microphone volume.
 
 mgl support dynamically select x11 or wayland when creating a window. That would make the ui work on COSMIC, but using wlr-layer-shell normally and X11 when a fullscreen x11 application has focused.
+
+Add option to automatically stop replay when starting recording and then automatically start replay again when recording stops. That makes it so that recording wont happen in the replay session (with replay settings).
