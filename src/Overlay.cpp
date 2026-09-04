@@ -39,6 +39,7 @@
 #include <malloc.h>
 #include <stdexcept>
 #include <algorithm>
+#include <sstream> // std::stringstream
 #include <inttypes.h>
 #include <math.h>
 #include <unistd.h>

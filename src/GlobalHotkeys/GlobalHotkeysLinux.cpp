@@ -1,11 +1,14 @@
 #include "../../include/GlobalHotkeys/GlobalHotkeysLinux.hpp"
 #include <sys/wait.h>
 #include <sys/prctl.h>
+#include <errno.h> // stderr
 #include <signal.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdlib.h> // getenv
 #include <string.h>
 #include <unistd.h>
+#include <vector> // std::vector
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <linux/input-event-codes.h>

@@ -1,4 +1,5 @@
 #include "../include/Process.hpp"
+#include <errno.h> // stderr
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>

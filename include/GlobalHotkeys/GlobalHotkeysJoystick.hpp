@@ -4,6 +4,7 @@
 #include "../Hotplug.hpp"
 #include <unordered_map>
 #include <thread>
+#include <vector> // std::vector
 #include <mutex>
 #include <condition_variable>
 #include <poll.h>

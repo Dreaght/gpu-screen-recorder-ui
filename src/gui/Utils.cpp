@@ -2,6 +2,8 @@
 #include <mglpp/window/Window.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 
+#include <cstdlib> // std::abs
+
 namespace gsr {
     static double frame_delta_seconds = 1.0;
 

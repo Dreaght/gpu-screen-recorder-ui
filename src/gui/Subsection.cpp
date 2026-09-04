@@ -4,6 +4,8 @@
 #include <mglpp/window/Window.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
 
+#include <cstdlib> // std::abs
+
 namespace gsr {
     static const float margin_top_scale = 0.012f;
     static const float margin_bottom_scale = 0.012f;

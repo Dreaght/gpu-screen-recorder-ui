@@ -4,6 +4,7 @@
 #include "ScrollablePage.hpp"
 #include <functional>
 #include <vector>
+#include <time.h> // time_t
 
 #include <mglpp/graphics/Text.hpp>
 #include <mglpp/graphics/Sprite.hpp>

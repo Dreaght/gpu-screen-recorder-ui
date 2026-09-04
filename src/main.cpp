@@ -10,8 +10,10 @@
 
 #include <wayland-client.h>
 #include <signal.h>
+#include <stdlib.h> // getenv
 #include <string.h>
 #include <limits.h>
+#include <locale.h> // setlocale
 #include <malloc.h>
 #include <unistd.h>
 

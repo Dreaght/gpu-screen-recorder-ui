@@ -18,6 +18,7 @@
 #include "../../include/gui/CustomRendererWidget.hpp"
 
 #include <assert.h>
+#include <stdlib.h> // getenv
 #include <X11/Xlib.h>
 extern "C" {
 #include <mgl/mgl.h>

@@ -7,6 +7,8 @@
 #include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/system/FloatRect.hpp>
 
+#include <cstdlib> // std::abs
+
 namespace gsr {
     static const int scroll_speed = 80;
     static const double scroll_update_speed = 10.0;

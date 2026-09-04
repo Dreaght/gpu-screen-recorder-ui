@@ -1,5 +1,6 @@
 #include "../include/Utils.hpp"
 #include "../include/Process.hpp"
+#include <errno.h> // errno
 #include <stdlib.h>
 #include <stdio.h>
 #include <optional>
