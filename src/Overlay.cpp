@@ -2273,7 +2273,8 @@ namespace gsr {
 
         focused_window_name = window_title_utf8_sanitize(focused_window_name.c_str(), focused_window_name.size());
         focused_window_name = strip(focused_window_name);
-        string_replace_characters(focused_window_name.data(), "/\\", ' ');
+        // Windows doesn't like these characters, and linux doesn't like "/", which is included there as well
+        string_replace_characters(focused_window_name.data(), "<>:\"/\\|?*", ' ');
         truncate_string_bytes(focused_window_name, max_game_name_size_bytes);
         focused_window_name = strip(focused_window_name);
         if(focused_window_name.empty())
