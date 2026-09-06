@@ -6,6 +6,8 @@
 #include "../include/gui/StaticPage.hpp"
 #include "../include/gui/DropdownButton.hpp"
 #include "../include/gui/CustomRendererWidget.hpp"
+#include "../include/gui/Image.hpp"
+#include "../include/gui/Label.hpp"
 #include "../include/gui/SettingsPage.hpp"
 #include "../include/gui/ScreenshotSettingsPage.hpp"
 #include "../include/gui/GlobalSettingsPage.hpp"
@@ -1418,6 +1420,34 @@ namespace gsr {
         }
     }
 
+    static const char* get_first_usable_hardware_video_codec_name(const GsrInfo &gsr_info) {
+        if(gsr_info.supported_video_codecs.h264)
+            return "h264";
+        else if(gsr_info.supported_video_codecs.hevc)
+            return "hevc";
+        else if(gsr_info.supported_video_codecs.av1)
+            return "av1";
+        else if(gsr_info.supported_video_codecs.vp8)
+            return "vp8";
+        else if(gsr_info.supported_video_codecs.vp9)
+            return "vp9";
+        return nullptr;
+    }
+
+    static std::unique_ptr<Widget> create_cpu_encoding_warning(const GsrInfo &gsr_info) {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->set_spacing(0.005f);
+        list->set_visible(get_first_usable_hardware_video_codec_name(gsr_info) == nullptr);
+
+        const int font_character_size = 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str());
+        list->add_widget(std::make_unique<Image>(&get_theme().warning_texture, mgl::vec2f(font_character_size, font_character_size), Image::ScaleBehavior::SCALE));
+        auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Only CPU encoding is available on your system. Either your system doesn't support GPU encoding or you haven't installed the proper video encoding drivers."), get_color_theme().text_color);
+        label->set_wrap_width(label->get_font_size() * 55);
+        list->add_widget(std::move(label));
+
+        return list;
+    }
+
     void Overlay::recreate_frontpage_ui_components() {
         bg_screenshot_overlay = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height));
         top_bar_background = mgl::Rectangle(mgl::vec2f(get_theme().window_width, get_theme().window_height*0.06f).floor());
@@ -1606,6 +1636,11 @@ namespace gsr {
             }
             return true;
         };
+
+        auto cpu_encoding_warning_widget = create_cpu_encoding_warning(gsr_info);
+        const auto cpu_encoding_warning_size = cpu_encoding_warning_widget->get_size();
+        cpu_encoding_warning_widget->set_position(mgl::vec2f(window_size.x * 0.5f - cpu_encoding_warning_size.x * 0.5f, window_size.y - cpu_encoding_warning_size.y - 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str())).floor());
+        front_page_ptr->add_widget(std::move(cpu_encoding_warning_widget));
 
         if(gpu_screen_recorder_process > 0) {
             switch(recording_status) {
@@ -3050,20 +3085,6 @@ namespace gsr {
         replay_save_clock.restart();
         replay_saved_duration_sec = replay_duration_clock.get_elapsed_time_seconds();
         kill(gpu_screen_recorder_process, SIGRTMIN+5);
-    }
-
-    static const char* get_first_usable_hardware_video_codec_name(const GsrInfo &gsr_info) {
-        if(gsr_info.supported_video_codecs.h264)
-            return "h264";
-        else if(gsr_info.supported_video_codecs.hevc)
-            return "hevc";
-        else if(gsr_info.supported_video_codecs.av1)
-            return "av1";
-        else if(gsr_info.supported_video_codecs.vp8)
-            return "vp8";
-        else if(gsr_info.supported_video_codecs.vp9)
-            return "vp9";
-        return nullptr;
     }
 
     static const char* change_container_if_codec_not_supported(const char *video_codec, const char *container) {

@@ -52,6 +52,8 @@ Each translation is in its own file based on the locale name, such as `translati
 
 You can translate the program without building it from source code by copying the translation file to `/usr/share/gsr-ui/translations/` folder (if installed as a system package) or to `/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/share/gsr-ui/translations/` (if installed as a flatpak).
 
+You can test the translation by using the `LANG` environment variable, for example `LANG=ja gsr-ui`.
+
 ## Program behavior notes
 By default this program has to grab all keyboards and creates a virtual keyboard (`gsr-ui virtual keyboard`) to make global hotkeys work on all Wayland compositors.\
 This might cause issues for you if you use keyboard remapping software. To workaround this you can go into settings and select "Yes, but only grab virtual devices" or "Yes, but don't grab devices".\
