@@ -1316,7 +1316,8 @@ namespace gsr {
         audio_codec_ptr->set_visible(advanced_view);
         video_codec_ptr->set_visible(advanced_view);
         framerate_mode_list_ptr->set_visible(advanced_view);
-        vulkan_video_list_ptr->set_visible(advanced_view && supports_vulkan_video_encoding(gsr_info->supported_video_codecs));
+        //vulkan_video_list_ptr->set_visible(advanced_view && supports_vulkan_video_encoding(gsr_info->supported_video_codecs));
+        vulkan_video_list_ptr->set_visible(false);
         set_application_audio_options_visible(audio_track_section_list_ptr, advanced_view, *gsr_info);
         settings_scrollable_page_ptr->reset_scroll();
     }

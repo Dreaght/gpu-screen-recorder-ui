@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 
         if(geteuid() != 0) {
             if(setuid(0) == -1) {
-                fprintf(stderr, "gsr-global-hotkeys error: failed to change user to root, global hotkeys will not work. Make sure to set the correct capability on gsr-global-hotkeys\n");
+                fprintf(stderr, "gsr-global-hotkeys error: failed to change user to root, global hotkeys will not work. Make sure gsr-global-hotkeys is installed properly (with admin file capability)\n");
                 return 1;
             }
         }

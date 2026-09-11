@@ -3117,24 +3117,24 @@ namespace gsr {
         }
         *container = change_container_if_codec_not_supported(*video_codec, *container);
 
-        if(record_options.enable_vulkan_video_encoding && strcmp(*encoder, "gpu") == 0) {
-            if(strcmp(*video_codec, "auto") == 0)
-                *video_codec = "h264_vulkan";
-            else if(strcmp(*video_codec, "h264") == 0)
-                *video_codec = "h264_vulkan";
-            else if(strcmp(*video_codec, "hevc") == 0)
-                *video_codec = "hevc_vulkan";
-            else if(strcmp(*video_codec, "hevc_hdr") == 0)
-                *video_codec = "hevc_hdr_vulkan";
-            else if(strcmp(*video_codec, "hevc_10bit") == 0)
-                *video_codec = "hevc_10bit_vulkan";
-            else if(strcmp(*video_codec, "av1") == 0)
-                *video_codec = "av1_vulkan";
-            else if(strcmp(*video_codec, "av1_hdr") == 0)
-                *video_codec = "av1_hdr_vulkan";
-            else if(strcmp(*video_codec, "av1_10bit") == 0)
-                *video_codec = "av1_10bit_vulkan";
-        }
+        // if(record_options.enable_vulkan_video_encoding && strcmp(*encoder, "gpu") == 0) {
+        //     if(strcmp(*video_codec, "auto") == 0)
+        //         *video_codec = "h264_vulkan";
+        //     else if(strcmp(*video_codec, "h264") == 0)
+        //         *video_codec = "h264_vulkan";
+        //     else if(strcmp(*video_codec, "hevc") == 0)
+        //         *video_codec = "hevc_vulkan";
+        //     else if(strcmp(*video_codec, "hevc_hdr") == 0)
+        //         *video_codec = "hevc_hdr_vulkan";
+        //     else if(strcmp(*video_codec, "hevc_10bit") == 0)
+        //         *video_codec = "hevc_10bit_vulkan";
+        //     else if(strcmp(*video_codec, "av1") == 0)
+        //         *video_codec = "av1_vulkan";
+        //     else if(strcmp(*video_codec, "av1_hdr") == 0)
+        //         *video_codec = "av1_hdr_vulkan";
+        //     else if(strcmp(*video_codec, "av1_10bit") == 0)
+        //         *video_codec = "av1_10bit_vulkan";
+        // }
     }
 
     static std::string get_framerate_mode_validate(const RecordOptions &record_options, const GsrInfo &gsr_info) {
