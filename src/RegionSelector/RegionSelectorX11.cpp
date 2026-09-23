@@ -299,6 +299,14 @@ namespace gsr {
         is_wayland = is_xwayland(dpy);
         monitors = get_monitors(dpy);
 
+        /* The screen size cached by xlib isn't updated when the screen is resized (xrandr --output DP-1 --scale 1.5), so ask the x server for the current size */
+        DrawableGeometry root_geometry;
+        if(!get_drawable_geometry(dpy, DefaultRootWindow(dpy), &root_geometry)) {
+            fprintf(stderr, "Error: RegionSelectorX11::start: failed to get the size of the screen\n");
+            return false;
+        }
+        const mgl::vec2i screen_size(root_geometry.width, root_geometry.height);
+
         Window x11_cursor_window = None;
         cursor_pos = get_cursor_position(dpy, &x11_cursor_window);
         region.pos = {0, 0};
@@ -316,15 +324,14 @@ namespace gsr {
         window_attr.event_mask = StructureNotifyMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
         window_attr.colormap = region_window_colormap;
 
-        Screen *screen = XDefaultScreenOfDisplay(dpy);
-        region_window = XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0, XWidthOfScreen(screen), XHeightOfScreen(screen), 0,
+        region_window = XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0, screen_size.x, screen_size.y, 0,
             vinfo.depth, InputOutput, vinfo.visual, CWBackPixel | CWBorderPixel | CWOverrideRedirect | CWEventMask | CWColormap, &window_attr);
         if(!region_window) {
             fprintf(stderr, "Error: RegionSelectorX11::start: failed to create region window\n");
             stop();
             return false;
         }
-        set_window_size_not_resizable(dpy, region_window, XWidthOfScreen(screen), XHeightOfScreen(screen));
+        set_window_size_not_resizable(dpy, region_window, screen_size.x, screen_size.y);
 
         unsigned char data = 2; // Prefer being composed to allow transparency. Do this to prevent the compositor from getting turned on/off when taking a screenshot
         XChangeProperty(dpy, region_window, XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
