@@ -13,7 +13,7 @@ namespace gsr {
 
         bool start() override;
         void update() override;
-        std::string get_focused_window_title() override;
+        FocusedWindow get_focused_window() override;
         //std::string get_focused_monitor_name() override;
     private:
         void shutdown();
@@ -26,5 +26,6 @@ namespace gsr {
 
         std::string window_title;
         std::string monitor_name;
+        pid_t window_pid = -1;
     };
 }

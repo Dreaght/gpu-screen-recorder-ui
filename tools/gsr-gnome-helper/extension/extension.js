@@ -15,6 +15,7 @@ export default class GsrFocusedWindowExtension extends Extension {
         this._lastTitle = null;
         this._lastFullscreen = null;
         this._lastMonitor = null;
+        this._lastPid = null;
 
         this._focusSignalId = this._display.connect('notify::focus-window', () => this._onFocusChanged());
         this._onFocusChanged();
@@ -30,6 +31,7 @@ export default class GsrFocusedWindowExtension extends Extension {
                 this._lastTitle = null;
                 this._lastFullscreen = null;
                 this._lastMonitor = null;
+                this._lastPid = null;
                 this._emitUpdate();
             },
             null
@@ -50,6 +52,7 @@ export default class GsrFocusedWindowExtension extends Extension {
         this._lastTitle = null;
         this._lastFullscreen = null;
         this._lastMonitor = null;
+        this._lastPid = null;
         this._display = null;
     }
 
@@ -109,24 +112,27 @@ export default class GsrFocusedWindowExtension extends Extension {
         let title = '';
         let fullscreen = false;
         let monitor = '';
+        let pid = -1;
 
         if (this._isReportableWindow(window)) {
             title = window.get_title() || '';
             fullscreen = window.is_fullscreen();
+            pid = window.get_pid();
         }
 
-        if (title === this._lastTitle && fullscreen === this._lastFullscreen && monitor === this._lastMonitor)
+        if (title === this._lastTitle && fullscreen === this._lastFullscreen && monitor === this._lastMonitor && pid === this._lastPid)
             return;
 
         this._lastTitle = title;
         this._lastFullscreen = fullscreen;
         this._lastMonitor = monitor;
+        this._lastPid = pid;
 
         try {
             Gio.DBus.session.call(
                 DAEMON_NAME, DAEMON_PATH, DAEMON_INTERFACE,
                 'updateActiveWindow',
-                new GLib.Variant('(sbs)', [title, fullscreen, monitor]),
+                new GLib.Variant('(sbsi)', [title, fullscreen, monitor, pid]),
                 null,
                 Gio.DBusCallFlags.NO_AUTO_START,
                 500,

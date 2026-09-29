@@ -39,6 +39,7 @@ These are the dependencies needed to build GPU Screen Recorder UI:
 * libdbus
 * libpango (pangoft2)
 * setcap (libcap)
+* json-c
 
 ## Runtime dependencies
 There are also additional dependencies needed at runtime:

@@ -1,6 +1,9 @@
 #include "native_games.h"
+#include "game_name.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -85,12 +88,16 @@ static int find_free_slot(void) {
     return -1;
 }
 
-static void add_game(pid_t pid) {
+static void add_game(pid_t pid, const char *name) {
     int slot = find_free_slot();
     if (slot < 0) return;
     games[slot] = pid;
     if (game_count++ == 0) {
-        printf("Game launched\n");
+        printf("Game launched %d", (int)pid);
+        if (name[0] != '\0')
+            printf(" %s", name);
+
+        printf("\n");
         fflush(stdout);
     }
 }
@@ -239,9 +246,33 @@ static bool has_game_arch_suffix(const char *process_basename, size_t process_ba
     return false;
 }
 
-static void check_process(pid_t pid) {
-    if (find_slot_by_pid(pid) >= 0) return;
+/* Environment variable values are null-terminated, so the returned value can be used as a string. Returns NULL if there is no app id */
+static const char* get_app_id(const EnvVars *env_vars) {
+    const EnvVar *candidates[] = {
+        &env_vars->steam_app_id,
+        &env_vars->steam_game_id,
+        &env_vars->steam_compat_app_id,
+        &env_vars->steam_overlay_game_id,
+    };
 
+    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {
+        if (is_valid_app_id(candidates[i]->value))
+            return candidates[i]->value;
+    }
+    return NULL;
+}
+
+static void on_game_detected(pid_t pid, const EnvVars *env_vars) {
+    char name[512];
+    name[0] = '\0';
+    /* The name is only output for the first game */
+    if (game_count == 0)
+        game_name_resolve(get_app_id(env_vars), env_vars->steam_base_folder.value, name, sizeof(name));
+    add_game(pid, name);
+}
+
+/* |out_env_vars| is set to the environment variables of the process if it's a game. They point into |environ_buf| */
+static bool is_game_process(pid_t pid, EnvVars *out_env_vars) {
     char    path[64];
     ssize_t env_n, cmd_n;
     bool is_steam_app = false;
@@ -256,8 +287,8 @@ static void check_process(pid_t pid) {
         if (!appid) appid = env_vars.steam_game_id.value;
         if (!appid) appid = env_vars.steam_overlay_game_id.value;
         if (appid && appid[0] >= '1' && appid[0] <= '9') {
-            add_game(pid);
-            return;
+            *out_env_vars = env_vars;
+            return true;
         }
 
         is_steam_app = env_vars.steam_base_folder.value || env_vars.steam_compat_app_id.value != NULL;
@@ -266,7 +297,7 @@ static void check_process(pid_t pid) {
     snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
     cmd_n = read_file(path, cmdline_buf, sizeof(cmdline_buf));
     if(cmd_n <= 0)
-        return;
+        return false;
 
     const char *argv0 = cmdline_buf;
     const size_t argv0_len = get_argv_len(cmdline_buf, cmd_n);
@@ -297,8 +328,48 @@ static void check_process(pid_t pid) {
         // fprintf(stderr, "\n");
         // fprintf(stderr, "*******\n");
         // fprintf(stderr, "\n\n\n");
-        add_game(pid);
+        *out_env_vars = env_vars;
+        return true;
     }
+    return false;
+}
+
+static void check_process(pid_t pid) {
+    if (find_slot_by_pid(pid) >= 0) return;
+
+    EnvVars env_vars;
+    if (is_game_process(pid, &env_vars))
+        on_game_detected(pid, &env_vars);
+}
+
+/* Returns the parent pid of |pid|, or -1 on failure */
+static pid_t get_parent_pid(pid_t pid) {
+    char path[64];
+    char stat_buf[1024];
+    snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+    const ssize_t n = read_file(path, stat_buf, sizeof(stat_buf));
+    if (n <= 0) return -1;
+
+    /* The process name (second field) can contain spaces and parentheses, so the fields after it are found from the last ')' */
+    const char *name_end = memchr_reverse(stat_buf, ')', n);
+    if (!name_end) return -1;
+
+    int ppid = -1;
+    if (sscanf(name_end + 1, " %*c %d", &ppid) != 1)
+        return -1;
+    return ppid;
+}
+
+/* Returns true if |pid| or any of its parent processes is a game */
+static bool is_pid_in_game_process_tree(pid_t pid) {
+    /* Limit the depth in case of a (theoretically impossible) parent loop */
+    for (int depth = 0; depth < 64 && pid > 1; ++depth) {
+        EnvVars env_vars;
+        if (is_game_process(pid, &env_vars))
+            return true;
+        pid = get_parent_pid(pid);
+    }
+    return false;
 }
 
 static void handle_proc_event(const struct proc_event *ev) {
@@ -409,8 +480,17 @@ static void scan_existing_processes(void) {
     closedir(d);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
     setlocale(LC_ALL, "C"); // Sigh... stupid C
+
+    /* Used to check if a window (by its process id) belongs to a game. Exits with 0 if it does, otherwise 1 */
+    if (argc == 3 && strcmp(argv[1], "--check-pid") == 0) {
+        char *end = NULL;
+        const long pid = strtol(argv[2], &end, 10);
+        if (end == argv[2] || *end != '\0' || pid <= 0 || pid > INT_MAX)
+            return 1;
+        return is_pid_in_game_process_tree((pid_t)pid) ? 0 : 1;
+    }
 
     memset(games, 0, sizeof(games));
 

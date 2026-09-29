@@ -1,13 +1,27 @@
 #include "../../include/DesktopEnvironment/DesktopEnvironmentWlroots.hpp"
+#include "../../include/Process.hpp"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <vector>
+
+#include <json_object.h>
+#include <json_tokener.h>
 
 #include <wayland-client.h>
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
 
 namespace gsr {
+    // Compositors that have an ipc that can be used to get the process id of the focused window,
+    // which wlr-foreign-toplevel-management doesn't provide
+    enum class CompositorIpc {
+        NONE,
+        HYPRLAND,
+        NIRI,
+        SWAY
+    };
+
     namespace {
         struct ToplevelState {
             DesktopEnvironmentWlroots::Impl *owner = nullptr;
@@ -28,6 +42,7 @@ namespace gsr {
         struct zwlr_foreign_toplevel_manager_v1 *toplevel_manager = nullptr;
         std::vector<std::unique_ptr<ToplevelState>> toplevels;
         std::string focused_window_title;
+        CompositorIpc compositor_ipc = CompositorIpc::NONE;
 
         ~Impl() { teardown(); }
         void teardown();
@@ -190,6 +205,97 @@ namespace gsr {
         };
     }
 
+    static CompositorIpc get_compositor_ipc() {
+        const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+        if(!xdg_current_desktop)
+            return CompositorIpc::NONE;
+        else if(strstr(xdg_current_desktop, "Hyprland"))
+            return CompositorIpc::HYPRLAND;
+        else if(strstr(xdg_current_desktop, "niri"))
+            return CompositorIpc::NIRI;
+        else if(strstr(xdg_current_desktop, "sway"))
+            return CompositorIpc::SWAY;
+        else
+            return CompositorIpc::NONE;
+    }
+
+    static json_object* sway_find_focused_node(json_object *node) {
+        json_object *focused = nullptr;
+        if(json_object_object_get_ex(node, "focused", &focused) && json_object_is_type(focused, json_type_boolean) && json_object_get_boolean(focused))
+            return node;
+
+        for(const char *children_key : { "nodes", "floating_nodes" }) {
+            json_object *children = nullptr;
+            if(!json_object_object_get_ex(node, children_key, &children) || !json_object_is_type(children, json_type_array))
+                continue;
+
+            const size_t num_children = json_object_array_length(children);
+            for(size_t i = 0; i < num_children; ++i) {
+                json_object *focused_node = sway_find_focused_node(json_object_array_get_idx(children, i));
+                if(focused_node)
+                    return focused_node;
+            }
+        }
+
+        return nullptr;
+    }
+
+    // Returns false if the compositor ipc failed. |focused_window| is left empty if there is no focused window
+    static bool get_focused_window_from_compositor_ipc(CompositorIpc compositor_ipc, FocusedWindow &focused_window) {
+        const char *hyprland_args[] = { "hyprctl", "-j", "activewindow", nullptr };
+        const char *niri_args[] = { "niri", "msg", "--json", "focused-window", nullptr };
+        const char *sway_args[] = { "swaymsg", "-r", "-t", "get_tree", nullptr };
+
+        const char **args = nullptr;
+        const char *app_id_key = "app_id";
+        const char *title_key = "title";
+        switch(compositor_ipc) {
+            case CompositorIpc::NONE:
+                return false;
+            case CompositorIpc::HYPRLAND:
+                args = hyprland_args;
+                app_id_key = "class";
+                break;
+            case CompositorIpc::NIRI:
+                args = niri_args;
+                break;
+            case CompositorIpc::SWAY:
+                args = sway_args;
+                title_key = "name";
+                break;
+        }
+
+        std::string output;
+        if(exec_program_on_host_get_stdout(args, output, false) != 0)
+            return false;
+
+        json_object *root = json_tokener_parse(output.c_str());
+        if(!root)
+            return false;
+
+        // Hyprland outputs an empty object and niri outputs null if there is no focused window.
+        // For sway the focused node can also be a workspace (when it's empty), which doesn't have a pid
+        json_object *window = compositor_ipc == CompositorIpc::SWAY ? sway_find_focused_node(root) : root;
+        json_object *app_id = nullptr;
+        json_object *title = nullptr;
+        json_object *pid = nullptr;
+        if(json_object_is_type(window, json_type_object)) {
+            json_object_object_get_ex(window, app_id_key, &app_id);
+            json_object_object_get_ex(window, title_key, &title);
+            json_object_object_get_ex(window, "pid", &pid);
+        }
+
+        const std::string app_id_str = json_object_is_type(app_id, json_type_string) ? json_object_get_string(app_id) : "";
+        if(!app_id_is_ignored(app_id_str) && json_object_is_type(pid, json_type_int) && json_object_get_int(pid) > 0) {
+            if(json_object_is_type(title, json_type_string))
+                focused_window.title = json_object_get_string(title);
+            focused_window.pid = json_object_get_int(pid);
+        }
+
+        json_object_put(root);
+        return true;
+    }
+
     bool DesktopEnvironmentWlroots::is_supported(struct wl_display *dpy) {
         if(!dpy)
             return false;
@@ -207,6 +313,7 @@ namespace gsr {
 
     DesktopEnvironmentWlroots::DesktopEnvironmentWlroots(struct wl_display *dpy) : impl(std::make_unique<Impl>()) {
         impl->display = dpy;
+        impl->compositor_ipc = get_compositor_ipc();
     }
 
     DesktopEnvironmentWlroots::~DesktopEnvironmentWlroots() = default;
@@ -238,7 +345,13 @@ namespace gsr {
     void DesktopEnvironmentWlroots::update() {
     }
 
-    std::string DesktopEnvironmentWlroots::get_focused_window_title() {
-        return impl->focused_window_title;
+    FocusedWindow DesktopEnvironmentWlroots::get_focused_window() {
+        // The title and process id are both taken from the compositor ipc (if available) so that they are from the same window
+        FocusedWindow focused_window;
+        if(get_focused_window_from_compositor_ipc(impl->compositor_ipc, focused_window))
+            return focused_window;
+
+        // wlr-foreign-toplevel-management doesn't provide the process id of the window
+        return FocusedWindow{ impl->focused_window_title, -1 };
     }
 }

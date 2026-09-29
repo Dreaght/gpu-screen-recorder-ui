@@ -1,10 +1,10 @@
 const DAEMON_DBUS_NAME = "com.dec05eba.gpu_screen_recorder";
 
-function dbusSendUpdateActiveWindow(title, isFullscreen, monitorName) {
+function dbusSendUpdateActiveWindow(title, isFullscreen, monitorName, pid) {
     callDBus(
         DAEMON_DBUS_NAME, "/", DAEMON_DBUS_NAME,
         "updateActiveWindow",
-        title, isFullscreen, monitorName,
+        title, isFullscreen, monitorName, pid,
     );
 }
 
@@ -14,6 +14,7 @@ let prevEmitActiveWindowUpdate = null;
 let prevCaption = null;
 let prevFullScreen = null;
 let prevMonitorName = null;
+let prevPid = null;
 
 function dbusSafeDisconnect(window, signalName, callback) {
     try {
@@ -42,11 +43,13 @@ function emitActiveWindowUpdate(window) {
         let caption = window.caption || "";
         let fullScreen = window.fullScreen || false;
         let monitorName = window.output?.name || "";
-        if (caption !== prevCaption || fullScreen !== prevFullScreen || monitorName !== prevMonitorName) {
-            dbusSendUpdateActiveWindow(caption, fullScreen, monitorName);
+        let pid = window.pid || 0;
+        if (caption !== prevCaption || fullScreen !== prevFullScreen || monitorName !== prevMonitorName || pid !== prevPid) {
+            dbusSendUpdateActiveWindow(caption, fullScreen, monitorName, pid);
             prevCaption = caption;
             prevFullScreen = fullScreen;
             prevMonitorName = monitorName;
+            prevPid = pid;
         }
     }
 }

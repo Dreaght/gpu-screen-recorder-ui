@@ -13,6 +13,7 @@ namespace gsr {
     static constexpr std::string_view prefix_title = "Active window title set to: ";
     static constexpr std::string_view prefix_fullscreen = "Active window fullscreen state set to: ";
     static constexpr std::string_view prefix_monitor = "Active window monitor name set to: ";
+    static constexpr std::string_view prefix_pid = "Active window pid set to: ";
 
     DesktopEnvironmentGnome::~DesktopEnvironmentGnome() {
         shutdown();
@@ -80,23 +81,32 @@ namespace gsr {
                 // unused
             } else if((pos = line.find(prefix_monitor)) != std::string::npos) {
                 monitor_name = line.substr(pos + prefix_monitor.length());
+            } else if((pos = line.find(prefix_pid)) != std::string::npos) {
+                window_pid = atoi(line.c_str() + pos + prefix_pid.length());
             }
         }
     }
 
-    std::string DesktopEnvironmentGnome::get_focused_window_title() {
+    FocusedWindow DesktopEnvironmentGnome::get_focused_window() {
         if(!window_title.empty())
-            return window_title;
+            return FocusedWindow{ window_title, window_pid > 0 ? window_pid : -1 };
 
         // The gnome extension is not loaded on the first install. In that case fallback to x11.
         // The user has to logout and in to load the gnome extension.
+        FocusedWindow focused_window;
         if(!x11_dpy)
-            return "";
+            return focused_window;
 
-        std::string focused_window_title = get_window_name_at_cursor_position(x11_dpy, "gsr-ui");
-        if(focused_window_title.empty())
-            focused_window_title = get_focused_window_name(x11_dpy, WindowCaptureType::FOCUSED, false, "gsr-ui");
+        Window window = None;
+        focused_window.title = get_window_name_at_cursor_position(x11_dpy, "gsr-ui", &window);
+        if(focused_window.title.empty()) {
+            window = None;
+            focused_window.title = get_focused_window_name(x11_dpy, WindowCaptureType::FOCUSED, false, "gsr-ui", &window);
+        }
 
-        return focused_window_title;
+        if(window != None)
+            focused_window.pid = get_window_pid(x11_dpy, window);
+
+        return focused_window;
     }
 }

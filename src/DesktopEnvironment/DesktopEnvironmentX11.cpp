@@ -14,18 +14,24 @@ namespace gsr {
         
     }
 
-    std::string DesktopEnvironmentX11::get_focused_window_title() {
-        std::string focused_window_title;
+    FocusedWindow DesktopEnvironmentX11::get_focused_window() {
+        FocusedWindow focused_window;
         if(!dpy) {
-            fprintf(stderr, "Error: DesktopEnvironmentX11: get_focused_window_title: display object is NULL, returning empty string\n");
-            return focused_window_title;
+            fprintf(stderr, "Error: DesktopEnvironmentX11: get_focused_window: display object is NULL, returning empty window\n");
+            return focused_window;
         }
 
-        focused_window_title = get_window_name_at_cursor_position(dpy, "gsr-ui");
-        if(focused_window_title.empty())
-            focused_window_title = get_focused_window_name(dpy, WindowCaptureType::FOCUSED, false, "gsr-ui");
+        Window window = None;
+        focused_window.title = get_window_name_at_cursor_position(dpy, "gsr-ui", &window);
+        if(focused_window.title.empty()) {
+            window = None;
+            focused_window.title = get_focused_window_name(dpy, WindowCaptureType::FOCUSED, false, "gsr-ui", &window);
+        }
 
-        return focused_window_title;
+        if(window != None)
+            focused_window.pid = get_window_pid(dpy, window);
+
+        return focused_window;
     }
 
     // std::string DesktopEnvironmentX11::get_focused_monitor_name() {

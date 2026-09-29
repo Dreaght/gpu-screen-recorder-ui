@@ -17,7 +17,7 @@ namespace gsr {
 
         bool start() override;
         void update() override;
-        std::string get_focused_window_title() override;
+        FocusedWindow get_focused_window() override;
 
         struct Impl;
     private:

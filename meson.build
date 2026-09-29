@@ -101,6 +101,7 @@ executable(
         dependency('libpulse-simple'),
         dependency('libdrm'),
         dependency('wayland-client'),
+        dependency('json-c'),
     ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )
@@ -160,6 +161,7 @@ executable(
     'gsr-game-tracker',
     [
         'tools/gsr-game-tracker/native_games.c',
+        'tools/gsr-game-tracker/game_name.c',
         'tools/gsr-game-tracker/main.c'
     ],
     install : true

@@ -282,6 +282,10 @@ namespace gsr {
         FILE *gsr_game_tracker_process_output_file = nullptr;
         pid_t gsr_game_tracker_process_id = -1;
         GameReplayAction game_replay_action = GameReplayAction::IDLE;
+        // Name of the running game. This is the steam name reported by gsr-game-tracker, or the title of the first focused window that belongs to the game.
+        // Empty if no game is running or the name couldn't be resolved
+        std::string tracked_game_name;
+        bool game_running = false;
 
         struct wl_display *wayland_dpy = nullptr;
 

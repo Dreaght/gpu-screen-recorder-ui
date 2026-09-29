@@ -506,10 +506,12 @@ namespace gsr {
         }
     }
 
+    static const char *flatpak_gsr_game_tracker_path = "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/gsr-game-tracker";
+
     static pid_t launch_gsr_game_tracker(int *stdout_fd) {
         const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
         if(is_flatpak) {
-            const char *args[] = { "flatpak-spawn", "--host", "--", "/var/lib/flatpak/app/com.dec05eba.gpu_screen_recorder/current/active/files/bin/gsr-game-tracker", NULL };
+            const char *args[] = { "flatpak-spawn", "--host", "--", flatpak_gsr_game_tracker_path, NULL };
             return exec_program(args, stdout_fd, false);
         } else {
             const char *args[] = { "gsr-game-tracker", NULL };
@@ -2301,23 +2303,50 @@ namespace gsr {
         return Clipboard::FileType::PNG;
     }
 
-    std::string Overlay::get_current_game_name() {
-        std::string focused_window_name = desktop_environment->get_focused_window_title();
-        if(focused_window_name.empty())
-            focused_window_name = "Game";
+    // Returns true if the process (or one of its parent processes) is a game.
+    // This is checked by gsr-game-tracker on the host, since the process ids are host process ids
+    static bool is_game_process_tree_pid(pid_t pid) {
+        const std::string pid_str = std::to_string(pid);
+        std::string output;
+        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+        if(is_flatpak) {
+            const char *args[] = { "flatpak-spawn", "--host", "--", flatpak_gsr_game_tracker_path, "--check-pid", pid_str.c_str(), NULL };
+            return exec_program_get_stdout(args, output, false) == 0;
+        } else {
+            const char *args[] = { "gsr-game-tracker", "--check-pid", pid_str.c_str(), NULL };
+            return exec_program_get_stdout(args, output, false) == 0;
+        }
+    }
 
-        focused_window_name = window_title_utf8_sanitize(focused_window_name.c_str(), focused_window_name.size());
-        focused_window_name = strip(focused_window_name);
+    std::string Overlay::get_current_game_name() {
+        // Games that aren't steam games don't have a name, so the focused window title is used instead but only if
+        // the window belongs to the game. Otherwise a non-game window (such as a web browser) could be used as the game name
+        if(tracked_game_name.empty() && game_running) {
+            const FocusedWindow focused_window = desktop_environment->get_focused_window();
+            if(!focused_window.title.empty() && focused_window.pid > 0 && is_game_process_tree_pid(focused_window.pid))
+                tracked_game_name = focused_window.title;
+        }
+
+        std::string game_name = tracked_game_name;
+        if(game_name.empty())
+            return game_name;
+
+        game_name = window_title_utf8_sanitize(game_name.c_str(), game_name.size());
+        game_name = strip(game_name);
         // Windows doesn't like these characters, and linux doesn't like "/", which is included there as well
-        string_replace_characters(focused_window_name.data(), "<>:\"/\\|?*", ' ');
-        truncate_string_bytes(focused_window_name, max_game_name_size_bytes);
-        focused_window_name = strip(focused_window_name);
-        if(focused_window_name.empty())
-            focused_window_name = "Game";
-        return focused_window_name;
+        string_replace_characters(game_name.data(), "<>:\"/\\|?*", ' ');
+        truncate_string_bytes(game_name, max_game_name_size_bytes);
+        game_name = strip(game_name);
+        // "." and ".." would refer to the save directory itself when saving in the game folder
+        if(game_name == "." || game_name == "..")
+            game_name.clear();
+        return game_name;
     }
 
     void Overlay::rename_file_to_game_name(std::string &filepath, const std::string &game_name) {
+        if(game_name.empty())
+            return;
+
         const std::string filename = filepath_get_filename(filepath.c_str());
         const char *filename_suffix = get_filename_game_name_suffix(filename);
         if(!filename_suffix)
@@ -2394,7 +2423,7 @@ namespace gsr {
         if(config.replay_config.name_video_file_after_game)
             rename_file_to_game_name(filepath, game_name);
 
-        if(config.replay_config.save_video_in_game_folder) {
+        if(config.replay_config.save_video_in_game_folder && !game_name.empty()) {
             save_video_in_current_game_directory(filepath, game_name, NotificationType::REPLAY);
         } else if(config.replay_config.record_options.show_notifications) {
             const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
@@ -2419,8 +2448,22 @@ namespace gsr {
 
             if(strncmp(line, "Game launched", 13) == 0) {
                 game_replay_action = GameReplayAction::START;
+                game_running = true;
+                tracked_game_name.clear();
+
+                // Format: "Game launched <pid> <name>", where the name is optional and may contain spaces
+                // %n is only set if the pid was read
+                int name_offset = 0;
+                sscanf(line + 13, " %*d %n", &name_offset);
+                if(name_offset > 0) {
+                    tracked_game_name = line + 13 + name_offset;
+                    while(!tracked_game_name.empty() && (tracked_game_name.back() == '\n' || tracked_game_name.back() == '\r'))
+                        tracked_game_name.pop_back();
+                }
             } else if(strncmp(line, "Game exited", 11) == 0) {
                 game_replay_action = GameReplayAction::STOP;
+                game_running = false;
+                tracked_game_name.clear();
             }
 
         } else if(gsr_game_tracker_process_output_fd > 0) {
@@ -2610,7 +2653,7 @@ namespace gsr {
             if(name_screenshot_after_game)
                 rename_file_to_game_name(screenshot_filepath, game_name);
 
-            if(save_screenshot_in_game_folder) {
+            if(save_screenshot_in_game_folder && !game_name.empty()) {
                 save_video_in_current_game_directory(screenshot_filepath, game_name, NotificationType::SCREENSHOT);
             } else if(config.screenshot_config.show_notifications) {
                 char msg[512];
@@ -2719,7 +2762,7 @@ namespace gsr {
             if(config.record_config.name_video_file_after_game)
                 rename_file_to_game_name(video_filepath, game_name);
 
-            if(config.record_config.save_video_in_game_folder) {
+            if(config.record_config.save_video_in_game_folder && !game_name.empty()) {
                 save_video_in_current_game_directory(video_filepath, game_name, NotificationType::RECORD);
             } else if(config.record_config.record_options.show_notifications) {
                 const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));

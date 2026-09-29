@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include <X11/Xlib.h>
+#include <sys/types.h>
 
 struct wl_display;
 
@@ -30,9 +31,11 @@ namespace gsr {
     std::optional<std::string> get_window_title(Display *dpy, Window window);
     Window get_focused_window(Display *dpy, WindowCaptureType cap_type, bool fallback_cursor_focused = true);
     std::string window_title_utf8_sanitize(const char *str, int size);
-    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused = true, std::string_view ignore_window_class = "");
-    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, std::string_view ignore_window_class);
-    std::string get_window_name_at_cursor_position(Display *dpy, std::string_view ignore_window_class);
+    std::string get_focused_window_name(Display *dpy, WindowCaptureType window_capture_type, bool fallback_cursor_focused = true, std::string_view ignore_window_class = "", Window *window_out = nullptr);
+    std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, std::string_view ignore_window_class, Window *window_out = nullptr);
+    std::string get_window_name_at_cursor_position(Display *dpy, std::string_view ignore_window_class, Window *window_out = nullptr);
+    // Returns -1 if the window doesn't have a process id
+    pid_t get_window_pid(Display *dpy, Window window);
     void set_window_size_not_resizable(Display *dpy, Window window, int width, int height);
     Window window_get_target_window_child(Display *display, Window window);
     unsigned char* window_get_property(Display *dpy, Window window, Atom property_type, const char *property_name, unsigned int *property_size);

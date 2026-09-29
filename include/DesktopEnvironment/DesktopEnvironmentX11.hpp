@@ -13,7 +13,7 @@ namespace gsr {
 
         bool start() override;
         void update() override;
-        std::string get_focused_window_title() override;
+        FocusedWindow get_focused_window() override;
         //std::string get_focused_monitor_name() override;
     private:
         Display *dpy = NULL;

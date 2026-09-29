@@ -1,6 +1,7 @@
 #include "../../include/DesktopEnvironment/DesktopEnvironmentKde.hpp"
 #include "../../include/Process.hpp"
 #include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 
@@ -8,6 +9,7 @@ namespace gsr {
     static constexpr std::string_view prefix_title = "Active window title set to: ";
     static constexpr std::string_view prefix_fullscreen = "Active window fullscreen state set to: ";
     static constexpr std::string_view prefix_monitor = "Active window monitor name set to: ";
+    static constexpr std::string_view prefix_pid = "Active window pid set to: ";
 
     DesktopEnvironmentKde::~DesktopEnvironmentKde() {
         shutdown();
@@ -77,12 +79,14 @@ namespace gsr {
                 //fullscreen = line.substr(pos + prefix_fullscreen.length()) == "1";
             } else if ((pos = line.find(prefix_monitor)) != std::string::npos) {
                 monitor_name = line.substr(pos + prefix_monitor.length());
+            } else if ((pos = line.find(prefix_pid)) != std::string::npos) {
+                window_pid = atoi(line.c_str() + pos + prefix_pid.length());
             }
         }
     }
 
-    std::string DesktopEnvironmentKde::get_focused_window_title() {
-        return window_title;
+    FocusedWindow DesktopEnvironmentKde::get_focused_window() {
+        return FocusedWindow{ window_title, window_pid > 0 ? window_pid : -1 };
     }
 
     // std::string DesktopEnvironmentKde::get_focused_monitor_name() {

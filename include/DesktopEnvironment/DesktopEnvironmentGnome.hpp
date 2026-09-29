@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DesktopEnvironment.hpp"
+#include <sys/types.h>
 #include <X11/Xlib.h>
 
 namespace gsr {
@@ -13,7 +14,7 @@ namespace gsr {
 
         bool start() override;
         void update() override;
-        std::string get_focused_window_title() override;
+        FocusedWindow get_focused_window() override;
     private:
         void shutdown();
     private:
@@ -25,6 +26,7 @@ namespace gsr {
 
         std::string window_title;
         std::string monitor_name;
+        pid_t window_pid = -1;
 
         Display *x11_dpy = NULL;
     };

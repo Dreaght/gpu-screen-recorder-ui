@@ -12,6 +12,7 @@ static const char* INTROSPECTION_XML =
     "      <arg type='s' name='title' direction='in'/>\n"
     "      <arg type='b' name='fullscreen' direction='in'/>\n"
     "      <arg type='s' name='monitorName' direction='in'/>\n"
+    "      <arg type='i' name='pid' direction='in'/>\n"
     "    </method>\n"
     "  </interface>\n"
     "  <interface name='org.freedesktop.DBus.Introspectable'>\n"
@@ -27,6 +28,7 @@ public:
     std::string active_window_title;
     bool active_window_fullscreen;
     std::string active_window_monitor_name;
+    int active_window_pid = -1;
     DBusConnection* connection = nullptr;
     DBusError err;
 
@@ -180,6 +182,41 @@ public:
         } else {
             send_error_reply(msg, "Failed to read string");
             return;
+        }
+
+        // The pid is optional. The type of a number sent from a KWin script depends on the conversion done by KWin, so accept any number type
+        int pid = -1;
+        if (dbus_message_iter_next(&args)) {
+            DBusBasicValue pid_value;
+            switch (dbus_message_iter_get_arg_type(&args)) {
+                case DBUS_TYPE_INT32:
+                    dbus_message_iter_get_basic(&args, &pid_value);
+                    pid = pid_value.i32;
+                    break;
+                case DBUS_TYPE_UINT32:
+                    dbus_message_iter_get_basic(&args, &pid_value);
+                    pid = (int)pid_value.u32;
+                    break;
+                case DBUS_TYPE_INT64:
+                    dbus_message_iter_get_basic(&args, &pid_value);
+                    pid = (int)pid_value.i64;
+                    break;
+                case DBUS_TYPE_DOUBLE:
+                    dbus_message_iter_get_basic(&args, &pid_value);
+                    pid = (int)pid_value.dbl;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (pid <= 0)
+            pid = -1;
+
+        if (active_window_pid != pid) {
+            active_window_pid = pid;
+            std::cout << "Active window pid set to: " << active_window_pid << "\n";
+            std::cout.flush();
         }
 
         send_success_reply(msg);
