@@ -3141,16 +3141,11 @@ namespace gsr {
         return container;
     }
 
-    static void choose_video_codec_and_container_with_fallback(const GsrInfo &gsr_info, const RecordOptions &record_options, const char **video_codec, const char **container, const char **encoder) {
+    static void choose_video_codec_and_container_with_fallback(const char **video_codec, const char **container, const char **encoder) {
         *encoder = "gpu";
         if(strcmp(*video_codec, "h264_software") == 0) {
             *video_codec = "h264";
             *encoder = "cpu";
-        } else if(strcmp(*video_codec, "auto") == 0) {
-            if(!get_first_usable_hardware_video_codec_name(gsr_info)) {
-                *video_codec = "h264";
-                *encoder = "cpu";
-            }
         }
         *container = change_container_if_codec_not_supported(*video_codec, *container);
 
@@ -3326,7 +3321,7 @@ namespace gsr {
         const char *container = config.replay_config.container.c_str();
         const char *video_codec = config.replay_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        choose_video_codec_and_container_with_fallback(gsr_info, config.replay_config.record_options, &video_codec, &container, &encoder);
+        choose_video_codec_and_container_with_fallback(&video_codec, &container, &encoder);
 
         char size[64];
         size[0] = '\0';
@@ -3350,6 +3345,7 @@ namespace gsr {
             "-f", fps.c_str(),
             "-r", replay_time.c_str(),
             "-v", "no",
+            "-fallback-cpu-encoding", "yes",
             "-o", output_directory.c_str()
         };
 
@@ -3555,7 +3551,7 @@ namespace gsr {
         const char *container = config.record_config.container.c_str();
         const char *video_codec = config.record_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        choose_video_codec_and_container_with_fallback(gsr_info, config.record_config.record_options, &video_codec, &container, &encoder);
+        choose_video_codec_and_container_with_fallback(&video_codec, &container, &encoder);
 
         char size[64];
         size[0] = '\0';
@@ -3578,6 +3574,7 @@ namespace gsr {
             "-encoder", encoder,
             "-f", fps.c_str(),
             "-v", "no",
+            "-fallback-cpu-encoding", "yes",
             "-o", output_file.c_str()
         };
 
@@ -3823,7 +3820,7 @@ namespace gsr {
             container = "whip";
         const char *video_codec = config.streaming_config.record_options.video_codec.c_str();
         const char *encoder = "gpu";
-        choose_video_codec_and_container_with_fallback(gsr_info, config.streaming_config.record_options, &video_codec, &container, &encoder);
+        choose_video_codec_and_container_with_fallback(&video_codec, &container, &encoder);
 
         const std::string url = streaming_get_url(config);
         if(config.streaming_config.streaming_service == "rumble" || config.streaming_config.streaming_service == "kick") {
@@ -3859,6 +3856,7 @@ namespace gsr {
             "-encoder", encoder,
             "-f", fps.c_str(),
             "-v", "no",
+            "-fallback-cpu-encoding", "yes",
             "-o", url.c_str()
         };
 
