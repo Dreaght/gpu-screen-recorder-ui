@@ -2,6 +2,7 @@
 
 #include "DesktopEnvironment.hpp"
 #include <memory>
+#include <X11/Xlib.h>
 
 struct wl_display;
 
@@ -10,7 +11,7 @@ namespace gsr {
     public:
         static bool is_supported(struct wl_display *dpy);
 
-        explicit DesktopEnvironmentWlroots(struct wl_display *dpy);
+        explicit DesktopEnvironmentWlroots(struct wl_display *dpy, Display *x11_dpy);
         DesktopEnvironmentWlroots(const DesktopEnvironmentWlroots&) = delete;
         DesktopEnvironmentWlroots& operator=(const DesktopEnvironmentWlroots&) = delete;
         ~DesktopEnvironmentWlroots() override;

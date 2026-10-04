@@ -252,6 +252,4 @@ mgl support dynamically select x11 or wayland when creating a window. That would
 
 Add option to automatically stop replay when starting recording and then automatically start replay again when recording stops. That makes it so that recording wont happen in the replay session (with replay settings).
 
-Truncate game title, not video file. Otherwise there can be name conflict and override another file.
-
 In the game title patch, also add names to native titles (from the json files), instead of trying to get the name from a window title.

@@ -618,7 +618,7 @@ namespace gsr {
                 desktop_environment = std::make_unique<DesktopEnvironmentGnome>(x11_dpy);
                 supports_window_title = true;
             } else if(DesktopEnvironmentWlroots::is_supported(wayland_dpy)) {
-                desktop_environment = std::make_unique<DesktopEnvironmentWlroots>(wayland_dpy);
+                desktop_environment = std::make_unique<DesktopEnvironmentWlroots>(wayland_dpy, x11_dpy);
                 supports_window_title = true;
             } else {
                 desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
@@ -2307,15 +2307,9 @@ namespace gsr {
     // This is checked by gsr-game-tracker on the host, since the process ids are host process ids
     static bool is_game_process_tree_pid(pid_t pid) {
         const std::string pid_str = std::to_string(pid);
+        const char *args[] = { "gsr-game-tracker", "--check-pid", pid_str.c_str(), NULL };
         std::string output;
-        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
-        if(is_flatpak) {
-            const char *args[] = { "flatpak-spawn", "--host", "--", flatpak_gsr_game_tracker_path, "--check-pid", pid_str.c_str(), NULL };
-            return exec_program_get_stdout(args, output, false) == 0;
-        } else {
-            const char *args[] = { "gsr-game-tracker", "--check-pid", pid_str.c_str(), NULL };
-            return exec_program_get_stdout(args, output, false) == 0;
-        }
+        return exec_program_on_host_get_stdout(args, output) == 0;
     }
 
     std::string Overlay::get_current_game_name() {

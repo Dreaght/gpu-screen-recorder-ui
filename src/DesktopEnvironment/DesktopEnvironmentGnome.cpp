@@ -91,6 +91,7 @@ namespace gsr {
         if(!window_title.empty())
             return FocusedWindow{ window_title, window_pid > 0 ? window_pid : -1 };
 
+        fprintf(stderr, "gsr ui: warning: DesktopEnvironmentGnome::get_focused_window: getting the focused window with x11 instead of the extension. Either the extension hasn't loaded yet or a focused window change hasn't occured yet\n");
         // The gnome extension is not loaded on the first install. In that case fallback to x11.
         // The user has to logout and in to load the gnome extension.
         FocusedWindow focused_window;

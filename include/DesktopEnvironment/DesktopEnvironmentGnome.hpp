@@ -28,6 +28,6 @@ namespace gsr {
         std::string monitor_name;
         pid_t window_pid = -1;
 
-        Display *x11_dpy = NULL;
+        Display *x11_dpy = nullptr;
     };
 }

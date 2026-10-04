@@ -1,10 +1,12 @@
 #include "../../include/DesktopEnvironment/DesktopEnvironmentWlroots.hpp"
 #include "../../include/Process.hpp"
+#include "../../include/WindowUtils.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
+#include <limits.h>
 
 #include <json_object.h>
 #include <json_tokener.h>
@@ -42,7 +44,10 @@ namespace gsr {
         struct zwlr_foreign_toplevel_manager_v1 *toplevel_manager = nullptr;
         std::vector<std::unique_ptr<ToplevelState>> toplevels;
         std::string focused_window_title;
+        std::string focused_app_id;
         CompositorIpc compositor_ipc = CompositorIpc::NONE;
+
+        Display *x11_dpy = nullptr;
 
         ~Impl() { teardown(); }
         void teardown();
@@ -150,15 +155,19 @@ namespace gsr {
     void DesktopEnvironmentWlroots::Impl::recompute_focused_title() {
         if(toplevels.empty()) {
             focused_window_title.clear();
+            focused_app_id.clear();
             return;
         }
 
         for(const auto &t : toplevels) {
             if(t->closed || !t->activated)
                 continue;
+
             if(app_id_is_ignored(t->app_id))
                 continue;
+
             focused_window_title = t->title;
+            focused_app_id = t->app_id;
             return;
         }
     }
@@ -185,6 +194,7 @@ namespace gsr {
 
         display = nullptr;
         focused_window_title.clear();
+        focused_app_id.clear();
     }
 
     namespace {
@@ -219,81 +229,125 @@ namespace gsr {
             return CompositorIpc::NONE;
     }
 
-    static json_object* sway_find_focused_node(json_object *node) {
-        json_object *focused = nullptr;
-        if(json_object_object_get_ex(node, "focused", &focused) && json_object_is_type(focused, json_type_boolean) && json_object_get_boolean(focused))
-            return node;
+    // Returns -1 if |str| is not a valid number
+    static pid_t str_to_pid(const char *str) {
+        char *end = NULL;
+        const long pid = strtol(str, &end, 10);
+        if (end == str || *end != '\0' || pid <= 0 || pid > INT_MAX)
+            return -1;
+        else
+            return pid;
+    }
+
+    // Returns -1 on failure. Finds the first match, since there may be multiple matches.
+    // It's ok if we dont get the exact pid, since we are only interested in if it's a game process or not (by type).
+    static pid_t hyprctl_get_pid_by_class(const char *class_name) {
+        const char *command_args[] = { "hyprctl", "-j", "clients", nullptr };
+        std::string output;
+        if(exec_program_on_host_get_stdout(command_args, output, false) != 0)
+            return -1;
+
+        json_object *root_json = json_tokener_parse(output.c_str());
+        if(!root_json || !json_object_is_type(root_json, json_type_array))
+            return -1;
+
+        const size_t num_clients = json_object_array_length(root_json);
+        for(size_t i = 0; i < num_clients; ++i) {
+            const json_object *client_json = json_object_array_get_idx(root_json, i);
+            if(!client_json || !json_object_is_type(client_json, json_type_object))
+                continue;
+
+            json_object *class_json = NULL;
+            json_object_object_get_ex(client_json, "class", &class_json);
+
+            json_object *pid_json = NULL;
+            json_object_object_get_ex(client_json, "pid", &pid_json);
+
+            const char *client_class_str = json_object_get_string(class_json);
+            const char *client_pid_str = json_object_get_string(pid_json);
+            if(client_class_str && client_pid_str && strcmp(client_class_str, class_name) == 0) {
+                const pid_t pid = str_to_pid(client_pid_str);
+                if(pid > 0)
+                    return pid;
+            }
+        }
+
+        return -1;
+    }
+
+    // Returns -1 on failure
+    static pid_t sway_get_pid_by_class_in_node(const char *class_name, const json_object *node_json) {
+        if(!node_json || !json_object_is_type(node_json, json_type_object))
+            return -1;
+
+        json_object *app_id_json = NULL;
+        json_object_object_get_ex(node_json, "app_id", &app_id_json);
+
+        json_object *pid_json = NULL;
+        json_object_object_get_ex(node_json, "pid", &pid_json);
+
+        const char *app_id_str = json_object_get_string(app_id_json);
+        if(app_id_str && strcmp(app_id_str, class_name) == 0 && json_object_is_type(pid_json, json_type_int))
+            return json_object_get_int(pid_json);
 
         for(const char *children_key : { "nodes", "floating_nodes" }) {
             json_object *children = nullptr;
-            if(!json_object_object_get_ex(node, children_key, &children) || !json_object_is_type(children, json_type_array))
+            if(!json_object_object_get_ex(node_json, children_key, &children) || !json_object_is_type(children, json_type_array))
                 continue;
 
             const size_t num_children = json_object_array_length(children);
             for(size_t i = 0; i < num_children; ++i) {
-                json_object *focused_node = sway_find_focused_node(json_object_array_get_idx(children, i));
-                if(focused_node)
-                    return focused_node;
+                const pid_t pid = sway_get_pid_by_class_in_node(class_name, json_object_array_get_idx(children, i));
+                if(pid > 0)
+                    return pid;
             }
         }
 
-        return nullptr;
+        return -1;
     }
 
-    // Returns false if the compositor ipc failed. |focused_window| is left empty if there is no focused window
-    static bool get_focused_window_from_compositor_ipc(CompositorIpc compositor_ipc, FocusedWindow &focused_window) {
-        const char *hyprland_args[] = { "hyprctl", "-j", "activewindow", nullptr };
-        const char *niri_args[] = { "niri", "msg", "--json", "focused-window", nullptr };
-        const char *sway_args[] = { "swaymsg", "-r", "-t", "get_tree", nullptr };
-
-        const char **args = nullptr;
-        const char *app_id_key = "app_id";
-        const char *title_key = "title";
-        switch(compositor_ipc) {
-            case CompositorIpc::NONE:
-                return false;
-            case CompositorIpc::HYPRLAND:
-                args = hyprland_args;
-                app_id_key = "class";
-                break;
-            case CompositorIpc::NIRI:
-                args = niri_args;
-                break;
-            case CompositorIpc::SWAY:
-                args = sway_args;
-                title_key = "name";
-                break;
-        }
-
+    // Returns -1 on failure. Finds the first match, since there may be multiple matches.
+    // It's ok if we dont get the exact pid, since we are only interested in if it's a game process or not (by type).
+    static pid_t sway_get_pid_by_class(const char *class_name) {
+        const char *command_args[] = { "swaymsg", "-r", "-t", "get_tree", nullptr };
         std::string output;
-        if(exec_program_on_host_get_stdout(args, output, false) != 0)
-            return false;
+        if(exec_program_on_host_get_stdout(command_args, output, false) != 0)
+            return -1;
 
-        json_object *root = json_tokener_parse(output.c_str());
-        if(!root)
-            return false;
+        const json_object *root_json = json_tokener_parse(output.c_str());
+        return sway_get_pid_by_class_in_node(class_name, root_json);
+    }
 
-        // Hyprland outputs an empty object and niri outputs null if there is no focused window.
-        // For sway the focused node can also be a workspace (when it's empty), which doesn't have a pid
-        json_object *window = compositor_ipc == CompositorIpc::SWAY ? sway_find_focused_node(root) : root;
-        json_object *app_id = nullptr;
-        json_object *title = nullptr;
-        json_object *pid = nullptr;
-        if(json_object_is_type(window, json_type_object)) {
-            json_object_object_get_ex(window, app_id_key, &app_id);
-            json_object_object_get_ex(window, title_key, &title);
-            json_object_object_get_ex(window, "pid", &pid);
+    // Returns -1 on failure. Finds the first match, since there may be multiple matches.
+    // It's ok if we dont get the exact pid, since we are only interested in if it's a game process or not (by type).
+    static pid_t niri_get_pid_by_class(const char *class_name) {
+        const char *command_args[] = { "niri", "msg", "-j", "windows", nullptr };
+        std::string output;
+        if(exec_program_on_host_get_stdout(command_args, output, false) != 0)
+            return -1;
+
+        json_object *root_json = json_tokener_parse(output.c_str());
+        if(!root_json || !json_object_is_type(root_json, json_type_array))
+            return -1;
+
+        const size_t num_clients = json_object_array_length(root_json);
+        for(size_t i = 0; i < num_clients; ++i) {
+            const json_object *window_json = json_object_array_get_idx(root_json, i);
+            if(!window_json || !json_object_is_type(window_json, json_type_object))
+                continue;
+
+            json_object *app_id_json = NULL;
+            json_object_object_get_ex(window_json, "app_id", &app_id_json);
+
+            json_object *pid_json = NULL;
+            json_object_object_get_ex(window_json, "pid", &pid_json);
+
+            const char *app_id_str = json_object_get_string(app_id_json);
+            if(app_id_str && strcmp(app_id_str, class_name) == 0 && json_object_is_type(pid_json, json_type_int))
+                return json_object_get_int(pid_json);
         }
 
-        const std::string app_id_str = json_object_is_type(app_id, json_type_string) ? json_object_get_string(app_id) : "";
-        if(!app_id_is_ignored(app_id_str) && json_object_is_type(pid, json_type_int) && json_object_get_int(pid) > 0) {
-            if(json_object_is_type(title, json_type_string))
-                focused_window.title = json_object_get_string(title);
-            focused_window.pid = json_object_get_int(pid);
-        }
-
-        json_object_put(root);
-        return true;
+        return -1;
     }
 
     bool DesktopEnvironmentWlroots::is_supported(struct wl_display *dpy) {
@@ -311,8 +365,9 @@ namespace gsr {
         return probe.found;
     }
 
-    DesktopEnvironmentWlroots::DesktopEnvironmentWlroots(struct wl_display *dpy) : impl(std::make_unique<Impl>()) {
+    DesktopEnvironmentWlroots::DesktopEnvironmentWlroots(struct wl_display *dpy, Display *x11_dpy) : impl(std::make_unique<Impl>()) {
         impl->display = dpy;
+        impl->x11_dpy = x11_dpy;
         impl->compositor_ipc = get_compositor_ipc();
     }
 
@@ -346,12 +401,39 @@ namespace gsr {
     }
 
     FocusedWindow DesktopEnvironmentWlroots::get_focused_window() {
-        // The title and process id are both taken from the compositor ipc (if available) so that they are from the same window
-        FocusedWindow focused_window;
-        if(get_focused_window_from_compositor_ipc(impl->compositor_ipc, focused_window))
-            return focused_window;
+        pid_t pid = -1;
+        if(!impl->focused_window_title.empty()) {
+            switch(impl->compositor_ipc) {
+                case CompositorIpc::NONE: {
+                    fprintf(stderr, "gsr ui: warning: DesktopEnvironmentWlroots::get_focused_window: unknown compositor or compositor doesn't support getting the focused window process id. Trying to get the focused window with x11 instead\n");
 
-        // wlr-foreign-toplevel-management doesn't provide the process id of the window
-        return FocusedWindow{ impl->focused_window_title, -1 };
+                    FocusedWindow focused_window;
+                    Window window = None;
+                    focused_window.title = get_window_name_at_cursor_position(impl->x11_dpy, "gsr-ui", &window);
+                    if(focused_window.title.empty()) {
+                        window = None;
+                        focused_window.title = get_focused_window_name(impl->x11_dpy, WindowCaptureType::FOCUSED, false, "gsr-ui", &window);
+                    }
+
+                    if(window != None)
+                        focused_window.pid = get_window_pid(impl->x11_dpy, window);
+
+                    return focused_window;
+                }
+                case CompositorIpc::HYPRLAND: {
+                    pid = hyprctl_get_pid_by_class(impl->focused_app_id.c_str());
+                    break;
+                }
+                case CompositorIpc::SWAY: {
+                    pid = sway_get_pid_by_class(impl->focused_app_id.c_str());
+                    break;
+                }
+                case CompositorIpc::NIRI: {
+                    pid = niri_get_pid_by_class(impl->focused_app_id.c_str());
+                    break;
+                }
+            }
+        }
+        return FocusedWindow{ impl->focused_window_title, pid };
     }
 }
