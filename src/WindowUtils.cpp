@@ -74,8 +74,11 @@ namespace gsr {
 
     static void output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
         (void)wl_output;
-        (void)flags;
         (void)refresh;
+
+        if(!(flags & WL_OUTPUT_MODE_CURRENT))
+            return;
+
         Wayland *wayland = (Wayland*)data;
         WaylandOutput *monitor = get_wayland_monitor_by_output(*wayland, wl_output);
         if(!monitor)
