@@ -1960,16 +1960,6 @@ namespace gsr {
         str.erase(byte_index);
     }
 
-    static const char* get_filename_game_name_suffix(const std::string &filename) {
-        static const char *prefixes[] = { "Video", "Replay", "Screenshot" };
-        for(const char *prefix : prefixes) {
-            const size_t prefix_size = strlen(prefix);
-            if(filename.size() > prefix_size && filename.compare(0, prefix_size, prefix) == 0 && filename[prefix_size] == '_')
-                return filename.c_str() + prefix_size;
-        }
-        return nullptr;
-    }
-
     static bool is_hex_num(char c) {
         return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
     }
@@ -2230,6 +2220,22 @@ namespace gsr {
         return result;
     }
 
+    static std::string filepath_get_file_extension(const std::string_view filepath) {
+        std::string result;
+        const size_t pos = filepath.rfind(".");
+        if(pos != std::string_view::npos)
+            result = filepath.substr(pos);
+        return result;
+    }
+
+    static std::string get_date_str() {
+        char str[128];
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        strftime(str, sizeof(str)-1, "%Y-%m-%d %H-%M-%S", t);
+        return str;
+    }
+
     static std::string to_duration_string(double duration_sec) {
         int seconds = ceil(duration_sec);
 
@@ -2312,19 +2318,18 @@ namespace gsr {
         return exec_program_on_host_get_stdout(args, output) == 0;
     }
 
-    std::string Overlay::get_current_game_name() {
-        // Games that aren't steam games don't have a name, so the focused window title is used instead but only if
-        // the window belongs to the game. Otherwise a non-game window (such as a web browser) could be used as the game name
-        if(tracked_game_name.empty() && game_running) {
-            const FocusedWindow focused_window = desktop_environment->get_focused_window();
-            if(!focused_window.title.empty() && focused_window.pid > 0 && is_game_process_tree_pid(focused_window.pid))
-                tracked_game_name = focused_window.title;
-        }
+    // Returns an empty string if the focused window doesn't belong to a game
+    std::string Overlay::get_focused_game_name(const FocusedWindow &focused_window) {
+        if(!game_running || focused_window.pid <= 0 || !is_game_process_tree_pid(focused_window.pid))
+            return "";
 
-        std::string game_name = tracked_game_name;
-        if(game_name.empty())
-            return game_name;
+        // Games that aren't steam games don't have a name, so the focused window title is used instead
+        if(tracked_game_name.empty())
+            tracked_game_name = focused_window.title;
+        return tracked_game_name;
+    }
 
+    static std::string game_name_to_filename(std::string game_name) {
         game_name = window_title_utf8_sanitize(game_name.c_str(), game_name.size());
         game_name = strip(game_name);
         // Windows doesn't like these characters, and linux doesn't like "/", which is included there as well
@@ -2337,16 +2342,25 @@ namespace gsr {
         return game_name;
     }
 
+    static std::string get_captured_application_name(const std::string &option, const std::string &focused_game_name, const std::string &focused_window_title) {
+        if(option == "yes_only_games")
+            return game_name_to_filename(focused_game_name);
+
+        if(option != "yes")
+            return "";
+
+        std::string name = game_name_to_filename(focused_game_name.empty() ? focused_window_title : focused_game_name);
+        if(name.empty())
+            name = "Game";
+        return name;
+    }
+
     void Overlay::rename_file_to_game_name(std::string &filepath, const std::string &game_name) {
         if(game_name.empty())
             return;
 
         const std::string filename = filepath_get_filename(filepath.c_str());
-        const char *filename_suffix = get_filename_game_name_suffix(filename);
-        if(!filename_suffix)
-            return;
-
-        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + filename_suffix;
+        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + " " + get_date_str() + filepath_get_file_extension(filename);
         if(rename(filepath.c_str(), new_filepath.c_str()) == 0)
             filepath = std::move(new_filepath);
     }
@@ -2406,20 +2420,31 @@ namespace gsr {
         show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, notification_type, capture_target);
     }
 
+    // Returns true if the file was moved into a game folder, in which case a notification has already been shown
+    bool Overlay::organize_captured_file(std::string &filepath, const std::string &organize_into_folders, const std::string &name_after_captured_application, NotificationType notification_type) {
+        if(organize_into_folders == "no" && name_after_captured_application == "no")
+            return false;
+
+        const FocusedWindow focused_window = desktop_environment->get_focused_window();
+        const std::string focused_game_name = get_focused_game_name(focused_window);
+        const std::string folder_name = get_captured_application_name(organize_into_folders, focused_game_name, focused_window.title);
+        const std::string file_game_name = get_captured_application_name(name_after_captured_application, focused_game_name, focused_window.title);
+
+        rename_file_to_game_name(filepath, file_game_name);
+
+        if(folder_name.empty())
+            return false;
+
+        save_video_in_current_game_directory(filepath, folder_name, notification_type);
+        return true;
+    }
+
     void Overlay::on_replay_saved(const char *replay_saved_filepath) {
         replay_save_show_notification = false;
 
         std::string filepath = replay_saved_filepath;
-        std::string game_name;
-        if(config.replay_config.name_video_file_after_game || config.replay_config.save_video_in_game_folder)
-            game_name = get_current_game_name();
-
-        if(config.replay_config.name_video_file_after_game)
-            rename_file_to_game_name(filepath, game_name);
-
-        if(config.replay_config.save_video_in_game_folder && !game_name.empty()) {
-            save_video_in_current_game_directory(filepath, game_name, NotificationType::REPLAY);
-        } else if(config.replay_config.record_options.show_notifications) {
+        const bool saved_in_game_folder = organize_captured_file(filepath, config.replay_config.organize_into_folders, config.replay_config.name_after_captured_application, NotificationType::REPLAY);
+        if(!saved_in_game_folder && config.replay_config.record_options.show_notifications) {
             const std::string duration_str = to_duration_string(get_time_passed_in_replay_buffer_seconds());
 
             char msg[512];
@@ -2637,19 +2662,9 @@ namespace gsr {
             exit_code = WEXITSTATUS(status);
 
         if(exit_code == 0) {
-            const bool name_screenshot_after_game = config.screenshot_config.name_screenshot_file_after_game && config.screenshot_config.save_screenshot_to_disk;
-            const bool save_screenshot_in_game_folder = config.screenshot_config.save_screenshot_in_game_folder && config.screenshot_config.save_screenshot_to_disk;
-
-            std::string game_name;
-            if(name_screenshot_after_game || save_screenshot_in_game_folder)
-                game_name = get_current_game_name();
-
-            if(name_screenshot_after_game)
-                rename_file_to_game_name(screenshot_filepath, game_name);
-
-            if(save_screenshot_in_game_folder && !game_name.empty()) {
-                save_video_in_current_game_directory(screenshot_filepath, game_name, NotificationType::SCREENSHOT);
-            } else if(config.screenshot_config.show_notifications) {
+            const bool saved_in_game_folder = config.screenshot_config.save_screenshot_to_disk
+                && organize_captured_file(screenshot_filepath, config.screenshot_config.organize_into_folders, config.screenshot_config.name_after_captured_application, NotificationType::SCREENSHOT);
+            if(!saved_in_game_folder && config.screenshot_config.show_notifications) {
                 char msg[512];
                 snprintf(msg, sizeof(msg), TR("Saved a screenshot of %s"), capture_target_get_notification_name(x11_dpy, screenshot_capture_target.c_str(), true).c_str());
                 show_notification(msg, notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::SCREENSHOT, screenshot_capture_target.c_str());
@@ -2749,16 +2764,8 @@ namespace gsr {
             return;
 
         if(exit_code == 0) {
-            std::string game_name;
-            if(config.record_config.name_video_file_after_game || config.record_config.save_video_in_game_folder)
-                game_name = get_current_game_name();
-
-            if(config.record_config.name_video_file_after_game)
-                rename_file_to_game_name(video_filepath, game_name);
-
-            if(config.record_config.save_video_in_game_folder && !game_name.empty()) {
-                save_video_in_current_game_directory(video_filepath, game_name, NotificationType::RECORD);
-            } else if(config.record_config.record_options.show_notifications) {
+            const bool saved_in_game_folder = organize_captured_file(video_filepath, config.record_config.organize_into_folders, config.record_config.name_after_captured_application, NotificationType::RECORD);
+            if(!saved_in_game_folder && config.record_config.record_options.show_notifications) {
                 const std::string duration_str = to_duration_string(recording_duration_clock.get_elapsed_time_seconds() - paused_total_time_seconds - (paused ? paused_clock.get_elapsed_time_seconds() : 0.0));
 
                 char msg[512];
@@ -2875,14 +2882,6 @@ namespace gsr {
         replay_dropdown_button_ptr->set_item_enabled("save_1_min", false);
         replay_dropdown_button_ptr->set_item_enabled("save_10_min", false);
         update_ui_recording_stopped();
-    }
-
-    static std::string get_date_str() {
-        char str[128];
-        time_t now = time(NULL);
-        struct tm *t = localtime(&now);
-        strftime(str, sizeof(str)-1, "%Y-%m-%d_%H-%M-%S", t);
-        return str;
     }
 
     static std::string container_to_file_extension(const std::string &container) {

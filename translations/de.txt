@@ -184,11 +184,11 @@ Enable controller hotkeys?=Controllerkürzel aktivieren?
 Press=Drücke
 and=und
 
-Notification speed=Benachrichtungsgeschwindigkeit
+Notification speed:=Benachrichtungsgeschwindigkeit:
 Normal=Normal
 Fast=Schnell
 
-Language=Sprache
+Language:=Sprache:
 System language=Systemsprache
 Exclude personal metadata from the video (such as audio track title)=Schließe persönliche Metadaten vom Video aus (wie z.B. Spurtitel)
 
@@ -281,8 +281,9 @@ Record cursor=Mauszeiger aufnehmen
 Directory to save screenshots:=Verzeichnis zum Speichern von Bildschirmfotos:
 Image format:=Bildformat:
 
-Save screenshot in a folder based on the games name=Speichere Bildschirmfotos in einem Ordner der nach dem Spiel benannt ist
-Name the screenshot file after the game%s=Benenne die Bildschirmfotodatei nach dem Spiel%s
+Organize screenshots into folders:=Bildschirmfotos in Ordnern organisieren:
+Name the screenshot file after the captured application:=Bildschirmfotodatei nach der aufgenommenen Anwendung benennen:
+Yes, but only for screenshots of games=Ja, aber nur für Bildschirmfotos von Spielen
 
 Save screenshot to clipboard=Speichere Bildschirmfoto in die Zwischenablage
 Save screenshot to clipboard (Not supported properly by Wayland)=Speichere Bildschirmfoto in die Zwischenablage (Von Wayland nicht richtig unterstützt)
@@ -333,9 +334,9 @@ Input device: =Eingabegerät:
 Application:     =Anwendung:
 Custom...=Benutzerdefiniert…
 
-Save video in a folder based on the games name%s=Speichere Video in einem Ordner der nach dem Spiel benannt ist%s
-Name the video file after the game%s=Benenne die Videodatei nach dem Spiel%s
- (X11 applications only)= (nur X11-Anwendungen)
+Organize videos into folders:=Videos in Ordnern organisieren:
+Name the video file after the captured application:=Videodatei nach der aufgenommenen Anwendung benennen:
+Yes, but only for videos of games=Ja, aber nur für Videos von Spielen
 
 Add audio track=Audiospur hinzufügen
 Add input device=Eingabegerät hinzufügen

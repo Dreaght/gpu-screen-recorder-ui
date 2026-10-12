@@ -1,15 +1,13 @@
 #include "../../include/DesktopEnvironment/DesktopEnvironmentWlroots.hpp"
 #include "../../include/Process.hpp"
 #include "../../include/WindowUtils.hpp"
+#include "../../external/picojson.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
 #include <limits.h>
-
-#include <json_object.h>
-#include <json_tokener.h>
 
 #include <wayland-client.h>
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
@@ -239,6 +237,20 @@ namespace gsr {
             return pid;
     }
 
+    static bool parse_json(const std::string &input, picojson::value &result, const char *command_name) {
+        const std::string parse_err = picojson::parse(result, input);
+        if(!parse_err.empty()) {
+            fprintf(stderr, "error: gsr-ui: failed to parse %s output, error: %s\n", command_name, parse_err.c_str());
+            return false;
+        }
+        return true;
+    }
+
+    static const picojson::value* json_object_get(const picojson::object &obj, const char *key) {
+        auto it = obj.find(key);
+        return it == obj.end() ? nullptr : &it->second;
+    }
+
     // Returns -1 on failure. Finds the first match, since there may be multiple matches.
     // It's ok if we dont get the exact pid, since we are only interested in if it's a game process or not (by type).
     static pid_t hyprctl_get_pid_by_class(const char *class_name) {
@@ -247,57 +259,60 @@ namespace gsr {
         if(exec_program_on_host_get_stdout(command_args, output, false) != 0)
             return -1;
 
-        json_object *root_json = json_tokener_parse(output.c_str());
-        if(!root_json || !json_object_is_type(root_json, json_type_array))
+        picojson::value root_json;
+        if(!parse_json(output, root_json, "hyprctl -j clients"))
             return -1;
 
-        const size_t num_clients = json_object_array_length(root_json);
-        for(size_t i = 0; i < num_clients; ++i) {
-            const json_object *client_json = json_object_array_get_idx(root_json, i);
-            if(!client_json || !json_object_is_type(client_json, json_type_object))
+        if(!root_json.is<picojson::array>())
+            return -1;
+
+        pid_t pid_result = -1;
+        for(picojson::value &client_val : root_json.get<picojson::array>()) {
+            if(!client_val.is<picojson::object>())
                 continue;
 
-            json_object *class_json = NULL;
-            json_object_object_get_ex(client_json, "class", &class_json);
+            picojson::object &client_json = client_val.get<picojson::object>();
+            picojson::value &class_json = client_json["class"];
+            picojson::value &pid_json = client_json["pid"];
 
-            json_object *pid_json = NULL;
-            json_object_object_get_ex(client_json, "pid", &pid_json);
-
-            const char *client_class_str = json_object_get_string(class_json);
-            const char *client_pid_str = json_object_get_string(pid_json);
-            if(client_class_str && client_pid_str && strcmp(client_class_str, class_name) == 0) {
-                const pid_t pid = str_to_pid(client_pid_str);
-                if(pid > 0)
-                    return pid;
+            if(class_json.is<std::string>() && pid_json.is<std::string>() && class_json.get<std::string>() == class_name) {
+                const pid_t pid = str_to_pid(pid_json.get<std::string>().c_str());
+                if(pid > 0) {
+                    pid_result = pid;
+                    break;
+                }
             }
         }
 
+        return pid_result;
+    }
+
+    // Returns -1 on failure
+    static pid_t get_pid_if_app_id_matches(const picojson::object &window_json, const char *class_name) {
+        const picojson::value *app_id_json = json_object_get(window_json, "app_id");
+        const picojson::value *pid_json = json_object_get(window_json, "pid");
+        if(app_id_json && pid_json && app_id_json->is<std::string>() && pid_json->is<double>() && app_id_json->get<std::string>() == class_name)
+            return (pid_t)pid_json->get<double>();
         return -1;
     }
 
     // Returns -1 on failure
-    static pid_t sway_get_pid_by_class_in_node(const char *class_name, const json_object *node_json) {
-        if(!node_json || !json_object_is_type(node_json, json_type_object))
+    static pid_t sway_get_pid_by_class_in_node(const char *class_name, const picojson::value &node_val) {
+        if(!node_val.is<picojson::object>())
             return -1;
 
-        json_object *app_id_json = NULL;
-        json_object_object_get_ex(node_json, "app_id", &app_id_json);
-
-        json_object *pid_json = NULL;
-        json_object_object_get_ex(node_json, "pid", &pid_json);
-
-        const char *app_id_str = json_object_get_string(app_id_json);
-        if(app_id_str && strcmp(app_id_str, class_name) == 0 && json_object_is_type(pid_json, json_type_int))
-            return json_object_get_int(pid_json);
+        const picojson::object &node_json = node_val.get<picojson::object>();
+        const pid_t node_pid = get_pid_if_app_id_matches(node_json, class_name);
+        if(node_pid > 0)
+            return node_pid;
 
         for(const char *children_key : { "nodes", "floating_nodes" }) {
-            json_object *children = nullptr;
-            if(!json_object_object_get_ex(node_json, children_key, &children) || !json_object_is_type(children, json_type_array))
+            const picojson::value *children = json_object_get(node_json, children_key);
+            if(!children || !children->is<picojson::array>())
                 continue;
 
-            const size_t num_children = json_object_array_length(children);
-            for(size_t i = 0; i < num_children; ++i) {
-                const pid_t pid = sway_get_pid_by_class_in_node(class_name, json_object_array_get_idx(children, i));
+            for(const picojson::value &child_val : children->get<picojson::array>()) {
+                const pid_t pid = sway_get_pid_by_class_in_node(class_name, child_val);
                 if(pid > 0)
                     return pid;
             }
@@ -314,7 +329,10 @@ namespace gsr {
         if(exec_program_on_host_get_stdout(command_args, output, false) != 0)
             return -1;
 
-        const json_object *root_json = json_tokener_parse(output.c_str());
+        picojson::value root_json;
+        if(!parse_json(output, root_json, "swaymsg -r -t get_tree"))
+            return -1;
+
         return sway_get_pid_by_class_in_node(class_name, root_json);
     }
 
@@ -326,25 +344,20 @@ namespace gsr {
         if(exec_program_on_host_get_stdout(command_args, output, false) != 0)
             return -1;
 
-        json_object *root_json = json_tokener_parse(output.c_str());
-        if(!root_json || !json_object_is_type(root_json, json_type_array))
+        picojson::value root_json;
+        if(!parse_json(output, root_json, "niri msg -j windows"))
             return -1;
 
-        const size_t num_clients = json_object_array_length(root_json);
-        for(size_t i = 0; i < num_clients; ++i) {
-            const json_object *window_json = json_object_array_get_idx(root_json, i);
-            if(!window_json || !json_object_is_type(window_json, json_type_object))
+        if(!root_json.is<picojson::array>())
+            return -1;
+
+        for(const picojson::value &window_val : root_json.get<picojson::array>()) {
+            if(!window_val.is<picojson::object>())
                 continue;
 
-            json_object *app_id_json = NULL;
-            json_object_object_get_ex(window_json, "app_id", &app_id_json);
-
-            json_object *pid_json = NULL;
-            json_object_object_get_ex(window_json, "pid", &pid_json);
-
-            const char *app_id_str = json_object_get_string(app_id_json);
-            if(app_id_str && strcmp(app_id_str, class_name) == 0 && json_object_is_type(pid_json, json_type_int))
-                return json_object_get_int(pid_json);
+            const pid_t pid = get_pid_if_app_id_matches(window_val.get<picojson::object>(), class_name);
+            if(pid > 0)
+                return pid;
         }
 
         return -1;

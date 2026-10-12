@@ -101,7 +101,6 @@ executable(
         dependency('libpulse-simple'),
         dependency('libdrm'),
         dependency('wayland-client'),
-        dependency('json-c'),
     ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )

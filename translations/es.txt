@@ -173,11 +173,11 @@ Enable controller hotkeys?=¿Habilitar las teclas de acceso rápido para mando?
 Press=Pulsa
 and=y
 
-Notification speed=Velocidad de notificación
+Notification speed:=Velocidad de notificación:
 Normal=Normal
 Fast=Rápida
 
-Language=Idioma
+Language:=Idioma:
 System language=Idioma del sistema
 Exclude personal metadata from the video (such as audio track title)=Excluir metadatos personales del vídeo (como el título de la pista de sonido)
 
@@ -270,8 +270,9 @@ Record cursor=Grabar cursor
 Directory to save screenshots:=Directorio para guardar capturas de pantalla:
 Image format:=Formato de imagen:
 
-Save screenshot in a folder based on the games name=Guardar captura de pantalla en una carpeta con el mismo nombre que el juego
-Name the screenshot file after the game%s=Nombrar el archivo de captura de pantalla según el juego%s
+Organize screenshots into folders:=Organizar capturas de pantalla en carpetas:
+Name the screenshot file after the captured application:=Nombrar el archivo de captura de pantalla según la aplicación capturada:
+Yes, but only for screenshots of games=Sí, pero solo para capturas de pantalla de juegos
 
 Save screenshot to clipboard=Guardar captura de pantalla en el portapapeles
 Save screenshot to clipboard (Not supported properly by Wayland)=Guardar captura de pantalla en el portapapeles (no admitido por Wayland)
@@ -322,9 +323,9 @@ Input device: =Dispositivo de entrada:
 Application:     =Aplicación:
 Custom...=Personalizado...
 
-Save video in a folder based on the games name%s=Guardar el vídeo en una carpeta con el mismo nombre que el juego%s
-Name the video file after the game%s=Nombrar el archivo de vídeo según el juego%s
- (X11 applications only)= (solo para aplicaciones X11)
+Organize videos into folders:=Organizar vídeos en carpetas:
+Name the video file after the captured application:=Nombrar el archivo de vídeo según la aplicación capturada:
+Yes, but only for videos of games=Sí, pero solo para vídeos de juegos
 
 Add audio track=Añadir pista de sonido
 Add input device=Añadir dispositivo de entrada

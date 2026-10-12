@@ -173,11 +173,11 @@ Enable controller hotkeys?=启用手柄热键？
 Press=按下
 and=和
 
-Notification speed=通知速度
+Notification speed:=通知速度：
 Normal=正常
 Fast=快速
 
-Language=语言
+Language:=语言：
 System language=系统语言
 Exclude personal metadata from the video (such as audio track title)=从视频中排除个人元数据（例如音轨标题）
 
@@ -270,8 +270,9 @@ Record cursor=录制光标
 Directory to save screenshots:=截图保存目录：
 Image format:=图像格式：
 
-Save screenshot in a folder based on the games name=将截图保存在以游戏名称命名的文件夹中
-Name the screenshot file after the game%s=以游戏名称命名截图文件%s
+Organize screenshots into folders:=将截图整理到文件夹中：
+Name the screenshot file after the captured application:=以捕获的应用程序名称命名截图文件：
+Yes, but only for screenshots of games=是，但仅限游戏截图
 
 Save screenshot to clipboard=保存截图到剪贴板
 Save screenshot to clipboard (Not supported properly by Wayland)=保存截图到剪贴板（Wayland 不完全支持）
@@ -322,9 +323,9 @@ Input device: =输入设备：
 Application:     =应用程序：
 Custom...=自定义...
 
-Save video in a folder based on the games name%s=将视频保存在以游戏名称命名的文件夹中%s
-Name the video file after the game%s=以游戏名称命名视频文件%s
- (X11 applications only)=（仅限 X11 应用程序）
+Organize videos into folders:=将视频整理到文件夹中：
+Name the video file after the captured application:=以捕获的应用程序名称命名视频文件：
+Yes, but only for videos of games=是，但仅限游戏视频
 
 Add audio track=添加音轨
 Add input device=添加输入设备

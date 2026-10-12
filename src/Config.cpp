@@ -2,7 +2,9 @@
 #include "../include/Utils.hpp"
 #include "../include/GsrInfo.hpp"
 #include "../include/GlobalHotkeys/GlobalHotkeys.hpp"
+#include "../external/picojson.h"
 #include <variant>
+#include <limits>
 #include <limits.h>
 #include <inttypes.h>
 #include <libgen.h>
@@ -15,7 +17,7 @@
 #define FORMAT_U32 "%" PRIu32
 
 namespace gsr {
-    static const std::string_view add_audio_track_tag = "[add_audio_track]";
+    static const std::string_view legacy_add_audio_track_tag = "[add_audio_track]";
 
     static std::vector<mgl::Keyboard::Key> hotkey_modifiers_to_mgl_keys(uint32_t modifiers) {
         std::vector<mgl::Keyboard::Key> result;
@@ -263,6 +265,8 @@ namespace gsr {
             {"record.record_options.use_led_indicator", &config.record_config.record_options.use_led_indicator},
             {"record.save_video_in_game_folder", &config.record_config.save_video_in_game_folder},
             {"record.name_video_file_after_game", &config.record_config.name_video_file_after_game},
+            {"record.organize_into_folders", &config.record_config.organize_into_folders},
+            {"record.name_after_captured_application", &config.record_config.name_after_captured_application},
             {"record.save_directory", &config.record_config.save_directory},
             {"record.container", &config.record_config.container},
             {"record.start_stop_hotkey", &config.record_config.start_stop_hotkey},
@@ -305,6 +309,8 @@ namespace gsr {
             {"replay.turn_on_replay_automatically_mode", &config.replay_config.turn_on_replay_automatically_mode},
             {"replay.save_video_in_game_folder", &config.replay_config.save_video_in_game_folder},
             {"replay.name_video_file_after_game", &config.replay_config.name_video_file_after_game},
+            {"replay.organize_into_folders", &config.replay_config.organize_into_folders},
+            {"replay.name_after_captured_application", &config.replay_config.name_after_captured_application},
             {"replay.restart_replay_on_save", &config.replay_config.restart_replay_on_save},
             {"replay.only_start_replay_if_power_supply_connected", &config.replay_config.only_start_replay_if_power_supply_connected},
             {"replay.save_directory", &config.replay_config.save_directory},
@@ -326,6 +332,8 @@ namespace gsr {
             {"screenshot.restore_portal_session", &config.screenshot_config.restore_portal_session},
             {"screenshot.save_screenshot_in_game_folder", &config.screenshot_config.save_screenshot_in_game_folder},
             {"screenshot.name_screenshot_file_after_game", &config.screenshot_config.name_screenshot_file_after_game},
+            {"screenshot.organize_into_folders", &config.screenshot_config.organize_into_folders},
+            {"screenshot.name_after_captured_application", &config.screenshot_config.name_after_captured_application},
             {"screenshot.save_screenshot_to_clipboard", &config.screenshot_config.save_screenshot_to_clipboard},
             {"screenshot.save_screenshot_to_disk", &config.screenshot_config.save_screenshot_to_disk},
             {"screenshot.show_notifications", &config.screenshot_config.show_notifications},
@@ -346,27 +354,8 @@ namespace gsr {
             if(it_other == config_options_other.end() || it_other->second.index() != it.second.index())
                 return false;
 
-            if(std::holds_alternative<bool*>(it.second)) {
-                if(*std::get<bool*>(it.second) != *std::get<bool*>(it_other->second))
-                    return false;
-            } else if(std::holds_alternative<std::string*>(it.second)) {
-                if(*std::get<std::string*>(it.second) != *std::get<std::string*>(it_other->second))
-                    return false;
-            } else if(std::holds_alternative<int32_t*>(it.second)) {
-                if(*std::get<int32_t*>(it.second) != *std::get<int32_t*>(it_other->second))
-                    return false;
-            } else if(std::holds_alternative<ConfigHotkey*>(it.second)) {
-                if(*std::get<ConfigHotkey*>(it.second) != *std::get<ConfigHotkey*>(it_other->second))
-                    return false;
-            } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
-                if(*std::get<std::vector<std::string>*>(it.second) != *std::get<std::vector<std::string>*>(it_other->second))
-                    return false;
-            } else if(std::holds_alternative<std::vector<AudioTrack>*>(it.second)) {
-                if(*std::get<std::vector<AudioTrack>*>(it.second) != *std::get<std::vector<AudioTrack>*>(it_other->second))
-                    return false;
-            } else {
-                assert(false);
-            }
+            if(!std::visit([&](auto *value) { return *value == *std::get<decltype(value)>(it_other->second); }, it.second))
+                return false;
         }
         return true;
     }
@@ -375,23 +364,188 @@ namespace gsr {
         return !operator==(other);
     }
 
-    std::optional<Config> read_config(const SupportedCaptureOptions &capture_options) {
-        std::optional<Config> config;
+    // TODO: Remove all of these in the future
+    static void upgrade_deprecated_config_options(Config &config) {
+        bool modified = false;
 
-        const std::string config_path = get_config_dir() + "/config_ui";
-        std::string file_content;
-        if(!file_get_content(config_path.c_str(), file_content)) {
-            fprintf(stderr, "Warning: Failed to read config file: %s\n", config_path.c_str());
-            return config;
+        if(config.replay_config.turn_on_replay_automatically_mode == "turn_on_at_fullscreen") {
+            config.replay_config.turn_on_replay_automatically_mode = "turn_on_at_game_launch";
+            modified = true;
         }
 
-        config = Config(capture_options);
+        if(config.main_config.config_file_version <= 2) {
+            if(config.record_config.save_video_in_game_folder)
+                config.record_config.organize_into_folders = "yes";
 
-        config->streaming_config.record_options.audio_tracks_list.clear();
-        config->record_config.record_options.audio_tracks_list.clear();
-        config->replay_config.record_options.audio_tracks_list.clear();
+            if(config.record_config.name_video_file_after_game)
+                config.record_config.name_after_captured_application = "yes";
 
-        auto config_options = get_config_options(config.value());
+            if(config.replay_config.save_video_in_game_folder)
+                config.replay_config.organize_into_folders = "yes";
+
+            if(config.replay_config.name_video_file_after_game)
+                config.replay_config.name_after_captured_application = "yes";
+
+            if(config.screenshot_config.save_screenshot_in_game_folder)
+                config.screenshot_config.organize_into_folders = "yes";
+
+            if(config.screenshot_config.name_screenshot_file_after_game)
+                config.screenshot_config.name_after_captured_application = "yes";
+
+            modified = true;
+        }
+
+        if(modified) {
+            fprintf(stderr, "Info: gsr-ui: upgraded the config file to the new format\n");
+            save_config(config);
+        }
+    }
+
+    template <typename T>
+    static bool json_to_integer(const picojson::value &json, T &out) {
+        if(!json.is<double>())
+            return false;
+
+        const double value = json.get<double>();
+        if(!(value >= (double)std::numeric_limits<T>::min() && value < (double)std::numeric_limits<T>::max() + 1.0))
+            return false;
+
+        out = (T)value;
+        return true;
+    }
+
+    static picojson::value to_json(bool value) {
+        return picojson::value(value);
+    }
+
+    static picojson::value to_json(const std::string &value) {
+        return picojson::value(value);
+    }
+
+    static picojson::value to_json(int32_t value) {
+        return picojson::value((double)value);
+    }
+
+    static picojson::value to_json(const ConfigHotkey &hotkey) {
+        picojson::object result;
+        result["key"] = picojson::value((double)hotkey.key);
+        result["modifiers"] = picojson::value((double)hotkey.modifiers);
+        return picojson::value(std::move(result));
+    }
+
+    template <typename T>
+    static picojson::value to_json(const std::vector<T> &items) {
+        picojson::array result;
+        for(const T &item : items) {
+            result.push_back(to_json(item));
+        }
+        return picojson::value(std::move(result));
+    }
+
+    static picojson::value to_json(const AudioTrack &audio_track) {
+        picojson::object result;
+        result["name"] = to_json(audio_track.name);
+        result["audio_inputs"] = to_json(audio_track.audio_inputs);
+        result["application_audio_invert"] = to_json(audio_track.application_audio_invert);
+        return picojson::value(std::move(result));
+    }
+
+    static bool from_json(const picojson::value &json, bool &out) {
+        if(!json.is<bool>())
+            return false;
+        out = json.get<bool>();
+        return true;
+    }
+
+    static bool from_json(const picojson::value &json, std::string &out) {
+        if(!json.is<std::string>())
+            return false;
+        out = json.get<std::string>();
+        return true;
+    }
+
+    static bool from_json(const picojson::value &json, int32_t &out) {
+        return json_to_integer(json, out);
+    }
+
+    static bool from_json(const picojson::value &json, ConfigHotkey &hotkey) {
+        return json.is<picojson::object>()
+            && json_to_integer(json.get("key"), hotkey.key)
+            && json_to_integer(json.get("modifiers"), hotkey.modifiers);
+    }
+
+    template <typename T>
+    static bool from_json(const picojson::value &json, std::vector<T> &out) {
+        if(!json.is<picojson::array>())
+            return false;
+
+        std::vector<T> result;
+        for(const picojson::value &item_json : json.get<picojson::array>()) {
+            T item;
+            if(!from_json(item_json, item))
+                return false;
+            result.push_back(std::move(item));
+        }
+
+        out = std::move(result);
+        return true;
+    }
+
+    static bool from_json(const picojson::value &json, AudioTrack &audio_track) {
+        return json.is<picojson::object>()
+            && from_json(json.get("name"), audio_track.name)
+            && from_json(json.get("audio_inputs"), audio_track.audio_inputs)
+            && from_json(json.get("application_audio_invert"), audio_track.application_audio_invert);
+    }
+
+    static const picojson::value* json_find_path(const picojson::value &root, std::string_view path) {
+        const picojson::value *node = &root;
+        string_split_char(path, '.', [&](std::string_view key) {
+            if(!node->is<picojson::object>()) {
+                node = nullptr;
+                return false;
+            }
+
+            const picojson::object &object = node->get<picojson::object>();
+            auto it = object.find(std::string(key));
+            node = it == object.end() ? nullptr : &it->second;
+            return node != nullptr;
+        });
+        return node;
+    }
+
+    static picojson::value& json_create_path(picojson::object &root, std::string_view path) {
+        picojson::object *object = &root;
+        size_t index = 0;
+        while(true) {
+            const size_t dot_index = path.find('.', index);
+            picojson::value &child = (*object)[std::string(path.substr(index, dot_index - index))];
+            if(dot_index == std::string_view::npos)
+                return child;
+
+            if(!child.is<picojson::object>())
+                child = picojson::value(picojson::object());
+
+            object = &child.get<picojson::object>();
+            index = dot_index + 1;
+        }
+    }
+
+    static std::string get_config_path() {
+        return get_config_dir() + "/config_ui";
+    }
+
+    static bool is_legacy_config_format(const std::string &file_content) {
+        const size_t first_char_index = file_content.find_first_not_of(" \t\r\n");
+        return first_char_index == std::string::npos || file_content[first_char_index] != '{';
+    }
+
+    static void parse_config_legacy_format(const std::string &file_content, Config &config) {
+        config.streaming_config.record_options.audio_tracks_list.clear();
+        config.record_config.record_options.audio_tracks_list.clear();
+        config.replay_config.record_options.audio_tracks_list.clear();
+
+        auto config_options = get_config_options(config);
 
         string_split_char(file_content, '\n', [&](std::string_view line) {
             const std::optional<KeyValue> key_value = parse_key_value(line);
@@ -440,7 +594,7 @@ namespace gsr {
                 const std::string_view audio_input = key_value->value.substr(space_index + 1);
                 std::vector<AudioTrack> &audio_tracks = *std::get<std::vector<AudioTrack>*>(it->second);
 
-                if(starts_with(audio_input, add_audio_track_tag)) {
+                if(starts_with(audio_input, legacy_add_audio_track_tag)) {
                     audio_tracks.push_back({"", std::vector<std::string>{}, application_audio_invert});
                 } else if(!audio_tracks.empty()) {
                     audio_tracks.back().application_audio_invert = application_audio_invert;
@@ -455,18 +609,65 @@ namespace gsr {
 
             return true;
         });
+    }
 
-        // TODO: Remove in the future
-        if(config->replay_config.turn_on_replay_automatically_mode == "turn_on_at_fullscreen")
-            config->replay_config.turn_on_replay_automatically_mode = "turn_on_at_game_launch";
+    static bool parse_config_json(const std::string &file_content, Config &config) {
+        picojson::value root_json;
+        const std::string parse_err = picojson::parse(root_json, file_content);
+        if(!parse_err.empty()) {
+            fprintf(stderr, "Warning: Failed to parse config file, error: %s\n", parse_err.c_str());
+            return false;
+        }
 
+        if(!root_json.is<picojson::object>()) {
+            fprintf(stderr, "Warning: Failed to parse config file, expected root to be an object\n");
+            return false;
+        }
+
+        for(auto &it : get_config_options(config)) {
+            const picojson::value *value_json = json_find_path(root_json, it.first);
+            if(!value_json)
+                continue;
+
+            const bool success = std::visit([&](auto *value) {
+                auto parsed_value = *value;
+                if(!from_json(*value_json, parsed_value))
+                    return false;
+                *value = std::move(parsed_value);
+                return true;
+            }, it.second);
+
+            if(!success)
+                fprintf(stderr, "Warning: Invalid config option value for %.*s\n", (int)it.first.size(), it.first.data());
+        }
+
+        return true;
+    }
+
+    std::optional<Config> read_config(const SupportedCaptureOptions &capture_options) {
+        std::optional<Config> config;
+
+        const std::string config_path = get_config_path();
+        std::string file_content;
+        if(!file_get_content(config_path.c_str(), file_content)) {
+            fprintf(stderr, "Warning: Failed to read config file: %s\n", config_path.c_str());
+            return config;
+        }
+
+        config = Config(capture_options);
+        if(is_legacy_config_format(file_content))
+            parse_config_legacy_format(file_content, config.value());
+        else if(!parse_config_json(file_content, config.value()))
+            return std::nullopt;
+
+        upgrade_deprecated_config_options(config.value());
         return config;
     }
 
     void save_config(Config &config) {
         config.main_config.config_file_version = GSR_CONFIG_FILE_VERSION;
 
-        const std::string config_path = get_config_dir() + "/config_ui";
+        const std::string config_path = get_config_path();
 
         char dir_tmp[PATH_MAX];
         snprintf(dir_tmp, sizeof(dir_tmp), "%s", config_path.c_str());
@@ -477,44 +678,12 @@ namespace gsr {
             return;
         }
 
-        FILE *file = fopen(config_path.c_str(), "wb");
-        if(!file) {
-            fprintf(stderr, "Warning: Failed to create config file: %s\n", config_path.c_str());
-            return;
+        picojson::object root_json;
+        for(auto &it : get_config_options(config)) {
+            json_create_path(root_json, it.first) = std::visit([](auto *value) { return to_json(*value); }, it.second);
         }
 
-        const auto config_options = get_config_options(config);
-        for(auto it : config_options) {
-            if(std::holds_alternative<bool*>(it.second)) {
-                fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), *std::get<bool*>(it.second) ? "true" : "false");
-            } else if(std::holds_alternative<std::string*>(it.second)) {
-                fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), std::get<std::string*>(it.second)->c_str());
-            } else if(std::holds_alternative<int32_t*>(it.second)) {
-                fprintf(file, "%.*s " FORMAT_I32 "\n", (int)it.first.size(), it.first.data(), *std::get<int32_t*>(it.second));
-            } else if(std::holds_alternative<ConfigHotkey*>(it.second)) {
-                const ConfigHotkey *config_hotkey = std::get<ConfigHotkey*>(it.second);
-                    fprintf(file, "%.*s " FORMAT_I64 " " FORMAT_U32 "\n", (int)it.first.size(), it.first.data(), config_hotkey->key, config_hotkey->modifiers);
-            } else if(std::holds_alternative<std::vector<std::string>*>(it.second)) {
-                std::vector<std::string> *audio_inputs = std::get<std::vector<std::string>*>(it.second);
-                for(const std::string &audio_input : *audio_inputs) {
-                    fprintf(file, "%.*s %s\n", (int)it.first.size(), it.first.data(), audio_input.c_str());
-                }
-            } else if(std::holds_alternative<std::vector<AudioTrack>*>(it.second)) {
-                std::vector<AudioTrack> *audio_tracks = std::get<std::vector<AudioTrack>*>(it.second);
-                for(const AudioTrack &audio_track : *audio_tracks) {
-                    fprintf(file, "%.*s %s %.*s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", (int)add_audio_track_tag.size(), add_audio_track_tag.data());
-                    if(!audio_track.name.empty())
-                        fprintf(file, "%.*s %s name:%s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", audio_track.name.c_str());
-
-                    for(const std::string &audio_input : audio_track.audio_inputs) {
-                        fprintf(file, "%.*s %s %s\n", (int)it.first.size(), it.first.data(), audio_track.application_audio_invert ? "true" : "false", audio_input.c_str());
-                    }
-                }
-            } else {
-                assert(false);
-            }
-        }
-
-        fclose(file);
+        if(!file_overwrite(config_path.c_str(), picojson::value(std::move(root_json)).serialize(true)))
+            fprintf(stderr, "Warning: Failed to write config file: %s\n", config_path.c_str());
     }
 }

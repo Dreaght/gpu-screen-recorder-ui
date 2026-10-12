@@ -88,7 +88,7 @@ def add_games_from_rules_recursive(dir):
 
 def main():
     if len(sys.argv) != 2:
-        print("usage: create-native-games-list.py <path-to-ananicy-rules>")
+        print("usage: create-native-games-list.py <path-to-ananicy-rules-git-repo>")
         exit(1)
 
     ananicy_root_path = sys.argv[1]

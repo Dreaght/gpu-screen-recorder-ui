@@ -189,11 +189,11 @@ Enable controller hotkeys?=
 Press=
 and=
 
-Notification speed=
+Notification speed:=
 Normal=
 Fast=
 
-Language=
+Language:=
 System language=
 Exclude personal metadata from the video (such as audio track title)=
 
@@ -286,8 +286,9 @@ Record cursor=
 Directory to save screenshots:=
 Image format:=
 
-Save screenshot in a folder based on the games name=
-Name the screenshot file after the game%s=
+Organize screenshots into folders:=
+Name the screenshot file after the captured application:=
+Yes, but only for screenshots of games=
 
 Save screenshot to clipboard=
 Save screenshot to clipboard (Not supported properly by Wayland)=
@@ -338,9 +339,9 @@ Input device: =
 Application:     =
 Custom...=
 
-Save video in a folder based on the games name%s=
-Name the video file after the game%s=
- (X11 applications only)=
+Organize videos into folders:=
+Name the video file after the captured application:=
+Yes, but only for videos of games=
 
 Add audio track=
 Add input device=

@@ -13,6 +13,7 @@ namespace gsr {
     class GsrPage;
     class ScrollablePage;
     class Button;
+    class RadioButton;
 
     class ScreenshotSettingsPage : public StaticPage {
     public:
@@ -44,8 +45,8 @@ namespace gsr {
         std::unique_ptr<ComboBox> create_image_format_box();
         std::unique_ptr<List> create_image_format_section();
         std::unique_ptr<Widget> create_file_info_section();
-        std::unique_ptr<CheckBox> create_save_screenshot_in_game_folder();
-        std::unique_ptr<CheckBox> create_name_screenshot_file_after_game();
+        std::unique_ptr<Widget> create_organize_into_folders();
+        std::unique_ptr<Widget> create_organize_into_filename();
         std::unique_ptr<CheckBox> create_save_screenshot_to_clipboard();
         std::unique_ptr<CheckBox> create_save_screenshot_to_disk();
         std::unique_ptr<Widget> create_notifications();
@@ -79,8 +80,8 @@ namespace gsr {
         ComboBox *image_quality_box_ptr = nullptr;
         ComboBox *image_format_box_ptr = nullptr;
         Button *save_directory_button_ptr = nullptr;
-        CheckBox *save_screenshot_in_game_folder_checkbox_ptr = nullptr;
-        CheckBox *name_screenshot_file_after_game_checkbox_ptr = nullptr;
+        RadioButton *organize_folders_radio_button_ptr = nullptr;
+        RadioButton *organize_filename_radio_button_ptr = nullptr;
         CheckBox *save_screenshot_to_clipboard_checkbox_ptr = nullptr;
         CheckBox *save_screenshot_to_disk_checkbox_ptr = nullptr;
         CheckBox *show_notification_checkbox_ptr = nullptr;

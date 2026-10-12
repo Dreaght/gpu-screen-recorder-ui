@@ -4,6 +4,7 @@
 #include "../../include/gui/PageStack.hpp"
 #include "../../include/gui/FileChooser.hpp"
 #include "../../include/gui/Subsection.hpp"
+#include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
 #include "../../include/gui/Image.hpp"
 #include "../../include/gui/Utils.hpp"
@@ -1259,22 +1260,6 @@ namespace gsr {
         return list;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_save_replay_in_game_folder() {
-        char text[256];
-        snprintf(text, sizeof(text), TR("Save video in a folder based on the games name%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
-        save_replay_in_game_folder_ptr = checkbox.get();
-        return checkbox;
-    }
-
-    std::unique_ptr<CheckBox> SettingsPage::create_name_replay_file_after_game() {
-        char text[256];
-        snprintf(text, sizeof(text), TR("Name the video file after the game%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
-        name_replay_file_after_game_ptr = checkbox.get();
-        return checkbox;
-    }
-
     std::unique_ptr<CheckBox> SettingsPage::create_restart_replay_on_save() {
         auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Restart replay on save"));
         restart_replay_on_save = checkbox.get();
@@ -1419,13 +1404,19 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("File info"), std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_replay_storage());
-        general_list->add_widget(create_save_replay_in_game_folder());
-        general_list->add_widget(create_name_replay_file_after_game());
-        general_list->add_widget(create_restart_replay_on_save());
-        general_list->add_widget(create_low_power_mode());
+        List *general_list_ptr = general_list.get();
+        auto general_subsection = std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        general_list_ptr->add_widget(create_replay_storage());
+        general_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, general_subsection->get_inner_size().x));
+        general_list_ptr->add_widget(create_organize_into_folders());
+        general_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, general_subsection->get_inner_size().x));
+        general_list_ptr->add_widget(create_organize_into_filename());
+        general_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, general_subsection->get_inner_size().x));
+        general_list_ptr->add_widget(create_restart_replay_on_save());
+        general_list_ptr->add_widget(create_low_power_mode());
+
+        settings_list_ptr->add_widget(std::move(general_subsection));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Replay indicator"), create_indicator(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Autostart"), create_start_replay_automatically_section(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
@@ -1445,20 +1436,34 @@ namespace gsr {
         };
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_save_recording_in_game_folder() {
-        char text[256];
-        snprintf(text, sizeof(text), TR("Save video in a folder based on the games name%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
-        save_recording_in_game_folder_ptr = checkbox.get();
-        return checkbox;
+    std::unique_ptr<Widget> SettingsPage::create_organize_into_folders() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Organize videos into folders:"), get_color_theme().text_color));
+
+        auto organize_folders_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
+        organize_folders_radio_button_ptr = organize_folders_radio_button.get();
+        organize_folders_radio_button->add_item(TR("No"), "no");
+        organize_folders_radio_button->add_item(TR("Yes"), "yes");
+        organize_folders_radio_button->add_item(TR("Yes, but only for videos of games"), "yes_only_games");
+        list->add_widget(std::move(organize_folders_radio_button));
+
+        return list;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_name_recording_file_after_game() {
-        char text[256];
-        snprintf(text, sizeof(text), TR("Name the video file after the game%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
-        name_recording_file_after_game_ptr = checkbox.get();
-        return checkbox;
+    std::unique_ptr<Widget> SettingsPage::create_organize_into_filename() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Name the video file after the captured application:"), get_color_theme().text_color));
+
+        auto organize_filename_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
+        organize_filename_radio_button_ptr = organize_filename_radio_button.get();
+        organize_filename_radio_button->add_item(TR("No"), "no");
+        organize_filename_radio_button->add_item(TR("Yes"), "yes");
+        organize_filename_radio_button->add_item(TR("Yes, but only for videos of games"), "yes_only_games");
+        list->add_widget(std::move(organize_filename_radio_button));
+
+        return list;
     }
 
     std::unique_ptr<Label> SettingsPage::create_estimated_record_file_size() {
@@ -1487,11 +1492,16 @@ namespace gsr {
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("File info"), std::move(file_info_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         auto general_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        general_list->add_widget(create_save_recording_in_game_folder());
-        general_list->add_widget(create_name_recording_file_after_game());
-        general_list->add_widget(create_low_power_mode());
+        List *general_list_ptr = general_list.get();
+        auto general_subsection = std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
 
-        settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("General"), std::move(general_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
+        general_list_ptr->add_widget(create_organize_into_folders());
+        general_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, general_subsection->get_inner_size().x));
+        general_list_ptr->add_widget(create_organize_into_filename());
+        general_list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, general_subsection->get_inner_size().x));
+        general_list_ptr->add_widget(create_low_power_mode());
+
+        settings_list_ptr->add_widget(std::move(general_subsection));
         settings_list_ptr->add_widget(std::make_unique<Subsection>(TR("Recording indicator"), create_indicator(), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f)));
 
         view_radio_button_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
@@ -1901,8 +1911,8 @@ namespace gsr {
         load_common(config.replay_config.record_options);
         replay_storage_button_ptr->set_selected_item(config.replay_config.replay_storage);
         turn_on_replay_automatically_mode_ptr->set_selected_item(config.replay_config.turn_on_replay_automatically_mode);
-        save_replay_in_game_folder_ptr->set_checked(config.replay_config.save_video_in_game_folder);
-        name_replay_file_after_game_ptr->set_checked(config.replay_config.name_video_file_after_game);
+        organize_folders_radio_button_ptr->set_selected_item(config.replay_config.organize_into_folders);
+        organize_filename_radio_button_ptr->set_selected_item(config.replay_config.name_after_captured_application);
         replay_power_supply_checkbox_ptr->set_checked(config.replay_config.only_start_replay_if_power_supply_connected);
         if(restart_replay_on_save)
             restart_replay_on_save->set_checked(config.replay_config.restart_replay_on_save);
@@ -1919,8 +1929,8 @@ namespace gsr {
 
     void SettingsPage::load_record() {
         load_common(config.record_config.record_options);
-        save_recording_in_game_folder_ptr->set_checked(config.record_config.save_video_in_game_folder);
-        name_recording_file_after_game_ptr->set_checked(config.record_config.name_video_file_after_game);
+        organize_folders_radio_button_ptr->set_selected_item(config.record_config.organize_into_folders);
+        organize_filename_radio_button_ptr->set_selected_item(config.record_config.name_after_captured_application);
         save_directory_button_ptr->set_text(config.record_config.save_directory);
         container_box_ptr->set_selected_item(config.record_config.container);
     }
@@ -2063,8 +2073,8 @@ namespace gsr {
     void SettingsPage::save_replay() {
         save_common(config.replay_config.record_options);
         config.replay_config.turn_on_replay_automatically_mode = turn_on_replay_automatically_mode_ptr->get_selected_id();
-        config.replay_config.save_video_in_game_folder = save_replay_in_game_folder_ptr->is_checked();
-        config.replay_config.name_video_file_after_game = name_replay_file_after_game_ptr->is_checked();
+        config.replay_config.organize_into_folders = organize_folders_radio_button_ptr->get_selected_id();
+        config.replay_config.name_after_captured_application = organize_filename_radio_button_ptr->get_selected_id();
         config.replay_config.only_start_replay_if_power_supply_connected = replay_power_supply_checkbox_ptr->is_checked();
         if(restart_replay_on_save)
             config.replay_config.restart_replay_on_save = restart_replay_on_save->is_checked();
@@ -2081,8 +2091,8 @@ namespace gsr {
 
     void SettingsPage::save_record() {
         save_common(config.record_config.record_options);
-        config.record_config.save_video_in_game_folder = save_recording_in_game_folder_ptr->is_checked();
-        config.record_config.name_video_file_after_game = name_recording_file_after_game_ptr->is_checked();
+        config.record_config.organize_into_folders = organize_folders_radio_button_ptr->get_selected_id();
+        config.record_config.name_after_captured_application = organize_filename_radio_button_ptr->get_selected_id();
         config.record_config.save_directory = save_directory_button_ptr->get_text();
         config.record_config.container = container_box_ptr->get_selected_id();
     }

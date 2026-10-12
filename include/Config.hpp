@@ -6,7 +6,7 @@
 #include <vector>
 #include <optional>
 
-#define GSR_CONFIG_FILE_VERSION 2
+#define GSR_CONFIG_FILE_VERSION 3
 
 namespace gsr {
     struct SupportedCaptureOptions;
@@ -130,8 +130,14 @@ namespace gsr {
 
     struct RecordConfig {
         RecordOptions record_options;
+
+        // TODO: Remove these in the future
         bool save_video_in_game_folder = false;
         bool name_video_file_after_game = false;
+
+        std::string organize_into_folders = "no";
+        std::string name_after_captured_application = "no";
+
         std::string save_directory;
         std::string container = "mp4";
         ConfigHotkey start_stop_hotkey;
@@ -143,8 +149,14 @@ namespace gsr {
     struct ReplayConfig {
         RecordOptions record_options;
         std::string turn_on_replay_automatically_mode = "dont_turn_on_automatically";
+
+        // TODO: Remove these in the future
         bool save_video_in_game_folder = false;
         bool name_video_file_after_game = false;
+
+        std::string organize_into_folders = "no";
+        std::string name_after_captured_application = "no";
+
         bool restart_replay_on_save = false;
         bool only_start_replay_if_power_supply_connected = false;
         std::string save_directory;
@@ -167,8 +179,13 @@ namespace gsr {
         bool record_cursor = true;
         bool restore_portal_session = true;
 
+        // TODO: Remove these in the future
         bool save_screenshot_in_game_folder = false;
         bool name_screenshot_file_after_game = false;
+
+        std::string organize_into_folders = "no";
+        std::string name_after_captured_application = "no";
+
         bool save_screenshot_to_clipboard = false;
         bool save_screenshot_to_disk = true;
         bool show_notifications = true;

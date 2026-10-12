@@ -185,11 +185,11 @@ Enable controller hotkeys?=コントローラホットキーを有効にしま�
 Press=押す
 and=と
 
-Notification speed=通知の速度
+Notification speed:=通知の速度:
 Normal=標準
 Fast=高速
 
-Language=言語
+Language:=言語:
 System language=システムの言語
 Exclude personal metadata from the video (such as audio track title)=動画から個人的なメタデータを除外する（音声トラックのタイトルなど）
 
@@ -282,8 +282,9 @@ Record cursor=カーソルを記録
 Directory to save screenshots:=スクリーンショットの保存先:
 Image format:=画像形式:
 
-Save screenshot in a folder based on the games name=ゲーム名ベースのフォルダにスクリーンショットを保存
-Name the screenshot file after the game%s=スクリーンショットのファイル名をゲーム名にする%s
+Organize screenshots into folders:=スクリーンショットをフォルダに整理:
+Name the screenshot file after the captured application:=スクリーンショットのファイル名をキャプチャしたアプリ名にする:
+Yes, but only for screenshots of games=はい ただしゲームのスクリーンショットのみ
 
 Save screenshot to clipboard=スクリーンショットをクリップボードに保存
 Save screenshot to clipboard (Not supported properly by Wayland)=スクリーンショットをクリップボードに保存(Wayland では完全には対応していません)
@@ -334,9 +335,9 @@ Input device: =入力デバイス:
 Application:     =アプリケーション:
 Custom...=カスタム...
 
-Save video in a folder based on the games name%s=ゲーム名ベースのフォルダに動画を保存%s
-Name the video file after the game%s=動画ファイル名をゲーム名にする%s
- (X11 applications only)= (X11 アプリのみ)
+Organize videos into folders:=動画をフォルダに整理:
+Name the video file after the captured application:=動画ファイル名をキャプチャしたアプリ名にする:
+Yes, but only for videos of games=はい ただしゲームの動画のみ
 
 Add audio track=音声トラックを追加
 Add input device=入力デバイスを追加

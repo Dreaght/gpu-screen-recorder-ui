@@ -526,7 +526,7 @@ namespace gsr {
 
     std::unique_ptr<List> GlobalSettingsPage::create_notification_speed() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Notification speed"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Notification speed:"), get_color_theme().text_color));
 
         auto radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
         notification_speed_button_ptr = radio_button.get();
@@ -546,7 +546,7 @@ namespace gsr {
 
     std::unique_ptr<List> GlobalSettingsPage::create_language() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Language"), get_color_theme().text_color));
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Language:"), get_color_theme().text_color));
 
         auto combo_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
         language_combo_box_ptr = combo_box.get();

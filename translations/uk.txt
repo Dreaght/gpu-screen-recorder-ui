@@ -176,11 +176,11 @@ Enable controller hotkeys?=Увімкнути гарячі клавіші гей
 Press=Натисніть
 and=та
 
-Notification speed=Швидкість сповіщень
+Notification speed:=Швидкість сповіщень:
 Normal=Звичайна
 Fast=Швидка
 
-Language=Мова
+Language:=Мова:
 System language=Системна мова
 Exclude personal metadata from the video (such as audio track title)=Виключити особисті метадані з відео (наприклад, назву аудіодоріжки)
 
@@ -273,8 +273,9 @@ Record cursor=Записувати курсор
 Directory to save screenshots:=Каталог для збереження знімків:
 Image format:=Формат зображення:
 
-Save screenshot in a folder based on the games name=Зберегти скріншот у папці на основі назви гри
-Name the screenshot file after the game%s=Називати файл скріншота за назвою гри%s
+Organize screenshots into folders:=Розподіляти скріншоти по папках:
+Name the screenshot file after the captured application:=Називати файл скріншота за назвою захопленої програми:
+Yes, but only for screenshots of games=Так, але лише для скріншотів з ігор
 
 Save screenshot to clipboard=Зберігати знімок до буфера обміну
 Save screenshot to clipboard (Not supported properly by Wayland)=Зберігати знімок до буфера обміну (в Wayland підтримується некоректно)
@@ -323,9 +324,9 @@ Input device: =Вхідний пристрій:
 Application:     =Програма:     
 Custom...=Інше...
 
-Save video in a folder based on the games name%s=Збереження відео в папці на основі назви гри%s
-Name the video file after the game%s=Називати файл відео за назвою гри%s
- (X11 applications only)= (лише X11-програми)
+Organize videos into folders:=Розподіляти відео по папках:
+Name the video file after the captured application:=Називати файл відео за назвою захопленої програми:
+Yes, but only for videos of games=Так, але лише для відео з ігор
 
 Add audio track=Додати аудіодоріжку
 Add input device=Додати вхід

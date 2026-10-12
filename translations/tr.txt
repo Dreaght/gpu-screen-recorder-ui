@@ -172,11 +172,11 @@ Enable controller hotkeys?=Kontrolcü kısayolları etkinleştirilsin mi?
 Press=Basın
 and=ve
 
-Notification speed=Bildirim hızı
+Notification speed:=Bildirim hızı:
 Normal=Normal
 Fast=Hızlı
 
-Language=Dil
+Language:=Dil:
 System language=Sistem Dili
 Exclude personal metadata from the video (such as audio track title)=Kişisel meta verileri videodan hariç tut (ses kanalı başlığı gibi)
 
@@ -268,8 +268,9 @@ Record cursor=İmleci kaydet
 Directory to save screenshots:=Ekran görüntülerinin kaydedileceği dizin:
 Image format:=Görüntü biçimi:
 
-Save screenshot in a folder based on the games name=Ekran görüntüsünü oyunun adına göre bir klasöre kaydet
-Name the screenshot file after the game%s=Ekran görüntüsü dosyasını oyunun adına göre adlandır%s
+Organize screenshots into folders:=Ekran görüntülerini klasörlere ayır:
+Name the screenshot file after the captured application:=Ekran görüntüsü dosyasını yakalanan uygulamanın adına göre adlandır:
+Yes, but only for screenshots of games=Evet, ancak yalnızca oyunların ekran görüntüleri için
 
 Save screenshot to clipboard=Ekran görüntüsünü panoya kaydet
 Save screenshot to clipboard (Not supported properly by Wayland)=Ekran görüntüsünü panoya kaydet (Wayland tarafından tam desteklenmez)
@@ -318,9 +319,9 @@ Input device: =Giriş cihazı:
 Application:     =Uygulama:
 Custom...=Özel...
 
-Save video in a folder based on the games name%s=Videoyu oyunun adına göre bir klasöre kaydet%s
-Name the video file after the game%s=Video dosyasını oyunun adına göre adlandır%s
- (X11 applications only)= (Yalnızca X11 uygulamaları)
+Organize videos into folders:=Videoları klasörlere ayır:
+Name the video file after the captured application:=Video dosyasını yakalanan uygulamanın adına göre adlandır:
+Yes, but only for videos of games=Evet, ancak yalnızca oyunların videoları için
 
 Add audio track=Ses kanalı ekle
 Add input device=Giriş cihazı ekle

@@ -10,7 +10,8 @@
 #include "../../include/gui/Label.hpp"
 #include "../../include/gui/Subsection.hpp"
 #include "../../include/gui/FileChooser.hpp"
-#include "../../include/gui/Image.hpp"
+#include "../../include/gui/RadioButton.hpp"
+#include "../../include/gui/LineSeparator.hpp"
 
 #include <charconv>
 
@@ -221,20 +222,34 @@ namespace gsr {
         return std::make_unique<Subsection>(TR("File info"), std::move(file_info_data_list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
     }
 
-    std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_in_game_folder() {
-        char text[256];
-        snprintf(text, sizeof(text), "%s%s", TR("Save screenshot in a folder based on the games name"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
-        save_screenshot_in_game_folder_checkbox_ptr = checkbox.get();
-        return checkbox;
+    std::unique_ptr<Widget> ScreenshotSettingsPage::create_organize_into_folders() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Organize screenshots into folders:"), get_color_theme().text_color));
+
+        auto organize_folders_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
+        organize_folders_radio_button_ptr = organize_folders_radio_button.get();
+        organize_folders_radio_button->add_item(TR("No"), "no");
+        organize_folders_radio_button->add_item(TR("Yes"), "yes");
+        organize_folders_radio_button->add_item(TR("Yes, but only for screenshots of games"), "yes_only_games");
+        list->add_widget(std::move(organize_folders_radio_button));
+
+        return list;
     }
 
-    std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_name_screenshot_file_after_game() {
-        char text[256];
-        snprintf(text, sizeof(text), TR("Name the screenshot file after the game%s"), supports_window_title ? "" : TR(" (X11 applications only)"));
-        auto checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), text);
-        name_screenshot_file_after_game_checkbox_ptr = checkbox.get();
-        return checkbox;
+    std::unique_ptr<Widget> ScreenshotSettingsPage::create_organize_into_filename() {
+        auto list = std::make_unique<List>(List::Orientation::VERTICAL);
+
+        list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Name the screenshot file after the captured application:"), get_color_theme().text_color));
+
+        auto organize_filename_radio_button = std::make_unique<RadioButton>(get_theme().body_font_desc.c_str(), RadioButton::Orientation::HORIZONTAL);
+        organize_filename_radio_button_ptr = organize_filename_radio_button.get();
+        organize_filename_radio_button->add_item(TR("No"), "no");
+        organize_filename_radio_button->add_item(TR("Yes"), "yes");
+        organize_filename_radio_button->add_item(TR("Yes, but only for screenshots of games"), "yes_only_games");
+        list->add_widget(std::move(organize_filename_radio_button));
+
+        return list;
     }
 
     std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_save_screenshot_to_clipboard() {
@@ -266,11 +281,17 @@ namespace gsr {
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_general_section() {
         auto list = std::make_unique<List>(List::Orientation::VERTICAL);
-        list->add_widget(create_save_screenshot_in_game_folder());
-        list->add_widget(create_name_screenshot_file_after_game());
-        list->add_widget(create_save_screenshot_to_clipboard());
-        list->add_widget(create_save_screenshot_to_disk());
-        return std::make_unique<Subsection>(TR("General"), std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+        List *list_ptr = list.get();
+        auto subsection = std::make_unique<Subsection>(TR("General"), std::move(list), mgl::vec2f(settings_scrollable_page_ptr->get_inner_size().x, 0.0f));
+
+        list_ptr->add_widget(create_organize_into_folders());
+        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+        list_ptr->add_widget(create_organize_into_filename());
+        list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
+        list_ptr->add_widget(create_save_screenshot_to_disk());
+        list_ptr->add_widget(create_save_screenshot_to_clipboard());
+
+        return subsection;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_screenshot_indicator_section() {
@@ -356,8 +377,8 @@ namespace gsr {
         record_cursor_checkbox_ptr->set_checked(config.screenshot_config.record_cursor);
         restore_portal_session_checkbox_ptr->set_checked(config.screenshot_config.restore_portal_session);
         save_directory_button_ptr->set_text(config.screenshot_config.save_directory);
-        save_screenshot_in_game_folder_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_in_game_folder);
-        name_screenshot_file_after_game_checkbox_ptr->set_checked(config.screenshot_config.name_screenshot_file_after_game);
+        organize_folders_radio_button_ptr->set_selected_item(config.screenshot_config.organize_into_folders);
+        organize_filename_radio_button_ptr->set_selected_item(config.screenshot_config.name_after_captured_application);
         save_screenshot_to_clipboard_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_clipboard);
         save_screenshot_to_disk_checkbox_ptr->set_checked(config.screenshot_config.save_screenshot_to_disk);
         show_notification_checkbox_ptr->set_checked(config.screenshot_config.show_notifications);
@@ -392,8 +413,8 @@ namespace gsr {
         config.screenshot_config.record_cursor = record_cursor_checkbox_ptr->is_checked();
         config.screenshot_config.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
-        config.screenshot_config.save_screenshot_in_game_folder = save_screenshot_in_game_folder_checkbox_ptr->is_checked();
-        config.screenshot_config.name_screenshot_file_after_game = name_screenshot_file_after_game_checkbox_ptr->is_checked();
+        config.screenshot_config.organize_into_folders = organize_folders_radio_button_ptr->get_selected_id();
+        config.screenshot_config.name_after_captured_application = organize_filename_radio_button_ptr->get_selected_id();
         config.screenshot_config.save_screenshot_to_clipboard = save_screenshot_to_clipboard_checkbox_ptr->is_checked();
         config.screenshot_config.save_screenshot_to_disk = save_screenshot_to_disk_checkbox_ptr->is_checked();
         config.screenshot_config.show_notifications = show_notification_checkbox_ptr->is_checked();

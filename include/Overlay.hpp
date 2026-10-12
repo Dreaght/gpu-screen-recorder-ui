@@ -141,9 +141,10 @@ namespace gsr {
 
         double get_time_passed_in_replay_buffer_seconds();
         void update_notification_process_status();
-        std::string get_current_game_name();
+        std::string get_focused_game_name(const FocusedWindow &focused_window);
         void rename_file_to_game_name(std::string &filepath, const std::string &game_name);
         void save_video_in_current_game_directory(std::string &video_filepath, const std::string &game_name, NotificationType notification_type);
+        bool organize_captured_file(std::string &filepath, const std::string &organize_into_folders, const std::string &name_after_captured_application, NotificationType notification_type);
         void on_replay_saved(const char *replay_saved_filepath);
         void process_gsr_game_tracker_output();
         void process_gsr_output();

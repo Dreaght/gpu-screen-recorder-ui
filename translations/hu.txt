@@ -173,11 +173,11 @@ Enable controller hotkeys?=Kontrolleres gyorsbillentyűk engedélyezése?
 Press=Nyomd meg
 and=és
 
-Notification speed=Értesítések sebessége
+Notification speed:=Értesítések sebessége:
 Normal=Normál
 Fast=Gyors
 
-Language=Nyelv
+Language:=Nyelv:
 System language=Rendszer nyelve
 Exclude personal metadata from the video (such as audio track title)=Személyes metaadatok kizárása a videóból (például a hangsáv címe)
 
@@ -270,8 +270,9 @@ Record cursor=Egérmutató felvétele
 Directory to save screenshots:=Képernyőképek mentési mappája:
 Image format:=Képformátum:
 
-Save screenshot in a folder based on the games name=Képernyőkép mentése a játék neve szerinti mappába
-Name the screenshot file after the game%s=Képernyőkép-fájl elnevezése a játék neve szerint%s
+Organize screenshots into folders:=Képernyőképek rendezése mappákba:
+Name the screenshot file after the captured application:=Képernyőkép-fájl elnevezése a rögzített alkalmazás neve szerint:
+Yes, but only for screenshots of games=Igen, de csak játékokról készült képernyőképeknél
 
 Save screenshot to clipboard=Képernyőkép mentése vágólapra
 Save screenshot to clipboard (Not supported properly by Wayland)=Képernyőkép mentése vágólapra (Wayland alatt nem teljesen támogatott)
@@ -322,9 +323,9 @@ Input device: =Bemeneti eszköz:
 Application:     =Alkalmazás:     
 Custom...=Egyéni...
 
-Save video in a folder based on the games name%s=Videó mentése a játék neve szerinti mappába%s
-Name the video file after the game%s=Videofájl elnevezése a játék neve szerint%s
- (X11 applications only)= (csak X11 alkalmazásoknál)
+Organize videos into folders:=Videók rendezése mappákba:
+Name the video file after the captured application:=Videofájl elnevezése a rögzített alkalmazás neve szerint:
+Yes, but only for videos of games=Igen, de csak játékokról készült videóknál
 
 Add audio track=Hangsáv hozzáadása
 Add input device=Bemeneti eszköz hozzáadása
