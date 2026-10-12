@@ -523,6 +523,32 @@ namespace gsr {
         return result;
     }
 
+    Window get_top_level_window_by_class(Display *dpy, std::string_view class_name) {
+        Window root;
+        Window parent;
+        Window *children = nullptr;
+        unsigned int num_children = 0;
+        if(!XQueryTree(dpy, DefaultRootWindow(dpy), &root, &parent, &children, &num_children) || !children)
+            return None;
+
+        Window result = None;
+        for(int i = (int)num_children - 1; i >= 0; --i) {
+            XWindowAttributes attr;
+            memset(&attr, 0, sizeof(attr));
+            XGetWindowAttributes(dpy, children[i], &attr);
+            if(attr.map_state != IsViewable)
+                continue;
+
+            if(get_window_class_name(dpy, children[i]) == class_name) {
+                result = children[i];
+                break;
+            }
+        }
+
+        XFree(children);
+        return result;
+    }
+
     std::string get_window_name_at_position(Display *dpy, mgl::vec2i position, std::string_view ignore_window_class, Window *window_out) {
         std::string result;
 

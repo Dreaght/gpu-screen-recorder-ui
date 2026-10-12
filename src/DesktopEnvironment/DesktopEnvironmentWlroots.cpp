@@ -227,16 +227,6 @@ namespace gsr {
             return CompositorIpc::NONE;
     }
 
-    // Returns -1 if |str| is not a valid number
-    static pid_t str_to_pid(const char *str) {
-        char *end = NULL;
-        const long pid = strtol(str, &end, 10);
-        if (end == str || *end != '\0' || pid <= 0 || pid > INT_MAX)
-            return -1;
-        else
-            return pid;
-    }
-
     static bool parse_json(const std::string &input, picojson::value &result, const char *command_name) {
         const std::string parse_err = picojson::parse(result, input);
         if(!parse_err.empty()) {
@@ -249,6 +239,37 @@ namespace gsr {
     static const picojson::value* json_object_get(const picojson::object &obj, const char *key) {
         auto it = obj.find(key);
         return it == obj.end() ? nullptr : &it->second;
+    }
+
+    // Returns nullptr if the window doesn't have an app id/class
+    static const std::string* get_window_app_id(const picojson::object &window_json) {
+        const picojson::value *app_id_json = json_object_get(window_json, "app_id");
+        if(app_id_json && app_id_json->is<std::string>())
+            return &app_id_json->get<std::string>();
+
+        const picojson::value *class_json = json_object_get(window_json, "class");
+        if(class_json && class_json->is<std::string>())
+            return &class_json->get<std::string>();
+
+        // Sway sets app_id to null for xwayland windows, the class is in window_properties instead
+        const picojson::value *window_properties_json = json_object_get(window_json, "window_properties");
+        if(!window_properties_json || !window_properties_json->is<picojson::object>())
+            return nullptr;
+
+        const picojson::value *window_properties_class_json = json_object_get(window_properties_json->get<picojson::object>(), "class");
+        if(window_properties_class_json && window_properties_class_json->is<std::string>())
+            return &window_properties_class_json->get<std::string>();
+
+        return nullptr;
+    }
+
+    // Returns -1 on failure
+    static pid_t get_pid_if_app_id_matches(const picojson::object &window_json, const char *class_name) {
+        const std::string *app_id = get_window_app_id(window_json);
+        const picojson::value *pid_json = json_object_get(window_json, "pid");
+        if(app_id && pid_json && pid_json->is<double>() && *app_id == class_name)
+            return (pid_t)pid_json->get<double>();
+        return -1;
     }
 
     // Returns -1 on failure. Finds the first match, since there may be multiple matches.
@@ -266,33 +287,15 @@ namespace gsr {
         if(!root_json.is<picojson::array>())
             return -1;
 
-        pid_t pid_result = -1;
         for(picojson::value &client_val : root_json.get<picojson::array>()) {
             if(!client_val.is<picojson::object>())
                 continue;
 
-            picojson::object &client_json = client_val.get<picojson::object>();
-            picojson::value &class_json = client_json["class"];
-            picojson::value &pid_json = client_json["pid"];
-
-            if(class_json.is<std::string>() && pid_json.is<std::string>() && class_json.get<std::string>() == class_name) {
-                const pid_t pid = str_to_pid(pid_json.get<std::string>().c_str());
-                if(pid > 0) {
-                    pid_result = pid;
-                    break;
-                }
-            }
+            const pid_t pid = get_pid_if_app_id_matches(client_val.get<picojson::object>(), class_name);
+            if(pid > 0)
+                return pid;
         }
 
-        return pid_result;
-    }
-
-    // Returns -1 on failure
-    static pid_t get_pid_if_app_id_matches(const picojson::object &window_json, const char *class_name) {
-        const picojson::value *app_id_json = json_object_get(window_json, "app_id");
-        const picojson::value *pid_json = json_object_get(window_json, "pid");
-        if(app_id_json && pid_json && app_id_json->is<std::string>() && pid_json->is<double>() && app_id_json->get<std::string>() == class_name)
-            return (pid_t)pid_json->get<double>();
         return -1;
     }
 
@@ -420,6 +423,9 @@ namespace gsr {
                 case CompositorIpc::NONE: {
                     fprintf(stderr, "gsr ui: warning: DesktopEnvironmentWlroots::get_focused_window: unknown compositor or compositor doesn't support getting the focused window process id. Trying to get the focused window with x11 instead\n");
 
+                    if(!impl->x11_dpy)
+                        break;
+
                     FocusedWindow focused_window;
                     Window window = None;
                     focused_window.title = get_window_name_at_cursor_position(impl->x11_dpy, "gsr-ui", &window);
@@ -442,7 +448,16 @@ namespace gsr {
                     break;
                 }
                 case CompositorIpc::NIRI: {
-                    pid = niri_get_pid_by_class(impl->focused_app_id.c_str());
+                    // Niri runs x11 applications through xwayland-satellite, so niri reports the pid of xwayland-satellite for them.
+                    // The real pid is only available from the x11 window, where xwayland-satellite uses WM_CLASS as the app id
+                    if(impl->x11_dpy) {
+                        const Window window = get_top_level_window_by_class(impl->x11_dpy, impl->focused_app_id);
+                        if(window != None)
+                            pid = get_window_pid(impl->x11_dpy, window);
+                    }
+
+                    if(pid <= 0)
+                        pid = niri_get_pid_by_class(impl->focused_app_id.c_str());
                     break;
                 }
             }

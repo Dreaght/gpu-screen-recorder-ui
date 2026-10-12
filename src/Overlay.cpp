@@ -2228,11 +2228,14 @@ namespace gsr {
         return result;
     }
 
-    static std::string get_date_str() {
+    static std::string get_date_str(bool with_spaces) {
         char str[128];
         time_t now = time(NULL);
         struct tm *t = localtime(&now);
-        strftime(str, sizeof(str)-1, "%Y-%m-%d %H-%M-%S", t);
+        if(with_spaces)
+            strftime(str, sizeof(str)-1, "%Y-%m-%d %H-%M-%S", t);
+        else
+            strftime(str, sizeof(str)-1, "%Y-%m-%d_%H-%M-%S", t);
         return str;
     }
 
@@ -2360,7 +2363,7 @@ namespace gsr {
             return;
 
         const std::string filename = filepath_get_filename(filepath.c_str());
-        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + " " + get_date_str() + filepath_get_file_extension(filename);
+        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + " " + get_date_str(true) + filepath_get_file_extension(filename);
         if(rename(filepath.c_str(), new_filepath.c_str()) == 0)
             filepath = std::move(new_filepath);
     }
@@ -3544,7 +3547,7 @@ namespace gsr {
         // TODO: Validate input, fallback to valid values
         const std::string fps = std::to_string(config.record_config.record_options.fps);
         const std::string video_bitrate = std::to_string(config.record_config.record_options.video_bitrate);
-        const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str() + "." + container_to_file_extension(config.record_config.container.c_str());
+        const std::string output_file = config.record_config.save_directory + "/Video_" + get_date_str(false) + "." + container_to_file_extension(config.record_config.container.c_str());
         const std::vector<std::string> audio_tracks = create_audio_tracks_cli_args(config.record_config.record_options.audio_tracks_list, gsr_info);
         const std::string framerate_mode = get_framerate_mode_validate(config.record_config.record_options, gsr_info);
         const char *container = config.record_config.container.c_str();
@@ -3963,7 +3966,7 @@ namespace gsr {
         // TODO: Validate input, fallback to valid values
         std::string output_file;
         if(config.screenshot_config.save_screenshot_to_disk)
-            output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str() + "." + config.screenshot_config.image_format; // TODO: Validate image format
+            output_file = config.screenshot_config.save_directory + "/Screenshot_" + get_date_str(false) + "." + config.screenshot_config.image_format; // TODO: Validate image format 
         else
             output_file = "/tmp/gsr_ui_clipboard_screenshot." + config.screenshot_config.image_format;
 

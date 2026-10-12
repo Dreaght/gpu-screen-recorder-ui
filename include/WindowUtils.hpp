@@ -36,6 +36,8 @@ namespace gsr {
     std::string get_window_name_at_cursor_position(Display *dpy, std::string_view ignore_window_class, Window *window_out = nullptr);
     // Returns -1 if the window doesn't have a process id
     pid_t get_window_pid(Display *dpy, Window window);
+    // Returns None if no visible top-level window has the class. Returns the topmost window if there are multiple matches
+    Window get_top_level_window_by_class(Display *dpy, std::string_view class_name);
     void set_window_size_not_resizable(Display *dpy, Window window, int width, int height);
     Window window_get_target_window_child(Display *display, Window window);
     unsigned char* window_get_property(Display *dpy, Window window, Atom property_type, const char *property_name, unsigned int *property_size);
