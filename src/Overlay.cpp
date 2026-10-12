@@ -789,6 +789,21 @@ namespace gsr {
         }
     }
 
+    // Returns the exit code, or -1 if gpu screen recorder didn't exit normally
+    int Overlay::stop_gpu_screen_recorder_process() {
+        kill(gpu_screen_recorder_process, SIGINT);
+
+        int status = 0;
+        int exit_code = -1;
+        if(waitpid(gpu_screen_recorder_process, &status, 0) == -1)
+            perror("waitpid failed");
+        else if(WIFEXITED(status))
+            exit_code = WEXITSTATUS(status);
+
+        close_gpu_screen_recorder_output();
+        return exit_code;
+    }
+
     void Overlay::handle_xi_events() {
         if(!xi_display)
             return;
@@ -3305,16 +3320,8 @@ namespace gsr {
         replay_launched_manually = launched_manually;
         replay_launched_once = true;
 
-        close_gpu_screen_recorder_output();
-
         if(gpu_screen_recorder_process > 0) {
-            kill(gpu_screen_recorder_process, SIGINT);
-            int status;
-            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
-                perror("waitpid failed");
-                /* Ignore... */
-            }
-
+            stop_gpu_screen_recorder_process();
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
             replay_save_duration_min = 0;
@@ -3330,6 +3337,8 @@ namespace gsr {
 
             return true;
         }
+
+        close_gpu_screen_recorder_output();
 
         if(config.replay_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;
@@ -3519,20 +3528,9 @@ namespace gsr {
             }
         }
 
-        close_gpu_screen_recorder_output();
-
         if(gpu_screen_recorder_process > 0) {
-            kill(gpu_screen_recorder_process, SIGINT);
-            int status;
-            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
-                perror("waitpid failed");
-                /* Ignore... */
-            } else {
-                int exit_code = -1;
-                if(WIFEXITED(status))
-                    exit_code = WEXITSTATUS(status);
-                on_stop_recording(exit_code, record_filepath);
-            }
+            const int exit_code = stop_gpu_screen_recorder_process();
+            on_stop_recording(exit_code, record_filepath);
 
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
@@ -3544,6 +3542,8 @@ namespace gsr {
                 led_indicator->set_led(false);
             return;
         }
+
+        close_gpu_screen_recorder_output();
 
         update_upause_status();
 
@@ -3780,16 +3780,8 @@ namespace gsr {
 
         update_upause_status();
 
-        close_gpu_screen_recorder_output();
-
         if(gpu_screen_recorder_process > 0) {
-            kill(gpu_screen_recorder_process, SIGINT);
-            int status;
-            if(waitpid(gpu_screen_recorder_process, &status, 0) == -1) {
-                perror("waitpid failed");
-                /* Ignore... */
-            }
-
+            stop_gpu_screen_recorder_process();
             gpu_screen_recorder_process = -1;
             recording_status = RecordingStatus::NONE;
             update_ui_streaming_stopped();
@@ -3802,6 +3794,8 @@ namespace gsr {
                 show_notification(TR("Streaming has stopped"), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
             return;
         }
+
+        close_gpu_screen_recorder_output();
 
         if(config.streaming_config.record_options.record_area_option == "region" && !finished_selection) {
             start_region_capture = true;

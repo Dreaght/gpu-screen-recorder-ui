@@ -106,7 +106,7 @@ namespace gsr {
             return -1;
 
         int fds[2] = {-1, -1};
-        if(pipe(fds) == -1)
+        if(pipe2(fds, O_CLOEXEC) == -1)
             return -1;
 
         if(debug)

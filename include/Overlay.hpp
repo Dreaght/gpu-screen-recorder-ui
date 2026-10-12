@@ -144,6 +144,7 @@ namespace gsr {
 
         void close_gsr_game_tracker_output();
         void close_gpu_screen_recorder_output();
+        int stop_gpu_screen_recorder_process();
 
         double get_time_passed_in_replay_buffer_seconds();
         void update_notification_process_status();
