@@ -262,17 +262,23 @@ static const char* get_app_id(const EnvVars *env_vars) {
     return NULL;
 }
 
-static void on_game_detected(pid_t pid, const EnvVars *env_vars) {
+static void on_game_detected(pid_t pid, const EnvVars *env_vars, const char *native_game_name) {
     char name[512];
     name[0] = '\0';
     /* The name is only output for the first game */
-    if (game_count == 0)
+    if (game_count == 0) {
         game_name_resolve(get_app_id(env_vars), env_vars->steam_base_folder.value, name, sizeof(name));
+        if (name[0] == '\0' && native_game_name)
+            snprintf(name, sizeof(name), "%s", native_game_name);
+    }
     add_game(pid, name);
 }
 
-/* |out_env_vars| is set to the environment variables of the process if it's a game. They point into |environ_buf| */
-static bool is_game_process(pid_t pid, EnvVars *out_env_vars) {
+/*
+    |out_env_vars| is set to the environment variables of the process if it's a game. They point into |environ_buf|.
+    |out_native_game_name| is set to the name of the game if it's a native game, otherwise NULL.
+*/
+static bool is_game_process(pid_t pid, EnvVars *out_env_vars, const char **out_native_game_name) {
     char    path[64];
     ssize_t env_n, cmd_n;
     bool is_steam_app = false;
@@ -281,6 +287,7 @@ static bool is_game_process(pid_t pid, EnvVars *out_env_vars) {
     env_n = read_file(path, environ_buf, sizeof(environ_buf));
     EnvVars env_vars = {0};
 
+    *out_native_game_name = NULL;
     if (env_n > 0) {
         read_environment_variables(environ_buf, env_n, &env_vars);
         const char *appid = env_vars.steam_app_id.value;
@@ -307,10 +314,11 @@ static bool is_game_process(pid_t pid, EnvVars *out_env_vars) {
 
     size_t process_basename_len = 0;
     const char *process_basename = process_get_basename(argv0, argv0_len, &process_basename_len);
+    const char *native_game_name = get_native_game_name(process_basename, process_basename_len);
 
     if ((is_launched_by_game_launcher(&env_vars)
             || has_game_arch_suffix(process_basename, process_basename_len)
-            || is_process_name_native_game(process_basename, process_basename_len))
+            || native_game_name)
         && !is_wine_server(process_basename, process_basename_len)
         && !memeql(argv1, argv1_len, "--version")
         && (!is_steam_app || env_vars.steam_overlay_game_id.value != NULL || env_vars.umu_invocation_id.value)
@@ -329,6 +337,7 @@ static bool is_game_process(pid_t pid, EnvVars *out_env_vars) {
         // fprintf(stderr, "*******\n");
         // fprintf(stderr, "\n\n\n");
         *out_env_vars = env_vars;
+        *out_native_game_name = native_game_name;
         return true;
     }
     return false;
@@ -338,8 +347,9 @@ static void check_process(pid_t pid) {
     if (find_slot_by_pid(pid) >= 0) return;
 
     EnvVars env_vars;
-    if (is_game_process(pid, &env_vars))
-        on_game_detected(pid, &env_vars);
+    const char *native_game_name = NULL;
+    if (is_game_process(pid, &env_vars, &native_game_name))
+        on_game_detected(pid, &env_vars, native_game_name);
 }
 
 /* Returns the parent pid of |pid|, or -1 on failure */
@@ -365,7 +375,8 @@ static bool is_pid_in_game_process_tree(pid_t pid) {
     /* Limit the depth in case of a (theoretically impossible) parent loop */
     for (int depth = 0; depth < 64 && pid > 1; ++depth) {
         EnvVars env_vars;
-        if (is_game_process(pid, &env_vars))
+        const char *native_game_name = NULL;
+        if (is_game_process(pid, &env_vars, &native_game_name))
             return true;
         pid = get_parent_pid(pid);
     }
