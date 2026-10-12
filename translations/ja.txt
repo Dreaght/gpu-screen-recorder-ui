@@ -200,6 +200,7 @@ Go back to the old UI=旧 UI に戻る
 Global=全体
 Back=戻る
 
+Other settings=その他の設定
 Appearance=外観
 Startup=起動
 Keyboard hotkeys=キーボードホットキー

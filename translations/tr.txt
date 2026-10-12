@@ -187,6 +187,7 @@ Go back to the old UI=Eski arayüze dön
 Global=Genel
 Back=Geri
 
+Other settings=Diğer ayarlar
 Appearance=Görünüm
 Startup=Başlangıç
 Keyboard hotkeys=Klavye kısayolları

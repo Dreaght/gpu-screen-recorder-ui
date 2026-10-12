@@ -199,6 +199,7 @@ Go back to the old UI=Zurück zum alten UI
 Global=Global
 Back=Zurück
 
+Other settings=Weitere Einstellungen
 Appearance=Aussehen
 Startup=Systemstart
 Keyboard hotkeys=Tastaturkürzel

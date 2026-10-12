@@ -1515,13 +1515,7 @@ namespace gsr {
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack, supports_window_title);
-                    replay_settings_page->on_config_changed = [this]() {
-                        replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
-                        if(recording_status == RecordingStatus::REPLAY)
-                            show_notification(TR("Replay settings have been modified. You may need to restart replay to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
-                    };
-                    page_stack.push(std::move(replay_settings_page));
+                    open_replay_settings_page();
                 } else if(id == "save") {
                     on_press_save_replay();
                 } else if(id == "save_1_min") {
@@ -1549,14 +1543,7 @@ namespace gsr {
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack, supports_window_title);
-                    record_settings_page->on_config_changed = [this]() {
-                        if(recording_status == RecordingStatus::RECORD)
-                            show_notification(TR("Recording settings have been modified. You may need to restart recording to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
-
-                        update_led_indicator_after_settings_change();
-                    };
-                    page_stack.push(std::move(record_settings_page));
+                    open_record_settings_page();
                 } else if(id == "pause") {
                     toggle_pause();
                 } else if(id == "start") {
@@ -1576,14 +1563,7 @@ namespace gsr {
             button->set_item_icon("settings", &get_theme().settings_extra_small_texture);
             button->on_click = [this](const std::string &id) {
                 if(id == "settings") {
-                    auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack, supports_window_title);
-                    stream_settings_page->on_config_changed = [this]() {
-                        if(recording_status == RecordingStatus::STREAM)
-                            show_notification(TR("Streaming settings have been modified. You may need to restart streaming to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
-
-                        update_led_indicator_after_settings_change();
-                    };
-                    page_stack.push(std::move(stream_settings_page));
+                    open_stream_settings_page();
                 } else if(id == "start") {
                     on_press_start_stream(false);
                 }
@@ -1616,13 +1596,8 @@ namespace gsr {
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().screenshot_texture);
             button->set_icon_padding_scale(1.2f);
-            button->on_click = [&]() {
-                const bool properly_supports_clipboard_image = gsr_info.system_info.display_server == DisplayServer::X11 || wayland_native_clipboard;
-                auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack, supports_window_title, properly_supports_clipboard_image);
-                screenshot_settings_page->on_config_changed = [this]() {
-                    update_led_indicator_after_settings_change();
-                };
-                page_stack.push(std::move(screenshot_settings_page));
+            button->on_click = [this]() {
+                open_screenshot_settings_page();
             };
             front_page_ptr->add_widget(std::move(button));
         }
@@ -1680,6 +1655,47 @@ namespace gsr {
 
         if(replay_recording)
             update_ui_recording_started();
+    }
+
+    void Overlay::open_replay_settings_page() {
+        auto replay_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::REPLAY, &gsr_info, config, &page_stack, supports_window_title);
+        replay_settings_page->on_config_changed = [this]() {
+            replay_startup_mode = replay_startup_string_to_type(config.replay_config.turn_on_replay_automatically_mode.c_str());
+            if(recording_status == RecordingStatus::REPLAY)
+                show_notification(TR("Replay settings have been modified. You may need to restart replay to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
+        };
+        page_stack.push(std::move(replay_settings_page));
+    }
+
+    void Overlay::open_record_settings_page() {
+        auto record_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::RECORD, &gsr_info, config, &page_stack, supports_window_title);
+        record_settings_page->on_config_changed = [this]() {
+            if(recording_status == RecordingStatus::RECORD)
+                show_notification(TR("Recording settings have been modified. You may need to restart recording to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
+
+            update_led_indicator_after_settings_change();
+        };
+        page_stack.push(std::move(record_settings_page));
+    }
+
+    void Overlay::open_stream_settings_page() {
+        auto stream_settings_page = std::make_unique<SettingsPage>(SettingsPage::Type::STREAM, &gsr_info, config, &page_stack, supports_window_title);
+        stream_settings_page->on_config_changed = [this]() {
+            if(recording_status == RecordingStatus::STREAM)
+                show_notification(TR("Streaming settings have been modified. You may need to restart streaming to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::STREAM);
+
+            update_led_indicator_after_settings_change();
+        };
+        page_stack.push(std::move(stream_settings_page));
+    }
+
+    void Overlay::open_screenshot_settings_page() {
+        const bool properly_supports_clipboard_image = gsr_info.system_info.display_server == DisplayServer::X11 || wayland_native_clipboard;
+        auto screenshot_settings_page = std::make_unique<ScreenshotSettingsPage>(&gsr_info, config, &page_stack, supports_window_title, properly_supports_clipboard_image);
+        screenshot_settings_page->on_config_changed = [this]() {
+            update_led_indicator_after_settings_change();
+        };
+        page_stack.push(std::move(screenshot_settings_page));
     }
 
     void Overlay::open_settings_page(int scroll_y) {

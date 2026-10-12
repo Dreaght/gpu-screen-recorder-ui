@@ -188,6 +188,7 @@ Go back to the old UI=Visszatérés a régi felülethez
 Global=Általános
 Back=Vissza
 
+Other settings=Egyéb beállítások
 Appearance=Megjelenés
 Startup=Indítás
 Keyboard hotkeys=Gyorsbillentyűk

@@ -198,6 +198,7 @@ Go back to the old UI=Revenir à l’ancienne UI
 Global=Général
 Back=Retour
 
+Other settings=Autres paramètres
 Appearance=Apparence
 Startup=Démarrage
 Keyboard hotkeys=Raccourcis clavier

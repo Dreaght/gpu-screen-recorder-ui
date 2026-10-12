@@ -61,6 +61,8 @@ namespace gsr {
     private:
         void load_hotkeys();
 
+        std::unique_ptr<Button> create_open_settings_button(const char *text, std::function<void()> open_settings_page);
+        std::unique_ptr<Subsection> create_other_settings_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_appearance_subsection(ScrollablePage *parent_page);
         std::unique_ptr<Subsection> create_startup_subsection(ScrollablePage *parent_page);
         std::unique_ptr<RadioButton> create_enable_keyboard_hotkeys_button();

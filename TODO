@@ -254,3 +254,5 @@ Add option to automatically stop replay when starting recording and then automat
 
 Add editable region borders to region selection and fixed aspect ratio and also option to make video resize respect the exact video size requested, instead of scaling it to the aspect ratio.
     A user wants this for a fixed ratio for videos for smartphones (portait mode videos).
+
+Move all settings to the same page but in different tabs. Keep the recording->settings etc, but when clicking that it should show tabs: general, instant replay, recording, streaming, screenshot. Same when clicking on the settings on the right.

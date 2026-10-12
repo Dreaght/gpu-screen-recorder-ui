@@ -506,6 +506,21 @@ namespace gsr {
         return subsection;
     }
 
+    std::unique_ptr<Button> GlobalSettingsPage::create_open_settings_button(const char *text, std::function<void()> open_settings_page) {
+        auto button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), text, mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        button->on_click = std::move(open_settings_page);
+        return button;
+    }
+
+    std::unique_ptr<Subsection> GlobalSettingsPage::create_other_settings_subsection(ScrollablePage *parent_page) {
+        auto list = std::make_unique<List>(List::Orientation::HORIZONTAL);
+        list->add_widget(create_open_settings_button(TR("Instant Replay"), [this]() { overlay->open_replay_settings_page(); }));
+        list->add_widget(create_open_settings_button(TR("Record"), [this]() { overlay->open_record_settings_page(); }));
+        list->add_widget(create_open_settings_button(TR("Livestream"), [this]() { overlay->open_stream_settings_page(); }));
+        list->add_widget(create_open_settings_button(TR("Screenshot"), [this]() { overlay->open_screenshot_settings_page(); }));
+        return std::make_unique<Subsection>(TR("Other settings"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
+    }
+
     std::unique_ptr<Button> GlobalSettingsPage::create_exit_program_button() {
         auto exit_program_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Exit program"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
         exit_program_button->on_click = [&]() {
@@ -632,6 +647,7 @@ namespace gsr {
 
         auto settings_list = std::make_unique<List>(List::Orientation::VERTICAL);
         settings_list->set_spacing(0.018f);
+        settings_list->add_widget(create_other_settings_subsection(scrollable_page.get()));
         settings_list->add_widget(create_appearance_subsection(scrollable_page.get()));
         settings_list->add_widget(create_startup_subsection(scrollable_page.get()));
         settings_list->add_widget(create_keyboard_hotkey_subsection(scrollable_page.get()));

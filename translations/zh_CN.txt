@@ -188,6 +188,7 @@ Go back to the old UI=回到旧版界面
 Global=全局
 Back=返回
 
+Other settings=其他设置
 Appearance=外观
 Startup=启动
 Keyboard hotkeys=键盘热键

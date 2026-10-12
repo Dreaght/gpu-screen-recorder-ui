@@ -199,6 +199,7 @@ Go back to the old UI=Voltar para o UI antigo
 Global=Global
 Back=Voltar
 
+Other settings=Outras configurações
 Appearance=Aparência
 Startup=Inicialização
 Keyboard hotkeys=Atalhos do teclado

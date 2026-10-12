@@ -188,6 +188,7 @@ Go back to the old UI=Volver a la interfaz antigua
 Global=Global
 Back=Atrás
 
+Other settings=Otros ajustes
 Appearance=Apariencia
 Startup=Inicio
 Keyboard hotkeys=Teclas de acceso rápido

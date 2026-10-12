@@ -121,6 +121,11 @@ namespace gsr {
 
         void set_notification_speed(NotificationSpeed notification_speed);
 
+        void open_replay_settings_page();
+        void open_record_settings_page();
+        void open_stream_settings_page();
+        void open_screenshot_settings_page();
+
         bool global_hotkeys_ungrab_keyboard = false;
     private:
         const char* notification_type_to_string(NotificationType notification_type);

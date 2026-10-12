@@ -191,6 +191,7 @@ Go back to the old UI=Вернуться к старому интерфейсу
 Global=Глобальные
 Back=Назад
 
+Other settings=Другие настройки
 Appearance=Внешний вид
 Startup=Автозапуск
 Keyboard hotkeys=Горячие клавиши клавиатуры

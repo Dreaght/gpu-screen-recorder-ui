@@ -204,6 +204,7 @@ Go back to the old UI=
 Global=
 Back=
 
+Other settings=
 Appearance=
 Startup=
 Keyboard hotkeys=
