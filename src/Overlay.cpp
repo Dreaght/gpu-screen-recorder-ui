@@ -1843,6 +1843,29 @@ namespace gsr {
         on_press_start_record(false, force_type);
     }
 
+    bool Overlay::is_recording() const {
+        switch(recording_status) {
+            case RecordingStatus::NONE:
+                return false;
+            case RecordingStatus::RECORD:
+                return true;
+            case RecordingStatus::REPLAY:
+            case RecordingStatus::STREAM:
+                return replay_recording;
+        }
+        return false;
+    }
+
+    void Overlay::start_record() {
+        if(!is_recording())
+            toggle_record(RecordForceType::NONE);
+    }
+
+    void Overlay::stop_record() {
+        if(is_recording())
+            toggle_record(RecordForceType::NONE);
+    }
+
     void Overlay::toggle_pause() {
         if(recording_status != RecordingStatus::RECORD || gpu_screen_recorder_process <= 0)
             return;
@@ -1876,8 +1899,28 @@ namespace gsr {
         on_press_start_stream(false);
     }
 
+    void Overlay::start_stream() {
+        if(recording_status != RecordingStatus::STREAM)
+            toggle_stream();
+    }
+
+    void Overlay::stop_stream() {
+        if(recording_status == RecordingStatus::STREAM)
+            toggle_stream();
+    }
+
     void Overlay::toggle_replay() {
         on_press_start_replay(false, false, true);
+    }
+
+    void Overlay::start_replay() {
+        if(recording_status != RecordingStatus::REPLAY)
+            toggle_replay();
+    }
+
+    void Overlay::stop_replay() {
+        if(recording_status == RecordingStatus::REPLAY)
+            toggle_replay();
     }
 
     void Overlay::save_replay() {

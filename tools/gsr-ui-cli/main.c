@@ -65,6 +65,10 @@ static void usage(void) {
     printf("      Show/hide the UI.\n");
     printf("  toggle-record\n");
     printf("      Start/stop recording.\n");
+    printf("  start-record\n");
+    printf("      Start recording. Does nothing if recording is already running.\n");
+    printf("  stop-record\n");
+    printf("      Stop recording. Does nothing if recording is not running.\n");
     printf("  toggle-pause\n");
     printf("      Pause/unpause recording. Only applies to regular recording.\n");
     printf("  toggle-record-region\n");
@@ -73,8 +77,16 @@ static void usage(void) {
     printf("      Start/stop recording a window (or desktop portal on Wayland).\n");
     printf("  toggle-stream\n");
     printf("      Start/stop streaming.\n");
+    printf("  start-stream\n");
+    printf("      Start streaming. Does nothing if streaming is already running.\n");
+    printf("  stop-stream\n");
+    printf("      Stop streaming. Does nothing if streaming is not running.\n");
     printf("  toggle-replay\n");
     printf("      Start/stop replay.\n");
+    printf("  start-replay\n");
+    printf("      Start replay. Does nothing if replay is already running.\n");
+    printf("  stop-replay\n");
+    printf("      Stop replay. Does nothing if replay is not running.\n");
     printf("  replay-save\n");
     printf("      Save replay.\n");
     printf("  replay-save-1-min\n");
@@ -89,6 +101,8 @@ static void usage(void) {
     printf("      Take a screenshot of a window (or desktop portal on Wayland).\n");
     printf("  reload-config\n");
     printf("      Reloads the config.\n");
+    printf("  status\n");
+    printf("      Prints \"running\" and exits with 0 if gsr-ui is running, otherwise prints \"not running\" and exits with 1.\n");
     printf("\n");
     printf("EXAMPLES:\n");
     printf("  gsr-ui-cli toggle-show\n");
@@ -100,11 +114,17 @@ static bool is_valid_command(const char *command) {
     const char *commands[] = {
         "toggle-show",
         "toggle-record",
+        "start-record",
+        "stop-record",
         "toggle-pause",
         "toggle-record-region",
         "toggle-record-window",
         "toggle-stream",
+        "start-stream",
+        "stop-stream",
         "toggle-replay",
+        "start-replay",
+        "stop-replay",
         "replay-save",
         "replay-save-1-min",
         "replay-save-10-min",
@@ -112,6 +132,7 @@ static bool is_valid_command(const char *command) {
         "take-screenshot-region",
         "take-screenshot-window",
         "reload-config",
+        "status",
         NULL
     };
 
@@ -121,6 +142,36 @@ static bool is_valid_command(const char *command) {
     }
 
     return false;
+}
+
+/* Returns -1 on failure, with errno set */
+static int connect_to_gsr_ui(void) {
+    struct sockaddr_un addr;
+    socklen_t addrlen = 0;
+    if(!build_abstract_address("gsr-ui", &addr, &addrlen)) {
+        fprintf(stderr, "Error: socket name too long\n");
+        exit(2);
+    }
+
+    const int socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if(socket_fd <= 0) {
+        fprintf(stderr, "Error: failed to create socket\n");
+        exit(2);
+    }
+
+    for(;;) {
+        if(connect(socket_fd, (struct sockaddr*)&addr, addrlen) == 0)
+            return socket_fd;
+
+        const int err = errno;
+        if(err != EWOULDBLOCK) {
+            close(socket_fd);
+            errno = err;
+            return -1;
+        }
+
+        usleep(10 * 1000);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -138,31 +189,22 @@ int main(int argc, char **argv) {
         usage();
     }
 
-    struct sockaddr_un addr;
-    socklen_t addrlen = 0;
-    if(!build_abstract_address("gsr-ui", &addr, &addrlen)) {
-        fprintf(stderr, "Error: Rpc::create: name too long\n");
-        return false;
-    }
+    const int socket_fd = connect_to_gsr_ui();
 
-    const int socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
-    if(socket_fd <= 0) {
-        fprintf(stderr, "Error: failed to create socket\n");
-        exit(2);
-    }
-
-    for(;;) {
-        if(connect(socket_fd, (struct sockaddr*)&addr, addrlen) == -1) {
-            const int err = errno;
-            if(err == EWOULDBLOCK) {
-                usleep(10 * 1000);
-            } else {
-                fprintf(stderr, "Error: failed to connect, error: %s. Maybe gsr-ui is not running?\n", strerror(err));
-                exit(2);
-            }
-        } else {
-            break;
+    if(strcmp(command, "status") == 0) {
+        if(socket_fd == -1) {
+            printf("not running\n");
+            return 1;
         }
+
+        close(socket_fd);
+        printf("running\n");
+        return 0;
+    }
+
+    if(socket_fd == -1) {
+        fprintf(stderr, "Error: failed to connect, error: %s. Maybe gsr-ui is not running?\n", strerror(errno));
+        exit(2);
     }
 
     file_write_all(socket_fd, command);

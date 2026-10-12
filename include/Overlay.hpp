@@ -91,9 +91,15 @@ namespace gsr {
         void hide_next_frame();
         void toggle_show();
         void toggle_record(RecordForceType force_type);
+        void start_record();
+        void stop_record();
         void toggle_pause();
         void toggle_stream();
+        void start_stream();
+        void stop_stream();
         void toggle_replay();
+        void start_replay();
+        void stop_replay();
         void save_replay();
         void save_replay_1_min();
         void save_replay_10_min();
@@ -176,6 +182,7 @@ namespace gsr {
         void on_press_save_replay();
         void on_press_save_replay_1_min_replay();
         void on_press_save_replay_10_min_replay();
+        bool is_recording() const;
         bool on_press_start_replay(bool disable_notification, bool finished_selection, bool launched_manually = false);
         void on_press_start_record(bool finished_selection, RecordForceType force_type);
         void on_press_start_stream(bool finished_selection);

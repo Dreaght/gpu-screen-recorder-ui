@@ -51,80 +51,36 @@ static void disable_prime_run() {
 }
 
 static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
-    rpc->add_handler("show_ui", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->show();
-    });
+    const std::pair<const char*, std::function<void()>> commands[] = {
+        { "show_ui",                [overlay]() { overlay->show(); } },
+        { "toggle-show",            [overlay]() { overlay->toggle_show(); } },
+        { "toggle-record",          [overlay]() { overlay->toggle_record(gsr::RecordForceType::NONE); } },
+        { "start-record",           [overlay]() { overlay->start_record(); } },
+        { "stop-record",            [overlay]() { overlay->stop_record(); } },
+        { "toggle-pause",           [overlay]() { overlay->toggle_pause(); } },
+        { "toggle-record-region",   [overlay]() { overlay->toggle_record(gsr::RecordForceType::REGION); } },
+        { "toggle-record-window",   [overlay]() { overlay->toggle_record(gsr::RecordForceType::WINDOW); } },
+        { "toggle-stream",          [overlay]() { overlay->toggle_stream(); } },
+        { "start-stream",           [overlay]() { overlay->start_stream(); } },
+        { "stop-stream",            [overlay]() { overlay->stop_stream(); } },
+        { "toggle-replay",          [overlay]() { overlay->toggle_replay(); } },
+        { "start-replay",           [overlay]() { overlay->start_replay(); } },
+        { "stop-replay",            [overlay]() { overlay->stop_replay(); } },
+        { "replay-save",            [overlay]() { overlay->save_replay(); } },
+        { "replay-save-1-min",      [overlay]() { overlay->save_replay_1_min(); } },
+        { "replay-save-10-min",     [overlay]() { overlay->save_replay_10_min(); } },
+        { "take-screenshot",        [overlay]() { overlay->take_screenshot(); } },
+        { "take-screenshot-region", [overlay]() { overlay->take_screenshot_region(); } },
+        { "take-screenshot-window", [overlay]() { overlay->take_screenshot_window(); } },
+        { "reload-config",          [overlay]() { overlay->reload_config(); } },
+    };
 
-    rpc->add_handler("toggle-show", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_show();
-    });
-
-    rpc->add_handler("toggle-record", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_record(gsr::RecordForceType::NONE);
-    });
-
-    rpc->add_handler("toggle-pause", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_pause();
-    });
-
-    rpc->add_handler("toggle-record-region", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_record(gsr::RecordForceType::REGION);
-    });
-
-    rpc->add_handler("toggle-record-window", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_record(gsr::RecordForceType::WINDOW);
-    });
-
-    rpc->add_handler("toggle-stream", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_stream();
-    });
-
-    rpc->add_handler("toggle-replay", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->toggle_replay();
-    });
-
-    rpc->add_handler("replay-save", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->save_replay();
-    });
-
-    rpc->add_handler("replay-save-1-min", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->save_replay_1_min();
-    });
-
-    rpc->add_handler("replay-save-10-min", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->save_replay_10_min();
-    });
-
-    rpc->add_handler("take-screenshot", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->take_screenshot();
-    });
-
-    rpc->add_handler("take-screenshot-region", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->take_screenshot_region();
-    });
-
-    rpc->add_handler("take-screenshot-window", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->take_screenshot_window();
-    });
-
-    rpc->add_handler("reload-config", [overlay](const std::string &name) {
-        fprintf(stderr, "rpc command executed: %s\n", name.c_str());
-        overlay->reload_config();
-    });
+    for(const auto &[command_name, command] : commands) {
+        rpc->add_handler(command_name, [command](const std::string &name) {
+            fprintf(stderr, "rpc command executed: %s\n", name.c_str());
+            command();
+        });
+    }
 }
 
 

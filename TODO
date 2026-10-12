@@ -252,7 +252,5 @@ mgl support dynamically select x11 or wayland when creating a window. That would
 
 Add option to automatically stop replay when starting recording and then automatically start replay again when recording stops. That makes it so that recording wont happen in the replay session (with replay settings).
 
-Update gsr-ui-cli with start-record, stop-recording, start-replay, stop-replay, start-stream, stop-stream.
-
 Add editable region borders to region selection and fixed aspect ratio and also option to make video resize respect the exact video size requested, instead of scaling it to the aspect ratio.
     A user wants this for a fixed ratio for videos for smartphones (portait mode videos).

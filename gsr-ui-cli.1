@@ -21,6 +21,12 @@ Show/hide the UI.
 .B toggle-record
 Start/stop regular recording.
 .TP
+.B start-record
+Start regular recording. Does nothing if recording is already running.
+.TP
+.B stop-record
+Stop regular recording. Does nothing if recording is not running.
+.TP
 .B toggle-pause
 Pause/unpause recording (only applies to regular recording).
 .TP
@@ -33,8 +39,20 @@ Start/stop recording a window (or desktop portal on Wayland).
 .B toggle-stream
 Start/stop streaming.
 .TP
+.B start-stream
+Start streaming. Does nothing if streaming is already running.
+.TP
+.B stop-stream
+Stop streaming. Does nothing if streaming is not running.
+.TP
 .B toggle-replay
 Start/stop replay.
+.TP
+.B start-replay
+Start replay. Does nothing if replay is already running.
+.TP
+.B stop-replay
+Stop replay. Does nothing if replay is not running.
 .TP
 .B replay-save
 Save the current replay.
@@ -56,6 +74,9 @@ Take a screenshot of a window (or desktop portal on Wayland).
 .TP
 .B reload-config
 Reloads the config.
+.TP
+.B status
+Prints "running" and exits with 0 if gsr-ui is running, otherwise prints "not running" and exits with 1.
 .SH EXAMPLES
 .TP
 .B gsr-ui-cli toggle-show
