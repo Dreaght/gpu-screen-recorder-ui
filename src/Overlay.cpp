@@ -2437,7 +2437,7 @@ namespace gsr {
             return;
 
         const std::string filename = filepath_get_filename(filepath.c_str());
-        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + " " + get_date_str(true) + filepath_get_file_extension(filename);
+        std::string new_filepath = filepath_get_directory(filepath.c_str()) + "/" + game_name + " - " + get_date_str(true) + filepath_get_file_extension(filename);
         if(rename(filepath.c_str(), new_filepath.c_str()) == 0)
             filepath = std::move(new_filepath);
     }
