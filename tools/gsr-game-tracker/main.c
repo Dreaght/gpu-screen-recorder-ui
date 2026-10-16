@@ -57,6 +57,7 @@ typedef struct {
     EnvVar steam_game_id;
     EnvVar steam_base_folder;
     EnvVar steam_compat_app_id;
+    EnvVar steam_compat_data_path;
     EnvVar umu_invocation_id;
     EnvVar umu_id;
     EnvVar heroic_app_name;
@@ -134,6 +135,8 @@ static void read_environment_variables(const char *env, size_t env_size, EnvVars
         env_var_named_init(&env_vars->steam_game_id, "SteamGameId"),
         env_var_named_init(&env_vars->steam_base_folder, "STEAM_BASE_FOLDER"),
         env_var_named_init(&env_vars->steam_compat_app_id, "STEAM_COMPAT_APP_ID"),
+        /* This is set for applications launched with proton, for example by the epic games launcher */
+        env_var_named_init(&env_vars->steam_compat_data_path, "STEAM_COMPAT_DATA_PATH"),
         /* These are set by game launchers that run windows games with wine/proton */
         env_var_named_init(&env_vars->umu_invocation_id, "UMU_INVOCATION_ID"),
         env_var_named_init(&env_vars->umu_id, "UMU_ID"),
@@ -229,6 +232,7 @@ static bool env_var_is_set(const EnvVar *env_var) {
 static bool is_launched_by_game_launcher(const EnvVars *env_vars) {
     return env_var_is_set(&env_vars->steam_overlay_game_id)
         || env_var_is_set(&env_vars->steam_compat_app_id)
+        || env_var_is_set(&env_vars->steam_compat_data_path)
         || env_var_is_set(&env_vars->umu_invocation_id)
         || env_var_is_set(&env_vars->umu_id)
         || env_var_is_set(&env_vars->heroic_app_name)
