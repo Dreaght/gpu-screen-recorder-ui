@@ -35,14 +35,14 @@ namespace gsr {
         const mgl::vec2i scissor_pos(offset.x, offset.y);
         const mgl::vec2i scissor_size(content_size.x, content_size.y);
 
-        offset.y += scroll_y;
+        offset.y += scroll.y;
         Widget *selected_widget = selected_child_widget;
 
         if(event.type == mgl::Event::MouseButtonPressed && scrollbar_rect.contains(mgl::vec2f(event.mouse_button.x, event.mouse_button.y))) {
             set_widget_as_selected_in_parent();
             moving_scrollbar_with_cursor = true;
             scrollbar_move_cursor_start_pos = mgl::vec2f(event.mouse_button.x, event.mouse_button.y);
-            scrollbar_move_cursor_scroll_y_start = scroll_y;
+            scrollbar_move_cursor_scroll_y_start = scroll.y;
             return false;
         }
 
@@ -82,7 +82,7 @@ namespace gsr {
 
         if(event.type == mgl::Event::MouseWheelScrolled) {
             const double scroll = event.mouse_wheel_scroll.delta * scroll_speed;
-            scroll_target_y += scroll;
+            scroll_target.y += scroll;
             return false;
         }
 
@@ -112,7 +112,7 @@ namespace gsr {
         mgl_window_set_scissor(window.internal_window(), &new_scissor);
 
         Widget *selected_widget = selected_child_widget;
-        offset.y += scroll_y;
+        offset.y += scroll.y;
 
         double child_top = 999999.0;
         double child_bottom = 0.0;
@@ -174,7 +174,7 @@ namespace gsr {
         const double scrollbar_empty_space = size.y - scrollbar_height_absolute;
 
         if(scrollbar_height < 0.999) {
-            double scroll_amount = -scroll_y / (child_height - size.y);
+            double scroll_amount = -scroll.y / (child_height - size.y);
             if(scroll_amount < 0.0)
                 scroll_amount = 0.0;
             else if(scroll_amount > 1.0)
@@ -194,23 +194,23 @@ namespace gsr {
     }
 
     void ScrollablePage::apply_animation() {
-        const double scroll_diff = scroll_target_y - scroll_y;
+        const double scroll_diff = scroll_target.y - scroll.y;
         if(std::abs(scroll_diff) < 0.1) {
-            scroll_y = scroll_target_y;
+            scroll.y = scroll_target.y;
         } else {
             const double frame_scroll_speed = std::min(1.0, get_frame_delta_seconds() * scroll_update_speed);
-            scroll_y += (scroll_diff * frame_scroll_speed);
+            scroll.y += (scroll_diff * frame_scroll_speed);
         }
     }
 
     void ScrollablePage::limit_scroll(double child_height) {
         const double scroll_bottom_limit = child_height - size.y;
-        if(scroll_y > 0.001 || child_height < size.y) {
-            scroll_y = 0;
-            scroll_target_y = 0;
-        } else if(scroll_y < -scroll_bottom_limit) {
-            scroll_y = -scroll_bottom_limit;
-            scroll_target_y = -scroll_bottom_limit;
+        if(scroll.y > 0.001 || child_height < size.y) {
+            scroll.y = 0;
+            scroll_target.y = 0;
+        } else if(scroll.y < -scroll_bottom_limit) {
+            scroll.y = -scroll_bottom_limit;
+            scroll_target.y = -scroll_bottom_limit;
         }
     }
 
@@ -219,12 +219,12 @@ namespace gsr {
             const double scroll_bottom_limit = child_height - size.y;
             const mgl::vec2f scrollbar_move_diff = window.get_mouse_position().to_vec2f() - scrollbar_move_cursor_start_pos;
             const double scroll_amount = scrollbar_move_diff.y / scrollbar_empty_space;
-            scroll_y = scrollbar_move_cursor_scroll_y_start - scroll_amount * (child_height - size.y);
-            if(scroll_y > 0.0)
-                scroll_y = 0.0;
-            else if(scroll_y < -scroll_bottom_limit)
-                scroll_y = -scroll_bottom_limit;
-            scroll_target_y = scroll_y;
+            scroll.y = scrollbar_move_cursor_scroll_y_start - scroll_amount * (child_height - size.y);
+            if(scroll.y > 0.0)
+                scroll.y = 0.0;
+            else if(scroll.y < -scroll_bottom_limit)
+                scroll.y = -scroll_bottom_limit;
+            scroll_target.y = scroll.y;
         }
     }
 
@@ -253,8 +253,8 @@ namespace gsr {
     }
 
     void ScrollablePage::reset_scroll() {
-        scroll_y = 0;
-        scroll_target_y = 0;
+        scroll.y = 0;
+        scroll_target.y = 0;
     }
 
     float ScrollablePage::get_scrollbar_width() const {

@@ -24,8 +24,11 @@ namespace gsr {
         void add_widget(std::unique_ptr<Widget> widget);
 
         void reset_scroll();
-        int get_scroll_target_y() const { return scroll_target_y; }
-        void set_scroll(int y) { scroll_y = y; scroll_target_y = y; }
+        mgl::vec2f get_scroll() const { return scroll; }
+        int get_scroll_target_y() const { return scroll_target.y; }
+        mgl::vec2f get_scroll_target() const { return scroll_target; }
+        void set_scroll(int y) { scroll.y = y; scroll_target.y = y; }
+        void set_scroll(mgl::vec2f new_scroll) { this->scroll = new_scroll; scroll_target = new_scroll; }
     private:
         void apply_animation();
         void limit_scroll(double child_height);
@@ -35,8 +38,9 @@ namespace gsr {
     private:
         mgl::vec2f size;
         SafeVector<std::unique_ptr<Widget>> widgets;
-        int scroll_target_y = 0;
-        double scroll_y = 0.0;
+        mgl::vec2f scroll_target = {0.0f, 0.0f};
+        mgl::vec2f scroll = {0.0f, 0.0f};
+
         mgl::FloatRect scrollbar_rect;
         bool moving_scrollbar_with_cursor = false;
         mgl::vec2f scrollbar_move_cursor_start_pos;
