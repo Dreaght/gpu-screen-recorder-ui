@@ -8,6 +8,8 @@
 #include <X11/extensions/shapeconst.h>
 #include <X11/extensions/Xrandr.h>
 
+#include <xf86drmMode.h>
+
 #include <wayland-client.h>
 #include "xdg-output-unstable-v1-client-protocol.h"
 
@@ -822,6 +824,72 @@ namespace gsr {
         snprintf(prop_name, sizeof(prop_name), "_NET_WM_CM_S%d", screen);
         const Atom prop_atom = XInternAtom(dpy, prop_name, False);
         return XGetSelectionOwner(dpy, prop_atom) != None;
+    }
+
+    struct ConnectorTypePrefix {
+        std::string_view prefix;
+        int connector_type;
+    };
+
+    /* The display server monitor names are not always the same as the drm connector names. Gnome names the
+       HDMI-A connector HDMI and the Writeback connector WRITEBACK, while kwin and wlroots use the drm names.
+       A prefix that is the start of another prefix has to come after it, to not match the wrong connector type */
+    static const ConnectorTypePrefix connector_type_prefixes[] = {
+        { "HDMI-A-",      DRM_MODE_CONNECTOR_HDMIA },
+        { "HDMI-B-",      DRM_MODE_CONNECTOR_HDMIB },
+        { "HDMI-",        DRM_MODE_CONNECTOR_HDMIA },
+        { "DisplayPort-", DRM_MODE_CONNECTOR_DisplayPort },
+        { "DP-",          DRM_MODE_CONNECTOR_DisplayPort },
+        { "eDP-",         DRM_MODE_CONNECTOR_eDP },
+        { "DVI-I-",       DRM_MODE_CONNECTOR_DVII },
+        { "DVI-D-",       DRM_MODE_CONNECTOR_DVID },
+        { "DVI-A-",       DRM_MODE_CONNECTOR_DVIA },
+        { "VGA-",         DRM_MODE_CONNECTOR_VGA },
+        { "Composite-",   DRM_MODE_CONNECTOR_Composite },
+        { "SVIDEO-",      DRM_MODE_CONNECTOR_SVIDEO },
+        { "LVDS-",        DRM_MODE_CONNECTOR_LVDS },
+        { "Component-",   DRM_MODE_CONNECTOR_Component },
+        { "DIN-",         DRM_MODE_CONNECTOR_9PinDIN },
+        { "TV-",          DRM_MODE_CONNECTOR_TV },
+        { "Virtual-",     DRM_MODE_CONNECTOR_VIRTUAL },
+        { "DSI-",         DRM_MODE_CONNECTOR_DSI },
+        { "DPI-",         DRM_MODE_CONNECTOR_DPI },
+        { "Writeback-",   DRM_MODE_CONNECTOR_WRITEBACK },
+        { "WRITEBACK-",   DRM_MODE_CONNECTOR_WRITEBACK },
+        { "SPI-",         DRM_MODE_CONNECTOR_SPI },
+        { "USB-",         DRM_MODE_CONNECTOR_USB },
+    };
+
+    static int get_connector_type_by_name(std::string_view name) {
+        for(const ConnectorTypePrefix &connector_type_prefix : connector_type_prefixes) {
+            if(name.size() >= connector_type_prefix.prefix.size() && name.compare(0, connector_type_prefix.prefix.size(), connector_type_prefix.prefix) == 0)
+                return connector_type_prefix.connector_type;
+        }
+        return -1;
+    }
+
+    static int get_connector_type_id_by_name(std::string_view name) {
+        size_t num_start = name.size();
+        while(num_start > 0 && name[num_start - 1] >= '0' && name[num_start - 1] <= '9') {
+            --num_start;
+        }
+
+        if(num_start == name.size())
+            return -1;
+
+        return atoi(std::string(name.substr(num_start)).c_str());
+    }
+
+    bool monitor_names_equal(std::string_view name1, std::string_view name2) {
+        if(name1 == name2)
+            return true;
+
+        const int connector_type = get_connector_type_by_name(name1);
+        if(connector_type == -1 || connector_type != get_connector_type_by_name(name2))
+            return false;
+
+        const int connector_type_id = get_connector_type_id_by_name(name1);
+        return connector_type_id != -1 && connector_type_id == get_connector_type_id_by_name(name2);
     }
 
     std::vector<Monitor> get_monitors(Display *dpy) {

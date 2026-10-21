@@ -2,6 +2,7 @@
 
 #include <mglpp/system/vec.hpp>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <optional>
 #include <X11/Xlib.h>
@@ -46,6 +47,9 @@ namespace gsr {
     std::string get_window_manager_name(Display *display);
     bool is_compositor_running(Display *dpy, int screen);
     std::vector<Monitor> get_monitors(Display *dpy);
+    /* Returns true if the two monitor names refer to the same drm connector. The display server monitor
+       names are not always the same as the drm monitor names (gnome names the HDMI-A-1 connector HDMI-1) */
+    bool monitor_names_equal(std::string_view name1, std::string_view name2);
     std::vector<Monitor> get_monitors_wayland(struct wl_display *dpy);
     void xi_grab_all_mouse_devices(Display *dpy);
     void xi_ungrab_all_mouse_devices(Display *dpy);

@@ -191,10 +191,10 @@ namespace gsr {
         return nullptr;
     }
 
-    // Name is the x11 name. TODO: verify if this works on all wayland compositors
+    // Name is the x11 name
     static const Monitor* get_wayland_monitor_by_name(const std::vector<Monitor> &monitors, const std::string &name) {
         for(const Monitor &monitor : monitors) {
-            if(monitor.name == name)
+            if(monitor_names_equal(monitor.name, name))
                 return &monitor;
         }
         return nullptr;

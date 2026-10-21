@@ -234,7 +234,7 @@ namespace gsr {
 
     static const Monitor* find_monitor_by_name(const std::vector<Monitor> &monitors, const std::string &name) {
         for(const Monitor &monitor : monitors) {
-            if(monitor.name == name)
+            if(monitor_names_equal(monitor.name, name))
                 return &monitor;
         }
         return nullptr;
@@ -2101,20 +2101,8 @@ namespace gsr {
     }
 
     static std::string get_valid_monitor_x11(const std::string &target_monitor_name, const std::vector<Monitor> &monitors) {
-        std::string target_monitor_name_clean = target_monitor_name;
-        if(starts_with(target_monitor_name_clean, "HDMI-A"))
-            target_monitor_name_clean.replace(0, 6, "HDMI");
-
-        for(const Monitor &monitor : monitors) {
-            std::string monitor_name_clean = monitor.name;
-            if(starts_with(monitor_name_clean, "HDMI-A"))
-                monitor_name_clean.replace(0, 6, "HDMI");
-
-            if(target_monitor_name_clean == monitor_name_clean)
-                return monitor.name;
-        }
-
-        return "";
+        const Monitor *monitor = find_monitor_by_name(monitors, target_monitor_name);
+        return monitor ? monitor->name : "";
     }
 
     static std::string get_focused_monitor_by_cursor(Display *x11_dpy, CursorTracker *cursor_tracker, const GsrInfo &gsr_info, const std::vector<Monitor> &x11_monitors) {
