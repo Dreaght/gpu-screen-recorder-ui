@@ -58,6 +58,9 @@ Saved a screenshot of %s to "%s"=%s ekran görüntüsü "%s" konumuna kaydedildi
 Saved a screenshot of %s=%s ekran görüntüsü kaydedildi
 Failed to take a screenshot=Ekran görüntüsü alınamadı
 
+# Notifications - Portal
+Portal selection reset. The portal will ask what you want to record the next time you use it.=Portal seçimi sıfırlandı. Portal bir sonraki kullanımda neyi kaydetmek istediğinizi soracak.
+
 # Error messages
 Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=GPU Screen Recorder arayüzünün başka bir kopyası zaten çalışıyor. Arayüzü açmak için %s tuşlarına basın.
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder başka bir işlemde zaten çalışıyor. Lütfen GPU Screen Recorder arayüzünü kullanmadan önce onu kapatın.
@@ -256,7 +259,7 @@ Screen=Ekran
 
 Image resolution limit:=Görüntü çözünürlük sınırı:
 Change image resolution=Görüntü çözünürlüğünü değiştir
-Restore portal session=Portal oturumunu geri yükle
+Reset selection=Seçimi sıfırla
 
 Image quality:=Görüntü kalitesi:
 Medium=Orta

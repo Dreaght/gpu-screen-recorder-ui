@@ -56,7 +56,6 @@ namespace gsr {
         bool advanced_view = false;
         bool overclock = false;
         bool record_cursor = true;
-        bool restore_portal_session = true;
         bool low_power_mode = false;
         bool enable_vulkan_video_encoding = false;
 
@@ -177,7 +176,6 @@ namespace gsr {
         std::string image_quality = "very_high";
         std::string image_format = "jpg";
         bool record_cursor = true;
-        bool restore_portal_session = true;
 
         // TODO: Remove these in the future
         bool save_screenshot_in_game_folder = false;

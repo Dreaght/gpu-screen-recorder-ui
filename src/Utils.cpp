@@ -149,6 +149,11 @@ namespace gsr {
         return config_dir;
     }
 
+    void remove_portal_restore_token() {
+        const std::string restore_token_filepath = get_config_dir() + "/restore_token";
+        unlink(restore_token_filepath.c_str());
+    }
+
     // Whoever designed xdg-user-dirs is retarded. Why are some XDG variables environment variables
     // while others are in this pseudo shell config file ~/.config/user-dirs.dirs
     std::map<std::string, std::string> get_xdg_variables() {

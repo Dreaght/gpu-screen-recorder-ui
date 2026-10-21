@@ -103,19 +103,18 @@ namespace gsr {
         return image_resolution_list;
     }
 
-    std::unique_ptr<CheckBox> ScreenshotSettingsPage::create_restore_portal_session_checkbox() {
-        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Restore portal session"));
-        restore_portal_session_checkbox->set_checked(true);
-        restore_portal_session_checkbox_ptr = restore_portal_session_checkbox.get();
-        return restore_portal_session_checkbox;
-    }
+    std::unique_ptr<List> ScreenshotSettingsPage::create_reset_portal_selection_section() {
+        auto reset_selection_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Reset selection"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        reset_selection_button->on_click = [this] {
+            if(on_reset_portal_selection)
+                on_reset_portal_selection();
+        };
 
-    std::unique_ptr<List> ScreenshotSettingsPage::create_restore_portal_session_section() {
-        auto restore_portal_session_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        restore_portal_session_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), " ", get_color_theme().text_color));
-        restore_portal_session_list->add_widget(create_restore_portal_session_checkbox());
-        restore_portal_session_list_ptr = restore_portal_session_list.get();
-        return restore_portal_session_list;
+        auto reset_portal_selection_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        reset_portal_selection_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), " ", get_color_theme().text_color));
+        reset_portal_selection_list->add_widget(std::move(reset_selection_button));
+        reset_portal_selection_list_ptr = reset_portal_selection_list.get();
+        return reset_portal_selection_list;
     }
 
     std::unique_ptr<Widget> ScreenshotSettingsPage::create_change_image_resolution_section() {
@@ -130,7 +129,7 @@ namespace gsr {
         auto capture_target_list = std::make_unique<List>(List::Orientation::HORIZONTAL, List::Alignment::CENTER);
         capture_target_list->add_widget(create_record_area());
         capture_target_list->add_widget(create_image_resolution_section());
-        capture_target_list->add_widget(create_restore_portal_session_section());
+        capture_target_list->add_widget(create_reset_portal_selection_section());
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_image_resolution_section());
@@ -347,7 +346,7 @@ namespace gsr {
         record_area_box_ptr->on_selection_changed = [this](std::string_view, std::string_view id) {
             const bool portal_selected = id == "portal";
             image_resolution_list_ptr->set_visible(change_image_resolution_checkbox_ptr->is_checked());
-            restore_portal_session_list_ptr->set_visible(portal_selected);
+            reset_portal_selection_list_ptr->set_visible(portal_selected);
             return true;
         };
 
@@ -375,7 +374,6 @@ namespace gsr {
         image_quality_box_ptr->set_selected_item(config.screenshot_config.image_quality);
         image_format_box_ptr->set_selected_item(config.screenshot_config.image_format);
         record_cursor_checkbox_ptr->set_checked(config.screenshot_config.record_cursor);
-        restore_portal_session_checkbox_ptr->set_checked(config.screenshot_config.restore_portal_session);
         save_directory_button_ptr->set_text(config.screenshot_config.save_directory);
         organize_folders_radio_button_ptr->set_selected_item(config.screenshot_config.organize_into_folders);
         organize_filename_radio_button_ptr->set_selected_item(config.screenshot_config.name_after_captured_application);
@@ -411,7 +409,6 @@ namespace gsr {
         config.screenshot_config.image_quality = image_quality_box_ptr->get_selected_id();
         config.screenshot_config.image_format = image_format_box_ptr->get_selected_id();
         config.screenshot_config.record_cursor = record_cursor_checkbox_ptr->is_checked();
-        config.screenshot_config.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         config.screenshot_config.save_directory = save_directory_button_ptr->get_text();
         config.screenshot_config.organize_into_folders = organize_folders_radio_button_ptr->get_selected_id();
         config.screenshot_config.name_after_captured_application = organize_filename_radio_button_ptr->get_selected_id();

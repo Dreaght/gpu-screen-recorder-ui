@@ -1664,6 +1664,9 @@ namespace gsr {
             if(recording_status == RecordingStatus::REPLAY)
                 show_notification(TR("Replay settings have been modified. You may need to restart replay to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::REPLAY);
         };
+        replay_settings_page->on_reset_portal_selection = [this]() {
+            reset_portal_selection();
+        };
         page_stack.push(std::move(replay_settings_page));
     }
 
@@ -1674,6 +1677,9 @@ namespace gsr {
                 show_notification(TR("Recording settings have been modified. You may need to restart recording to apply the changes."), notification_timeout_seconds, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::RECORD);
 
             update_led_indicator_after_settings_change();
+        };
+        record_settings_page->on_reset_portal_selection = [this]() {
+            reset_portal_selection();
         };
         page_stack.push(std::move(record_settings_page));
     }
@@ -1686,6 +1692,9 @@ namespace gsr {
 
             update_led_indicator_after_settings_change();
         };
+        stream_settings_page->on_reset_portal_selection = [this]() {
+            reset_portal_selection();
+        };
         page_stack.push(std::move(stream_settings_page));
     }
 
@@ -1695,7 +1704,15 @@ namespace gsr {
         screenshot_settings_page->on_config_changed = [this]() {
             update_led_indicator_after_settings_change();
         };
+        screenshot_settings_page->on_reset_portal_selection = [this]() {
+            reset_portal_selection();
+        };
         page_stack.push(std::move(screenshot_settings_page));
+    }
+
+    void Overlay::reset_portal_selection() {
+        remove_portal_restore_token();
+        show_notification(TR("Portal selection reset. The portal will ask what you want to record the next time you use it."), 5.0, mgl::Color(255, 255, 255), get_color_theme().tint_color, NotificationType::NOTICE, nullptr, NotificationLevel::ERROR);
     }
 
     void Overlay::open_settings_page(int scroll_y) {
@@ -3049,7 +3066,7 @@ namespace gsr {
             args.push_back(audio_track.c_str());
         }
 
-        if(record_options.restore_portal_session && force_type != RecordForceType::WINDOW) {
+        if(force_type != RecordForceType::WINDOW) {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }
@@ -4029,7 +4046,7 @@ namespace gsr {
             args.push_back(size);
         }
 
-        if(config.screenshot_config.restore_portal_session && force_type != ScreenshotForceType::WINDOW) {
+        if(force_type != ScreenshotForceType::WINDOW) {
             args.push_back("-restore-portal-session");
             args.push_back("yes");
         }

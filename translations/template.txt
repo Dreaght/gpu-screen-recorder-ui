@@ -63,6 +63,9 @@ Saved a screenshot of %s to "%s"=
 Saved a screenshot of %s=
 Failed to take a screenshot=
 
+# Notifications - Portal
+Portal selection reset. The portal will ask what you want to record the next time you use it.=
+
 # Error messages
 Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=
@@ -274,7 +277,7 @@ Screen=
 
 Image resolution limit:=
 Change image resolution=
-Restore portal session=
+Reset selection=
 
 Image quality:=
 Medium=

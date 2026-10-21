@@ -26,6 +26,7 @@ namespace gsr {
         void on_navigate_away_from_page() override;
 
         std::function<void()> on_config_changed;
+        std::function<void()> on_reset_portal_selection;
     private:
         std::unique_ptr<ComboBox> create_record_area_box();
         std::unique_ptr<Widget> create_record_area();
@@ -33,8 +34,7 @@ namespace gsr {
         std::unique_ptr<Entry> create_image_height_entry();
         std::unique_ptr<List> create_image_resolution();
         std::unique_ptr<List> create_image_resolution_section();
-        std::unique_ptr<CheckBox> create_restore_portal_session_checkbox();
-        std::unique_ptr<List> create_restore_portal_session_section();
+        std::unique_ptr<List> create_reset_portal_selection_section();
         std::unique_ptr<Widget> create_change_image_resolution_section();
         std::unique_ptr<Widget> create_hdr_warning();
         std::unique_ptr<Widget> create_capture_target_section();
@@ -68,14 +68,13 @@ namespace gsr {
         GsrPage *content_page_ptr = nullptr;
         ScrollablePage *settings_scrollable_page_ptr = nullptr;
         List *image_resolution_list_ptr = nullptr;
-        List *restore_portal_session_list_ptr = nullptr;
+        List *reset_portal_selection_list_ptr = nullptr;
         List *color_range_list_ptr = nullptr;
         Widget *image_format_ptr = nullptr;
         ComboBox *record_area_box_ptr = nullptr;
         Entry *image_width_entry_ptr = nullptr;
         Entry *image_height_entry_ptr = nullptr;
         CheckBox *record_cursor_checkbox_ptr = nullptr;
-        CheckBox *restore_portal_session_checkbox_ptr = nullptr;
         CheckBox *change_image_resolution_checkbox_ptr = nullptr;
         ComboBox *image_quality_box_ptr = nullptr;
         ComboBox *image_format_box_ptr = nullptr;

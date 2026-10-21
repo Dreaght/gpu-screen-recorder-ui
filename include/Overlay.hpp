@@ -139,6 +139,7 @@ namespace gsr {
 
         void recreate_global_hotkeys(std::string_view hotkey_option);
         void update_led_indicator_after_settings_change();
+        void reset_portal_selection();
         void recreate_frontpage_ui_components();
         void open_settings_page(int scroll_y = 0);
         void xi_setup();

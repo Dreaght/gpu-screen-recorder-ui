@@ -58,6 +58,9 @@ Saved a screenshot of %s to "%s"=Bildschirmfoto von %s nach „%s“ gespeichert
 Saved a screenshot of %s=Bildschirmfoto von %s gespeichert
 Failed to take a screenshot=Konnte Bildschirmfoto nicht aufnehmen
 
+# Notifications - Portal
+Portal selection reset. The portal will ask what you want to record the next time you use it.=Portalauswahl zurückgesetzt. Das Portal fragt dich bei der nächsten Verwendung, was du aufnehmen möchtest.
+
 # Error messages
 Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=Eine andere Instanz von GPU Screen Recorder UI läuft bereits. Drücke %s, um das UI zu öffnen.
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder läuft bereits in einem anderen Prozess. Bitte beende es vor dem Start von GPU Screen Recorder UI.
@@ -269,7 +272,7 @@ Screen=Bildschirm
 
 Image resolution limit:=Begrenzung der Bildauflösung:
 Change image resolution=Bildauflösung ändern
-Restore portal session=Portalsitzung wiederherstellen
+Reset selection=Auswahl zurücksetzen
 
 Image quality:=Bildqualität:
 Medium=Mittel

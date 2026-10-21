@@ -58,6 +58,9 @@ Saved a screenshot of %s to "%s"=%s のスクリーンショットを "%s" に�
 Saved a screenshot of %s=%s のスクリーンショットを保存しました
 Failed to take a screenshot=スクリーンショットの取得に失敗しました
 
+# Notifications - Portal
+Portal selection reset. The portal will ask what you want to record the next time you use it.=ポータルの選択をリセットしました。次回ポータルを使用するときに、何を録画するかを尋ねられます。
+
 # Error messages
 Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=GPU Screen Recorder UI はすでに起動しています %s で UI を開けます
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder が別プロセスですでに動作しています GPU Screen Recorder UI を使う前に終了してください
@@ -270,7 +273,7 @@ Screen=画面
 
 Image resolution limit:=画像解像度の上限:
 Change image resolution=画像解像度を変更
-Restore portal session=ポータルセッションを復元
+Reset selection=選択をリセット
 
 Image quality:=画質:
 Medium=中

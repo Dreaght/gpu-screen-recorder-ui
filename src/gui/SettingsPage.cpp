@@ -211,19 +211,18 @@ namespace gsr {
         return video_resolution_list;
     }
 
-    std::unique_ptr<CheckBox> SettingsPage::create_restore_portal_session_checkbox() {
-        auto restore_portal_session_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Restore portal session"));
-        restore_portal_session_checkbox->set_checked(true);
-        restore_portal_session_checkbox_ptr = restore_portal_session_checkbox.get();
-        return restore_portal_session_checkbox;
-    }
+    std::unique_ptr<List> SettingsPage::create_reset_portal_selection_section() {
+        auto reset_selection_button = std::make_unique<Button>(get_theme().body_font_desc.c_str(), TR("Reset selection"), mgl::vec2f(0.0f, 0.0f), mgl::Color(0, 0, 0, 120));
+        reset_selection_button->on_click = [this] {
+            if(on_reset_portal_selection)
+                on_reset_portal_selection();
+        };
 
-    std::unique_ptr<List> SettingsPage::create_restore_portal_session_section() {
-        auto restore_portal_session_list = std::make_unique<List>(List::Orientation::VERTICAL);
-        restore_portal_session_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), " ", get_color_theme().text_color));
-        restore_portal_session_list->add_widget(create_restore_portal_session_checkbox());
-        restore_portal_session_list_ptr = restore_portal_session_list.get();
-        return restore_portal_session_list;
+        auto reset_portal_selection_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        reset_portal_selection_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), " ", get_color_theme().text_color));
+        reset_portal_selection_list->add_widget(std::move(reset_selection_button));
+        reset_portal_selection_list_ptr = reset_portal_selection_list.get();
+        return reset_portal_selection_list;
     }
 
     std::unique_ptr<Widget> SettingsPage::create_change_video_resolution_section() {
@@ -239,7 +238,7 @@ namespace gsr {
         capture_target_list->add_widget(create_record_area());
         capture_target_list->add_widget(create_area_size_section());
         capture_target_list->add_widget(create_video_resolution_section());
-        capture_target_list->add_widget(create_restore_portal_session_section());
+        capture_target_list->add_widget(create_reset_portal_selection_section());
 
         ll->add_widget(std::move(capture_target_list));
         ll->add_widget(create_change_video_resolution_section());
@@ -1111,7 +1110,7 @@ namespace gsr {
             area_size_list_ptr->set_visible(focused_selected);
             video_resolution_list_ptr->set_visible(!focused_selected && change_video_resolution_checkbox_ptr->is_checked());
             change_video_resolution_checkbox_ptr->set_visible(!focused_selected);
-            restore_portal_session_list_ptr->set_visible(portal_selected);
+            reset_portal_selection_list_ptr->set_visible(portal_selected);
             return true;
         };
 
@@ -1849,7 +1848,6 @@ namespace gsr {
         // TODO:
         //record_options.overclock = false;
         record_cursor_checkbox_ptr->set_checked(record_options.record_cursor);
-        restore_portal_session_checkbox_ptr->set_checked(record_options.restore_portal_session);
         show_notification_checkbox_ptr->set_checked(record_options.show_notifications);
         led_indicator_checkbox_ptr->set_checked(record_options.use_led_indicator);
         low_power_mode_checkbox_ptr->set_checked(record_options.low_power_mode);
@@ -2009,7 +2007,6 @@ namespace gsr {
         // TODO:
         //record_options.overclock = false;
         record_options.record_cursor = record_cursor_checkbox_ptr->is_checked();
-        record_options.restore_portal_session = restore_portal_session_checkbox_ptr->is_checked();
         record_options.show_notifications = show_notification_checkbox_ptr->is_checked();
         record_options.use_led_indicator = led_indicator_checkbox_ptr->is_checked();
         record_options.low_power_mode = low_power_mode_checkbox_ptr->is_checked();

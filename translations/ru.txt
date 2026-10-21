@@ -58,6 +58,9 @@ Saved a screenshot of %s to "%s"=Сохранён снимок %s в "%s"
 Saved a screenshot of %s=Сохранён снимок %s
 Failed to take a screenshot=Не удалось сделать снимок экрана
 
+# Notifications - Portal
+Portal selection reset. The portal will ask what you want to record the next time you use it.=Выбор портала сброшен. При следующем использовании портал спросит, что вы хотите записать.
+
 # Error messages
 Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.=Один экземпляр GPU Screen Recorder UI уже запущен. Нажмите %s, чтобы открыть интерфейс.
 GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI.=GPU Screen Recorder CLI уже запущен в другом процессе. Пожалуйста, закройте его перед использованием GPU Screen Recorder UI.
@@ -261,7 +264,7 @@ Screen=Экран
 
 Image resolution limit:=Ограничение разрешения изображения:
 Change image resolution=Изменять разрешение изображения
-Restore portal session=Восстановить сессию портала
+Reset selection=Сбросить выбор
 
 Image quality:=Качество изображения:
 Medium=Среднее
