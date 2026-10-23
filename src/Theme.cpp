@@ -34,6 +34,8 @@ namespace gsr {
             vendor = GpuVendor::BROADCOM;
         else if(color_name == "apple")
             vendor = GpuVendor::APPLE;
+        else if(color_name == "unknown")
+            vendor = GpuVendor::UNKNOWN;
         return gpu_vendor_to_color(vendor);
     }
 

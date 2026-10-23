@@ -133,6 +133,8 @@ namespace gsr {
                 gsr_info->gpu_info.vendor = GpuVendor::BROADCOM;
             else if(key_value->value == "apple")
                 gsr_info->gpu_info.vendor = GpuVendor::APPLE;
+            else if(key_value->value == "unknown")
+                gsr_info->gpu_info.vendor = GpuVendor::UNKNOWN;
         } else if(key_value->key == "card_path") {
             gsr_info->gpu_info.card_path = key_value->value;
         }
@@ -440,7 +442,7 @@ namespace gsr {
             case GpuVendor::INTEL:    return "intel";
             case GpuVendor::NVIDIA:   return "nvidia";
             case GpuVendor::BROADCOM: return "broadcom";
-            case GpuVendor::APPLE: return "apple";
+            case GpuVendor::APPLE:    return "apple";
         }
         return "unknown";
     }
