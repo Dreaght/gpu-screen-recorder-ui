@@ -391,6 +391,13 @@ namespace gsr {
             modified = true;
         }
 
+        for(std::string *organize_into_folders : { &config.record_config.organize_into_folders, &config.replay_config.organize_into_folders, &config.screenshot_config.organize_into_folders }) {
+            if(*organize_into_folders == "yes_only_games") {
+                *organize_into_folders = "yes";
+                modified = true;
+            }
+        }
+
         if(modified) {
             fprintf(stderr, "Info: gsr-ui: upgraded the config file to the new format\n");
             save_config(config);
