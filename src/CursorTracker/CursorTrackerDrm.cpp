@@ -43,8 +43,7 @@ namespace gsr {
         "vgem",
         "simpledrm",
         "ofdrm",
-        "udl",
-        "evdi"
+        "udl"
     };
 
     static bool drm_driver_is_unsupported(const char *driver_name) {
