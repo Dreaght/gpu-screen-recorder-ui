@@ -161,6 +161,8 @@ namespace gsr {
         void on_replay_saved(const char *replay_saved_filepath);
         void process_gsr_game_tracker_output();
         void process_gsr_output();
+        void process_remaining_replay_recording_output();
+        void process_gsr_output_line(char *line);
         void on_gsr_process_error(int exit_code, NotificationType notification_type);
         void update_gsr_process_status();
         void update_gsr_screenshot_process_status();

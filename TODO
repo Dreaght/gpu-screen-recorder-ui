@@ -1,5 +1,3 @@
-setcap nice for good performance when opening overlay when game is running below 60 fps (on amd).
-
 WAYLAND_DISPLAY gamescope-0, DISPLAY=:1 (gamescope xwayland)
 
 Optimize list/page when having a few items in it (dont use vector<unique_ptr<Widget>>).
@@ -9,8 +7,6 @@ Only redraw ui if changed (dirty state, propagate upward. Set dirty when adding 
 Use _NET_WM_ALLOWED_ACTIONS. Same for notifications.
 
 Handle events in draw function because the render position of elements is available there so why duplicate it in event handler.
-
-Add nvidia overclock option.
 
 Filechooser should have the option to select list view, search bar and common folders/mounted drives on the left side for quick navigation. Also a button to create a new directory.
 
@@ -92,8 +88,6 @@ Check if "modprobe uinput" is needed on some systems (old fedora?).
 Add recording timer to see duration of recording/streaming.
 
 When clicking on current directory in file manager show a dropdown menu where you can select common directories (HOME, Videos, Downloads and mounted drives) for quick navigation. Maybe even button to search.
-
-Maybe change gsr-ui startup retry time in the systemd service, from 5 seconds to 2 seconds.
 
 Make it possible to take a screenshot through a button in the ui instead of having to use hotkey.
 
@@ -182,8 +176,6 @@ Disable hotkeys if virtual keyboard is found (either at startup or after running
 
 Add option to not capture cursor in screenshot when doing region/window capture.
 
-Window selection doesn't work when a window is fullscreen on x11.
-
 Make it possible to change replay duration of the "save 1 min" and "save 10 min" by adding them to the replay settings as options.
 
 If replay duration is set below the "save 1 min" or "save 10 min" then gray them out and when hovering over those buttons
@@ -208,10 +200,6 @@ Check if the focused window is on top on x11 when choosing to take screenshot or
 
 Convert clipboard image to requested type (from jpg to png for example).
 
-Save clipboard image with wayland on wayland. Some wayland compositors (such as hyprland, budgie and maybe more (wlroots based ones?)) don't support copying clipboard image data from x11 applications to wayland applications.
-    This can be done because retarded wayland only supports setting clipboard when the application has focus. This doesn't work with hotkey screenshot use.
-    This is specifically an issue when using wl_data_device_manager, which is a standard protocol. It can be done when using wlr specific protocol.
-
 When gsr supports pausing recording done in replay/streaming session then add support for that in gsr-ui as well.
 
 Add recording timer when recording to show for how long we have been recording for. Maybe the same for live streaming and replay.
@@ -223,8 +211,6 @@ Show the currently recorded capture in the ui, to preview if everything looks ok
 Show a question mark beside options. When hovering the question mark show a tooltip that explains the options.
 
 Remove all mgl::Clock usage in Overlay. We only need to get the time once per update in Overlay::handle_events. Also get time in other places outside handle_events.
-
-Handle stopping replay/stream when recording is running (show notification that the video is saved and move the video to folder with game name).
 
 Sometimes when opening gpu screen recorder ui gsr-global-hotkeys incorrectly detects that keyboard input is locked.
 

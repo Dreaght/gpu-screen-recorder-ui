@@ -800,6 +800,7 @@ namespace gsr {
         else if(WIFEXITED(status))
             exit_code = WEXITSTATUS(status);
 
+        process_remaining_replay_recording_output();
         close_gpu_screen_recorder_output();
         return exit_code;
     }
@@ -2592,48 +2593,62 @@ namespace gsr {
         char buffer[1024];
         if(gpu_screen_recorder_process_output_file) {
             char *line = fgets(buffer, sizeof(buffer), gpu_screen_recorder_process_output_file);
-            if(!line || line[0] == '\0')
-                return;
-
-            int line_len = strlen(line);
-            if(line[line_len - 1] == '\n') {
-                line[line_len - 1] = '\0';
-                line_len -= 1;
-            }
-
-            const std::string_view line_view{line, (size_t)line_len};
-            if(starts_with(line_view, "gsr error: ")) {
-                //show_notification(line + 11, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), recording_status_to_notification_type(recording_status), nullptr, NotificationLevel::ERROR);
-                if(replay_recording && ends_with(line_view, "recording")) {
-                    std::string dummy;
-                    on_stop_recording(1, dummy);
-                } else if(recording_status == RecordingStatus::REPLAY && ends_with(line_view, "replay")) {
-                    show_notification(TR("Failed to save replay, make sure the replay save directory is mounted and writable"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
-                    replay_save_show_notification = false;
-                }
-                return;
-            }
-
-            const std::string video_filepath = filepath_get_filename(line);
-            if(starts_with(video_filepath, "Video_")) {
-                record_filepath = line;
-                on_stop_recording(0, record_filepath);
-                return;
-            }
-
-            switch(recording_status) {
-                case RecordingStatus::NONE:
-                    break;
-                case RecordingStatus::REPLAY:
-                    on_replay_saved(line);
-                    break;
-                case RecordingStatus::RECORD:
-                    break;
-                case RecordingStatus::STREAM:
-                    break;
-            }
+            if(line)
+                process_gsr_output_line(line);
         } else if(gpu_screen_recorder_process_output_fd > 0) {
             read(gpu_screen_recorder_process_output_fd, buffer, sizeof(buffer));
+        }
+    }
+
+    void Overlay::process_remaining_replay_recording_output() {
+        if(!gpu_screen_recorder_process_output_file)
+            return;
+
+        char buffer[1024];
+        while(replay_recording && fgets(buffer, sizeof(buffer), gpu_screen_recorder_process_output_file))
+            process_gsr_output_line(buffer);
+    }
+
+    void Overlay::process_gsr_output_line(char *line) {
+        int line_len = strlen(line);
+        if(line_len == 0)
+            return;
+
+        if(line[line_len - 1] == '\n') {
+            line[line_len - 1] = '\0';
+            line_len -= 1;
+        }
+
+        const std::string_view line_view{line, (size_t)line_len};
+        if(starts_with(line_view, "gsr error: ")) {
+            //show_notification(line + 11, notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), recording_status_to_notification_type(recording_status), nullptr, NotificationLevel::ERROR);
+            if(replay_recording && ends_with(line_view, "recording")) {
+                std::string dummy;
+                on_stop_recording(1, dummy);
+            } else if(recording_status == RecordingStatus::REPLAY && ends_with(line_view, "replay")) {
+                show_notification(TR("Failed to save replay, make sure the replay save directory is mounted and writable"), notification_error_timeout_seconds, mgl::Color(255, 0, 0), mgl::Color(255, 0, 0), NotificationType::REPLAY, nullptr, NotificationLevel::ERROR);
+                replay_save_show_notification = false;
+            }
+            return;
+        }
+
+        const std::string video_filepath = filepath_get_filename(line);
+        if(starts_with(video_filepath, "Video_")) {
+            record_filepath = line;
+            on_stop_recording(0, record_filepath);
+            return;
+        }
+
+        switch(recording_status) {
+            case RecordingStatus::NONE:
+                break;
+            case RecordingStatus::REPLAY:
+                on_replay_saved(line);
+                break;
+            case RecordingStatus::RECORD:
+                break;
+            case RecordingStatus::STREAM:
+                break;
         }
     }
 
@@ -2687,6 +2702,7 @@ namespace gsr {
             return;
         }
 
+        process_remaining_replay_recording_output();
         close_gpu_screen_recorder_output();
 
         int exit_code = -1;
@@ -2852,7 +2868,7 @@ namespace gsr {
     }
 
     void Overlay::on_stop_recording(int exit_code, std::string &video_filepath) {
-        if(recording_status != RecordingStatus::RECORD && recording_status != RecordingStatus::REPLAY)
+        if(recording_status == RecordingStatus::NONE)
             return;
 
         if(exit_code == 0) {
