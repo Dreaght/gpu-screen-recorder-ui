@@ -440,3 +440,7 @@ Stream key:=Clé de diffusion :
 Bearer token (optional):=Jeton Bearer (optionnel) :
 Streaming info=Infos diffusion
 Streaming indicator=Indicateur de diffusion
+
+# System tray
+Show the UI=Afficher l’UI
+Quit=Quitter

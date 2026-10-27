@@ -67,6 +67,10 @@ namespace gsr {
         return false;
     }
 
+    const std::string& Translation::get_current_language() const {
+        return current_language;
+    }
+
     bool Translation::load_language(std::string_view lang) {
         translations.clear();
 

@@ -446,3 +446,7 @@ Stream key:=
 Bearer token (optional):=
 Streaming info=
 Streaming indicator=
+
+# System tray
+Show the UI=
+Quit=

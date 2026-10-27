@@ -64,6 +64,10 @@ src = [
     'src/ClipboardFile.cpp',
     'src/LedIndicator.cpp',
     'src/Rpc.cpp',
+    'src/Tray/Tray.cpp',
+    'src/Tray/TraySni.cpp',
+    'src/Tray/TrayXEmbed.cpp',
+    'src/Tray/TrayPopupMenu.cpp',
     'src/Translation.cpp',
     'src/main.cpp',
 ]
@@ -98,9 +102,12 @@ executable(
         dependency('xi'),
         dependency('xcursor'),
         dependency('xrandr'),
+        dependency('xrender'),
         dependency('libpulse-simple'),
         dependency('libdrm'),
         dependency('wayland-client'),
+        dependency('dbus-1'),
+        dependency('pangoft2'),
     ],
     cpp_args : '-DGSR_UI_RESOURCES_PATH="' + gsr_ui_resources_path + '"',
 )

@@ -442,3 +442,7 @@ Stream key:=ストリームキー:
 Bearer token (optional):=ベアラートークン (任意):
 Streaming info=配信情報
 Streaming indicator=配信インジケータ
+
+# System tray
+Show the UI=UI を表示
+Quit=終了

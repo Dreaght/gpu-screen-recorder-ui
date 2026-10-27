@@ -27,8 +27,6 @@ Add profiles and hotkey to switch between profiles (show notification when switc
 
 Fix first frame being black when running without a compositor.
 
-Add support for systray.
-
 Move event callbacks to a global list instead of std::function object in each widget. This reduces the size of widgets,
     since most widgets wont have the event callback set.
     This event callback would pass the widget as an argument.
@@ -106,8 +104,6 @@ Do xi grab for keys as well. Otherwise the ui cant be used for keyboard input if
 Make inactive buttons gray (in dropdown boxes and in the front page with save, etc when replay is not running).
 
 Add option to do screen-direct recording. But make it clear that it should not be used, except for gsync on x11 nvidia.
-
-Add systray for recording status.
 
 Verify if cursor tracker monitor name is always correct. It uses the wayland monitor name for recording, but gpu screen recorder uses a custom name created from the drm connector name.
 

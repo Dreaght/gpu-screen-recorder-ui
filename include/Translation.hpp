@@ -9,6 +9,7 @@ namespace gsr {
         static Translation& instance();
         void init(const char* translations_directory, const char* initial_language = nullptr);
         bool load_language(std::string_view lang);
+        const std::string& get_current_language() const;
         bool is_language_supported(std::string_view lang);
         bool plural_numbers_are_complex();
         const char* translate(const char* key);

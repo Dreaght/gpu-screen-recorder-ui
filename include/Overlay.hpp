@@ -108,8 +108,10 @@ namespace gsr {
         void take_screenshot_window();
         void show_notification(const char *str, double timeout_seconds, mgl::Color icon_color, mgl::Color bg_color, NotificationType notification_type, const char *capture_target = nullptr, NotificationLevel notification_level = NotificationLevel::INFO);
         bool is_open() const;
+        RecordingStatus get_recording_status() const;
+        bool is_recording_paused() const;
         bool should_exit(std::string &reason) const;
-        void exit();
+        void exit(std::string_view reason);
         void go_back_to_old_ui();
         void cancel_region_selection();
 

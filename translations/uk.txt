@@ -431,3 +431,7 @@ Stream key:=Ключ трансляції:
 Bearer token (optional):=Bearer-токен (необов'язково):
 Streaming info=Інформація про трансляцію
 Streaming indicator=Індикатор трансляції
+
+# System tray
+Show the UI=Показати інтерфейс
+Quit=Вийти

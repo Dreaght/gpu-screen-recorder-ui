@@ -426,3 +426,7 @@ Stream key:=Yayın anahtarı:
 Bearer token (optional):=Bearer token (isteğe bağlı):
 Streaming info=Yayın bilgisi
 Streaming indicator=Yayın göstergesi
+
+# System tray
+Show the UI=Arayüzü göster
+Quit=Çıkış

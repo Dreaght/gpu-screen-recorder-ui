@@ -430,3 +430,7 @@ Stream key:=Közvetítési kulcs:
 Bearer token (optional):=Bearer token (opcionális):
 Streaming info=Közvetítési információk
 Streaming indicator=Közvetítés-jelző
+
+# System tray
+Show the UI=Felület megjelenítése
+Quit=Kilépés

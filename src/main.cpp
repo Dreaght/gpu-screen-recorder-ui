@@ -5,6 +5,7 @@
 #include "../include/Process.hpp"
 #include "../include/Rpc.hpp"
 #include "../include/Theme.hpp"
+#include "../include/Tray/Tray.hpp"
 #include "../include/Translation.hpp"
 #include "../include/WaylandHostBridge.hpp"
 
@@ -21,7 +22,6 @@
 #include <mglpp/system/Clock.hpp>
 
 // TODO: Make keyboard/controller controllable for steam deck (and other controllers).
-// TODO: Add systray by using org.kde.StatusNotifierWatcher/etc dbus directly.
 // TODO: Make sure the overlay always stays on top. Test with starting the overlay and then opening youtube in fullscreen.
 //       This is done in Overlay::force_window_on_top, but it's not called right now. It cant be used because the overlay will be on top of
 //       notifications.
@@ -83,6 +83,15 @@ static void rpc_add_commands(gsr::Rpc *rpc, gsr::Overlay *overlay) {
     }
 }
 
+
+static gsr::TrayIcon get_tray_icon(const gsr::Overlay *overlay) {
+    if(overlay->is_recording_paused())
+        return gsr::TrayIcon::PAUSED;
+    else if(overlay->get_recording_status() != gsr::RecordingStatus::NONE)
+        return gsr::TrayIcon::RECORDING;
+    else
+        return gsr::TrayIcon::IDLE;
+}
 
 static void set_display_server_environment_variables() {
     // Some users dont have properly setup environments (no display manager that does systemctl --user import-environment DISPLAY WAYLAND_DISPLAY)
@@ -200,6 +209,10 @@ int main(int argc, char **argv) {
     if(!rpc->create("gsr-ui"))
         fprintf(stderr, "Error: Failed to create rpc\n");
 
+    // Registered as early as possible, KDE Plasma shows its own tray item for flatpak applications without windows or a tray item
+    auto tray = std::make_unique<gsr::Tray>();
+    tray->init(resources_path);
+
     if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
         const char *args[] = {
             "gsr-notify", "--text", TR("GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI."),
@@ -294,6 +307,9 @@ int main(int argc, char **argv) {
 
     rpc_add_commands(rpc.get(), overlay.get());
 
+    tray->on_show_ui = [&overlay]() { overlay->show(); };
+    tray->on_quit = [&overlay]() { overlay->exit("exit"); };
+
     // Evacuating from lennart's botnet to XDG (a.k.a. 'the spec that nobody actually follows').
     // TODO: Remove all this garbage related to systemd in 1-2 months and remove the systemd service file as well.
     // This garbage shit is needed because the systemd user daemon isn't always available at xdg autostart o algo
@@ -330,6 +346,8 @@ int main(int argc, char **argv) {
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
         rpc->poll();
+        tray->poll();
+        tray->set_icon(get_tray_icon(overlay.get()));
         overlay->handle_events();
         if(!overlay->draw()) {
             usleep(100 * 1000); // 100ms
@@ -341,6 +359,7 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Info: shutting down!\n");
     rpc.reset();
+    tray.reset();
     overlay.reset();
     mgl_deinit();
     /* Disconnect the borrowed Wayland display only after mgl_deinit and the

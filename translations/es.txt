@@ -430,3 +430,7 @@ Stream key:=Clave de transmisión
 Bearer token (optional):=Token bearer (opcional):
 Streaming info=Información de transmisión
 Streaming indicator=Indicador de transmisión
+
+# System tray
+Show the UI=Mostrar la interfaz
+Quit=Salir

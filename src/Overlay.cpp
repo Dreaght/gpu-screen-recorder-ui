@@ -1746,8 +1746,7 @@ namespace gsr {
         };
 
         settings_page->on_click_exit_program_button = [this](std::string_view reason) {
-            do_exit = true;
-            exit_reason = reason;
+            exit(reason);
         };
 
         settings_page->on_keyboard_hotkey_changed = [this](std::string_view hotkey_option) {
@@ -2201,6 +2200,14 @@ namespace gsr {
         return visible;
     }
 
+    RecordingStatus Overlay::get_recording_status() const {
+        return recording_status;
+    }
+
+    bool Overlay::is_recording_paused() const {
+        return recording_status == RecordingStatus::RECORD && paused;
+    }
+
     bool Overlay::should_exit(std::string &reason) const {
         reason.clear();
         if(do_exit)
@@ -2208,17 +2215,14 @@ namespace gsr {
         return do_exit;
     }
 
-    void Overlay::exit() {
+    void Overlay::exit(std::string_view reason) {
         do_exit = true;
+        exit_reason = reason;
     }
 
     void Overlay::go_back_to_old_ui() {
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
-        if(inside_flatpak)
-            exit_reason = "back-to-old-ui";
-        else
-            exit_reason = "exit";
-        exit();
+        exit(inside_flatpak ? "back-to-old-ui" : "exit");
     }
 
     void Overlay::cancel_region_selection() {
