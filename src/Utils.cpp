@@ -41,8 +41,8 @@ namespace gsr {
 
             const double time_elapsed_sleep_start = mgl_clock_get_elapsed_time_seconds(&clock);
             pid_t waitpid_result = 0;
+            int status = 0;
             do {
-                int status = 0;
                 waitpid_result = waitpid(process_id, &status, WNOHANG);
                 if(waitpid_result > 0)
                     break;
@@ -50,17 +50,9 @@ namespace gsr {
                 usleep(30 * 1000); // 30ms
             } while(mgl_clock_get_elapsed_time_seconds(&clock) - time_elapsed_sleep_start < sleep_time_sec);
 
-            int status = 0;
             if(waitpid_result > 0) {
-                int exit_status = -0;
-                if(WIFEXITED(status))
-                    exit_status = -1;
-
-                if(exit_status == 0)
-                    exit_status = WEXITSTATUS(status);
-
                 close(read_fd);
-                return exit_status;
+                return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
             } else {
                 kill(process_id, SIGKILL);
                 waitpid(process_id, &status, 0);
@@ -382,6 +374,18 @@ namespace gsr {
         const char *args[] = { "systemctl", "--user", "disable", service_name, nullptr };
         std::string output;
         return exec_program_on_host_get_stdout(args, output, false) == 0;
+    }
+
+    void remove_flatpak_systemd_service_file(const char *service_name) {
+        const std::string shell_cmd =
+            "p=\"${XDG_DATA_HOME:-$HOME/.local/share}/systemd/user/" + std::string(service_name) + "\" && "
+            "grep -q 'com.dec05eba.gpu_screen_recorder' \"$p\" && "
+            "rm -f \"$p\" && "
+            "systemctl --user daemon-reload";
+
+        const char *args[] = { "/bin/sh", "-c", shell_cmd.c_str(), nullptr };
+        std::string dummy;
+        exec_program_on_host_get_stdout(args, dummy, false);
     }
 
     bool is_wayland_layer_shell_overlay_session() {

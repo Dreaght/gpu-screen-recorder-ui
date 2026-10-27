@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 
     if(rpc_open_result == gsr::RpcOpenResult::OK) {
         if(launch_action == LaunchAction::LAUNCH_DAEMON)
-            return 1;
+            return 0;
 
         if(rpc->write("show_ui\n", 8)) {
             fprintf(stderr, "Error: another instance of gsr-ui is already running, opening that one instead\n");
@@ -310,6 +310,7 @@ int main(int argc, char **argv) {
                 gsr::NotificationType::NOTICE, nullptr, gsr::NotificationLevel::ERROR);
         } else {
             gsr::disable_systemd_service(deprecated_systemd_service_name);
+            gsr::remove_flatpak_systemd_service_file(deprecated_systemd_service_name);
             overlay->show_notification(
                 TR("GPU Screen Recorder UI startup has been switched from systemd service to XDG autostart."),
                 8.0, mgl::Color(255, 255, 255), gsr::get_color_theme().tint_color,

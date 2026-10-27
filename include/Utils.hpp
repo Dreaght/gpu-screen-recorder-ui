@@ -49,6 +49,7 @@ namespace gsr {
     bool wait_until_systemd_user_service_available();
     bool is_systemd_service_enabled(const char *service_name);
     bool disable_systemd_service(const char *service_name);
+    void remove_flatpak_systemd_service_file(const char *service_name);
 
     // True when the current session is a Wayland session running on a compositor
     // we use the wlr-layer-shell native overlay path on (Hyprland, niri, sway, river).
