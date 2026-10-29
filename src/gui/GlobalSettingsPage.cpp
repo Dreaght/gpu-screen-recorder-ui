@@ -571,6 +571,7 @@ namespace gsr {
         combo_box->add_item("Español", "es");
         combo_box->add_item("Français", "fr");
         combo_box->add_item("Magyar", "hu");
+        combo_box->add_item("Italiano", "it");
         combo_box->add_item("日本語", "ja");
         combo_box->add_item("Português", "pt");
         combo_box->add_item("Русский", "ru");
