@@ -128,7 +128,7 @@ namespace gsr {
             return {0.0f, 0.0f};
 
         const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
-        const mgl::vec2f content_page_size = (window_size * mgl::vec2f(0.3333f, 0.7f)).floor();
+        const mgl::vec2f content_page_size = (window_size * mgl::vec2f(0.355f, 0.7f)).floor();
         return content_page_size;
     }
 
