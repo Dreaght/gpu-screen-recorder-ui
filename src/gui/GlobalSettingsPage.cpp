@@ -16,6 +16,7 @@
 #include "../../include/gui/CheckBox.hpp"
 #include "../../include/gui/LineSeparator.hpp"
 #include "../../include/gui/CustomRendererWidget.hpp"
+#include "../../include/gui/Utils.hpp"
 
 #include <assert.h>
 #include <stdlib.h> // getenv
@@ -24,7 +25,6 @@ extern "C" {
 #include <mgl/mgl.h>
 }
 #include <mglpp/window/Window.hpp>
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Text.hpp>
 
 #ifndef GSR_UI_VERSION
@@ -113,32 +113,26 @@ namespace gsr {
             const float padding_vertical = int(get_theme().window_height * 0.01f);
 
             const mgl::vec2f bg_size = mgl::vec2f(text_max_width + padding_horizontal*2.0f, get_theme().window_height * 0.13f).floor();
-            mgl::Rectangle bg_rect(mgl::vec2f(get_theme().window_width*0.5f - bg_size.x*0.5f, get_theme().window_height*0.5f - bg_size.y*0.5f).floor(), bg_size);
-            bg_rect.set_color(get_color_theme().page_bg_color);
-            window.draw(bg_rect);
+            const mgl::vec2f bg_pos = mgl::vec2f(get_theme().window_width*0.5f - bg_size.x*0.5f, get_theme().window_height*0.5f - bg_size.y*0.5f).floor();
+            const float tint_height = int(0.004f * get_theme().window_height);
+            draw_rectangle_with_top_accent(window, bg_pos - mgl::vec2f(0.0f, tint_height), bg_size + mgl::vec2f(0.0f, tint_height), get_color_theme().page_bg_color, get_color_theme().tint_color, tint_height);
 
-            const mgl::vec2f tint_size = mgl::vec2f(bg_size.x, 0.004f * get_theme().window_height).floor();
-            mgl::Rectangle tint_rect(bg_rect.get_position() - mgl::vec2f(0.0f, tint_size.y), tint_size);
-            tint_rect.set_color(get_color_theme().tint_color);
-            window.draw(tint_rect);
-
-            title_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - title_text.get_bounds().size.x*0.5f, padding_vertical)).floor());
-            description_text.set_position(mgl::vec2f(bg_rect.get_position() + mgl::vec2f(bg_rect.get_size().x*0.5f - description_text.get_bounds().size.x*0.5f, bg_rect.get_size().y - description_text.get_bounds().size.y - padding_vertical)).floor());
+            title_text.set_position(mgl::vec2f(bg_pos + mgl::vec2f(bg_size.x*0.5f - title_text.get_bounds().size.x*0.5f, padding_vertical)).floor());
+            description_text.set_position(mgl::vec2f(bg_pos + mgl::vec2f(bg_size.x*0.5f - description_text.get_bounds().size.x*0.5f, bg_size.y - description_text.get_bounds().size.y - padding_vertical)).floor());
 
             window.draw(title_text);
 
             const float title_text_bottom = title_text.get_position().y + title_text.get_bounds().size.y;
             hotkey_text.set_position(
                 mgl::vec2f(
-                    bg_rect.get_position().x + bg_rect.get_size().x*0.5f - hotkey_text.get_bounds().size.x*0.5f,
+                    bg_pos.x + bg_size.x*0.5f - hotkey_text.get_bounds().size.x*0.5f,
                     title_text_bottom + (description_text.get_position().y - title_text_bottom) * 0.5f - hotkey_text.get_bounds().size.y*0.5f
                 ).floor());
             window.draw(hotkey_text);
 
             const float caret_padding_x = int(0.001f * get_theme().window_height);
             const mgl::vec2f caret_size = mgl::vec2f(std::max(2.0f, 0.002f * get_theme().window_height), hotkey_text.get_bounds().size.y).floor();
-            mgl::Rectangle caret_rect(hotkey_text.get_position() + mgl::vec2f(hotkey_text.get_bounds().size.x + caret_padding_x, hotkey_text.get_bounds().size.y*0.5f - caret_size.y*0.5f).floor(), caret_size);
-            window.draw(caret_rect);
+            draw_rectangle(window, hotkey_text.get_position() + mgl::vec2f(hotkey_text.get_bounds().size.x + caret_padding_x, hotkey_text.get_bounds().size.y*0.5f - caret_size.y*0.5f), caret_size, mgl::Color(255, 255, 255));
 
             window.draw(description_text);
         };
@@ -165,6 +159,13 @@ namespace gsr {
             return true;
         };
         list->add_widget(std::move(tint_color_radio_button));
+
+        auto rounded_corners_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Rounded corners"));
+        rounded_corners_checkbox_ptr = rounded_corners_checkbox.get();
+        rounded_corners_checkbox->on_changed = [](bool checked) {
+            get_theme().rounded_corners.enabled = checked;
+        };
+        list->add_widget(std::move(rounded_corners_checkbox));
         return std::make_unique<Subsection>(TR("Appearance"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
     }
 
@@ -680,6 +681,7 @@ namespace gsr {
             tint_color_radio_button_ptr->set_selected_item(gpu_vendor_to_color_name(gsr_info->gpu_info.vendor));
         else
             tint_color_radio_button_ptr->set_selected_item(config.main_config.tint_color);
+        rounded_corners_checkbox_ptr->set_checked(config.main_config.rounded_corners);
 
         startup_radio_button_ptr->set_selected_item(is_xdg_autostart_enabled() ? "start_on_system_startup" : "dont_start_on_system_startup", false, false);
 
@@ -716,6 +718,7 @@ namespace gsr {
     void GlobalSettingsPage::save() {
         configure_hotkey_cancel();
         config.main_config.tint_color = tint_color_radio_button_ptr->get_selected_id();
+        config.main_config.rounded_corners = rounded_corners_checkbox_ptr->is_checked();
         config.main_config.hotkeys_enable_option = enable_keyboard_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.joystick_hotkeys_enable_option = enable_joystick_hotkeys_radio_button_ptr->get_selected_id();
         config.main_config.notification_speed = notification_speed_button_ptr->get_selected_id();

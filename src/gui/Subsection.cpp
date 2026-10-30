@@ -1,8 +1,8 @@
 #include "../../include/gui/Subsection.hpp"
+#include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 
 #include <mglpp/window/Window.hpp>
-#include <mglpp/graphics/Rectangle.hpp>
 
 #include <cstdlib> // std::abs
 
@@ -38,9 +38,7 @@ namespace gsr {
             return;
 
         mgl::vec2f draw_pos = position + offset;
-        mgl::Rectangle background(draw_pos.floor(), get_size().floor());
-        background.set_color(bg_color);
-        window.draw(background);
+        draw_rectangle(window, draw_pos, get_size(), bg_color);
 
         draw_pos += mgl::vec2f(margin_left_scale, margin_top_scale) * mgl::vec2f(get_theme().window_height, get_theme().window_height);
         

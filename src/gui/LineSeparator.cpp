@@ -1,8 +1,8 @@
 #include "../../include/gui/LineSeparator.hpp"
+#include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 
 #include <mglpp/window/Window.hpp>
-#include <mglpp/graphics/Rectangle.hpp>
 
 namespace gsr {
     static const float height_scale = 0.001f;
@@ -30,9 +30,7 @@ namespace gsr {
 
         const mgl::vec2f draw_pos = (position + offset).floor();
         const mgl::vec2f size = mgl::vec2f(width, std::max(1.0f, height_scale * get_theme().window_height)).floor();
-        mgl::Rectangle rectangle(draw_pos, size);
-        rectangle.set_color(color_add_ignore_alpha(mgl::Color(25, 30, 34), mgl::Color(30, 30, 30)));
-        window.draw(rectangle);
+        draw_rectangle(window, draw_pos, size, color_add_ignore_alpha(mgl::Color(25, 30, 34), mgl::Color(30, 30, 30)));
     }
 
     mgl::vec2f LineSeparator::get_size() {

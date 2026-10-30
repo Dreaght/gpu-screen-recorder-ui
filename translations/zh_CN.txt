@@ -140,6 +140,7 @@ portal=门户
 
 # Global Settings Page UI elements
 Accent color=强调色
+Rounded corners=圆角
 Red=红色
 Green=绿色
 Blue=蓝色

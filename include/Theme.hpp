@@ -3,12 +3,20 @@
 #include <mglpp/system/MemoryMappedFile.hpp>
 #include <mglpp/graphics/Color.hpp>
 #include <mglpp/graphics/Texture.hpp>
+#include <mglpp/graphics/Shader.hpp>
 
+#include <memory>
 #include <string>
 
 namespace gsr {
     struct Config;
     struct GsrInfo;
+
+    struct RoundedCorners {
+        bool enabled = true;
+        float radius_scale = 0.014f;
+        std::unique_ptr<mgl::Shader> squircle_shader;
+    };
 
     struct Theme {
         Theme() = default;
@@ -57,13 +65,15 @@ namespace gsr {
         mgl::Texture ps4_cross_texture;
         mgl::Texture ps4_triangle_texture;
 
+        RoundedCorners rounded_corners;
+
         double double_click_timeout_seconds = 0.4;
 
         // Reloads fonts
         bool set_window_size(mgl::vec2i window_size);
     };
 
-    bool init_theme(const std::string &resources_path);
+    bool init_theme(const Config &config, const std::string &resources_path);
     void deinit_theme();
     Theme& get_theme();
 

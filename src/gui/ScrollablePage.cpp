@@ -180,14 +180,9 @@ namespace gsr {
             else if(scroll_amount > 1.0)
                 scroll_amount = 1.0;
 
-            mgl::Rectangle scrollbar(
-                (scrollbar_pos + mgl::vec2f(0.0f, scroll_amount * scrollbar_empty_space)).floor(),
-                mgl::vec2f(scrollbar_width, scrollbar_height_absolute).floor());
-            scrollbar.set_color(mgl::Color(200, 200, 200));
-            window.draw(scrollbar);
-
-            scrollbar_rect.position = scrollbar.get_position();
-            scrollbar_rect.size = scrollbar.get_size();
+            scrollbar_rect.position = (scrollbar_pos + mgl::vec2f(0.0f, scroll_amount * scrollbar_empty_space)).floor();
+            scrollbar_rect.size = mgl::vec2f(scrollbar_width, scrollbar_height_absolute).floor();
+            draw_rectangle(window, scrollbar_rect.position, scrollbar_rect.size, mgl::Color(200, 200, 200));
         }
 
         limit_scroll_cursor(window, child_height, scrollbar_empty_space);

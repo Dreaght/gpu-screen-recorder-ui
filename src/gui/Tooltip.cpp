@@ -1,7 +1,7 @@
 #include "../../include/gui/Tooltip.hpp"
+#include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/window/Window.hpp>
 
@@ -29,20 +29,15 @@ namespace gsr {
         const int accent_height = get_theme().window_height * accent_scale;
         const int icon_height = label.get_font_size()*2.0f;
 
-        mgl::Rectangle background(get_size());
-        background.set_position(draw_pos - mgl::vec2f(0.0f, background.get_size().y));
-        background.set_color(mgl::Color(0, 0, 0));
-        window.draw(background);
+        const mgl::vec2f background_size = get_size();
+        const mgl::vec2f background_pos = draw_pos - mgl::vec2f(0.0f, background_size.y);
+        draw_rectangle_with_top_accent(window, background_pos, background_size, mgl::Color(0, 0, 0), get_color_theme().tint_color, accent_height);
 
-        mgl::Rectangle accent(background.get_position(), mgl::vec2f(background.get_size().x, accent_height).floor());
-        accent.set_color(get_color_theme().tint_color);
-        window.draw(accent);
-
-        mgl::Sprite icon_sprite(&get_theme().info_texture, background.get_position() + mgl::vec2f(padding_left, accent_height + padding_top).floor());
+        mgl::Sprite icon_sprite(&get_theme().info_texture, background_pos + mgl::vec2f(padding_left, accent_height + padding_top).floor());
         icon_sprite.set_height(icon_height);
         window.draw(icon_sprite);
 
-        label.set_position(background.get_position() + mgl::vec2f(padding_left, accent_height + padding_top + icon_sprite.get_size().y).floor());
+        label.set_position(background_pos + mgl::vec2f(padding_left, accent_height + padding_top + icon_sprite.get_size().y).floor());
         window.draw(label);
     }
 

@@ -53,10 +53,7 @@ namespace gsr {
 
         const mgl::vec2f size = get_size();
 
-        background.set_size(size);
-        background.set_position(draw_pos.floor());
-        background.set_color(text_edit.is_focused() ? mgl::Color(0, 0, 0, 255) : mgl::Color(0, 0, 0, 120));
-        window.draw(background);
+        draw_rectangle(window, draw_pos, size, text_edit.is_focused() ? mgl::Color(0, 0, 0, 255) : mgl::Color(0, 0, 0, 120));
 
         if(text_edit.is_focused()) {
             const int border_size = std::max(1.0f, border_scale * get_theme().window_height);

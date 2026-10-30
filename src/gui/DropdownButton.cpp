@@ -1,7 +1,6 @@
 #include "../../include/gui/DropdownButton.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Texture.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -78,40 +77,12 @@ namespace gsr {
         const int border_size = border_scale * get_theme().window_height;
 
         if(show_dropdown) {
-            // Background
-            {
-                mgl::Rectangle rect(size);
-                rect.set_position(draw_pos);
-                rect.set_color(mgl::Color(0, 0, 0, 255));
-                window.draw(rect);
-            }
-
-            const mgl::Color border_color = get_color_theme().tint_color;
-
-            // Green line at top
-            {
-                mgl::Rectangle rect({ size.x, (float)border_size });
-                rect.set_position(draw_pos);
-                rect.set_color(border_color);
-                window.draw(rect);
-            }
+            draw_rectangle_with_top_accent(window, draw_pos, size + mgl::vec2f(0.0f, max_size.y), mgl::Color(0, 0, 0, 255), get_color_theme().tint_color, border_size);
         } else if(mouse_inside) {
-            // Background
-            {
-                mgl::Rectangle rect(size);
-                rect.set_position(draw_pos);
-                rect.set_color(mgl::Color(0, 0, 0, 255));
-                window.draw(rect);
-            }
-
-            const mgl::Color border_color = get_color_theme().tint_color;
-            draw_rectangle_outline(window, draw_pos, size, border_color, border_size);
+            draw_rectangle(window, draw_pos, size, mgl::Color(0, 0, 0, 255));
+            draw_rectangle_outline(window, draw_pos, size, get_color_theme().tint_color, border_size);
         } else {
-            // Background
-            mgl::Rectangle rect(size);
-            rect.set_position(draw_pos);
-            rect.set_color(mgl::Color(0, 0, 0, 180));
-            window.draw(rect);
+            draw_rectangle(window, draw_pos, size, mgl::Color(0, 0, 0, 180));
         }
 
         if(activated) {
@@ -141,12 +112,7 @@ namespace gsr {
         if(show_dropdown) {
             const mgl::vec2i mouse_pos = window.get_mouse_position();
 
-            mgl::Rectangle dropdown_bg(max_size);
-            dropdown_bg.set_position(draw_pos + mgl::vec2f(0.0f, size.y));
-            dropdown_bg.set_color(mgl::Color(0, 0, 0));
-            window.draw(dropdown_bg);
-
-            mgl::vec2f item_position = dropdown_bg.get_position();
+            mgl::vec2f item_position = draw_pos + mgl::vec2f(0.0f, size.y);
             for(size_t i = 0; i < items.size(); ++i) {
                 auto &item = items[i];
                 const auto text_bounds = item.text.get_bounds();
@@ -155,9 +121,7 @@ namespace gsr {
 
                 if(i > 0) {
                     const float separator_height = std::max(1.0f, item_size.y * 0.05f);
-                    mgl::Rectangle separator((item_position - mgl::vec2f(0.0f, separator_height * 0.5f)).floor(), mgl::vec2f(item_size.x, separator_height).floor());
-                    separator.set_color(get_color_theme().page_bg_color);
-                    window.draw(separator);
+                    draw_rectangle(window, item_position - mgl::vec2f(0.0f, separator_height * 0.5f), mgl::vec2f(item_size.x, separator_height), get_color_theme().page_bg_color);
                 }
 
                 if(mouse_inside_item == -1 && item.enabled) {

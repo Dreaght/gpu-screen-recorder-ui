@@ -152,6 +152,7 @@ portal=ポータル
 
 # Global Settings Page UI elements
 Accent color=アクセントカラー
+Rounded corners=角を丸くする
 Red=赤
 Green=緑
 Blue=青

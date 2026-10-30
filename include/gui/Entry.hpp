@@ -6,7 +6,6 @@
 #include <mglpp/graphics/Color.hpp>
 #include <mglpp/graphics/TextEdit.hpp>
 #include <mglpp/graphics/Text.hpp>
-#include <mglpp/graphics/Rectangle.hpp>
 
 namespace gsr {
     class Entry;
@@ -32,7 +31,6 @@ namespace gsr {
 
         std::function<void(std::string_view text)> on_changed;
     private:
-        mgl::Rectangle background;
         mgl::TextEdit text_edit;
         float max_width = 0.0f;
     };

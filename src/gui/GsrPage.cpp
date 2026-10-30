@@ -1,7 +1,7 @@
 #include "../../include/gui/GsrPage.hpp"
+#include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
 
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/window/Window.hpp>
 
@@ -55,15 +55,7 @@ namespace gsr {
         const mgl::vec2f content_page_position = get_content_position();
         const mgl::vec2f content_page_size = get_size();
 
-        mgl::Rectangle background(content_page_size);
-        background.set_position(content_page_position);
-        background.set_color(get_color_theme().page_bg_color);
-        window.draw(background);
-
-        mgl::Rectangle border(mgl::vec2f(content_page_size.x, get_border_size()).floor());
-        border.set_position(content_page_position);
-        border.set_color(get_color_theme().tint_color);
-        window.draw(border);
+        draw_rectangle_with_top_accent(window, content_page_position, content_page_size, get_color_theme().page_bg_color, get_color_theme().tint_color, get_border_size());
 
         draw_page_label(window, content_page_position);
         draw_buttons(window, content_page_position, content_page_size);
@@ -76,22 +68,21 @@ namespace gsr {
     void GsrPage::draw_page_label(mgl::Window &window, mgl::vec2f body_pos) {
         const mgl::vec2f window_size = mgl::vec2f(get_theme().window_width, get_theme().window_height).floor();
 
-        mgl::Rectangle background(mgl::vec2f(window_size.x / 10, window_size.x / 10).floor());
-        background.set_position(body_pos.floor() - mgl::vec2f(background.get_size().x + get_horizontal_spacing(), 0.0f).floor());
-        background.set_color(mgl::Color(0, 0, 0, 255));
-        window.draw(background);
+        const mgl::vec2f background_size = mgl::vec2f(window_size.x / 10, window_size.x / 10).floor();
+        const mgl::vec2f background_pos = body_pos.floor() - mgl::vec2f(background_size.x + get_horizontal_spacing(), 0.0f).floor();
+        draw_rectangle(window, background_pos, background_size, mgl::Color(0, 0, 0, 255));
 
-        const int text_margin = background.get_size().y * 0.085;
+        const int text_margin = background_size.y * 0.085;
 
-        top_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - top_text.get_bounds().size.x * 0.5f, text_margin)).floor());
+        top_text.set_position((background_pos + mgl::vec2f(background_size.x * 0.5f - top_text.get_bounds().size.x * 0.5f, text_margin)).floor());
         window.draw(top_text);
 
         mgl::Sprite icon(&get_theme().settings_texture);
-        icon.set_height((int)(background.get_size().y * 0.5f));
-        icon.set_position((background.get_position() + background.get_size() * 0.5f - icon.get_size() * 0.5f).floor());
+        icon.set_height((int)(background_size.y * 0.5f));
+        icon.set_position((background_pos + background_size * 0.5f - icon.get_size() * 0.5f).floor());
         window.draw(icon);
 
-        bottom_text.set_position((background.get_position() + mgl::vec2f(background.get_size().x * 0.5f - bottom_text.get_bounds().size.x * 0.5f, background.get_size().y - bottom_text.get_bounds().size.y - text_margin)).floor());
+        bottom_text.set_position((background_pos + mgl::vec2f(background_size.x * 0.5f - bottom_text.get_bounds().size.x * 0.5f, background_size.y - bottom_text.get_bounds().size.y - text_margin)).floor());
         window.draw(bottom_text);
     }
 

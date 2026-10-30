@@ -1,7 +1,6 @@
 #include "../../include/gui/RadioButton.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/FloatRect.hpp>
@@ -77,10 +76,7 @@ namespace gsr {
         for(size_t i = 0; i < items.size(); ++i) {
             auto &item = items[i];
             const mgl::vec2f item_size = item.text.get_bounds().size + mgl::vec2f(padding_left + padding_right, padding_top + padding_bottom);
-            mgl::Rectangle background(item_size.floor());
-            background.set_position(draw_pos.floor());
-            background.set_color(i == selected_item ? get_color_theme().tint_color : mgl::Color(0, 0, 0, 120));
-            window.draw(background);
+            draw_rectangle(window, draw_pos, item_size, i == selected_item ? get_color_theme().tint_color : mgl::Color(0, 0, 0, 120));
 
             const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f());
             if(can_select_item && mouse_inside) {

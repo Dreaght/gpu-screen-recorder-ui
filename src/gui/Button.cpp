@@ -1,7 +1,6 @@
 #include "../../include/gui/Button.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/FloatRect.hpp>
@@ -48,18 +47,16 @@ namespace gsr {
         const mgl::vec2f item_size = get_size().floor();
         const bool mouse_inside = mgl::FloatRect(draw_pos, item_size).contains(window.get_mouse_position().to_vec2f()) && !has_parent_with_selected_child_widget();
 
-        mgl::Rectangle background(item_size);
-        background.set_position(draw_pos.floor());
-        background.set_color(mouse_inside ? bg_hover_color : bg_color);
-        window.draw(background);
+        const mgl::vec2f background_pos = draw_pos.floor();
+        draw_rectangle(window, background_pos, item_size, mouse_inside ? bg_hover_color : bg_color);
 
         if(sprite.get_texture() && sprite.get_texture()->is_valid()) {
             scale_sprite_to_button_size();
             const int padding_left = padding_left_scale * get_theme().window_height;
             if(text.get_string().empty()) // Center
-                sprite.set_position((background.get_position() + background.get_size() * 0.5f - sprite.get_size() * 0.5f).floor());
+                sprite.set_position((background_pos + item_size * 0.5f - sprite.get_size() * 0.5f).floor());
             else // Left
-                sprite.set_position((draw_pos + mgl::vec2f(padding_left, background.get_size().y * 0.5f - sprite.get_size().y * 0.5f)).floor());
+                sprite.set_position((draw_pos + mgl::vec2f(padding_left, item_size.y * 0.5f - sprite.get_size().y * 0.5f)).floor());
             window.draw(sprite);
 
             const int padding_icon_right = padding_right_icon_scale * get_button_height();

@@ -1,7 +1,6 @@
 #include "../../include/gui/ComboBox.hpp"
 #include "../../include/gui/Utils.hpp"
 #include "../../include/Theme.hpp"
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
 #include <algorithm>
@@ -225,9 +224,7 @@ namespace gsr {
 
         const float region_top = std::min(draw_pos.y, list_window_top);
         const float region_bottom = std::max(draw_pos.y + item_size.y, list_window_top + list_height);
-        mgl::Rectangle background(mgl::vec2f(draw_pos.x, region_top).floor(), mgl::vec2f(max_size.x, region_bottom - region_top).floor());
-        background.set_color(mgl::Color(0, 0, 0));
-        window.draw(background);
+        draw_rectangle(window, mgl::vec2f(draw_pos.x, region_top), mgl::vec2f(max_size.x, region_bottom - region_top), mgl::Color(0, 0, 0));
 
         if(selected_item < items.size()) {
             draw_item_outline(window, draw_pos, item_size);
@@ -257,9 +254,7 @@ namespace gsr {
                 const mgl::vec2f hover_size(cur_item_size.x - scrollbar_width, cur_item_size.y);
                 cursor_inside = mgl::FloatRect(items_draw_pos, hover_size).contains(mouse_pos);
                 if(cursor_inside) {
-                    mgl::Rectangle item_background(items_draw_pos.floor(), hover_size.floor());
-                    item_background.set_color(get_color_theme().tint_color);
-                    window.draw(item_background);
+                    draw_rectangle(window, items_draw_pos, hover_size, get_color_theme().tint_color);
                 }
             }
 
@@ -276,14 +271,9 @@ namespace gsr {
             float scroll_amount = max_scroll > 0.001f ? (float)(-scroll_y / max_scroll) : 0.0f;
             scroll_amount = std::min(1.0f, std::max(0.0f, scroll_amount));
 
-            mgl::Rectangle scrollbar(
-                mgl::vec2f(draw_pos.x + max_size.x - scrollbar_width, list_window_top + scroll_amount * scrollbar_empty_space).floor(),
-                mgl::vec2f(scrollbar_width, scrollbar_height_absolute).floor());
-            scrollbar.set_color(mgl::Color(200, 200, 200));
-            window.draw(scrollbar);
-
-            scrollbar_rect.position = scrollbar.get_position();
-            scrollbar_rect.size = scrollbar.get_size();
+            scrollbar_rect.position = mgl::vec2f(draw_pos.x + max_size.x - scrollbar_width, list_window_top + scroll_amount * scrollbar_empty_space).floor();
+            scrollbar_rect.size = mgl::vec2f(scrollbar_width, scrollbar_height_absolute).floor();
+            draw_rectangle(window, scrollbar_rect.position, scrollbar_rect.size, mgl::Color(200, 200, 200));
         }
     }
 
@@ -293,9 +283,7 @@ namespace gsr {
         const int padding_right = padding_right_scale * get_theme().window_height;
 
         mgl::vec2f item_size = get_size();
-        mgl::Rectangle background(draw_pos.floor(), item_size.floor());
-        background.set_color(mgl::Color(0, 0, 0, 120));
-        window.draw(background);
+        draw_rectangle(window, draw_pos, item_size, mgl::Color(0, 0, 0, 120));
 
         dropdown_arrow.set_height(get_dropdown_arrow_height());
         dropdown_arrow.set_position(draw_pos + mgl::vec2f(item_size.x - dropdown_arrow.get_size().x - padding_right, item_size.y * 0.5f - dropdown_arrow.get_size().y * 0.5f).floor());

@@ -3,7 +3,6 @@
 #include "../../include/Utils.hpp"
 #include "../../include/Theme.hpp"
 
-#include <mglpp/graphics/Rectangle.hpp>
 #include <mglpp/graphics/Sprite.hpp>
 #include <mglpp/window/Window.hpp>
 #include <mglpp/window/Event.hpp>
@@ -91,10 +90,7 @@ namespace gsr {
             const mgl::vec2f item_pos = folder_pos - mgl::vec2f(content_padding_left, content_padding_top);
             const mgl::vec2f item_size = folder_sprite.get_size() + mgl::vec2f(content_padding_left + content_padding_right, content_padding_top + content_padding_bottom);
             if(i == selected_item) {
-                mgl::Rectangle selected_item_background(item_size.floor());
-                selected_item_background.set_position(item_pos.floor());
-                selected_item_background.set_color(get_color_theme().tint_color);
-                window.draw(selected_item_background);
+                draw_rectangle(window, item_pos, item_size, get_color_theme().tint_color);
             }
 
             if(!has_parent_with_selected_child_widget() && mouse_over_item == -1 &&
@@ -238,10 +234,7 @@ namespace gsr {
         scrollable_page.set_size(body_size);
         file_chooser_body_ptr->set_size(scrollable_page.get_inner_size());
 
-        mgl::Rectangle content_background(scrollable_page.get_inner_size().floor());
-        content_background.set_position(draw_pos.floor());
-        content_background.set_color(mgl::Color(0, 0, 0, 120));
-        window.draw(content_background);
+        draw_rectangle(window, draw_pos, scrollable_page.get_inner_size(), mgl::Color(0, 0, 0, 120));
 
         draw_navigation(window, draw_pos_start);
 
@@ -261,10 +254,7 @@ namespace gsr {
         window.draw(up_arrow_sprite);
 
         current_directory_background_size.x = file_chooser_body_ptr->get_size().x - up_arrow_sprite.get_size().x - up_button_spacing_scale * get_theme().window_height;
-        mgl::Rectangle current_directory_background(current_directory_background_size.floor());
-        current_directory_background.set_color(mgl::Color(0, 0, 0, 120));
-        current_directory_background.set_position(draw_pos.floor());
-        window.draw(current_directory_background);
+        draw_rectangle(window, draw_pos, current_directory_background_size, mgl::Color(0, 0, 0, 120));
 
         current_directory_text.set_color(get_color_theme().text_color);
         current_directory_text.set_position((draw_pos + mgl::vec2f(current_directory_padding.x, current_directory_background_size.y * 0.5f - current_directory_text.get_bounds().size.y * 0.5f)).floor());

@@ -1330,7 +1330,7 @@ namespace gsr {
         const auto original_window_size = window_size;
         window_pos = focused_monitor->position;
         window_size = wayland_native_overlay ? window->get_size() : focused_monitor->size;
-        if(!init_theme(resources_path)) {
+        if(!init_theme(config, resources_path)) {
             fprintf(stderr, "Error: failed to load theme\n");
             window.reset();
             return;

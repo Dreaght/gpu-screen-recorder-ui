@@ -1,7 +1,10 @@
 #include "../../include/gui/Utils.hpp"
+#include "../../include/Theme.hpp"
 #include <mglpp/window/Window.hpp>
 #include <mglpp/graphics/Rectangle.hpp>
+#include <mglpp/graphics/Vertex.hpp>
 
+#include <algorithm>
 #include <cstdlib> // std::abs
 
 namespace gsr {
@@ -19,42 +22,67 @@ namespace gsr {
         return min_vec2i(max, max_vec2i(value, min));
     }
 
+    static mgl::Shader* get_squircle_shader() {
+        const RoundedCorners &rounded_corners = get_theme().rounded_corners;
+        return rounded_corners.enabled ? rounded_corners.squircle_shader.get() : nullptr;
+    }
+
+    static void draw_squircle(mgl::Window &window, mgl::Shader &shader, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, float border_size) {
+        const float radius = std::min(get_theme().rounded_corners.radius_scale * get_theme().window_height, std::min(size.x, size.y) * 0.5f);
+        shader.set_uniform("size", size);
+        shader.set_uniform("radius", radius);
+        shader.set_uniform("border_size", border_size);
+
+        const mgl::Vertex vertices[4] = {
+            mgl::Vertex(mgl::vec2f(0.0f, 0.0f), mgl::vec2f(0.0f, 0.0f), color),
+            mgl::Vertex(mgl::vec2f(size.x, 0.0f), mgl::vec2f(size.x, 0.0f), color),
+            mgl::Vertex(size, size, color),
+            mgl::Vertex(mgl::vec2f(0.0f, size.y), mgl::vec2f(0.0f, size.y), color),
+        };
+        window.draw(vertices, 4, mgl::PrimitiveType::Quads, pos, &shader);
+    }
+
+    static void draw_square_rectangle(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color) {
+        mgl::Rectangle rect(pos, size);
+        rect.set_color(color);
+        window.draw(rect);
+    }
+
+    void draw_rectangle(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color) {
+        pos = pos.floor();
+        size = size.floor();
+        mgl::Shader *squircle_shader = get_squircle_shader();
+        if(squircle_shader)
+            draw_squircle(window, *squircle_shader, pos, size, color, 0.0f);
+        else
+            draw_square_rectangle(window, pos, size, color);
+    }
+
     // TODO: Use vertices to make it one draw call
     void draw_rectangle_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, float border_size) {
         pos = pos.floor();
         size = size.floor();
         border_size = (int)border_size;
-        // Green line at top
-        {
-            mgl::Rectangle rect({ size.x, border_size });
-            rect.set_position(pos);
-            rect.set_color(color);
-            window.draw(rect);
+
+        mgl::Shader *squircle_shader = get_squircle_shader();
+        if(squircle_shader) {
+            draw_squircle(window, *squircle_shader, pos, size, color, border_size);
+            return;
         }
 
-        // Green line at bottom
-        {
-            mgl::Rectangle rect({ size.x, border_size });
-            rect.set_position(pos + mgl::vec2f(0.0f, size.y - border_size));
-            rect.set_color(color);
-            window.draw(rect);
-        }
+        draw_square_rectangle(window, pos, { size.x, border_size }, color);
+        draw_square_rectangle(window, pos + mgl::vec2f(0.0f, size.y - border_size), { size.x, border_size }, color);
+        draw_square_rectangle(window, pos + mgl::vec2f(0.0f, border_size), { border_size, size.y - border_size * 2 }, color);
+        draw_square_rectangle(window, pos + mgl::vec2f(size.x - border_size, border_size), { border_size, size.y - border_size * 2 }, color);
+    }
 
-        // Green line at left
-        {
-            mgl::Rectangle rect({ border_size, size.y - border_size * 2 });
-            rect.set_position(pos + mgl::vec2f(0, border_size));
-            rect.set_color(color);
-            window.draw(rect);
-        }
+    void draw_rectangle_with_top_accent(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, mgl::Color accent_color, float accent_height) {
+        draw_rectangle(window, pos, size, color);
 
-        // Green line at right
-        {
-            mgl::Rectangle rect({ border_size, size.y - border_size * 2 });
-            rect.set_position(pos + mgl::vec2f(size.x - border_size, border_size));
-            rect.set_color(color);
-            window.draw(rect);
-        }
+        const mgl::Scissor prev_scissor = window.get_scissor();
+        window.set_scissor(scissor_get_sub_area(prev_scissor, mgl::Scissor{ pos.floor().to_vec2i(), mgl::vec2i((int)size.x, (int)accent_height) }));
+        draw_rectangle(window, pos, size, accent_color);
+        window.set_scissor(prev_scissor);
     }
 
     double get_frame_delta_seconds() {

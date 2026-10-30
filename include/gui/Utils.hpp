@@ -13,8 +13,10 @@ namespace gsr {
     mgl::vec2i max_vec2i(mgl::vec2i a, mgl::vec2i b);
     mgl::vec2i clamp_vec2i(mgl::vec2i value, mgl::vec2i min, mgl::vec2i max);
 
+    void draw_rectangle(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color);
     // Inner border
     void draw_rectangle_outline(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, float border_size);
+    void draw_rectangle_with_top_accent(mgl::Window &window, mgl::vec2f pos, mgl::vec2f size, mgl::Color color, mgl::Color accent_color, float accent_height);
     double get_frame_delta_seconds();
     void set_frame_delta_seconds(double frame_delta);
     mgl::vec2f scale_keep_aspect_ratio(mgl::vec2f from, mgl::vec2f to);

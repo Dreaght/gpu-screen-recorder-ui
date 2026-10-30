@@ -4,6 +4,7 @@
 
 #include <mglpp/graphics/Text.hpp>
 #include <cmath>
+#include <stdio.h>
 #include <assert.h>
 
 namespace gsr {
@@ -58,7 +59,15 @@ namespace gsr {
         return true;
     }
 
-    bool init_theme(const std::string &resources_path) {
+    static void load_squircle_shader(const std::string &resources_path) {
+        theme->rounded_corners.squircle_shader = std::make_unique<mgl::Shader>();
+        if(!theme->rounded_corners.squircle_shader->load_from_file((resources_path + "shaders/squircle.frag").c_str(), mgl::Shader::Fragment)) {
+            fprintf(stderr, "Warning: failed to load the squircle shader, rectangles will be drawn without rounded corners\n");
+            theme->rounded_corners.squircle_shader.reset();
+        }
+    }
+
+    bool init_theme(const Config &config, const std::string &resources_path) {
         if(theme)
             return true;
 
@@ -159,6 +168,9 @@ namespace gsr {
 
         if(!theme->ps4_triangle_texture.load_from_file((resources_path + "images/ps4_triangle.png").c_str(), mgl::Texture::LoadOptions{false, false, MGL_TEXTURE_SCALE_LINEAR_MIPMAP}))
             goto error;
+
+        theme->rounded_corners.enabled = config.main_config.rounded_corners;
+        load_squircle_shader(resources_path);
 
         return true;
 

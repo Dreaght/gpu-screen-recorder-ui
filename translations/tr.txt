@@ -139,6 +139,7 @@ portal=portal
 
 # Global Settings Page UI elements
 Accent color=Arayüz rengi
+Rounded corners=Yuvarlatılmış köşeler
 Red=Kırmızı
 Green=Yeşil
 Blue=Mavi
