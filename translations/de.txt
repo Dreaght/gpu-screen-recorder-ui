@@ -151,7 +151,7 @@ portal=Portal
 
 # Global Settings Page UI elements
 Accent color=Akzentfarbe
-Rounded corners=Abgerundete Ecken
+Use rounded corners=Abgerundete Ecken verwenden
 Red=Rot
 Green=Grün
 Blue=Blau

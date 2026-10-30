@@ -143,7 +143,7 @@ portal=портала
 
 # Global Settings Page UI elements
 Accent color=Акцентный цвет
-Rounded corners=Скруглённые углы
+Use rounded corners=Использовать скруглённые углы
 Red=Красный
 Green=Зелёный
 Blue=Синий

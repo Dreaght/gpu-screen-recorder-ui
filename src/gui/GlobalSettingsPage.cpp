@@ -160,7 +160,7 @@ namespace gsr {
         };
         list->add_widget(std::move(tint_color_radio_button));
 
-        auto rounded_corners_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Rounded corners"));
+        auto rounded_corners_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Use rounded corners"));
         rounded_corners_checkbox_ptr = rounded_corners_checkbox.get();
         rounded_corners_checkbox->on_changed = [](bool checked) {
             get_theme().rounded_corners.enabled = checked;

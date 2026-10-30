@@ -140,7 +140,7 @@ portal=Asztali portál
 
 # Global Settings Page UI elements
 Accent color=Kiemelőszín
-Rounded corners=Lekerekített sarkok
+Use rounded corners=Lekerekített sarkok használata
 Red=Piros
 Green=Zöld
 Blue=Kék
