@@ -181,6 +181,7 @@ int main(int argc, char **argv) {
     set_display_server_environment_variables();
 
     const std::string gsr_icon_path = resources_path + "images/gpu_screen_recorder_logo.png";
+    const char *rounded_corners_str = config.has_value() && !config.value().main_config.rounded_corners ? "no" : "yes";
     std::string show_hide_hotkey_str = "Alt+Z";
     if(config.has_value())
         show_hide_hotkey_str = config.value().main_config.show_hide_hotkey.to_string(true, true);
@@ -199,7 +200,7 @@ int main(int argc, char **argv) {
             const std::string msg = TRF("Another instance of GPU Screen Recorder UI is already running. Press %s to open the UI.", show_hide_hotkey_str.c_str());
             const char *args[] = {
                 "gsr-notify", "--text", msg.c_str(), "--timeout", "5.0",
-                "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
+                "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", "--rounded-corners", rounded_corners_str, nullptr
             };
             gsr::exec_program_daemonized(args);
         }
@@ -216,7 +217,7 @@ int main(int argc, char **argv) {
     if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
         const char *args[] = {
             "gsr-notify", "--text", TR("GPU Screen Recorder is already running in another process. Please close it before using GPU Screen Recorder UI."),
-            "--timeout", "5.0", "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", nullptr
+            "--timeout", "5.0", "--icon-color", "ffffff", "--icon", gsr_icon_path.c_str(), "--bg-color", "ff0000", "--rounded-corners", rounded_corners_str, nullptr
         };
         gsr::exec_program_daemonized(args);
     }

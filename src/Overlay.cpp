@@ -1320,11 +1320,11 @@ namespace gsr {
         if(!wayland_native_overlay) {
             // Properties set on the mgl window must use mgl's X11 connection.
             Display *mgl_display = (Display*)mgl_get_context()->connection;
-            unsigned char data = 2; // Prefer being composed to allow transparency
-            XChangeProperty(mgl_display, (Window)window->get_system_handle(), XInternAtom(mgl_display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+            long data = 2; // Prefer being composed to allow transparency
+            XChangeProperty(mgl_display, (Window)window->get_system_handle(), XInternAtom(mgl_display, "_NET_WM_BYPASS_COMPOSITOR", False), XA_CARDINAL, 32, PropModeReplace, (const unsigned char*)&data, 1);
 
             data = 1;
-            XChangeProperty(mgl_display, (Window)window->get_system_handle(), XInternAtom(mgl_display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, &data, 1);
+            XChangeProperty(mgl_display, (Window)window->get_system_handle(), XInternAtom(mgl_display, "GAMESCOPE_EXTERNAL_OVERLAY", False), XA_CARDINAL, 32, PropModeReplace, (const unsigned char*)&data, 1);
         }
 
         const auto original_window_size = window_size;
@@ -2154,12 +2154,13 @@ namespace gsr {
 
         const std::string icon_color_str = color_to_hex_str(icon_color);
         const std::string bg_color_str = color_to_hex_str(bg_color);
-        const char *notification_args[14] = {
+        const char *notification_args[16] = {
             "gsr-notify", "--text", str, "--timeout", timeout_seconds_str,
             "--icon-color", icon_color_str.c_str(), "--bg-color", bg_color_str.c_str(),
+            "--rounded-corners", config.main_config.rounded_corners ? "yes" : "no",
         };
 
-        int arg_index = 9;
+        int arg_index = 11;
         const char *notification_type_str = notification_type_to_string(notification_type);
         if(notification_type_str) {
             notification_args[arg_index++] = "--icon";
