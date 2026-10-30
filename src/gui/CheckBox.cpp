@@ -32,8 +32,7 @@ namespace gsr {
         background_sprite(&get_theme().checkbox_background_texture),
         circle_sprite(&get_theme().checkbox_circle_texture)
     {
-        background_sprite.set_color(get_color_theme().tint_color);
-        circle_sprite.set_color(get_color_theme().tint_color);
+
     }
 
     bool CheckBox::on_event(mgl::Event &event, mgl::Window&, mgl::vec2f offset) {
@@ -69,6 +68,7 @@ namespace gsr {
         background_sprite.set_position(draw_pos.floor());
         window.draw(background_sprite);
 
+        circle_sprite.set_color(get_color_theme().tint_color);
         circle_sprite.set_height((int)background_sprite.get_size().y);
         const float circle_animation_x = linear_interpolation(0.0f, background_sprite.get_size().x - circle_sprite.get_size().x, toggle_animation_value);
         circle_sprite.set_position((draw_pos + mgl::vec2f(circle_animation_x, 0.0f)).floor());
