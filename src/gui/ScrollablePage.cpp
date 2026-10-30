@@ -12,7 +12,7 @@
 namespace gsr {
     static const int scroll_speed = 80;
     static const double scroll_update_speed = 10.0;
-    static const float scrollbar_width_scale = 0.004f;
+    static const float scrollbar_width_scale = 0.005f;
     static const float scrollbar_spacing_scale = 0.004f;
 
     ScrollablePage::ScrollablePage(mgl::vec2f size) : size(size) {}

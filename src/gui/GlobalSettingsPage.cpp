@@ -163,8 +163,13 @@ namespace gsr {
         auto rounded_corners_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Use rounded corners"));
         rounded_corners_checkbox_ptr = rounded_corners_checkbox.get();
         rounded_corners_checkbox->on_changed = [this](bool checked) {
+            if(config.main_config.rounded_corners == checked)
+                return;
+
             config.main_config.rounded_corners = checked;
             get_theme().rounded_corners.enabled = checked;
+            if(on_ui_reload_required)
+                on_ui_reload_required(get_scroll_y());
         };
         list->add_widget(std::move(rounded_corners_checkbox));
         return std::make_unique<Subsection>(TR("Appearance"), std::move(list), mgl::vec2f(parent_page->get_inner_size().x, 0.0f));
@@ -583,8 +588,8 @@ namespace gsr {
         combo_box->on_selection_changed = [this](std::string_view, std::string_view id) {
             Translation::instance().load_language(id);
             config.main_config.language = std::string(id);
-            if(on_language_changed)
-                on_language_changed(get_scroll_y());
+            if(on_ui_reload_required)
+                on_ui_reload_required(get_scroll_y());
             return true;
         };
         list->add_widget(std::move(combo_box));

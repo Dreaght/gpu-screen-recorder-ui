@@ -1499,7 +1499,7 @@ namespace gsr {
 
         auto main_buttons_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         List * main_buttons_list_ptr = main_buttons_list.get();
-        main_buttons_list->set_spacing(0.0f);
+        main_buttons_list->set_spacing(config.main_config.rounded_corners ? 0.004f : 0.0f);
         {
             auto button = std::make_unique<DropdownButton>(get_theme().title_font_desc.c_str(), get_theme().body_font_desc.c_str(), TR("Instant Replay"), TR("Off"), &get_theme().replay_button_texture,
                 mgl::vec2f(button_width, button_height));
@@ -1592,8 +1592,9 @@ namespace gsr {
         {
             const mgl::vec2f main_buttons_size = main_buttons_list_ptr->get_size();
             const int settings_button_size = main_buttons_size.y * 0.33f;
+            const float button_offset = config.main_config.rounded_corners ? settings_button_size*2.04f : settings_button_size*2.0f;
             auto button = std::make_unique<Button>(get_theme().title_font_desc.c_str(), "", mgl::vec2f(settings_button_size, settings_button_size), mgl::Color(0, 0, 0, 180));
-            button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, settings_button_size*2) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
+            button->set_position((main_buttons_list_ptr->get_position() + main_buttons_size - mgl::vec2f(0.0f, button_offset) + mgl::vec2f(settings_button_size * 0.333f, 0.0f)).floor());
             button->set_bg_hover_color(mgl::Color(0, 0, 0, 255));
             button->set_icon(&get_theme().screenshot_texture);
             button->set_icon_padding_scale(1.2f);
@@ -1773,7 +1774,7 @@ namespace gsr {
             stream_dropdown_button_ptr->set_item_description("start", config.streaming_config.start_stop_hotkey.to_string(false, false));
         };
 
-        settings_page->on_language_changed = [this](int scroll_y) {
+        settings_page->on_ui_reload_required = [this](int scroll_y) {
             pending_settings_scroll_y = scroll_y;
             reload_ui = true;
             reopen_settings_after_reload = true;
