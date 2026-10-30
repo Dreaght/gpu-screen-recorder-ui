@@ -52,8 +52,7 @@ namespace gsr {
     bool monitor_names_equal(std::string_view name1, std::string_view name2);
     std::vector<Monitor> get_monitors_wayland(struct wl_display *dpy);
     void xi_grab_all_mouse_devices(Display *dpy);
-    void xi_ungrab_all_mouse_devices(Display *dpy);
-    void xi_warp_all_mouse_devices(Display *dpy, mgl::vec2i position);
+    void xi_ungrab_all_mouse_devices_and_warp_pointer(Display *dpy, mgl::vec2i position);
     void window_set_fullscreen(Display *dpy, Window window, bool fullscreen);
     bool window_is_fullscreen(Display *display, Window window);
     bool get_drawable_geometry(Display *display, Drawable drawable, DrawableGeometry *geometry);

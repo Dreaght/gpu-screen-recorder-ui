@@ -405,13 +405,11 @@ namespace gsr {
         if(!started)
             return;
 
-        XWarpPointer(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), 0, 0, 0, 0, cursor_pos.x, cursor_pos.y);
-        xi_warp_all_mouse_devices(dpy, cursor_pos);
+        xi_ungrab_all_mouse_devices_and_warp_pointer(dpy, cursor_pos);
         XFixesShowCursor(dpy, region_window);
 
         XUngrabPointer(dpy, CurrentTime);
         XUngrabKeyboard(dpy, CurrentTime);
-        xi_ungrab_all_mouse_devices(dpy);
         XFlush(dpy);
 
         if(region_gc) {

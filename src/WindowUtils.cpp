@@ -1004,29 +1004,12 @@ namespace gsr {
         xi_grab_all_mouse_devices(dpy, true);
     }
 
-    void xi_ungrab_all_mouse_devices(Display *dpy) {
+    // Grabbed mouse devices are detached from the cursor and XWarpPointer then warps the detached device instead of the cursor,
+    // which makes the cursor jump back to its old position. The devices have to be ungrabbed before warping.
+    void xi_ungrab_all_mouse_devices_and_warp_pointer(Display *dpy, mgl::vec2i position) {
         xi_grab_all_mouse_devices(dpy, false);
-    }
-
-    void xi_warp_all_mouse_devices(Display *dpy, mgl::vec2i position) {
-        if(!dpy)
-            return;
-
-        int num_devices = 0;
-        XIDeviceInfo *info = XIQueryDevice(dpy, XIAllDevices, &num_devices);
-        if(!info)
-            return;
-
-        for (int i = 0; i < num_devices; ++i) {
-            const XIDeviceInfo *dev = &info[i];
-            if(!device_is_mouse(dev))
-                continue;
-
-            XIWarpPointer(dpy, dev->deviceid, DefaultRootWindow(dpy), DefaultRootWindow(dpy), 0, 0, 0, 0, position.x, position.y);
-        }
-
+        XWarpPointer(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), 0, 0, 0, 0, position.x, position.y);
         XFlush(dpy);
-        XIFreeDeviceInfo(info);
     }
 
     void window_set_fullscreen(Display *dpy, Window window, bool fullscreen) {

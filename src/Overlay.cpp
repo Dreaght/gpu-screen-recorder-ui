@@ -1835,15 +1835,8 @@ namespace gsr {
 
         if(xi_display) {
             if(window) {
-                Display *display = x11_dpy;
-
                 const mgl::vec2i new_cursor_position = mgl::vec2i(window->internal_window()->pos.x, window->internal_window()->pos.y) + window->get_mouse_position();
-                XWarpPointer(display, DefaultRootWindow(display), DefaultRootWindow(display), 0, 0, 0, 0, new_cursor_position.x, new_cursor_position.y);
-                xi_warp_all_mouse_devices(xi_display, new_cursor_position);
-                XFlush(display);
-
-                XFixesShowCursor(display, DefaultRootWindow(display));
-                XFlush(display);
+                xi_ungrab_all_mouse_devices_and_warp_pointer(xi_display, new_cursor_position);
             }
 
             XCloseDisplay(xi_display);
