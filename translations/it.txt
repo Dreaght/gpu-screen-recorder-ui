@@ -439,3 +439,8 @@ WHIP=WHIP
 Custom=Personalizzato
 Stream URL:=URL dello stream:
 Stream key:=Chiave di streaming:
+
+# System tray
+Show the UI=Mostra l'interfaccia
+Quit=Esci
+Show system tray icon=Mostra l'icona nell'area di notifica

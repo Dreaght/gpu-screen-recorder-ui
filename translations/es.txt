@@ -435,3 +435,4 @@ Streaming indicator=Indicador de transmisión
 # System tray
 Show the UI=Mostrar la interfaz
 Quit=Salir
+Show system tray icon=Mostrar icono en la bandeja del sistema

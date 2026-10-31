@@ -447,3 +447,4 @@ Streaming indicator=配信インジケータ
 # System tray
 Show the UI=UI を表示
 Quit=終了
+Show system tray icon=システムトレイにアイコンを表示

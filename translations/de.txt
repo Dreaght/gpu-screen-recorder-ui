@@ -446,3 +446,4 @@ Streaming indicator=Streaming-Anzeige
 # System tray
 Show the UI=UI anzeigen
 Quit=Beenden
+Show system tray icon=Symbol im Infobereich anzeigen

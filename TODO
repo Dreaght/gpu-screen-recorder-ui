@@ -237,6 +237,6 @@ Add option to automatically stop replay when starting recording and then automat
 Add editable region borders to region selection and fixed aspect ratio and also option to make video resize respect the exact video size requested, instead of scaling it to the aspect ratio.
     A user wants this for a fixed ratio for videos for smartphones (portait mode videos).
 
-Move all settings to the same page but in different tabs. Keep the recording->settings etc, but when clicking that it should show tabs: general, instant replay, recording, streaming, screenshot. Same when clicking on the settings on the right.
-
 When recording show volume nobs in the ui frontpage on the side or below the center. It should use pulseaudio to list source outputs and match application.process.binary == "gpu-screen-recorder" and set the volume with pa_cvolume_set and pa_context_set_source_output_volume. Get the volume level with pa_context_get_source_output_info + calculating channels volumes.
+
+write something to stdout when portal prompt it accepted, so the ui knows when recording actually started.

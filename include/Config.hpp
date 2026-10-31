@@ -80,6 +80,7 @@ namespace gsr {
         bool wayland_warning_shown = false;
         bool exclude_metadata = false;
         bool rounded_corners = true;
+        bool show_tray_icon = true;
         std::string hotkeys_enable_option = "enable_hotkeys";
         std::string joystick_hotkeys_enable_option = "disable_hotkeys";
         std::string tint_color;

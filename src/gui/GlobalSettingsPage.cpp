@@ -614,6 +614,14 @@ namespace gsr {
             exclude_metadata_checkbox_ptr = exclude_metadata_checkbox.get();
             list_ptr->add_widget(std::move(exclude_metadata_checkbox));
         }
+        {
+            auto show_tray_icon_checkbox = std::make_unique<CheckBox>(get_theme().body_font_desc.c_str(), TR("Show system tray icon"));
+            show_tray_icon_checkbox_ptr = show_tray_icon_checkbox.get();
+            show_tray_icon_checkbox->on_changed = [this](bool checked) {
+                config.main_config.show_tray_icon = checked;
+            };
+            list_ptr->add_widget(std::move(show_tray_icon_checkbox));
+        }
         list_ptr->add_widget(std::make_unique<LineSeparator>(LineSeparator::Orientation::HORIZONTAL, subsection->get_inner_size().x));
 
         const bool inside_flatpak = getenv("FLATPAK_ID") != NULL;
@@ -697,6 +705,7 @@ namespace gsr {
         notification_speed_button_ptr->set_selected_item(config.main_config.notification_speed);
         language_combo_box_ptr->set_selected_item(config.main_config.language);
         exclude_metadata_checkbox_ptr->set_checked(config.main_config.exclude_metadata);
+        show_tray_icon_checkbox_ptr->set_checked(config.main_config.show_tray_icon);
 
         load_hotkeys();
     }
@@ -730,6 +739,7 @@ namespace gsr {
         config.main_config.notification_speed = notification_speed_button_ptr->get_selected_id();
         config.main_config.language = language_combo_box_ptr->get_selected_id();
         config.main_config.exclude_metadata = exclude_metadata_checkbox_ptr->is_checked();
+        config.main_config.show_tray_icon = show_tray_icon_checkbox_ptr->is_checked();
         save_config(config);
     }
 

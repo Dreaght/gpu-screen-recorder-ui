@@ -41,23 +41,20 @@ namespace gsr {
     Tray::Tray() = default;
     Tray::~Tray() = default;
 
-    bool Tray::init(const std::string &resources_path) {
+    void Tray::init(const std::string &resources_path, bool enabled) {
         const char *icon_filepaths[] = { "images/tray_idle.png", "images/tray_recording.png", "images/tray_paused.png" };
         static_assert(sizeof(icon_filepaths) / sizeof(icon_filepaths[0]) == sizeof(pixmaps) / sizeof(pixmaps[0]));
         for(size_t i = 0; i < sizeof(pixmaps) / sizeof(pixmaps[0]); ++i) {
             load_pixmap(resources_path + icon_filepaths[i], pixmaps[i]);
         }
 
-        sni = std::make_unique<TraySni>();
-        sni->on_action = [this](TrayAction action) { run_action(action); };
-        if(!sni->init(get_current_pixmap()))
-            sni.reset();
-
-        update_backend();
-        return sni || xembed;
+        set_enabled(enabled);
     }
 
     void Tray::poll() {
+        if(!enabled)
+            return;
+
         if(sni)
             sni->poll();
 
@@ -76,6 +73,26 @@ namespace gsr {
             sni->set_pixmap(get_current_pixmap());
         if(xembed)
             xembed->set_pixmap(get_current_pixmap());
+    }
+
+    void Tray::set_enabled(bool enabled) {
+        if(enabled == this->enabled)
+            return;
+
+        this->enabled = enabled;
+        if(!enabled) {
+            sni.reset();
+            xembed.reset();
+            xembed_failed = false;
+            return;
+        }
+
+        sni = std::make_unique<TraySni>();
+        sni->on_action = [this](TrayAction action) { run_action(action); };
+        if(!sni->init(get_current_pixmap()))
+            sni.reset();
+
+        update_backend();
     }
 
     void Tray::update_backend() {

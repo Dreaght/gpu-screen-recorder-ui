@@ -125,6 +125,7 @@ namespace gsr {
         RadioButton *notification_speed_button_ptr = nullptr;
         ComboBox *language_combo_box_ptr = nullptr;
         CheckBox *exclude_metadata_checkbox_ptr = nullptr;
+        CheckBox *show_tray_icon_checkbox_ptr = nullptr;
         CheckBox *rounded_corners_checkbox_ptr = nullptr;
         ScrollablePage *scrollable_page_ptr = nullptr;
 

@@ -437,3 +437,4 @@ Streaming indicator=Индикатор трансляции
 # System tray
 Show the UI=Показать интерфейс
 Quit=Выйти
+Show system tray icon=Показывать значок в системном трее

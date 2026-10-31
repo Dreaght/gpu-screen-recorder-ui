@@ -45,9 +45,10 @@ namespace gsr {
         Tray& operator=(const Tray&) = delete;
         ~Tray();
 
-        bool init(const std::string &resources_path);
+        void init(const std::string &resources_path, bool enabled);
         void poll();
         void set_icon(TrayIcon icon);
+        void set_enabled(bool enabled);
 
         std::function<void()> on_show_ui;
         std::function<void()> on_quit;
@@ -59,6 +60,7 @@ namespace gsr {
         std::unique_ptr<TraySni> sni;
         std::unique_ptr<TrayXEmbed> xembed;
         bool xembed_failed = false;
+        bool enabled = false;
         TrayPixmap pixmaps[3];
         TrayIcon icon = TrayIcon::IDLE;
     };

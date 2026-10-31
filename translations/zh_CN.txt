@@ -435,3 +435,4 @@ Streaming indicator=直播指示器
 # System tray
 Show the UI=显示界面
 Quit=退出
+Show system tray icon=在系统托盘中显示图标

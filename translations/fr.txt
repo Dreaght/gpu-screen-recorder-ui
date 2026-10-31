@@ -445,3 +445,4 @@ Streaming indicator=Indicateur de diffusion
 # System tray
 Show the UI=Afficher l’UI
 Quit=Quitter
+Show system tray icon=Afficher l'icône dans la zone de notification

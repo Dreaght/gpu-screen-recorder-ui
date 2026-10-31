@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 
     // Registered as early as possible, KDE Plasma shows its own tray item for flatpak applications without windows or a tray item
     auto tray = std::make_unique<gsr::Tray>();
-    tray->init(resources_path);
+    tray->init(resources_path, !config.has_value() || config.value().main_config.show_tray_icon);
 
     if(gsr::pidof("gpu-screen-recorder", -1) != -1) {
         const char *args[] = {
@@ -347,8 +347,9 @@ int main(int argc, char **argv) {
         gsr::set_frame_delta_seconds(frame_delta_seconds);
 
         rpc->poll();
-        tray->poll();
         tray->set_icon(get_tray_icon(overlay.get()));
+        tray->set_enabled(overlay->get_config().main_config.show_tray_icon);
+        tray->poll();
         overlay->handle_events();
         if(!overlay->draw()) {
             usleep(100 * 1000); // 100ms

@@ -431,3 +431,4 @@ Streaming indicator=Yayın göstergesi
 # System tray
 Show the UI=Arayüzü göster
 Quit=Çıkış
+Show system tray icon=Sistem tepsisinde simge göster

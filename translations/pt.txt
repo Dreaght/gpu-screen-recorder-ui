@@ -446,3 +446,4 @@ Streaming indicator=Indicador da transmissão
 # System tray
 Show the UI=Mostrar a UI
 Quit=Sair
+Show system tray icon=Mostrar ícone na bandeja do sistema
