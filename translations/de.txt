@@ -115,7 +115,7 @@ GPU Screen Recorder UI autostart via systemd is deprecated. To migrate: install 
 Wayland doesn't support GPU Screen Recorder UI properly, things may not work as expected. Use X11 if you experience issues.=Wayland unterstützt GPU Screen Recorder UI nicht richtig, weshalb Dinge möglicherweise nicht wie erwartet funktionieren. Verwende X11, wenn du Fehler bemerkst.
 
 # CPU encoding warning
-Only CPU encoding is available on your system. Either your system doesn't support GPU encoding or you haven't installed the proper video encoding drivers.=Auf deinem System ist nur CPU-Kodierung verfügbar. Entweder unterstützt dein System keine GPU-Kodierung oder du hast nicht die passenden Video-Kodierungstreiber installiert.
+Only CPU encoding is available on your system. Either your system doesn't support GPU encoding or you haven't installed the proper video encoding drivers. If you're using the flatpak version of this software on NVIDIA then try running "flatpak update" and then reboot your computer.=Auf deinem System ist nur CPU-Kodierung verfügbar. Entweder unterstützt dein System keine GPU-Kodierung oder du hast nicht die passenden Video-Kodierungstreiber installiert. Wenn du die Flatpak-Version dieser Software mit NVIDIA verwendest, führe „flatpak update“ aus und starte danach deinen Computer neu.
 
 # Hotkey conflicts
 Some keyboard remapping software conflicts with GPU Screen Recorder on your system.\nKeyboards have been ungrabbed, applications will now receive the hotkeys you press.=Einige Input Remapper auf dem System stehen in Konflikt mit GPU Screen Recorder.\nTastaturen werden nicht mehr erfasst, sodass Anwendungen jetzt die gedrückten Tastenkürzel empfangen können.

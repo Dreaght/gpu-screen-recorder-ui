@@ -1459,7 +1459,7 @@ namespace gsr {
 
         const int font_character_size = 2.0f*mgl::Text::get_font_size_from_font_description(get_theme().body_font_desc.c_str());
         list->add_widget(std::make_unique<Image>(&get_theme().warning_texture, mgl::vec2f(font_character_size, font_character_size), Image::ScaleBehavior::SCALE));
-        auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Only CPU encoding is available on your system. Either your system doesn't support GPU encoding or you haven't installed the proper video encoding drivers."), get_color_theme().text_color);
+        auto label = std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Only CPU encoding is available on your system. Either your system doesn't support GPU encoding or you haven't installed the proper video encoding drivers. If you're using the flatpak version of this software on NVIDIA then try running \"flatpak update\" and then reboot your computer."), get_color_theme().text_color);
         label->set_wrap_width(label->get_font_size() * 55);
         list->add_widget(std::move(label));
 
