@@ -373,6 +373,7 @@ Sync to content (Only X11 or desktop portal capture)=Синхр. з контен
 
 # Color range
 Color range:=Колірний діапазон:
+Compress colors?=Стискати кольори?
 Limited=Обмежений
 Full=Повний
 

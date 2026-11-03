@@ -388,6 +388,7 @@ Sync to content (Only X11 or desktop portal capture)=
 
 # Color range
 Color range:=
+Compress colors?=
 Limited=
 Full=
 

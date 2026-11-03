@@ -934,11 +934,28 @@ namespace gsr {
         return color_range_list;
     }
 
+    std::unique_ptr<ComboBox> SettingsPage::create_color_compression_box() {
+        auto color_compression_box = std::make_unique<ComboBox>(get_theme().body_font_desc.c_str());
+        color_compression_box->add_item(std::string(TR("Yes")) + " (Y'UV 4:2:0)", "yuv420");
+        color_compression_box->add_item(std::string(TR("No")) + " (Y'UV 4:4:4)", "yuv444");
+        color_compression_box_ptr = color_compression_box.get();
+        return color_compression_box;
+    }
+
+    std::unique_ptr<List> SettingsPage::create_color_compression() {
+        auto color_compression_list = std::make_unique<List>(List::Orientation::VERTICAL);
+        color_compression_list->add_widget(std::make_unique<Label>(get_theme().body_font_desc.c_str(), TR("Compress colors?"), get_color_theme().text_color));
+        color_compression_list->add_widget(create_color_compression_box());
+        color_compression_list_ptr = color_compression_list.get();
+        return color_compression_list;
+    }
+
     std::unique_ptr<List> SettingsPage::create_video_quality_section() {
         auto quality_list = std::make_unique<List>(List::Orientation::HORIZONTAL);
         quality_list->add_widget(create_video_quality_box());
         quality_list->add_widget(create_video_bitrate());
         quality_list->add_widget(create_color_range());
+        quality_list->add_widget(create_color_compression());
         return quality_list;
     }
 
@@ -1297,6 +1314,7 @@ namespace gsr {
 
     void SettingsPage::view_changed(bool advanced_view) {
         color_range_list_ptr->set_visible(advanced_view);
+        color_compression_list_ptr->set_visible(advanced_view);
         audio_codec_ptr->set_visible(advanced_view);
         video_codec_ptr->set_visible(advanced_view);
         framerate_mode_list_ptr->set_visible(advanced_view);
@@ -1839,6 +1857,7 @@ namespace gsr {
         change_video_resolution_checkbox_ptr->set_checked(record_options.change_video_resolution);
         load_audio_tracks(record_options);
         color_range_box_ptr->set_selected_item(record_options.color_range);
+        color_compression_box_ptr->set_selected_item(record_options.pixel_format);
         video_quality_box_ptr->set_selected_item(record_options.video_quality);
         video_codec_box_ptr->set_selected_item(record_options.video_codec);
         audio_codec_box_ptr->set_selected_item(record_options.audio_codec);
@@ -1998,6 +2017,7 @@ namespace gsr {
         record_options.change_video_resolution = change_video_resolution_checkbox_ptr->is_checked();
         save_audio_tracks(record_options.audio_tracks_list, audio_track_section_list_ptr);
         record_options.color_range = color_range_box_ptr->get_selected_id();
+        record_options.pixel_format = color_compression_box_ptr->get_selected_id();
         record_options.video_quality = video_quality_box_ptr->get_selected_id();
         record_options.video_codec = video_codec_box_ptr->get_selected_id();
         record_options.audio_codec = audio_codec_box_ptr->get_selected_id();

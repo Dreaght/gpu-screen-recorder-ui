@@ -384,6 +384,7 @@ Sync to content (Only X11 or desktop portal capture)=コンテンツに同期(X1
 
 # Color range
 Color range:=色域:
+Compress colors?=色を圧縮しますか
 Limited=限定
 Full=フル
 

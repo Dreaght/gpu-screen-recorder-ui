@@ -372,6 +372,7 @@ Sync to content (Only X11 or desktop portal capture)=Tartalomhoz igazítás (csa
 
 # Color range
 Color range:=Színtartomány:
+Compress colors?=Színek tömörítése?
 Limited=Korlátozott
 Full=Teljes
 

@@ -383,6 +383,7 @@ Sync to content (Only X11 or desktop portal capture)=Sincronizar com o conteúdo
 
 # Color range
 Color range:=Faixa de cores:
+Compress colors?=Comprimir cores?
 Limited=Limitado
 Full=Completo
 

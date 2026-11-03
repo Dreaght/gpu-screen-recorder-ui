@@ -100,6 +100,8 @@ namespace gsr {
         std::unique_ptr<List> create_video_bitrate();
         std::unique_ptr<ComboBox> create_color_range_box();
         std::unique_ptr<List> create_color_range();
+        std::unique_ptr<ComboBox> create_color_compression_box();
+        std::unique_ptr<List> create_color_compression();
         std::unique_ptr<List> create_video_quality_section();
         std::unique_ptr<ComboBox> create_video_codec_box();
         std::unique_ptr<List> create_video_codec();
@@ -186,6 +188,7 @@ namespace gsr {
         List *video_resolution_list_ptr = nullptr;
         List *reset_portal_selection_list_ptr = nullptr;
         List *color_range_list_ptr = nullptr;
+        List *color_compression_list_ptr = nullptr;
         Widget *video_codec_ptr = nullptr;
         Widget *audio_codec_ptr = nullptr;
         List *framerate_mode_list_ptr = nullptr;
@@ -199,6 +202,7 @@ namespace gsr {
         List *video_bitrate_list_ptr = nullptr;
         CheckBox *change_video_resolution_checkbox_ptr = nullptr;
         ComboBox *color_range_box_ptr = nullptr;
+        ComboBox *color_compression_box_ptr = nullptr;
         ComboBox *video_quality_box_ptr = nullptr;
         ComboBox *video_codec_box_ptr = nullptr;
         ComboBox *audio_codec_box_ptr = nullptr;

@@ -49,6 +49,7 @@ namespace gsr {
         bool change_video_resolution = false;
         std::vector<AudioTrack> audio_tracks_list;
         std::string color_range = "limited";
+        std::string pixel_format = "yuv420";
         std::string video_quality = "very_high";
         std::string video_codec = "auto";
         std::string audio_codec = "opus";

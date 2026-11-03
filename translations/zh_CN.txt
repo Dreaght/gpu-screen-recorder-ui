@@ -372,6 +372,7 @@ Sync to content (Only X11 or desktop portal capture)=同步到内容（仅限 X1
 
 # Color range
 Color range:=色彩范围：
+Compress colors?=压缩颜色？
 Limited=有限
 Full=完整
 

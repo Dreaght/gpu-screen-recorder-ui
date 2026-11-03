@@ -368,6 +368,7 @@ Sync to content (Only X11 or desktop portal capture)=İçeriğe senkronize et (Y
 
 # Color range
 Color range:=Renk aralığı:
+Compress colors?=Renkler sıkıştırılsın mı?
 Limited=Sınırlı
 Full=Tümü
 
