@@ -1462,6 +1462,7 @@ namespace gsr {
         organize_folders_radio_button_ptr = organize_folders_radio_button.get();
         organize_folders_radio_button->add_item(TR("No"), "no");
         organize_folders_radio_button->add_item(TR("Yes"), "yes");
+        organize_folders_radio_button->add_item(TR("Yes, but only for videos of games"), "yes_only_games");
         list->add_widget(std::move(organize_folders_radio_button));
 
         return list;

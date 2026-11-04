@@ -2411,24 +2411,31 @@ namespace gsr {
         return tracked_game_name;
     }
 
-    static std::string game_name_to_filename(std::string game_name) {
-        game_name = window_title_utf8_sanitize(game_name.c_str(), game_name.size());
-        game_name = strip(game_name);
+    static std::string application_name_to_filename(std::string app_name) {
+        app_name = window_title_utf8_sanitize(app_name.c_str(), app_name.size());
+        app_name = strip(app_name);
         // Windows doesn't like these characters, and linux doesn't like "/", which is included there as well
-        string_replace_characters(game_name.data(), "<>:\"/\\|?*", ' ');
-        truncate_string_bytes(game_name, max_game_name_size_bytes);
-        game_name = strip(game_name);
+        string_replace_characters(app_name.data(), "<>:\"/\\|?*", ' ');
+        truncate_string_bytes(app_name, max_game_name_size_bytes);
+        app_name = strip(app_name);
         // "." and ".." would refer to the save directory itself when saving in the game folder
-        if(game_name == "." || game_name == "..")
-            game_name.clear();
-        return game_name;
+        if(app_name == "." || app_name == "..")
+            app_name.clear();
+        return app_name;
     }
 
-    static std::string get_captured_application_folder_name(const std::string &option, const std::string &focused_game_name) {
+    static std::string get_captured_application_folder_name(const std::string &option, const std::string &focused_game_name, const std::string &focused_window_title) {
+        if(option == "yes_only_games") {
+            std::string name = application_name_to_filename(focused_game_name);
+            if(name.empty())
+                name = "Desktop";
+            return name;
+        }
+
         if(option != "yes")
             return "";
 
-        std::string name = game_name_to_filename(focused_game_name);
+        std::string name = application_name_to_filename(focused_game_name.empty() ? focused_window_title : focused_game_name);
         if(name.empty())
             name = "Desktop";
         return name;
@@ -2436,12 +2443,12 @@ namespace gsr {
 
     static std::string get_captured_application_name(const std::string &option, const std::string &focused_game_name, const std::string &focused_window_title) {
         if(option == "yes_only_games")
-            return game_name_to_filename(focused_game_name);
+            return application_name_to_filename(focused_game_name);
 
         if(option != "yes")
             return "";
 
-        std::string name = game_name_to_filename(focused_game_name.empty() ? focused_window_title : focused_game_name);
+        std::string name = application_name_to_filename(focused_game_name.empty() ? focused_window_title : focused_game_name);
         if(name.empty())
             name = "Desktop";
         return name;
@@ -2519,7 +2526,7 @@ namespace gsr {
 
         const FocusedWindow focused_window = desktop_environment->get_focused_window();
         const std::string focused_game_name = get_focused_game_name(focused_window);
-        const std::string folder_name = get_captured_application_folder_name(organize_into_folders, focused_game_name);
+        const std::string folder_name = get_captured_application_folder_name(organize_into_folders, focused_game_name, focused_window.title);
         const std::string file_game_name = get_captured_application_name(name_after_captured_application, focused_game_name, focused_window.title);
 
         rename_file_to_game_name(filepath, file_game_name);
