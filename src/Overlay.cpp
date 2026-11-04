@@ -2395,9 +2395,15 @@ namespace gsr {
     // This is checked by gsr-game-tracker on the host, since the process ids are host process ids
     static bool is_game_process_tree_pid(pid_t pid) {
         const std::string pid_str = std::to_string(pid);
-        const char *args[] = { "gsr-game-tracker", "--check-pid", pid_str.c_str(), NULL };
         std::string output;
-        return exec_program_on_host_get_stdout(args, output) == 0;
+        const bool is_flatpak = getenv("FLATPAK_ID") != nullptr;
+        if(is_flatpak) {
+            const char *args[] = { "flatpak-spawn", "--host", "--", flatpak_gsr_game_tracker_path, "--check-pid", pid_str.c_str(), NULL };
+            return exec_program_get_stdout(args, output, false) == 0;
+        } else {
+            const char *args[] = { "gsr-game-tracker", "--check-pid", pid_str.c_str(), NULL };
+            return exec_program_get_stdout(args, output, false) == 0;
+        }
     }
 
     // Returns an empty string if the focused window doesn't belong to a game
