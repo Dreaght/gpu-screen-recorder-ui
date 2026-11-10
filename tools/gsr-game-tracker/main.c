@@ -473,7 +473,7 @@ static int setup_netlink(void) {
 static void sweep_dead_games(void) {
     for (int i = 0; i < MAX_GAMES; i++) {
         if (games[i] && kill(games[i], 0) < 0 && errno == ESRCH)
-            remove_game_by_slot(games[i]);
+            remove_game_by_slot(i);
     }
 }
 
