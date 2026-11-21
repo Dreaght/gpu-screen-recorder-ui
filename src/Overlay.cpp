@@ -62,6 +62,8 @@
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/Utf8.hpp>
 
+#include "include/RegionSelector/RegionSelectorMock.hpp"
+
 extern "C" {
 #include <mgl/mgl.h>
 }
@@ -633,6 +635,8 @@ namespace gsr {
 
         if(wayland_dpy && RegionSelectorWayland::is_supported(wayland_dpy))
             region_selector = std::make_unique<RegionSelectorWayland>(wayland_dpy);
+        else if(RegionSelectorMock::is_supported())
+            region_selector = std::make_unique<RegionSelectorMock>();
         else
             region_selector = std::make_unique<RegionSelectorX11>(x11_dpy);
 

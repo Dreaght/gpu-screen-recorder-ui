@@ -25,6 +25,9 @@ namespace gsr {
         canceled = false;
         this->selection_type = selection_type;
         started = true;
+
+        fprintf(stderr, "RegionSelectorMock: started selection.\n");
+
         return true;
     }
 
@@ -33,9 +36,13 @@ namespace gsr {
             return;
 
         started = false;
+
+        fprintf(stderr, "RegionSelectorMock: stopped selection.\n");
     }
 
     void RegionSelectorMock::cancel() {
+        fprintf(stderr, "RegionSelectorMock: canceling selection.\n");
+
         canceled = true;
         selected = false;
         stop();
@@ -55,7 +62,11 @@ namespace gsr {
         if(!started)
             return;
 
+        selected = true;
+
         if(selected || canceled) {
+            fprintf(stderr, "RegionSelectorMock: stopping, selected = %hhd, canceled = %hhd.\n", selected, canceled);
+
             stop();
             return;
         }
@@ -64,6 +75,10 @@ namespace gsr {
     bool RegionSelectorMock::take_selection() {
         const bool result = selected;
         selected = false;
+
+        if(result)
+            fprintf(stderr, "RegionSelectorMock: took selection.\n");
+
         return result;
     }
 
