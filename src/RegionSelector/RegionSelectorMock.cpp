@@ -62,7 +62,10 @@ namespace gsr {
         if(!started)
             return;
 
-        selected = true;
+        ++ticks_counter;
+        fprintf(stderr, "RegionSelectorMock: current tick: %ld.\n", ticks_counter);
+        if(ticks_counter >= 5)
+            selected = true;
 
         if(selected || canceled) {
             fprintf(stderr, "RegionSelectorMock: stopping, selected = %hhd, canceled = %hhd.\n", selected, canceled);

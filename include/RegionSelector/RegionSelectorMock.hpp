@@ -27,6 +27,7 @@ namespace gsr {
     private:
         bool started = false;
 
+        unsigned long ticks_counter = 0;
         bool selected = false;
         bool canceled = false;
 

@@ -30,6 +30,7 @@
 #include "../include/Clipboard/ClipboardWayland.hpp"
 #include "../include/RegionSelector/RegionSelectorX11.hpp"
 #include "../include/RegionSelector/RegionSelectorWayland.hpp"
+#include "../include/RegionSelector/RegionSelectorMock.hpp"
 
 #include <iomanip>
 #include <string.h>
@@ -61,8 +62,6 @@
 #include <mglpp/system/Rect.hpp>
 #include <mglpp/window/Event.hpp>
 #include <mglpp/system/Utf8.hpp>
-
-#include "include/RegionSelector/RegionSelectorMock.hpp"
 
 extern "C" {
 #include <mgl/mgl.h>
