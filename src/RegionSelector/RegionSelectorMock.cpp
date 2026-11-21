@@ -21,6 +21,7 @@ namespace gsr {
         if(started)
             return false;
 
+        ticks_counter = 0;
         selected = false;
         canceled = false;
         this->selection_type = selection_type;
