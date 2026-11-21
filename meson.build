@@ -45,6 +45,7 @@ src = [
     'src/CursorTracker/CursorTrackerSway.cpp',
     'src/RegionSelector/RegionSelectorX11.cpp',
     'src/RegionSelector/RegionSelectorWayland.cpp',
+    'src/RegionSelector/RegionSelectorMock.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentX11.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentWlroots.cpp',
     'src/DesktopEnvironment/DesktopEnvironmentKde.cpp',
