@@ -90,12 +90,12 @@ namespace gsr {
 
         const ClipboardTransferFilePtr file = create_clipboard_transfer_file(filepath);
         if(!file) {
-            fprintf(stderr, "gsr ui: error: ClipboardDbus: failed to open clipboard file %s, error: %s\n", filepath.c_str(), strerror(errno));
+            fprintf(stderr, "gsr ui: error: ClipboardExternal: failed to open clipboard file %s, error: %s\n", filepath.c_str(), strerror(errno));
             return;
         }
 
         if(!send_clipboard_transfer_fd(socket_fd, file)) {
-            fprintf(stderr, "gsr ui: error: ClipboardDbus: failed to send clipboard fd, error: %s\n", strerror(errno));
+            fprintf(stderr, "gsr ui: error: ClipboardExternal: failed to send clipboard fd, error: %s\n", strerror(errno));
         }
     }
 }
