@@ -28,7 +28,7 @@
 #include "../include/CursorTracker/CursorTrackerSway.hpp"
 #include "../include/Clipboard/ClipboardX11.hpp"
 #include "../include/Clipboard/ClipboardWayland.hpp"
-#include "../include/Clipboard/ClipboardDbus.hpp"
+#include "../include/Clipboard/ClipboardExternal.hpp"
 #include "../include/RegionSelector/RegionSelectorX11.hpp"
 #include "../include/RegionSelector/RegionSelectorWayland.hpp"
 
@@ -640,12 +640,8 @@ namespace gsr {
             clipboard = std::make_unique<ClipboardWayland>(wayland_dpy);
             wayland_native_clipboard = true;
         } else if(is_mutter) {
-            ClipboardDbusTarget target = {"Service", "/Path", "Interface"};
-
-            if(ClipboardDbus::is_supported(target)) {
-                clipboard = std::make_unique<ClipboardDbus>(target);
-                wayland_native_clipboard = true;
-            }
+            clipboard = std::make_unique<ClipboardExternal>("gsr-gnome-clipboard-helper");
+            wayland_native_clipboard = true;
         } else {
             clipboard = std::make_unique<ClipboardX11>();
         }

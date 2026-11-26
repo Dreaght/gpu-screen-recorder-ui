@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/socket.h>
 
 namespace gsr {
     namespace {
@@ -135,6 +136,45 @@ namespace gsr {
                 return false;
 
             offset += bytes_read;
+        }
+    }
+
+    bool send_clipboard_transfer_fd(int socket_fd, const ClipboardTransferFilePtr &file) {
+        if(socket_fd < 0) {
+            errno = EINVAL;
+            return false;
+        }
+
+        uint8_t op = (file && file->fd >= 0) ? 1 : 0;
+        struct iovec iov = {};
+        iov.iov_base = &op;
+        iov.iov_len = sizeof(op);
+
+        struct msghdr msg = {};
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
+
+        alignas(struct cmsghdr) char cmsg_buf[CMSG_SPACE(sizeof(int))] = {};
+        if(op == 1) {
+            msg.msg_control = cmsg_buf;
+            msg.msg_controllen = sizeof(cmsg_buf);
+
+            struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+            cmsg->cmsg_level = SOL_SOCKET;
+            cmsg->cmsg_type = SCM_RIGHTS;
+            cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+            memcpy(CMSG_DATA(cmsg), &file->fd, sizeof(int));
+        }
+
+        while(true) {
+            const ssize_t sent = sendmsg(socket_fd, &msg, MSG_DONTWAIT | MSG_NOSIGNAL);
+            if(sent >= 0)
+                return true;
+
+            if(errno == EINTR)
+                continue;
+
+            return false;
         }
     }
 }

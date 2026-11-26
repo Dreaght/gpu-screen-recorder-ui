@@ -26,4 +26,5 @@ namespace gsr {
     bool read_clipboard_transfer_chunk(const ClipboardTransferFilePtr &file, uint64_t offset, unsigned char *buffer, size_t buffer_size, ssize_t *bytes_read);
     bool write_clipboard_transfer_data(int fd, const void *data, size_t size, int timeout_ms);
     bool transfer_clipboard_transfer_file(const ClipboardTransferFilePtr &file, int output_fd, int timeout_ms);
+    bool send_clipboard_transfer_fd(int socket_fd, const ClipboardTransferFilePtr &file);
 }
