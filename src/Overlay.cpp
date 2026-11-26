@@ -28,6 +28,7 @@
 #include "../include/CursorTracker/CursorTrackerSway.hpp"
 #include "../include/Clipboard/ClipboardX11.hpp"
 #include "../include/Clipboard/ClipboardWayland.hpp"
+#include "../include/Clipboard/ClipboardDbus.hpp"
 #include "../include/RegionSelector/RegionSelectorX11.hpp"
 #include "../include/RegionSelector/RegionSelectorWayland.hpp"
 
@@ -588,20 +589,19 @@ namespace gsr {
         if(config.main_config.joystick_hotkeys_enable_option == "enable_hotkeys")
             global_hotkeys_js = register_joystick_hotkeys(this);
 
+        const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+        const std::string wm_name = x11_dpy ? get_window_manager_name(x11_dpy) : "";
+        const bool is_kwin = wm_name == "KWin";
+        const bool is_mutter = wm_name.find("GNOME") != std::string::npos;
+        const bool is_hyprland = xdg_current_desktop && strstr(xdg_current_desktop, "Hyprland");
+        const bool is_niri = xdg_current_desktop && strstr(xdg_current_desktop, "niri");
+        const bool is_sway = xdg_current_desktop && strstr(xdg_current_desktop, "sway");
+
         if(this->gsr_info.system_info.display_server == DisplayServer::X11) {
             cursor_tracker = std::make_unique<CursorTrackerX11>(x11_dpy);
             desktop_environment = std::make_unique<DesktopEnvironmentX11>(x11_dpy);
             supports_window_title = true;
         } else if(this->gsr_info.system_info.display_server == DisplayServer::WAYLAND) {
-            const char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
-
-            const std::string wm_name = x11_dpy ? get_window_manager_name(x11_dpy) : "";
-            const bool is_kwin = wm_name == "KWin";
-            const bool is_mutter = wm_name.find("GNOME") != std::string::npos;
-            const bool is_hyprland = xdg_current_desktop && strstr(xdg_current_desktop, "Hyprland");
-            const bool is_niri = xdg_current_desktop && strstr(xdg_current_desktop, "niri");
-            const bool is_sway = xdg_current_desktop && strstr(xdg_current_desktop, "sway");
-
             if(is_hyprland && CursorTrackerHyprland::is_supported())
                 cursor_tracker = std::make_unique<CursorTrackerHyprland>();
             else if(is_niri && CursorTrackerNiri::is_supported())
@@ -639,6 +639,13 @@ namespace gsr {
         if(wayland_dpy && ClipboardWayland::is_supported(wayland_dpy)) {
             clipboard = std::make_unique<ClipboardWayland>(wayland_dpy);
             wayland_native_clipboard = true;
+        } else if(is_mutter) {
+            ClipboardDbusTarget target = {"Service", "/Path", "Interface"};
+
+            if(ClipboardDbus::is_supported(target)) {
+                clipboard = std::make_unique<ClipboardDbus>(target);
+                wayland_native_clipboard = true;
+            }
         } else {
             clipboard = std::make_unique<ClipboardX11>();
         }

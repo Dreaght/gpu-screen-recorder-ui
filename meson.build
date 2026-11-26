@@ -55,6 +55,7 @@ src = [
     'src/Clipboard/ClipboardTransfer.cpp',
     'src/Clipboard/ClipboardX11.cpp',
     'src/Clipboard/ClipboardWayland.cpp',
+    'src/Clipboard/ClipboardDbus.cpp',
     'src/Config.cpp',
     'src/GsrInfo.cpp',
     'src/Process.cpp',
