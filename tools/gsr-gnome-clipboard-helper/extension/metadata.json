@@ -1,0 +1,6 @@
+{
+  "uuid": "fd-clipboard@test",
+  "name": "FD Clipboard Test",
+  "description": "Step-by-step FD clipboard test",
+  "shell-version": ["51"]
+}
