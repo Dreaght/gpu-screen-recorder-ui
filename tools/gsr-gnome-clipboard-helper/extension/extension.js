@@ -9,10 +9,10 @@ const OBJECT_PATH = '/com/dec05eba/gpu_screen_recorder/Clipboard';
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MiB
 
 const NATIVE_EXES = new Set([
-    '/usr/bin/gsr-clipboard-helper',
-    '/usr/local/bin/gsr-clipboard-helper',
+    '/usr/bin/gsr-gnome-clipboard-helper',
+    '/usr/local/bin/gsr-gnome-clipboard-helper',
 ]);
-const FLATPAK_HOST_EXE_RE = /^\/var\/lib\/flatpak\/app\/com\.dec05eba\.gpu_screen_recorder\/[^/]+\/[^/]+\/[0-9a-f]{64}\/files\/bin\/gsr-clipboard-helper$/;
+const FLATPAK_HOST_EXE_RE = /^\/var\/lib\/flatpak\/app\/com\.dec05eba\.gpu_screen_recorder\/[^/]+\/[^/]+\/[0-9a-f]{64}\/files\/bin\/gsr-gnome-clipboard-helper$/;
 const XDG_DBUS_PROXY_EXES = new Set([
     '/usr/bin/xdg-dbus-proxy',
     '/usr/libexec/xdg-dbus-proxy',
