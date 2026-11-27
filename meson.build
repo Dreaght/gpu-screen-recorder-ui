@@ -167,7 +167,8 @@ executable(
 executable(
     'gsr-gnome-clipboard-helper',
     [
-        'tools/gsr-gnome-clipboard-helper/main.cpp'
+        'tools/gsr-gnome-clipboard-helper/src/UplinkSocketReceiver.cpp',
+        'tools/gsr-gnome-clipboard-helper/src/main.cpp'
     ],
     install : true,
     dependencies: [
