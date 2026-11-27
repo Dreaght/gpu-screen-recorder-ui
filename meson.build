@@ -165,6 +165,17 @@ executable(
 )
 
 executable(
+    'gsr-gnome-clipboard-helper',
+    [
+        'tools/gsr-gnome-clipboard-helper/main.cpp'
+    ],
+    install : true,
+    dependencies: [
+        dependency('dbus-1'),
+    ]
+)
+
+executable(
     'gsr-game-tracker',
     [
         'tools/gsr-game-tracker/native_games.c',
